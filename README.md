@@ -2,7 +2,7 @@
 
 **Your match. Your mates.** A small, browser-based experiment in private group viewing, using the group's own computers to distribute the video.
 
-Open the [test website](https://sameend.com/) in desktop Chrome or Edge. No account, Electron download or browser extension is required. A PWA installation is optional.
+Open the [test website](https://www.sameend.com/) in desktop Chrome or Edge. No account, Electron download or browser extension is required. A PWA installation is optional.
 
 1. Choose **Try a quick test**. A moving picture starts after ten seconds.
 2. Choose **Invite your mates**. Your private browser invitation is created and copied; send it to your group chat. If copying is blocked, copy the selected invitation yourself.
