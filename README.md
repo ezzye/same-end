@@ -4,10 +4,12 @@
 
 Open the [test website](https://sameend.com/) in desktop Chrome or Edge. No account, Electron download or browser extension is required. A PWA installation is optional.
 
-1. Start **Try the test picture**. For a quick check, choose the **10 seconds · connection test** delay first.
-2. Make an invitation and copy its **browser invitation**. Send it privately to a friend.
-3. Your friend opens that invitation in their browser. Both keep the app open and watch its delayed player. No reply file is needed.
-4. For normal use, start a new cast with the default **five-minute delay**, then choose **Share a tab or screen** and select a source in the browser's picker. Enable tab audio if offered.
+1. Choose **Try a quick test**. A moving picture starts after ten seconds.
+2. Choose **Invite your mates**. Your private browser invitation is created and copied; send it to your group chat. If copying is blocked, copy the selected invitation yourself.
+3. Your friend opens that invitation. Joining starts automatically, with no reply file, login or password. Keep both app windows open.
+4. For a match, end the test and choose **Share a tab**. Select a source in the browser's picker and include tab audio if offered. The normal room uses a five-minute shared delay.
+
+Timing, picture quality and connection details are tucked inside **Room settings & help**. Defaults are selected for ordinary use.
 
 The original captured screen is still live. Watch the Same End player to see the same delayed moment as the group. Each viewer may need to select **Turn sound on**. Ending the source cast ends the session.
 
