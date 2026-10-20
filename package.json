@@ -1,0 +1,23 @@
+{
+  "name": "same-end",
+  "version": "0.1.0",
+  "private": false,
+  "description": "A private, delayed group viewing prototype for media you are allowed to share.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "start": "node serve.mjs",
+    "build": "node build-pwa.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "homepage": "https://ezzye.github.io/same-end/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ezzye/same-end.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ezzye/same-end/issues"
+  }
+}
