@@ -16,9 +16,11 @@ The fixture picker is a small source-checked starter list, checked 21 October 20
 
 Clubs and chat need the control service. The social build includes its deployment configuration; public rollout and real notification delivery must be confirmed separately. If a copy says clubs or reminders are not connected yet, use its quick viewing test or a calendar entry meanwhile.
 
-## Try the picture first
+## Start directly with video and chat
 
-Choose **Try a quick test** for a synthetic moving picture with a ten-second shared delay. Choose **Invite your mates** for that room and send the browser invitation privately. A direct room invitation joins automatically; a club invitation first opens the club's join step. Keep the app open and each laptop awake.
+Choose **Try a quick test** for a synthetic moving picture with a ten-second shared delay. A private chat room opens automatically and is saved on the organiser browser. Choose **Invite your mates** and send the new invitation privately: it opens both video and chat automatically. An explicitly opened organiser club is used when present; otherwise only a previously automatic room is reused. Mates can save the club to return another day. Keep the app open and each laptop awake.
+
+**Live chat** and **Match reminders** are beside the picture. The reminder controls are visible above the diary. Each person must enable notifications on their own browser; reminders require a planned match. Older video-only links continue to play video and ask for a fresh invitation to add chat. If the control service fails, the app labels the video-only fallback explicitly.
 
 For your own source, end the test and choose **Share a tab**. The browser asks which tab, window or screen to capture; include tab audio if offered. Normal match rooms use a five-minute shared delay. Watch the Same End player, since the original captured screen remains live. Each viewer may need **Turn sound on**. Settings are inside **Room settings & help**.
 

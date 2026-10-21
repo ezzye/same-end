@@ -70,6 +70,9 @@ try {
   await assert.rejects(() => member.evaluate(id => SameEndSocial.openClub(id), id), /not saved/);
   const serialized = JSON.stringify([...store.items.values()]); assert(!serialized.includes('Private final')); assert(!serialized.includes('Acceptance club')); assert(!serialized.includes(xss)); assert(!serialized.includes('private-test'));
   assert(requests.every(r => !r.path.includes('#') && !r.referer.includes('#')));
+  await owner.evaluate(()=>{PrivateCast.state={active:true,role:'source',config:{id:'direct'}};document.querySelector('#magnet-link').value='magnet:?xt=urn:btih:direct#pc=test'});
+  const directLink=await owner.evaluate(()=>SameEndSocial.castInvitation('magnet:?xt=urn:btih:direct#pc=test'));
+  assert(!directLink.includes('owner='));const direct=await page();await direct.goto(directLink);await direct.waitForFunction(()=>SameEndSocial.snapshot().connected&&PrivateCast.joined);assert.equal(await direct.evaluate(()=>location.hash),'');assert(await direct.locator('#club-chat-shell').isVisible());
   const unsaved = await page(true); await unsaved.evaluate(() => SameEndSocial.createClub({ name: 'Unsaved browser club' })); assert.equal(await unsaved.evaluate(() => SameEndSocial.snapshot().connected), true); assert.equal(await unsaved.evaluate(() => SameEndSocial.snapshot().saved), false); assert.match(await unsaved.locator('#club-notice').textContent(), /could not save/); assert.equal(await unsaved.locator('#club-open').isVisible(), true); assert((await unsaved.locator('#club-invite-url').inputValue()).includes('#club='));
   assert.deepEqual(errors, []);
   console.log('PASS: isolated owner/member encryption, fragment removal, saved reopening/forget, owner permissions, DST, calendar alarm, XSS-safe chat, reserved controls, 409 merge, live publish/join/clear; no browser errors.');
