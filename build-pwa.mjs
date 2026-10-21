@@ -1,7 +1,8 @@
-import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,rm} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
+import {execFileSync} from 'node:child_process';
 const dir=path.dirname(fileURLToPath(import.meta.url)), out=path.join(dir,'dist');
 await mkdir(out,{recursive:true});
 let html=await readFile(path.join(dir,'app.html'),'utf8');
@@ -23,15 +24,16 @@ const runtime={apiBase,buildId:(process.env.CURRENT_DEPLOY_SHA||process.env.GITH
 const fixtures=JSON.parse(await readFile(path.join(dir,'fixtures.json'),'utf8'));
 const hero='data:image/webp;base64,'+(await readFile(path.join(dir,'assets/match-night.webp'))).toString('base64');
 const clubhouse='data:image/webp;base64,'+(await readFile(path.join(dir,'assets/clubhouse.webp'))).toString('base64');
-const css=(await readFile(path.join(dir,'social.css'),'utf8'))+'\n'+(await readFile(path.join(dir,'brand.css'),'utf8')).replace('__HERO_IMAGE__',hero).replace('__CLUB_IMAGE__',clubhouse);
+const css=(await readFile(path.join(dir,'personal-listings.css'),'utf8'))+'\n'+(await readFile(path.join(dir,'social.css'),'utf8'))+'\n'+(await readFile(path.join(dir,'brand.css'),'utf8')).replace('__HERO_IMAGE__',hero).replace('__CLUB_IMAGE__',clubhouse);
 html=html.replace('</head>','<style id="same-end-brand">'+css+'</style></head>');
 const social=await readFile(path.join(dir,'social.js'),'utf8');
+const personalUI=(await readFile(path.join(dir,'extension/reader-core.js'),'utf8'))+'\n'+(await readFile(path.join(dir,'personal-listings.js'),'utf8'));
 const scheduleUI=(await readFile(path.join(dir,'listing-sources.js'),'utf8'))+'\n'+await readFile(path.join(dir,'schedule-ui.js'),'utf8');
 let rehearsal='';try{rehearsal=await readFile(path.join(dir,'rehearsal.js'),'utf8')}catch(e){if(e.code!=='ENOENT')throw e;}
 const json=value=>JSON.stringify(value).replace(/</g,'\\u003c');
 // Capture only harmless launch intent before the club module removes secret fragments.
 const boot=`window.SameEndConfig=${json(runtime)};window.SameEndFixtures=${json(fixtures)};(()=>{const q=new URLSearchParams(location.hash.slice(1));window.SameEndBoot={rehearsal:q.get('rehearsal'),hasClubInvite:q.has('club')||q.has('openclub')};})();`;
-html=html.replace(/<\/body>(?=<\/html>\s*$)/,'<script id="same-end-social">'+boot+'\n'+social+'\n'+rehearsal+'\n'+scheduleUI+'</script></body>');
+html=html.replace(/<\/body>(?=<\/html>\s*$)/,'<script id="same-end-social">'+boot+'\n'+social+'\n'+rehearsal+'\n'+scheduleUI+'\n'+personalUI+'</script></body>');
 
 html=html.replace('<meta name="viewport"', '<meta name="referrer" content="no-referrer"><link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon-192.png"><meta name="viewport"');
 html=html.replace('<!-- browser-invitation-slot -->',`<div class="invite-link-wrap" id="invitation-ready" hidden><label for="browser-invitation">Your private invitation</label><input id="browser-invitation" type="text" readonly autocomplete="off" aria-describedby="browser-link-help"><p id="browser-link-help" class="micro">Send this complete link privately.</p></div>`);
@@ -94,3 +96,15 @@ self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(e.request.me
 `);
 
 await writeFile(path.join(out,'test-guide.html'),await readFile(path.join(dir,'test-guide.html')));
+
+// Ship only the reviewed extension files. No dependencies, profiles or local data.
+await mkdir(path.join(dir,'extension/icons'),{recursive:true});
+await writeFile(path.join(dir,'extension/icons/icon-128.png'),await png(128));
+const packageDir=path.join(out,'.reader-package'), extensionDir=path.join(packageDir,'Same-End-Local-Fixtures');
+await rm(packageDir,{recursive:true,force:true});await mkdir(path.join(extensionDir,'icons'),{recursive:true});
+const extensionFiles=['manifest.json','reader-core.js','capture-page.js','worker.js','popup.html','popup.js','popup.css','bridge.js','icons/icon-128.png'];
+for(const file of extensionFiles)await writeFile(path.join(extensionDir,file),await readFile(path.join(dir,'extension',file)));
+await rm(path.join(out,'same-end-local-fixtures.zip'),{force:true});
+execFileSync('zip',['-q','-r',path.join(out,'same-end-local-fixtures.zip'),'Same-End-Local-Fixtures'],{cwd:packageDir});
+await rm(packageDir,{recursive:true,force:true});
+await writeFile(path.join(out,'reader-setup.html'),await readFile(path.join(dir,'reader-setup.html')));

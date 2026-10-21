@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Same End Local Fixtures",
+  "version": "0.1.0",
+  "description": "Keep local football fixture reminders and calendar entries.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "alarms",
+    "notifications"
+  ],
+  "optional_host_permissions": [
+    "https://www.bbc.co.uk/*",
+    "https://www.bbc.com/*"
+  ],
+  "background": {
+    "service_worker": "worker.js"
+  },
+  "action": {
+    "default_title": "Same End fixtures",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "128": "icons/icon-128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://sameend.com/*",
+        "https://www.sameend.com/*"
+      ],
+      "js": [
+        "bridge.js"
+      ]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; script-src 'self'; object-src 'none'; connect-src https://www.bbc.co.uk https://www.bbc.com; img-src 'self'; style-src 'self'; base-uri 'none'; frame-ancestors 'none'"
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv4K8Wu592rz8GTeqpX+31GarhhZACFVXyKpX0f8xBVGOD06EgNQYLv/FUrlnx8vm7mPlLDZCWP0JrTSflowUTk7MhVXrWLiV32fI8miP82Vio6VyzjVur5NhElvJoJGVGsdhaETdxWujFfef+W7EqcIEBCP9UffdNQvQjZI5MvxR3LpXmopT4ipG4sjVmGUUgH1RN1wSY8ND+i7MW0EMX8QK2G5Cv9ub7tZfKTfybtcdststs3Bl10nsC95jWoeco26uWdrrHp18YU2gT1LfsNWf9zHJgyqQ12LUBgJP7AIamNWy9FCS53RkefXwDqbEuHUCRLdo/MJVxW6Wg/QAmQIDAQAB",
+  "icons": {
+    "128": "icons/icon-128.png"
+  }
+}

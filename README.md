@@ -84,3 +84,11 @@ Use material you are entitled to capture and share. Same End does not bypass DRM
 Original code: MIT. WebTorrent: MIT; attribution in [THIRD_PARTY.md](THIRD_PARTY.md) and `vendor/WEBTORRENT-LICENSE.txt`.
 
 Fresh app entry: `/watch.html` avoids the older app-shell cache. Current service workers fetch page navigations from the network and fall back to the fixed cached shell offline; active viewing is never reloaded by this navigation policy.
+
+## Local fixtures helper (desktop Chrome and Edge)
+
+`npm run build` also produces `dist/same-end-local-fixtures.zip` and the standalone `reader-setup.html` guide. The same unpacked Manifest V3 extension works on Mac and Windows. Install the folder through the browser's extensions page in Developer mode; this prototype has no store listing or automatic extension updates. Keep its folder in place.
+
+The user initiates each import. BBC monthly fixtures can be fetched directly after a one-time optional BBC permission; supported BBC and LiveSoccerTV match pages can be read with temporary `activeTab` access. The helper only retains whitelisted fixture fields in `chrome.storage.local`, not sync storage. Source HTML is transient. Personal listings appear in a separate Same End panel after explicit connection; they never enter `SameEndFixtures`, the club event API, or `fixtures.json`. Calendar export is one `.ics` batch with stable event IDs, UTC times and alarms. Calendar import and notification display still depend on the recipient's OS/calendar/browser.
+
+`npm test` covers core parsing/calendar and worker state/access/alarm behavior. `node tests/local-reader-browser.test.mjs` uses the bundled local Playwright installation and an isolated Chrome for Testing profile to check the real extension worker, website connection, local persistence, calendar downloads and absence of listing uploads. It does not install into the user's normal browser profile. Physical Windows acceptance, real toolbar permission flow and OS calendar/banner acceptance are separate checks.

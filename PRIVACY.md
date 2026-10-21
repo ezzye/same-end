@@ -52,3 +52,11 @@ Capture happens locally after the browser's source picker. Video/audio pieces tr
 The offline service worker caches the fixed app-shell assets. It does not cache live API responses, chat history or video. Saved club credentials are separate, deliberate IndexedDB records. Opening the shell offline does not make the live club service or remote peers available.
 
 The static host receives ordinary page and asset requests and associated network metadata. Same End cannot promise anonymity or stop recipients from retaining content they can view. Use only material you are entitled to capture and share; provider restrictions and protected capture still apply.
+
+### Optional local fixtures extension
+
+The desktop helper stores only normalized fixture details, selected country, reminder preferences, connection consent and fired reminder identifiers in `chrome.storage.local` in the current browser profile. It does not use browser sync, analytics, cookies, passwords, page history or a Same End listing database. Source page HTML is read transiently on import and is not persisted. The BBC shortcut requests one of a fixed set of fixture URLs directly from the BBC with credentials omitted; that provider still receives the normal connection metadata.
+
+Choosing Connect or Open Same End allows the Same End website to read these local records on this computer through its restricted content-script bridge. Records are held in page memory for display and calendar export. This feature does not send them to Same End's backend, private club diary or other devices. Disconnect stops website access; Remove deletes a fixture and its reminder, and uninstalling removes the extension's local storage. Ordinary browser-profile or device backups may retain local data under the user's own backup settings.
+
+Calendar export places the selected fixtures and source links in a file. A calendar application may sync imported events to its own service. This is separate from Same End; calendar alerts, updates and deletion follow that calendar's behavior. Local browser alarms can be delayed or missed while the browser/device is closed or asleep. The extension requests no access to personal calendars.

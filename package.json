@@ -8,7 +8,7 @@
   "scripts": {
     "start": "node serve.mjs",
     "build": "node build-pwa.mjs",
-    "test": "node --test tests/backup-protocol.test.mjs tests/magnet-recovery.test.mjs tests/pwa-shell.test.mjs backend/test/control.test.mjs tests/fixture-feed.test.mjs",
+    "test": "node --test tests/backup-protocol.test.mjs tests/magnet-recovery.test.mjs tests/pwa-shell.test.mjs backend/test/control.test.mjs tests/fixture-feed.test.mjs tests/reader-core.test.mjs tests/reader-worker.test.mjs",
     "test:social": "node tests/social-browser.test.mjs",
     "refresh:fixtures": "node scripts/update-fixtures.mjs"
   },
