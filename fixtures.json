@@ -1,40 +1,178 @@
 {
   "checkedAt": "2026-10-21",
-  "timezone": "Europe/London",
-  "note": "A small source-checked starter list, not comprehensive live fixture coverage. Times can change. Add any other match manually and check its official source.",
+  "fetchedAt": "2026-10-21T21:26:36.748Z",
+  "timezone": "UTC",
+  "provider": "TheSportsDB",
+  "providerApi": "v1",
+  "attribution": "Fixture and channel metadata from TheSportsDB, supplemented by the linked official fixture sources. Partial development feed.",
+  "coverage": "partial",
+  "note": "Partial automatic suggestions. Free TV lookup returns at most two country/channel records per event. Missing channels do not mean a match is unavailable. Check the broadcaster before buying. Other matches can be added manually.",
   "fixtures": [
     {
-      "id": "fixture-1",
+      "id": "thesportsdb-2594554",
+      "provider": "TheSportsDB",
+      "providerEventId": "2594554",
+      "providerTeamIds": [
+        "133601",
+        "134570"
+      ],
       "home": "Aston Villa",
       "away": "Viking",
       "title": "Aston Villa v Viking",
       "competition": "UEFA Champions League",
       "startsAt": 1792609200000,
-      "sourceUrl": "https://www.tntsports.co.uk/football/champions-league/2026-2027/aston-villa-viking-fk_mtc21878420/live.shtml",
+      "sourceUrl": "https://www.thesportsdb.com/event/2594554",
       "checkedAt": "2026-10-21",
-      "status": "scheduled"
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "Brazil",
+          "channel": "HBO Max BR",
+          "providerChannelId": "3600"
+        },
+        {
+          "country": "China",
+          "channel": "IQiyi CN",
+          "providerChannelId": "3799"
+        }
+      ],
+      "tvCoverage": "partial"
     },
     {
-      "id": "fixture-2",
+      "id": "thesportsdb-2594862",
+      "provider": "TheSportsDB",
+      "providerEventId": "2594862",
+      "providerTeamIds": [
+        "134010",
+        "133603"
+      ],
+      "home": "Lech Pozna\u0144",
+      "away": "Sunderland",
+      "title": "Lech Pozna\u0144 v Sunderland",
+      "competition": "UEFA Europa League",
+      "startsAt": 1792687500000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2594862",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "Qatar",
+          "channel": "BeIN Sports 4 Qatar",
+          "providerChannelId": "8518"
+        },
+        {
+          "country": "Norway",
+          "channel": "V Sport 3 NO",
+          "providerChannelId": "8562"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2594884",
+      "provider": "TheSportsDB",
+      "providerEventId": "2594884",
+      "providerTeamIds": [
+        "133794",
+        "133632"
+      ],
+      "home": "Be\u015fikta\u015f",
+      "away": "Crystal Palace",
+      "title": "Be\u015fikta\u015f v Crystal Palace",
+      "competition": "UEFA Europa League",
+      "startsAt": 1792695600000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2594884",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled",
+      "tv": [],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2494075",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494075",
+      "providerTeamIds": [
+        "133622",
+        "133720"
+      ],
+      "home": "Ipswich Town",
+      "away": "Nottingham Forest",
+      "title": "Ipswich Town v Nottingham Forest",
+      "competition": "English Premier League",
+      "startsAt": 1792782000000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494075",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled",
+      "tv": [],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2494077",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494077",
+      "providerTeamIds": [
+        "133601",
+        "133613"
+      ],
       "home": "Aston Villa",
       "away": "Manchester City",
       "title": "Aston Villa v Manchester City",
-      "competition": "Premier League",
+      "competition": "English Premier League",
       "startsAt": 1792841400000,
-      "sourceUrl": "https://www.premierleague.com/en/news/4688862/fixture-amendments-for-premier-league-matches-in-october-and-november",
+      "sourceUrl": "https://www.thesportsdb.com/event/2494077",
       "checkedAt": "2026-10-21",
-      "status": "scheduled"
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "Iceland",
+          "channel": "St\u00f6\u00f0 2 Sport IS",
+          "providerChannelId": "7941"
+        },
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        }
+      ],
+      "tvCoverage": "partial"
     },
     {
-      "id": "fixture-3",
+      "id": "thesportsdb-2494079",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494079",
+      "providerTeamIds": [
+        "133625",
+        "133600"
+      ],
+      "home": "Coventry City",
+      "away": "Fulham",
+      "title": "Coventry City v Fulham",
+      "competition": "English Premier League",
+      "startsAt": 1792850400000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494079",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled",
+      "tv": [],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2494072",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494072",
+      "providerTeamIds": [
+        "133604",
+        "133615"
+      ],
       "home": "Arsenal",
       "away": "Everton",
       "title": "Arsenal v Everton",
-      "competition": "Premier League",
+      "competition": "English Premier League",
       "startsAt": 1792850400000,
-      "sourceUrl": "https://www.premierleague.com/en/news/4688862/fixture-amendments-for-premier-league-matches-in-october-and-november",
+      "sourceUrl": "https://www.thesportsdb.com/event/2494072",
       "checkedAt": "2026-10-21",
-      "status": "scheduled"
+      "status": "scheduled",
+      "tv": [],
+      "tvCoverage": "partial"
     },
     {
       "id": "fixture-4",
@@ -46,6 +184,25 @@
       "sourceUrl": "https://www.premierleague.com/en/news/4688862/fixture-amendments-for-premier-league-matches-in-october-and-november",
       "checkedAt": "2026-10-21",
       "status": "scheduled"
+    },
+    {
+      "id": "thesportsdb-2494076",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494076",
+      "providerTeamIds": [
+        "133617",
+        "134355"
+      ],
+      "home": "Hull City",
+      "away": "Brentford",
+      "title": "Hull City v Brentford",
+      "competition": "English Premier League",
+      "startsAt": 1792936800000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494076",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled",
+      "tv": [],
+      "tvCoverage": "partial"
     },
     {
       "id": "fixture-5",

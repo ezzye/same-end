@@ -6,3 +6,41 @@
 @media(prefers-reduced-motion:reduce){.club-messages{scroll-behavior:auto}}
 
 .social-watch-layout:not(:has(>.club-chat-shell)){display:block}
+
+/* Dense live chat beside the room video. */
+.room .social-watch-layout{grid-template-columns:minmax(0,1fr) 290px;gap:12px}
+.room .social-watch-layout .stage{width:100%;max-width:none;min-height:0;aspect-ratio:16/9}
+.room .social-watch-layout>.club-chat-shell{height:100%;max-height:570px;min-height:0}
+.room .club-chat-shell{border-radius:10px}
+.room .club-chat-heading{padding:7px 10px;min-height:0}
+.room .club-chat-heading h3{font-size:13px;margin:0}
+.room .club-messages{height:auto;min-height:0;padding:4px 8px 7px}
+.room .club-message{max-width:100%;margin:3px 0;padding:3px 6px;border-radius:6px}
+.room .club-message-meta{gap:5px;justify-content:flex-start;line-height:1.2}
+.room .club-message-meta strong{font-size:10px;max-width:120px}
+.room .club-message-meta time{font-size:8px;margin-left:auto}
+.room .club-message p{display:inline;margin:0 0 0 5px;font-size:11px;line-height:1.25}
+.room .club-chat-shell form{padding:5px 8px 7px}
+.room .club-chat-shell label{font-size:9px;margin:0 0 3px}
+.room .club-chat-shell #club-nick{min-height:27px;padding:4px 7px}
+.room .club-chat-compose{gap:5px;margin-top:5px}
+.room .club-chat-compose textarea{height:36px;min-height:36px;padding:5px 7px;font-size:11px!important}
+.room .club-chat-compose button{min-width:42px;min-height:36px;padding:5px 8px;font-size:10px}
+.room .club-chat-shell .club-muted{margin:3px 0 0!important}
+.room:fullscreen .social-watch-layout>.club-chat-shell,.room.room-expanded .social-watch-layout>.club-chat-shell{height:100%;max-height:none;min-height:0}
+@media(max-width:760px){.room .social-watch-layout{grid-template-columns:1fr;grid-template-rows:auto auto}.room .social-watch-layout .stage{aspect-ratio:16/10}.room .social-watch-layout>.club-chat-shell{height:300px;max-height:none}.room:fullscreen .social-watch-layout .stage,.room.room-expanded .social-watch-layout .stage{height:100%;aspect-ratio:auto}}
+
+.room .social-watch-layout:not(:has(>.club-chat-shell:not([hidden]))){display:block}
+.room:fullscreen .social-watch-layout:not(:has(>.club-chat-shell:not([hidden]))) .stage,.room.room-expanded .social-watch-layout:not(:has(>.club-chat-shell:not([hidden]))) .stage{height:100%}
+.room .club-message-meta{display:inline-flex;max-width:100%;vertical-align:baseline}
+.room .club-message-meta time{margin-left:4px}
+.room .club-chat-connection{padding:0 10px 5px;min-height:0;font-size:9px}
+
+.room .club-messages{max-height:none}
+.room .club-message p{font-size:12px;line-height:1.4}
+.room .club-message-meta strong{font-size:11px}
+.room .club-message-meta time{font-size:9px}
+.room .club-chat-compose textarea{font-size:12px!important}
+.room .club-chat-compose button{font-size:12px}
+.room .club-chat-shell #club-nick{font-size:12px}
+.room:fullscreen .social-watch-layout:not(:has(>.club-chat-shell:not([hidden]))),.room.room-expanded .social-watch-layout:not(:has(>.club-chat-shell:not([hidden]))){grid-template-rows:minmax(0,1fr)}
