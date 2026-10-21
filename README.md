@@ -2,7 +2,7 @@
 
 **Your match. Your mates.** A private football club for planning the next game, chatting with your mates and watching the same delayed picture together.
 
-Open [Same End](https://www.sameend.com/) in desktop Chrome or Edge. There is no account or extension to install. Installing the app is optional. The standalone [guide](test-guide.html) can be saved and shared as an HTML file.
+Open [Same End](https://www.sameend.com/watch.html) in desktop Chrome or Edge. There is no account or extension to install. Installing the app is optional. The standalone [guide](test-guide.html) can be saved and shared as an HTML file.
 
 ## Make match day a regular thing
 
@@ -82,3 +82,5 @@ Club records expire 400 days after their last organiser update; server chat expi
 Use material you are entitled to capture and share. Same End does not bypass DRM, subscription controls or geographic restrictions. Providers can prohibit or block capture. Recipients can retain material they receive.
 
 Original code: MIT. WebTorrent: MIT; attribution in [THIRD_PARTY.md](THIRD_PARTY.md) and `vendor/WEBTORRENT-LICENSE.txt`.
+
+Fresh app entry: `/watch.html` avoids the older app-shell cache. Current service workers fetch page navigations from the network and fall back to the fixed cached shell offline; active viewing is never reloaded by this navigation policy.
