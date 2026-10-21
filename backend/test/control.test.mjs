@@ -74,7 +74,7 @@ test('input boundaries reject malformed envelopes, metadata and excessive bodies
 
 test('public creation and chat posting have enforced bounded quotas', async () => {
   const f = fixture(); await f.create();
-  for (let i = 0; i < 2; i++) { const id = randomUUID(); assert.equal((await f.request('POST', '/v1/clubs', {...f.club, id})).statusCode, 200); }
+  for (let i = 0; i < 9; i++) { const id = randomUUID(); assert.equal((await f.request('POST', '/v1/clubs', {...f.club, id})).statusCode, 200); }
   assert.equal((await f.request('POST', '/v1/clubs', {...f.club, id: randomUUID()})).statusCode, 429);
   for (let i = 0; i < 20; i++) assert.equal((await f.request('POST', '/messages', {id: randomUUID(), payload: envelope()})).statusCode, 200);
   assert.equal((await f.request('POST', '/messages', {id: randomUUID(), payload: envelope()})).statusCode, 429);

@@ -54,7 +54,7 @@ export function createApi({store, push, now = Date.now, allowedOrigins = ['https
   async function rate(key, limit, milliseconds) {
     const time = now(), bucket = Math.floor(time / milliseconds);
     try { await store.consume(`${key}:${bucket}`, limit, expiry((bucket + 1) * milliseconds, 3600)); }
-    catch (e) { if (e instanceof Conflict) fail(429, 'rate_limited', 'Give it a moment, then try again.'); throw e; }
+    catch (e) { if (e instanceof Conflict) fail(429, 'rate_limited', key.startsWith('create-ip:')?'This network has reached today’s new-room limit. Open a saved club, or create a new room tomorrow.':key==='create-global'?'New rooms are at today’s service limit. Saved clubs still work; try creating a room tomorrow.':'Give it a moment, then try again.'); throw e; }
   }
   async function authorised(id, token, write = false) {
     if (!uuid(id)) fail(401, 'unauthorised', 'Open your private club invitation again.');
@@ -84,7 +84,7 @@ export function createApi({store, push, now = Date.now, allowedOrigins = ['https
       const time = now();
       if (!uuid(body.id) || !HASH.test(body.readTokenHash) || !HASH.test(body.writeTokenHash) || body.readTokenHash === body.writeTokenHash) fail(400, 'invalid_club', 'That private club could not be created.');
       const state = envelope(body.state, LIMITS.stateBytes), events = eventsList(body.events, time);
-      await rate(`create-ip:${ip}`, 3, DAY); await rate('create-global', 50, DAY);
+      await rate(`create-ip:${ip}`, 10, DAY); await rate('create-global', 50, DAY);
       const club = {pk: pkFor(body.id), sk: 'META', id: body.id, version: 1, readTokenHash: body.readTokenHash, writeTokenHash: body.writeTokenHash, state, events, updatedAt: time, expiresAt: expiry(time, LIMITS.clubSeconds)};
       try { await store.transact([{put: club, condition: {absent: true}}, ...jobsFor(body.id, events, time).map(put => ({put}))]); }
       catch (e) { if (e instanceof Conflict) fail(409, 'club_exists', 'That club already exists. Open its saved invitation.'); throw e; }
