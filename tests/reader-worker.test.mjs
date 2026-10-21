@@ -37,10 +37,10 @@ function workerHarness() {
   context.globalThis = context;
   vm.createContext(context);
   context.self = context;
-  context.importScripts = () => vm.runInContext(fs.readFileSync(path.join(root, 'extension/reader-core.js'), 'utf8'), context);
+  context.importScripts = (...files) => files.forEach(file=>vm.runInContext(fs.readFileSync(path.join(root,'extension',file),'utf8'),context));
   vm.runInContext(fs.readFileSync(path.join(root, 'extension/worker.js'), 'utf8'), context);
   const send = (message, sender) => new Promise(resolve => chrome.runtime.onMessage.fn(message, sender, resolve));
-  return { chrome, memory, alarms, created, notifications, clock, send };
+  return { chrome, memory, alarms, created, notifications, clock, send, setBBCResult:fn=>{context.SameEndBBCFollow.refresh=fn;} };
 }
 
 test('worker filters messages and limits connected Same End pages to bridge actions', async () => {
@@ -60,10 +60,10 @@ test('popup imports are local, near-term reminders fire once, and mutations retu
   const now = Date.now();
   const match = { id: 'bbc:fixture-7', title: 'Villa v Leeds', home: 'Aston Villa', away: 'Leeds United', startsAt: now + 5 * 60_000, status: 'scheduled', tv: [], sourceUrl: 'https://www.bbc.co.uk/sport/football/fixtures', sourceName: 'BBC', checkedAt: now };
   const saved = await h.send({ type: 'SE_LOCAL', action: 'SAVE', matches: [match] }, popup);
-  assert.equal(saved.ok, true, saved.error); assert.equal(saved.matches.length, 1); assert.equal(saved.settings.reminderMinutes, 15); assert.equal(saved.version, '0.1.0');
+  assert.equal(saved.ok, true, saved.error); assert.equal(saved.matches.length, 1); assert.equal(saved.settings.reminderMinutes, 15); assert.equal(saved.version, '0.2.0');
   assert.equal(h.alarms.size, 1); assert.ok([...h.alarms.values()][0] > Date.now()); assert.ok([...h.alarms.values()][0] < now + 10_000);
   const removed = await h.send({ type: 'SE_LOCAL', action: 'REMOVE', ids: [saved.matches[0].id] }, popup);
-  assert.equal(removed.matches.length, 0); assert.deepEqual(removed.settings, saved.settings); assert.equal(removed.version, '0.1.0'); assert.equal(h.alarms.size, 0);
+  assert.equal(removed.matches.length, 0); assert.deepEqual(removed.settings, saved.settings); assert.equal(removed.version, '0.2.0'); assert.equal(h.alarms.size, 0);
   const reopened = await h.send({ type: 'SE_LOCAL', action: 'OPEN' }, popup);
   assert.equal(reopened.ok, true); assert.equal(reopened.matches.length, 0); assert.equal(h.memory.sameEndConnected, true);
 });
@@ -85,4 +85,25 @@ test('unsupported active pages are rejected before the capture script runs', asy
   const h = workerHarness(), popup = { id: 'test-extension', url: 'chrome-extension://test-extension/popup.html' };
   const result = await h.send({ type: 'SE_LOCAL', action: 'IMPORT_TAB' }, popup);
   assert.equal(result.ok, false); assert.match(result.error, /supported football fixture page/);
+});
+
+test('following BBC schedules local daily updates, upserts changes and preserves good data on failure', async()=>{
+ const h=workerHarness(),popup={id:'test-extension',url:'chrome-extension://test-extension/popup.html'};
+ h.chrome.permissions.contains=async()=>true;
+ const now=h.clock.now,fixture={id:'stable-source-id',title:'Villa v Test',home:'Villa',away:'Test',startsAt:now+3600000,status:'scheduled',sourceUrl:'https://www.bbc.co.uk/sport/football/teams/aston-villa/scores-fixtures',sourceName:'BBC'};
+ // Inject only the source-reader result; the actual BBC fetch/parser has separate tests.
+ h.setBBCResult(async()=>[fixture]);
+ const first=await h.send({type:'SE_LOCAL',action:'FOLLOW_BBC',enabled:true,team:'aston-villa'},popup);
+ assert.equal(first.ok,true,first.error);assert.equal(first.matches.length,1);assert.equal(first.follow.enabled,true);assert.ok(h.alarms.has('sameend-bbc-daily'));
+ h.setBBCResult(async()=>[{...fixture,startsAt:now+7200000}]);h.chrome.alarms.onAlarm.fn({name:'sameend-bbc-daily'});await new Promise(setImmediate);
+ let state=await h.send({type:'SE_LOCAL',action:'GET'},popup);assert.equal(state.matches.length,1);assert.equal(state.matches[0].startsAt,now+7200000);
+ h.setBBCResult(async()=>{throw Error('Provider unavailable')});h.chrome.alarms.onAlarm.fn({name:'sameend-bbc-daily'});await new Promise(setImmediate);
+ state=await h.send({type:'SE_LOCAL',action:'GET'},popup);assert.equal(state.matches[0].startsAt,now+7200000);assert.match(state.follow.error,/unavailable/);
+ await h.send({type:'SE_LOCAL',action:'FOLLOW_BBC',enabled:false},popup);assert.equal(h.alarms.has('sameend-bbc-daily'),false);
+});
+test('test reminders use the real local alarm path and record acceptance only after notification API resolves',async()=>{
+ const h=workerHarness(),popup={id:'test-extension',url:'chrome-extension://test-extension/popup.html'};
+ const result=await h.send({type:'SE_LOCAL',action:'TEST_NOTIFICATION'},popup);assert.equal(result.ok,true);assert.equal(h.notifications.length,0);assert.ok(h.alarms.has('sameend-test-reminder'));
+ assert.equal((await h.send({type:'SE_LOCAL',action:'TEST_NOTIFICATION'},popup)).ok,false);
+ h.chrome.alarms.onAlarm.fn({name:'sameend-test-reminder'});await new Promise(setImmediate);assert.equal(h.notifications.length,1);assert.ok(h.memory.sameEndNotificationTest.acceptedAt);
 });
