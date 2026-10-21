@@ -26,7 +26,7 @@ const clubhouse='data:image/webp;base64,'+(await readFile(path.join(dir,'assets/
 const css=(await readFile(path.join(dir,'social.css'),'utf8'))+'\n'+(await readFile(path.join(dir,'brand.css'),'utf8')).replace('__HERO_IMAGE__',hero).replace('__CLUB_IMAGE__',clubhouse);
 html=html.replace('</head>','<style id="same-end-brand">'+css+'</style></head>');
 const social=await readFile(path.join(dir,'social.js'),'utf8');
-const scheduleUI=await readFile(path.join(dir,'schedule-ui.js'),'utf8');
+const scheduleUI=(await readFile(path.join(dir,'listing-sources.js'),'utf8'))+'\n'+await readFile(path.join(dir,'schedule-ui.js'),'utf8');
 let rehearsal='';try{rehearsal=await readFile(path.join(dir,'rehearsal.js'),'utf8')}catch(e){if(e.code!=='ENOENT')throw e;}
 const json=value=>JSON.stringify(value).replace(/</g,'\\u003c');
 // Capture only harmless launch intent before the club module removes secret fragments.
