@@ -56,8 +56,8 @@
   async function joinCastLink(input) { const u=new URL(input,location.href),q=new URLSearchParams(u.hash.slice(1));pendingInvite=parseInvite(input);pendingScreen=q.get('join');if(!pendingScreen?.startsWith('magnet:'))throw Error('Ask your mate for the complete screen invitation.');return acceptScreenInvite(); }
   async function acceptScreenInvite() {
     const magnet=pendingScreen;pendingScreen=null;const invite=pendingInvite;pendingInvite=null;
-    try{if(invite?.error)throw Error(invite.error);await joinClub(invite,{save:false});notice('You’re in. Live chat is beside the picture. Save this club or enable reminders to return another day.');}
-    catch(e){document.body.classList.add('club-intent');notice('Video-only connection: chat could not open. '+errorMessage(e),true)}
+    try{if(invite?.error)throw Error(invite.error);await joinClub(invite,{save:false});if($('room-chat'))delete $('room-chat').dataset.chatError;notice('You’re in. Live chat is beside the picture. Save this club or enable reminders to return another day.');}
+    catch(e){document.body.classList.add('club-intent');if($('room-chat'))$('room-chat').dataset.chatError=errorMessage(e);if($('room-social-status'))text($('room-social-status'),'This invitation includes chat, but chat could not connect: '+errorMessage(e));notice('This invitation includes chat, but chat could not connect: '+errorMessage(e),true)}
     if(!magnet?.startsWith('magnet:'))return;
     document.body.classList.add('joining');
     try{await window.PrivateCast.joinMagnet(magnet)}catch(e){document.body.classList.remove('joining');text($('room-status'),errorMessage(e));notice('Chat is open, but the picture could not connect. '+errorMessage(e),true)}
