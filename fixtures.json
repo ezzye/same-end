@@ -1,0 +1,117 @@
+{
+  "checkedAt": "2026-10-21",
+  "timezone": "Europe/London",
+  "note": "A small source-checked starter list, not comprehensive live fixture coverage. Times can change. Add any other match manually and check its official source.",
+  "fixtures": [
+    {
+      "id": "fixture-1",
+      "home": "Aston Villa",
+      "away": "Viking",
+      "title": "Aston Villa v Viking",
+      "competition": "UEFA Champions League",
+      "startsAt": 1792609200000,
+      "sourceUrl": "https://www.tntsports.co.uk/football/champions-league/2026-2027/aston-villa-viking-fk_mtc21878420/live.shtml",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled"
+    },
+    {
+      "id": "fixture-2",
+      "home": "Aston Villa",
+      "away": "Manchester City",
+      "title": "Aston Villa v Manchester City",
+      "competition": "Premier League",
+      "startsAt": 1792841400000,
+      "sourceUrl": "https://www.premierleague.com/en/news/4688862/fixture-amendments-for-premier-league-matches-in-october-and-november",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled"
+    },
+    {
+      "id": "fixture-3",
+      "home": "Arsenal",
+      "away": "Everton",
+      "title": "Arsenal v Everton",
+      "competition": "Premier League",
+      "startsAt": 1792850400000,
+      "sourceUrl": "https://www.premierleague.com/en/news/4688862/fixture-amendments-for-premier-league-matches-in-october-and-november",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled"
+    },
+    {
+      "id": "fixture-4",
+      "home": "Chelsea",
+      "away": "Tottenham Hotspur",
+      "title": "Chelsea v Tottenham Hotspur",
+      "competition": "Premier League",
+      "startsAt": 1792859400000,
+      "sourceUrl": "https://www.premierleague.com/en/news/4688862/fixture-amendments-for-premier-league-matches-in-october-and-november",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled"
+    },
+    {
+      "id": "fixture-5",
+      "home": "Crystal Palace",
+      "away": "Newcastle United",
+      "title": "Crystal Palace v Newcastle United",
+      "competition": "Premier League",
+      "startsAt": 1792936800000,
+      "sourceUrl": "https://www.premierleague.com/en/news/4688862/fixture-amendments-for-premier-league-matches-in-october-and-november",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled"
+    },
+    {
+      "id": "fixture-6",
+      "home": "Sunderland",
+      "away": "Leeds United",
+      "title": "Sunderland v Leeds United",
+      "competition": "Premier League",
+      "startsAt": 1792945800000,
+      "sourceUrl": "https://www.premierleague.com/en/news/4688862/fixture-amendments-for-premier-league-matches-in-october-and-november",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled"
+    },
+    {
+      "id": "fixture-7",
+      "home": "Chelsea",
+      "away": "Manchester United",
+      "title": "Chelsea v Manchester United",
+      "competition": "Premier League",
+      "startsAt": 1793449800000,
+      "sourceUrl": "https://www.premierleague.com/en/news/4688862/fixture-amendments-for-premier-league-matches-in-october-and-november",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled"
+    },
+    {
+      "id": "fixture-8",
+      "home": "Aston Villa",
+      "away": "Fulham",
+      "title": "Aston Villa v Fulham",
+      "competition": "Premier League",
+      "startsAt": 1793476800000,
+      "sourceUrl": "https://www.premierleague.com/en/news/4688862/fixture-amendments-for-premier-league-matches-in-october-and-november",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled"
+    },
+    {
+      "id": "fixture-9",
+      "home": "Liverpool",
+      "away": "Arsenal",
+      "title": "Liverpool v Arsenal",
+      "competition": "Premier League",
+      "startsAt": 1793550600000,
+      "sourceUrl": "https://www.premierleague.com/en/news/4688862/fixture-amendments-for-premier-league-matches-in-october-and-november",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled"
+    },
+    {
+      "id": "fixture-10",
+      "home": "Newcastle United",
+      "away": "Everton",
+      "title": "Newcastle United v Everton",
+      "competition": "Premier League",
+      "startsAt": 1793649600000,
+      "sourceUrl": "https://www.premierleague.com/en/news/4688862/fixture-amendments-for-premier-league-matches-in-october-and-november",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled"
+    }
+  ]
+}

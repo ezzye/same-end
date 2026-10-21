@@ -1,13 +1,15 @@
 {
   "name": "same-end",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": false,
   "description": "A private, delayed group viewing prototype for media you are allowed to share.",
   "license": "MIT",
   "type": "module",
   "scripts": {
     "start": "node serve.mjs",
-    "build": "node build-pwa.mjs"
+    "build": "node build-pwa.mjs",
+    "test": "node --test tests/backup-protocol.test.mjs tests/magnet-recovery.test.mjs tests/pwa-shell.test.mjs backend/test/control.test.mjs",
+    "test:social": "node tests/social-browser.test.mjs"
   },
   "engines": {
     "node": ">=20"
