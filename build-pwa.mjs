@@ -102,7 +102,7 @@ await mkdir(path.join(dir,'extension/icons'),{recursive:true});
 await writeFile(path.join(dir,'extension/icons/icon-128.png'),await png(128));
 const packageDir=path.join(out,'.reader-package'), extensionDir=path.join(packageDir,'Same-End-Local-Fixtures');
 await rm(packageDir,{recursive:true,force:true});await mkdir(path.join(extensionDir,'icons'),{recursive:true});
-const extensionFiles=['manifest.json','reader-core.js','capture-page.js','worker.js','popup.html','popup.js','popup.css','bridge.js','icons/icon-128.png'];
+const extensionFiles=['manifest.json','reader-core.js','bbc-follow.js','capture-page.js','worker.js','popup.html','popup.js','popup.css','bridge.js','icons/icon-128.png'];
 for(const file of extensionFiles)await writeFile(path.join(extensionDir,file),await readFile(path.join(dir,'extension',file)));
 await rm(path.join(out,'same-end-local-fixtures.zip'),{force:true});
 execFileSync('zip',['-q','-r',path.join(out,'same-end-local-fixtures.zip'),'Same-End-Local-Fixtures'],{cwd:packageDir});

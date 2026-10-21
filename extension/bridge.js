@@ -17,7 +17,7 @@
     const respond=result=>post({type:'SAMEEND_LOCAL_RESPONSE',id:q.id,...result});
     try{
       if(q.action==='HELLO'){await ready();return}
-      if(!['CONNECT','DISCONNECT','GET','REMOVE','CLEAR','SETTINGS','OPEN'].includes(q.action))throw Error('That local action is unavailable.');
+      if(!['CONNECT','DISCONNECT','GET','REMOVE','CLEAR','SETTINGS','OPEN','TEST_NOTIFICATION'].includes(q.action))throw Error('That local action is unavailable.');
       if(q.action!=='GET'){
         const when=gestures.get(q.action);gestures.delete(q.action);
         if(when===undefined||performance.now()-when>1200)throw Error('Choose this action using its button.');
