@@ -1,43 +1,14 @@
 {
   "checkedAt": "2026-10-21",
-  "fetchedAt": "2026-10-21T21:26:36.748Z",
+  "fetchedAt": "2026-10-21T21:38:58.863Z",
+  "dataHash": "85f47f8a36ba2686f24029aa8feb63d4ed9829468933697473efce45a10a37e8",
   "timezone": "UTC",
   "provider": "TheSportsDB",
   "providerApi": "v1",
-  "attribution": "Fixture and channel metadata from TheSportsDB, supplemented by the linked official fixture sources. Partial development feed.",
+  "attribution": "Fixture and broadcast metadata from TheSportsDB; coverage is partial and may be incomplete. Confirm each match and channel with the broadcaster before relying on it.",
   "coverage": "partial",
-  "note": "Partial automatic suggestions. Free TV lookup returns at most two country/channel records per event. Missing channels do not mean a match is unavailable. Check the broadcaster before buying. Other matches can be added manually.",
+  "note": "Automatically refreshed starter suggestions; not comprehensive. TV channel data can be missing or stale and does not confirm rights, package requirements, or household availability. Verify with the linked source or broadcaster. Add matches manually when absent.",
   "fixtures": [
-    {
-      "id": "thesportsdb-2594554",
-      "provider": "TheSportsDB",
-      "providerEventId": "2594554",
-      "providerTeamIds": [
-        "133601",
-        "134570"
-      ],
-      "home": "Aston Villa",
-      "away": "Viking",
-      "title": "Aston Villa v Viking",
-      "competition": "UEFA Champions League",
-      "startsAt": 1792609200000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2594554",
-      "checkedAt": "2026-10-21",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "Brazil",
-          "channel": "HBO Max BR",
-          "providerChannelId": "3600"
-        },
-        {
-          "country": "China",
-          "channel": "IQiyi CN",
-          "providerChannelId": "3799"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
     {
       "id": "thesportsdb-2594862",
       "provider": "TheSportsDB",
@@ -46,9 +17,9 @@
         "134010",
         "133603"
       ],
-      "home": "Lech Pozna\u0144",
+      "home": "Lech Poznań",
       "away": "Sunderland",
-      "title": "Lech Pozna\u0144 v Sunderland",
+      "title": "Lech Poznań v Sunderland",
       "competition": "UEFA Europa League",
       "startsAt": 1792687500000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594862",
@@ -69,6 +40,36 @@
       "tvCoverage": "partial"
     },
     {
+      "id": "thesportsdb-2594782",
+      "provider": "TheSportsDB",
+      "providerEventId": "2594782",
+      "providerTeamIds": [
+        "134395",
+        "133619"
+      ],
+      "home": "Jablonec",
+      "away": "Brighton and Hove Albion",
+      "title": "Jablonec v Brighton and Hove Albion",
+      "competition": "UEFA Conference League",
+      "startsAt": 1792687500000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2594782",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "Qatar",
+          "channel": "BeIN Sports 5 Qatar",
+          "providerChannelId": "8519"
+        },
+        {
+          "country": "Czechia",
+          "channel": "Sport 1 Czechia",
+          "providerChannelId": "2936"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
       "id": "thesportsdb-2594884",
       "provider": "TheSportsDB",
       "providerEventId": "2594884",
@@ -76,15 +77,56 @@
         "133794",
         "133632"
       ],
-      "home": "Be\u015fikta\u015f",
+      "home": "Beşiktaş",
       "away": "Crystal Palace",
-      "title": "Be\u015fikta\u015f v Crystal Palace",
+      "title": "Beşiktaş v Crystal Palace",
       "competition": "UEFA Europa League",
       "startsAt": 1792695600000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594884",
       "checkedAt": "2026-10-21",
       "status": "scheduled",
-      "tv": [],
+      "tv": [
+        {
+          "country": "Qatar",
+          "channel": "BeIN Sports 2 Qatar",
+          "providerChannelId": "8828"
+        },
+        {
+          "country": "Qatar",
+          "channel": "BeIN Sports English 2 Qatar",
+          "providerChannelId": "4372"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2594812",
+      "provider": "TheSportsDB",
+      "providerEventId": "2594812",
+      "providerTeamIds": [
+        "134301",
+        "133667"
+      ],
+      "home": "Bournemouth",
+      "away": "AC Milan",
+      "title": "Bournemouth v AC Milan",
+      "competition": "UEFA Europa League",
+      "startsAt": 1792695600000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2594812",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "The Netherlands",
+          "channel": "Ziggo Sport 5",
+          "providerChannelId": "7900"
+        },
+        {
+          "country": "Qatar",
+          "channel": "BeIN Sports 1 Qatar",
+          "providerChannelId": "8515"
+        }
+      ],
       "tvCoverage": "partial"
     },
     {
@@ -103,7 +145,18 @@
       "sourceUrl": "https://www.thesportsdb.com/event/2494075",
       "checkedAt": "2026-10-21",
       "status": "scheduled",
-      "tv": [],
+      "tv": [
+        {
+          "country": "United Kingdom",
+          "channel": "Sky Sports Premier League",
+          "providerChannelId": "8647"
+        },
+        {
+          "country": "Iceland",
+          "channel": "Stöð 2 Sport IS",
+          "providerChannelId": "7941"
+        }
+      ],
       "tvCoverage": "partial"
     },
     {
@@ -125,7 +178,7 @@
       "tv": [
         {
           "country": "Iceland",
-          "channel": "St\u00f6\u00f0 2 Sport IS",
+          "channel": "Stöð 2 Sport IS",
           "providerChannelId": "7941"
         },
         {
@@ -152,7 +205,18 @@
       "sourceUrl": "https://www.thesportsdb.com/event/2494079",
       "checkedAt": "2026-10-21",
       "status": "scheduled",
-      "tv": [],
+      "tv": [
+        {
+          "country": "Iceland",
+          "channel": "Stöð 2 Sport 2 IS",
+          "providerChannelId": "7942"
+        },
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        }
+      ],
       "tvCoverage": "partial"
     },
     {
@@ -171,7 +235,18 @@
       "sourceUrl": "https://www.thesportsdb.com/event/2494072",
       "checkedAt": "2026-10-21",
       "status": "scheduled",
-      "tv": [],
+      "tv": [
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        },
+        {
+          "country": "Iceland",
+          "channel": "Stöð 2 Sport IS",
+          "providerChannelId": "7941"
+        }
+      ],
       "tvCoverage": "partial"
     },
     {
@@ -181,6 +256,47 @@
       "title": "Chelsea v Tottenham Hotspur",
       "competition": "Premier League",
       "startsAt": 1792859400000,
+      "sourceUrl": "https://www.premierleague.com/en/news/4688862/fixture-amendments-for-premier-league-matches-in-october-and-november",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled"
+    },
+    {
+      "id": "thesportsdb-2494073",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494073",
+      "providerTeamIds": [
+        "133610",
+        "133616"
+      ],
+      "home": "Chelsea",
+      "away": "Tottenham Hotspur",
+      "title": "Chelsea v Tottenham Hotspur",
+      "competition": "English Premier League",
+      "startsAt": 1792859400000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494073",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "United Kingdom",
+          "channel": "Sky Sports Premier League",
+          "providerChannelId": "8647"
+        },
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "fixture-5",
+      "home": "Crystal Palace",
+      "away": "Newcastle United",
+      "title": "Crystal Palace v Newcastle United",
+      "competition": "Premier League",
+      "startsAt": 1792936800000,
       "sourceUrl": "https://www.premierleague.com/en/news/4688862/fixture-amendments-for-premier-league-matches-in-october-and-november",
       "checkedAt": "2026-10-21",
       "status": "scheduled"
@@ -201,19 +317,79 @@
       "sourceUrl": "https://www.thesportsdb.com/event/2494076",
       "checkedAt": "2026-10-21",
       "status": "scheduled",
-      "tv": [],
+      "tv": [
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        },
+        {
+          "country": "Slovenia",
+          "channel": "Arena Sport 3 SI",
+          "providerChannelId": "2407"
+        }
+      ],
       "tvCoverage": "partial"
     },
     {
-      "id": "fixture-5",
+      "id": "thesportsdb-2494074",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494074",
+      "providerTeamIds": [
+        "133632",
+        "134777"
+      ],
       "home": "Crystal Palace",
       "away": "Newcastle United",
       "title": "Crystal Palace v Newcastle United",
-      "competition": "Premier League",
+      "competition": "English Premier League",
       "startsAt": 1792936800000,
-      "sourceUrl": "https://www.premierleague.com/en/news/4688862/fixture-amendments-for-premier-league-matches-in-october-and-november",
+      "sourceUrl": "https://www.thesportsdb.com/event/2494074",
       "checkedAt": "2026-10-21",
-      "status": "scheduled"
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "Iceland",
+          "channel": "Stöð 2 Sport 4 IS",
+          "providerChannelId": "7944"
+        },
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2494071",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494071",
+      "providerTeamIds": [
+        "133602",
+        "133619"
+      ],
+      "home": "Liverpool",
+      "away": "Brighton and Hove Albion",
+      "title": "Liverpool v Brighton and Hove Albion",
+      "competition": "English Premier League",
+      "startsAt": 1792936800000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494071",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "Iceland",
+          "channel": "Stöð 2 Sport 3 IS",
+          "providerChannelId": "7943"
+        },
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        }
+      ],
+      "tvCoverage": "partial"
     },
     {
       "id": "fixture-6",
@@ -225,6 +401,36 @@
       "sourceUrl": "https://www.premierleague.com/en/news/4688862/fixture-amendments-for-premier-league-matches-in-october-and-november",
       "checkedAt": "2026-10-21",
       "status": "scheduled"
+    },
+    {
+      "id": "thesportsdb-2494078",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494078",
+      "providerTeamIds": [
+        "133603",
+        "133635"
+      ],
+      "home": "Sunderland",
+      "away": "Leeds United",
+      "title": "Sunderland v Leeds United",
+      "competition": "English Premier League",
+      "startsAt": 1792945800000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494078",
+      "checkedAt": "2026-10-21",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "United Kingdom",
+          "channel": "Sky Sports Premier League",
+          "providerChannelId": "8647"
+        },
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        }
+      ],
+      "tvCoverage": "partial"
     },
     {
       "id": "fixture-7",
