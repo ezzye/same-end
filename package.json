@@ -8,7 +8,7 @@
   "scripts": {
     "start": "node serve.mjs",
     "build": "node build-pwa.mjs",
-    "test": "node --test tests/backup-protocol.test.mjs tests/magnet-recovery.test.mjs tests/pwa-shell.test.mjs tests/media-player.test.mjs tests/invite-report.test.mjs backend/test/control.test.mjs tests/fixture-feed.test.mjs tests/reader-core.test.mjs tests/reader-worker.test.mjs tests/legacy-browser.test.mjs",
+    "test": "node --test tests/backup-protocol.test.mjs tests/magnet-recovery.test.mjs tests/pwa-shell.test.mjs tests/media-player.test.mjs tests/source-audio.test.mjs tests/invite-report.test.mjs backend/test/control.test.mjs tests/fixture-feed.test.mjs tests/reader-core.test.mjs tests/reader-worker.test.mjs tests/legacy-browser.test.mjs",
     "test:social": "node tests/social-browser.test.mjs",
     "refresh:fixtures": "node scripts/update-fixtures.mjs",
     "build:vendor": "node scripts/build-vendor.mjs",
@@ -16,7 +16,8 @@
     "test:peers": "node tests/platform-peer-browser.test.mjs",
     "test:invites": "node tests/invite-check-browser.test.mjs",
     "test:legacy-apis": "node --test tests/legacy-api-browser.test.mjs",
-    "test:host-reports": "node tests/host-reports-browser.test.mjs"
+    "test:host-reports": "node tests/host-reports-browser.test.mjs",
+    "test:source-audio": "node tests/source-audio-browser.test.mjs"
   },
   "engines": {
     "node": ">=20"

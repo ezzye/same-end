@@ -25,6 +25,10 @@ const transport=(await readFile(path.join(dir,'magnet-transport.js'),'utf8')).re
 const modulePattern=/(<script[^>]+id="magnet-module">)[\s\S]*?(<\/script>)/;
 if(!modulePattern.test(html))throw Error('Embedded magnet module is missing.');
 html=html.replace(modulePattern,(_,open,close)=>open+transport+close);
+const sourceAudio=await readFile(path.join(dir,'source-audio.js'),'utf8');
+const sourceAudioSlot=/(<script id="source-audio-module">)[\s\S]*?(<\/script>)/;
+if(!sourceAudioSlot.test(html))throw Error('Missing source sound check slot.');
+html=html.replace(sourceAudioSlot,(_,a,b)=>a+sourceAudio+b);
 const engine=await readFile(path.join(dir,'engine.js'),'utf8');
 html=html.replace(/(<script id="cast-engine">)[\s\S]*?(<\/script>)/,(_,a,b)=>a+engine+b);
 
