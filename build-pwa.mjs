@@ -3,7 +3,9 @@ import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
+import {transform} from 'esbuild';
 const dir=path.dirname(fileURLToPath(import.meta.url)), out=path.join(dir,'dist');
+const browserTargets=['es2017','safari12.1','ios12.2','chrome80','edge80','firefox78'];
 await mkdir(out,{recursive:true});
 let html=await readFile(path.join(dir,'app.html'),'utf8');
 const legacyTorrent=await readFile(path.join(dir,'vendor/webtorrent-legacy.js'),'utf8');
@@ -89,6 +91,15 @@ const join=$('join-magnet-button').onclick;$('join-magnet-button').onclick=async
 addEventListener('load',joinFromURL);addEventListener('hashchange',joinFromURL);
 })();
 </script></body>`);
+
+// Keep the generated offline runtime executable on the declared legacy syntax floor.
+const inlineScripts=[...html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)];
+for(const [,attributes,source] of inlineScripts){
+  if(/type="(?:text\/plain|application\/json)"/i.test(attributes))continue;
+  if(/id="magnet-vendor"/i.test(attributes))continue;
+  const result=await transform(source,{loader:'js',target:browserTargets});
+  html=html.replace(source,()=>result.code);
+}
 await writeFile(path.join(out,'index.html'),html);
 await writeFile(path.join(out,'watch.html'),html);
 await writeFile(path.join(out,'fixtures.json'),JSON.stringify(fixtures));
@@ -96,7 +107,7 @@ await writeFile(path.join(out,'manifest.webmanifest'),JSON.stringify({id:'./',na
 async function png(n){const z=[];const crc=b=>{let c=-1;for(const x of b){c^=x;for(let i=0;i<8;i++)c=(c>>>1)^((c&1)?0xedb88320:0)}return(c^-1)>>>0};const chunk=(t,d)=>{let b=Buffer.concat([Buffer.from(t),d]),h=Buffer.alloc(4);h.writeUInt32BE(d.length);let c=Buffer.alloc(4);c.writeUInt32BE(crc(b));return Buffer.concat([h,b,c])};let raw=Buffer.alloc(n*(n*4+1));for(let y=0;y<n;y++){let row=y*(n*4+1);for(let x=0;x<n;x++){let k=row+1+x*4;const px=x/n,py=y/n,cream=[255,255,255],forest=[7,60,42],coral=[228,42,36];let color=forest;const stripes=[{x:.23,y:.36,h:.36},{x:.41,y:.24,h:.48},{x:.59,y:.44,h:.28}];for(const bar of stripes){if(px>bar.x&&px<bar.x+.12&&py>bar.y&&py<bar.y+bar.h)color=cream;}if((px-.81)**2+(py-.68)**2<.055**2)color=coral;raw[k]=color[0];raw[k+1]=color[1];raw[k+2]=color[2];raw[k+3]=255}}let ih=Buffer.alloc(13);ih.writeUInt32BE(n);ih.writeUInt32BE(n,4);ih.set([8,6,0,0,0],8);return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),chunk('IHDR',ih),chunk('IDAT',(await import('node:zlib')).deflateSync(raw)),chunk('IEND',Buffer.alloc(0))])}
 for(const n of [192,512])await writeFile(path.join(out,`icon-${n}.png`),await png(n));
 const shell=['index.html','watch.html','manifest.webmanifest','icon-192.png','icon-512.png'];let digest=createHash('sha256');for(const f of shell)digest.update(await readFile(path.join(out,f)));const version=digest.digest('hex').slice(0,16);
-await writeFile(path.join(out,'sw.js'),`const CACHE='private-cast-${version}',FILES=${JSON.stringify(shell.map(x=>'./'+x))};
+const serviceWorker=`const CACHE='private-cast-${version}',FILES=${JSON.stringify(shell.map(x=>'./'+x))};
 const BASE=new URL('./',self.location.href),INDEX=new URL('index.html',BASE).href,ALLOWED=new Set(FILES.map(f=>new URL(f,BASE).href));
 self.addEventListener('message',e=>{if(e.data?.type==='ACTIVATE_UPDATE')self.skipWaiting()});
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>Promise.all(FILES.map(async f=>{const key=new URL(f,BASE),url=new URL(key);url.searchParams.set('v',CACHE);const response=await fetch(url.href,{cache:'reload'});if(!response.ok)throw Error('App update unavailable');await c.put(key.href,response)})))));
@@ -104,7 +115,9 @@ self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.a
 self.addEventListener('push',e=>{let data={};try{data=e.data?.json()||{}}catch{};const id=/^[0-9a-f-]{36}$/i.test(data.clubId||'')?data.clubId:'';e.waitUntil(self.registration.showNotification('Same End',{body:'Your private club is getting together. Open Same End for the match.',icon:'./icon-192.png',badge:'./icon-192.png',tag:'same-end-'+id+'-'+String(data.eventId||'test').slice(0,36),data:{clubId:id}}))});
 self.addEventListener('notificationclick',e=>{e.notification.close();const id=e.notification.data?.clubId;if(!/^[0-9a-f-]{36}$/i.test(id||''))return;const url=new URL('./',BASE);url.hash='openclub='+id;e.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(async clients=>{const client=clients.find(c=>new URL(c.url).origin===BASE.origin&&new URL(c.url).pathname.startsWith(BASE.pathname));if(client){await client.focus();client.postMessage({type:'sameend:openclub',clubId:id});return}await self.clients.openWindow(url.href)}))});
 self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(e.request.method!=='GET'||u.origin!==BASE.origin)return;let key=u.href;const navigation=e.request.mode==='navigate'&&(u.pathname===BASE.pathname||u.pathname===new URL(INDEX).pathname||u.pathname===new URL('watch.html',BASE).pathname);if(navigation){e.respondWith(fetch(e.request,{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('App unavailable');return r}).catch(()=>caches.open(CACHE).then(c=>c.match(INDEX))));return}if(!ALLOWED.has(key))return;e.respondWith(caches.open(CACHE).then(c=>c.match(key)).then(r=>r||fetch(e.request)))});
-`);
+`;
+const legacyServiceWorker=(await transform(serviceWorker,{loader:'js',target:browserTargets,minifyWhitespace:true})).code;
+await writeFile(path.join(out,'sw.js'),legacyServiceWorker);
 
 await writeFile(path.join(out,'test-guide.html'),await readFile(path.join(dir,'test-guide.html')));
 await writeFile(path.join(out,'device-check.html'),await readFile(path.join(dir,'device-check.html')));

@@ -97,6 +97,102 @@ test('chat is idempotent, server ordered and cursor scoped', async () => {
   assert.equal((await f.request('GET', `/messages?after=${alien}`)).statusCode, 400);
 });
 
+test('private reports accept member ciphertext and expose it only to the owner', async () => {
+  const f = fixture(), other = fixture(); await f.create(); await other.create();
+  const report = {id: randomUUID(), envelope: envelope(64)};
+  const sent = await f.request('POST', '/reports', report, f.read);
+  assert.equal(sent.statusCode, 200);
+  assert.equal((await f.request('GET', '/reports', undefined, f.read)).statusCode, 401);
+  assert.equal((await f.request('POST', '/reports', {id: randomUUID(), envelope: envelope()}, f.write)).statusCode, 401);
+  assert.equal((await other.request('GET', '/reports', undefined, f.write)).statusCode, 401);
+  assert.equal((await other.request('POST', '/reports', report, f.read)).statusCode, 401);
+  const read = await f.request('GET', '/reports', undefined, f.write);
+  assert.equal(read.statusCode, 200); assert.deepEqual(read.json.reports, [{id: report.id, envelope: report.envelope, receivedAt: f.now()}]);
+  assert.ok(!read.body.includes('TokenHash')); assert.ok(!read.body.includes(f.read));
+});
+
+test('reports validate bounded encrypted envelopes, are idempotent, expire and respect club quota', async () => {
+  const f = fixture(); await f.create();
+  const report = {id: randomUUID(), envelope: envelope(64)};
+  assert.equal((await f.request('POST', '/reports', {...report, extra: true})).statusCode, 400);
+  assert.equal((await f.request('POST', '/reports', {id: randomUUID(), envelope: {...envelope(), extra: true}})).statusCode, 400);
+  assert.equal((await f.request('POST', '/reports', {id: randomUUID(), envelope: envelope(LIMITS.reportBytes + 1)})).statusCode, 400);
+  const first = await f.request('POST', '/reports', report), duplicate = await f.request('POST', '/reports', report);
+  assert.deepEqual(first.json, duplicate.json);
+  assert.equal((await f.store.query(`CLUB#${f.id}`, {from: 'REPORT#', to: 'REPORT#\uffff'})).length, 1);
+  assert.equal((await f.store.get(`CLUB#${f.id}`, `REPORTID#${report.id}`)).reportSk.startsWith('REPORT#'), true);
+  for (let i = 1; i < LIMITS.reports; i++) {
+    f.advance(60001);
+    assert.equal((await f.request('POST', '/reports', {id: randomUUID(), envelope: envelope(32)})).statusCode, 200);
+  }
+  assert.equal((await f.request('POST', '/reports', {id: randomUUID(), envelope: envelope(32)})).json.code, 'report_limit');
+  assert.equal((await f.store.get(`CLUB#${f.id}`, 'REPORTCOUNT')).count, LIMITS.reports);
+  f.advance(LIMITS.chatSeconds * 1000 + 1);
+  const stalePhysical = await f.store.query(`CLUB#${f.id}`, {from: 'REPORT#', to: 'REPORT#\uffff'});
+  await f.store.transact(stalePhysical.map(row => ({key: {pk: row.pk, sk: row.sk}, delete: true})));
+  const replacement = {id: report.id, envelope: envelope(64)};
+  assert.equal((await f.request('POST', '/reports', replacement)).statusCode, 200, 'expired marker and asynchronously removed ciphertext do not hold quota');
+  assert.equal((await f.store.get(`CLUB#${f.id}`, 'REPORTCOUNT')).count, 1);
+  assert.deepEqual((await f.store.get(`CLUB#${f.id}`, `REPORTID#${report.id}`)).reportSk, (await f.store.query(`CLUB#${f.id}`, {from: 'REPORT#', to: 'REPORT#\uffff'}))[0].sk);
+  assert.equal((await f.store.query(`CLUB#${f.id}`, {from: 'REPORTID#', to: 'REPORTID#\uffff'})).length, LIMITS.reports, 'orphaned TTL markers do not count as inbox reports');
+});
+
+test('concurrent different-millisecond retries keep one report, marker and quota entry', async () => {
+  const f = fixture(); await f.create();
+  const report = {id: randomUUID(), envelope: envelope(64)}, changedCipher = {id: report.id, envelope: envelope(64)};
+  const originalQuery = f.store.query.bind(f.store); let entered = 0, firstEnteredResolve, bothEnteredResolve;
+  const firstEntered = new Promise(resolve => { firstEnteredResolve = resolve; });
+  const bothEntered = new Promise(resolve => { bothEnteredResolve = resolve; });
+  let release; const gate = new Promise(resolve => { release = resolve; });
+  f.store.query = async (pk, options) => {
+    if (pk === `CLUB#${f.id}` && options?.from === 'REPORT#') {
+      entered++; if (entered === 1) firstEnteredResolve(); if (entered === 2) bothEnteredResolve(); await gate;
+    }
+    return originalQuery(pk, options);
+  };
+  const firstTime = f.now(), first = f.request('POST', '/reports', report);
+  await firstEntered; f.advance(1); const secondTime = f.now(), second = f.request('POST', '/reports', changedCipher);
+  await bothEntered; release();
+  const [a, b] = await Promise.all([first, second]);
+  assert.notEqual(firstTime, secondTime);
+  assert.equal(a.statusCode, 200); assert.equal(b.statusCode, 200); assert.equal(a.json.receivedAt, b.json.receivedAt);
+  const pk = `CLUB#${f.id}`, rows = await originalQuery(pk, {from: 'REPORT#', to: 'REPORT#\uffff'});
+  assert.equal(rows.length, 1); assert.equal((await f.store.get(pk, 'REPORTCOUNT')).count, 1);
+  const marker = await f.store.get(pk, `REPORTID#${report.id}`);
+  assert.equal(marker.reportSk, rows[0].sk); assert.deepEqual(rows[0].envelope, report.envelope);
+  const retry = await f.request('POST', '/reports', changedCipher);
+  assert.deepEqual(retry.json, a.json); assert.deepEqual((await f.store.get(pk, rows[0].sk)).envelope, report.envelope);
+});
+
+test('report count reconciliation detects an insert-delete ABA via its revision', async () => {
+  const f = fixture(); await f.create();
+  await f.request('POST', '/reports', {id: randomUUID(), envelope: envelope(32)});
+  const pk = `CLUB#${f.id}`, originalQuery = f.store.query.bind(f.store); let reportQueries = 0, injected = false;
+  f.store.query = async (queryPk, options) => {
+    if (!injected && queryPk === pk && options?.from === 'REPORT#' && ++reportQueries === 2) {
+      injected = true;
+      const id = randomUUID(), expiresAt = Math.floor(f.now() / 1000) + 86400, report = {pk, sk: `REPORT#${String(f.now() + 1).padStart(16, '0')}#${id}`, id, envelope: envelope(32), receivedAt: f.now() + 1, expiresAt};
+      const marker = {pk, sk: `REPORTID#${id}`, id, reportSk: report.sk, receivedAt: report.receivedAt, expiresAt};
+      await f.store.transact([{put: report, condition: {absent: true}}, {put: marker, condition: {absent: true}}, {key: {pk, sk: 'REPORTCOUNT'}, add: {count: 1}, set: {rev: randomUUID()}, condition: {attribute: 'count', lt: LIMITS.reports}}]);
+      const observedDuringInsert = await originalQuery(pk, options);
+      await f.store.transact([{key: {pk, sk: report.sk}, delete: true}, {key: {pk, sk: marker.sk}, delete: true}, {key: {pk, sk: 'REPORTCOUNT'}, add: {count: -1}, set: {rev: randomUUID()}}]);
+      return observedDuringInsert;
+    }
+    return originalQuery(queryPk, options);
+  };
+  assert.equal((await f.request('POST', '/reports', {id: randomUUID(), envelope: envelope(32)})).statusCode, 200);
+  const active = await originalQuery(pk, {from: 'REPORT#', to: 'REPORT#\uffff'});
+  const counter = await f.store.get(pk, 'REPORTCOUNT');
+  assert.equal(active.length, 2); assert.equal(counter.count, active.length); assert.equal(typeof counter.rev, 'string');
+});
+
+test('report submissions have a short-window per-IP rate limit', async () => {
+  const f = fixture(); await f.create();
+  const results = await Promise.all(Array.from({length: 6}, () => f.request('POST', '/reports', {id: randomUUID(), envelope: envelope(32)})));
+  assert.deepEqual(results.map(result => result.statusCode).sort(), [200, 200, 200, 200, 200, 429]);
+  assert.equal(results.find(result => result.statusCode === 429).json.code, 'rate_limited');
+});
+
 test('concurrent chat commits allocate unique cursors without losing late messages', async () => {
   const f = fixture(); await f.create();
   const payloads = Array.from({length: 8}, () => ({id: randomUUID(), payload: envelope()}));

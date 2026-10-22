@@ -13,5 +13,6 @@ jobs:
         with:
           node-version: '24'
       - run: npm ci --prefix backend --ignore-scripts
+      - run: npm ci
       - run: npm run build
       - run: npm test

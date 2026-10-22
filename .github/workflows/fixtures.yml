@@ -24,6 +24,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - run: npm ci
       - name: Refresh bounded schedule and TV suggestions
         run: node scripts/update-fixtures.mjs
         env:
