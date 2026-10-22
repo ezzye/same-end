@@ -1,8 +1,8 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { Conflict } from './store.mjs';
 import { payloadFor, validateSubscription } from './push.mjs';
 
-export const LIMITS = Object.freeze({requestBytes: 65536, stateBytes: 32768, messageBytes: 12288, events: 30, subscriptions: 50, chatSeconds: 86400, clubSeconds: 400 * 86400});
+export const LIMITS = Object.freeze({requestBytes: 65536, stateBytes: 32768, messageBytes: 12288, reportBytes: 12288, reports: 30, events: 30, subscriptions: 50, chatSeconds: 86400, clubSeconds: 400 * 86400});
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const HASH = /^[0-9a-f]{64}$/;
 const DAY = 86400000;
@@ -63,6 +63,44 @@ export function createApi({store, push, now = Date.now, allowedOrigins = ['https
     if (!club || club.expiresAt <= now() / 1000 || !(equalHash(digest, club.writeTokenHash) || !write && equalHash(digest, club.readTokenHash))) fail(401, 'unauthorised', write ? 'The organiser link is needed to change this club.' : 'Open your private club invitation again.');
     return club;
   }
+  async function reportAuthorised(id, token, role) {
+    if (!uuid(id)) fail(401, 'unauthorised', 'Open your private club invitation again.');
+    const club = await store.get(pkFor(id), 'META');
+    const digest = typeof token === 'string' && /^[A-Za-z0-9_-]{43}$/.test(token) ? hash(token) : '';
+    const allowed = role === 'owner' ? equalHash(digest, club?.writeTokenHash) : equalHash(digest, club?.readTokenHash);
+    if (!club || club.expiresAt <= now() / 1000 || !allowed) fail(401, 'unauthorised', role === 'owner' ? 'The organiser link is needed to read reports.' : 'Open your private club invitation again.');
+    return club;
+  }
+  async function clearExpiredReports(pk, time) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const rows = await store.query(pk, {from: 'REPORT#', to: 'REPORT#\uffff', limit: LIMITS.reports});
+      const expired = rows.filter(row => row.expiresAt <= time / 1000);
+      if (!expired.length) return rows.filter(row => row.expiresAt > time / 1000);
+      const counter = await store.get(pk, 'REPORTCOUNT');
+      const markerReads = await Promise.all(expired.map(row => store.get(pk, `REPORTID#${row.id}`)));
+      const markerDeletes = expired.flatMap((row, index) => markerReads[index]?.reportSk === row.sk ? [{key: {pk, sk: `REPORTID#${row.id}`}, delete: true, condition: {attribute: 'reportSk', equals: row.sk}}] : []);
+      try {
+        const counterCondition = counter ? counter.rev ? {attribute: 'rev', equals: counter.rev} : {attribute: 'count', equals: counter.count} : null;
+        await store.transact([...expired.map(row => ({key: {pk, sk: row.sk}, delete: true, condition: {attribute: 'expiresAt', equals: row.expiresAt}})), ...markerDeletes, ...(counter ? [{key: {pk, sk: 'REPORTCOUNT'}, add: {count: -expired.length}, set: {rev: randomUUID()}, condition: counterCondition}] : [])]);
+      } catch (e) { if (!(e instanceof Conflict)) throw e; }
+    }
+    return (await store.query(pk, {from: 'REPORT#', to: 'REPORT#\uffff', limit: LIMITS.reports})).filter(row => row.expiresAt > time / 1000);
+  }
+  async function reconcileReportCount(pk) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const before = await store.get(pk, 'REPORTCOUNT');
+      const currentRows = (await store.query(pk, {from: 'REPORT#', to: 'REPORT#\uffff', limit: LIMITS.reports})).filter(row => row.expiresAt > now() / 1000);
+      const counter = await store.get(pk, 'REPORTCOUNT');
+      if ((before?.rev || null) !== (counter?.rev || null) || (before?.count || 0) !== (counter?.count || 0)) continue;
+      if ((counter?.count || 0) === currentRows.length) return;
+      try {
+        if (!currentRows.length && counter) await store.transact([{key: {pk, sk: 'REPORTCOUNT'}, delete: true, condition: counter.rev ? {attribute: 'rev', equals: counter.rev} : {attribute: 'count', equals: counter.count}}]);
+        else if (currentRows.length) await store.transact([{put: {pk, sk: 'REPORTCOUNT', count: currentRows.length, rev: randomUUID(), expiresAt: Math.max(...currentRows.map(row => row.expiresAt))}, condition: counter ? counter.rev ? {attribute: 'rev', equals: counter.rev} : {attribute: 'count', equals: counter.count} : {absent: true}}]);
+        return;
+      } catch (e) { if (!(e instanceof Conflict)) throw e; }
+    }
+    fail(503, 'report_busy', 'The club report inbox is busy. Try again shortly.');
+  }
   async function deleteSubscription(clubId, id) {
     const key = {pk: pkFor(clubId), sk: `SUB#${id}`};
     try { await store.transact([{key, delete: true, condition: {exists: true}}, {key: {pk: pkFor(clubId), sk: 'SUBCOUNT'}, add: {count: -1, rev: 1}}]); } catch (e) { if (!(e instanceof Conflict)) throw e; }
@@ -89,6 +127,42 @@ export function createApi({store, push, now = Date.now, allowedOrigins = ['https
       try { await store.transact([{put: club, condition: {absent: true}}, ...jobsFor(body.id, events, time).map(put => ({put}))]); }
       catch (e) { if (e instanceof Conflict) fail(409, 'club_exists', 'That club already exists. Open its saved invitation.'); throw e; }
       return {id: club.id, version: 1, updatedAt: time};
+    }
+    const reportMatch = path.match(/^\/v1\/clubs\/([0-9a-f-]+)\/reports$/i);
+    if (reportMatch && (method === 'POST' || method === 'GET')) {
+      const [, id] = reportMatch, time = now(), pk = pkFor(id);
+      await reportAuthorised(id, token, method === 'GET' ? 'owner' : 'member');
+      await rate(`read:${id}:${ip}`, 600, 60000);
+      if (method === 'POST') {
+        if (Object.keys(body).some(key => !['id', 'envelope'].includes(key)) || Object.keys(body).length !== 2 || !uuid(body.id) || !object(body.envelope) || Object.keys(body.envelope).some(key => !['v', 'iv', 'data'].includes(key)) || Object.keys(body.envelope).length !== 3) fail(400, 'invalid_report', 'That encrypted report could not be accepted.');
+        const payload = envelope(body.envelope, LIMITS.reportBytes);
+        const rows = await clearExpiredReports(pk, time);
+        const marker = await store.get(pk, `REPORTID#${body.id}`);
+        if (marker && marker.expiresAt > time / 1000) return {id: body.id, receivedAt: marker.receivedAt};
+        const duplicate = rows.find(row => row.id === body.id);
+        if (duplicate) return {id: duplicate.id, receivedAt: duplicate.receivedAt};
+        await reconcileReportCount(pk);
+        if (rows.length >= LIMITS.reports) fail(429, 'report_limit', 'This club has reached its private report limit. Try again after older reports expire.');
+        await rate(`report:${id}:${ip}`, 5, 60000); await rate(`report-day:${id}`, 30, DAY);
+        const receivedAt = time, expiresAt = expiry(time, LIMITS.chatSeconds), report = {pk, sk: `REPORT#${pad(time)}#${body.id}`, id: body.id, envelope: payload, receivedAt, expiresAt}, markerItem = {pk, sk: `REPORTID#${body.id}`, id: body.id, reportSk: report.sk, receivedAt, expiresAt};
+        try {
+          const markerCondition = marker ? {attribute: 'expiresAt', lt: Math.floor(time / 1000) + 1} : {absent: true};
+          await store.transact([{put: report, condition: {absent: true}}, {put: markerItem, condition: markerCondition}, {key: {pk, sk: 'REPORTCOUNT'}, add: {count: 1}, set: {expiresAt, rev: randomUUID()}, condition: {attribute: 'count', lt: LIMITS.reports}}]);
+          return {id: report.id, receivedAt};
+        } catch (e) {
+          if (e instanceof Conflict) {
+            const existingMarker = await store.get(pk, `REPORTID#${body.id}`);
+            if (existingMarker && existingMarker.expiresAt > time / 1000) return {id: body.id, receivedAt: existingMarker.receivedAt};
+            const current = await store.query(pk, {from: 'REPORT#', to: 'REPORT#\uffff', limit: LIMITS.reports});
+            const same = current.find(row => row.id === body.id);
+            if (same) return {id: same.id, receivedAt: same.receivedAt};
+            fail(429, 'report_limit', 'This club has reached its private report limit. Try again after older reports expire.');
+          }
+          throw e;
+        }
+      }
+      const reports = (await clearExpiredReports(pk, time)).sort((a, b) => b.sk.localeCompare(a.sk)).slice(0, LIMITS.reports);
+      return {reports: reports.map(report => ({id: report.id, envelope: report.envelope, receivedAt: report.receivedAt}))};
     }
     const match = path.match(/^\/v1\/clubs\/([0-9a-f-]+)(\/(?:messages|subscriptions|reminders\/test))?$/i);
     if (!match) fail(404, 'not_found', 'That club action could not be found.');

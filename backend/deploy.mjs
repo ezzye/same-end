@@ -10,7 +10,7 @@ import path from 'node:path';
 import { template, artifactTemplate } from './cloudformation.mjs';
 const exec = promisify(execFile);
 const here = path.dirname(fileURLToPath(import.meta.url));
-const privateDir = path.resolve(here, '../../work/same-end-social');
+const privateDir = process.env.SAME_END_DEPLOY_STATE_DIR ? path.resolve(process.env.SAME_END_DEPLOY_STATE_DIR) : path.resolve(here, '../../work/same-end-social');
 const stackName = process.env.SAME_END_STACK || 'same-end-social-v1';
 const region = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'eu-west-1';
 if (!/^same-end-social-[a-z0-9-]{1,60}$/.test(stackName)) throw new Error('Use a dedicated same-end-social stack name');

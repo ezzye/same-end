@@ -14,7 +14,7 @@ const pages=[],errors=[],report={physicalDevices:false,separateNetworks:false,de
 async function page(kind){
  const c=await (kind==='clips'&&apple?apple:browser).newContext({serviceWorkers:'block',viewport:kind==='clips'?{width:390,height:844}:{width:1280,height:900}});const p=await c.newPage();pages.push(p);p.on('pageerror',e=>errors.push(kind+': '+(e.stack||e.message)));
  await p.addInitScript(kind=>{
-  delete Uint8Array.prototype.toBase64;delete Uint8Array.prototype.toHex;delete Uint8Array.fromHex;delete crypto.randomUUID;delete Object.hasOwn;delete window.structuredClone;
+  delete Uint8Array.prototype.toBase64;delete Uint8Array.prototype.toHex;delete Uint8Array.fromHex;delete crypto.randomUUID;delete Object.hasOwn;delete window.structuredClone;delete window.globalThis;delete window.queueMicrotask;delete Blob.prototype.arrayBuffer;delete Blob.prototype.text;delete Object.fromEntries;delete Array.prototype.flatMap;delete String.prototype.replaceAll;delete Element.prototype.replaceChildren;delete window.WritableStream;
   if(kind==='clips'){window.MediaSource=undefined;window.ManagedMediaSource=undefined;window.MediaRecorder=undefined;}
   if(kind==='managed'){window.ManagedMediaSource=window.MediaSource;window.MediaSource=undefined;window.MediaRecorder=undefined;}
  },kind);await p.goto(origin);await p.waitForFunction(()=>window.PrivateCast);return p;
