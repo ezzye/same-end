@@ -44,3 +44,6 @@
 .room .club-chat-compose button{font-size:12px}
 .room .club-chat-shell #club-nick{font-size:12px}
 .room.is-browser-fullscreen .social-watch-layout:not(.has-live-chat),.room.room-expanded .social-watch-layout:not(.has-live-chat){grid-template-rows:minmax(0,1fr)}
+
+/* Keep Safari from zooming the whole room when a phone viewer writes in chat. */
+@media(max-width:760px){.room .club-chat-compose textarea,.room .club-chat-shell #club-nick{font-size:16px!important}}
