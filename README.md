@@ -2,7 +2,7 @@
 
 **Your match. Your mates.** A private football club for planning the next game, chatting with your mates and watching the same delayed picture together.
 
-Open [Same End](https://www.sameend.com/watch.html) in desktop Chrome or Edge. There is no account or extension to install. Installing the app is optional. The standalone [guide](test-guide.html) can be saved and shared as an HTML file.
+Open [Same End](https://www.sameend.com/watch.html) in Safari, Chrome or Edge. The compatibility player supports MP4 viewing on phones, tablets and computers; see the device targets and evidence below. There is no account or extension to install. Installing the app is optional. The standalone [guide](test-guide.html) can be saved and shared as an HTML file.
 
 ## Make match day a regular thing
 
@@ -46,7 +46,7 @@ Web Push is optional and best effort. Its generic notification opens a club alre
 
 A four-context installed-Chrome rehearsal on one Mac used the actual public tracker and decoded synthetic video/audio. Losing a relay's upstream preserved its downstream viewer, clock and cache while it reparented. Closing the relay browser led its child to reattach after about 17.7 seconds, with one measured stall in the ten-second quick-test delay. An explicit signed source end stopped the surviving viewers. A separate actual-source-loss check preserved the viewer session and played only the remaining cached window before pausing.
 
-Those checks do not establish different-home delivery, physical Windows or phone support, long-event stability or seamless independent-source switching. Mac and Windows laptops with Chrome or Edge are intended starting points; physical Windows acceptance and phone viewing still need testing. Phone capture is not an established workflow. Public tracker discovery can fail or take time. There is no TURN media-relay fallback, so some routers, VPNs and firewalls prevent direct connections. Recovery cannot guarantee uninterrupted playback, and clip boundaries can be visible or audible. The delay is cooperative synchronisation, not copy protection.
+Those checks do not establish different-home delivery, physical phone support, long-event stability or seamless independent-source switching. Source sharing is intended for computer browsers. Phones and tablets join as viewers; phone screen capture is not an established workflow. Public tracker discovery can fail or take time. There is no TURN media-relay fallback, so some routers, VPNs and firewalls prevent direct connections. Recovery cannot guarantee uninterrupted playback, and clip boundaries can be visible or audible. The delay is cooperative synchronisation, not copy protection.
 
 The control backend has focused local tests for permissions, encrypted-envelope limits, retention, concurrency and reminder scheduling. Local tests, AWS deployment, public browser checks, push-provider acceptance and visible device notification are separate evidence states. Deployment resources and pilot limits are described in [the control-service review](backend/REVIEW.html).
 
@@ -94,3 +94,26 @@ The user initiates each import or enables following a BBC team once. Followed fi
 `npm test` covers core parsing/calendar and worker state/access/alarm behavior. `node tests/local-reader-browser.test.mjs` uses the bundled local Playwright installation and an isolated Chrome for Testing profile to check the real extension worker, website connection, local persistence, calendar downloads and absence of listing uploads. It does not install into the user's normal browser profile. Physical Windows acceptance, real toolbar permission flow and OS calendar/banner acceptance are separate checks.
 
 `node tests/local-reader-follow-browser.test.mjs` is an opt-in live BBC check using an isolated staging manifest with BBC permission pre-granted. It checks real page parsing, local refresh alarms, a calendar batch and notification API acceptance. It does not claim to test a normal installation permission dialog or an OS notification banner.
+
+## Browser compatibility (0.3)
+
+The source prefers independently completed H.264/AAC MP4 pieces. Standard MediaSource or iPhone ManagedMediaSource is used when supported; a single-video-element complete-clip fallback follows the same signed clock when neither is available or the buffer fails. The fallback can have visible/audible transitions. Viewers do not need MediaRecorder or screen capture. WebM remains supported for existing invitations and sources that cannot encode MP4, but older Apple viewers need a fresh MP4 cast from a capable host. Encoding happens before signing; receivers verify and forward the original bytes.
+
+Engineering targets, subject to actual browser capabilities:
+
+| Device | Watching and chat | Hosting |
+| --- | --- | --- |
+| iPhone / iPad, iOS or iPadOS 14.5+ | MP4 compatibility path, inline video, tap for sound; iPhone 16 / iOS 27.0.1 is an explicit target | Use a computer to share a tab |
+| macOS Big Sur 11.5.2, Safari 14.1+ | MP4 path plus fallbacks for missing browser methods | Chrome/Edge preferred for tab audio; Safari recording depends on available capture/audio |
+| Android | Chrome-compatible browser with WebRTC, Web Crypto and MP4 decoding | Use a computer to share a tab |
+| Windows | Chrome/Edge-compatible browsers; older machines must still have the required browser features | Chrome/Edge; MP4 recording must be available for older Apple viewers |
+| Chromebook / ChromeOS | Chrome with the required media features | Browser-tab capture and audio when offered by Chrome |
+| Linux | Chrome, or a browser build with the needed H.264/AAC decoder | Chrome preferred; open-source Chromium builds can have different codec support, and desktop capture depends on the OS |
+
+These are feature targets, not a claim that every OS version was physically tested. Current-engine WebKit/Chromium/Firefox tests and removed-API tests do not reproduce an iPhone, Big Sur installation, Chromebook or Linux desktop. iOS below 14.5, Internet Explorer and legacy Edge are outside the current JavaScript baseline. Notification options differ independently: iOS/iPadOS web push needs a Home Screen app and a sufficiently recent OS; calendar downloads remain available. The fixtures extension is still for desktop Chrome/Edge, not mobile Safari.
+
+[Device check](https://www.sameend.com/device-check.html) plays an embedded H.264/AAC sample locally and can save a private report. It asks the person to confirm sound; software cannot confirm they heard it. It uploads no report or invitation. Follow a successful sample check with a real private invitation and the 10-second quick test, then the five-minute mode. Test foreground return, sound, chat, full-room view, and supplier reconnect. Keep the page visible and the screen awake. A browser may suspend a background mobile page even when it is installed as a PWA.
+
+`npm run test:media` checks real decoded pieces, clock recovery and cleanup in available browser engines. `npm run test:peers` checks actual source-signed MP4 transfer and automatic magnet joining, with legacy API removal; `SAMEEND_FULL_DELAY=1` selects five minutes and `SAMEEND_REAL_WEBKIT=1` adds a real WebKit viewer. Tests that alias MediaSource as ManagedMediaSource exercise integration only, not Apple's actual implementation. Some tests deliberately permit autoplay; the media matrix separately tests user-gesture playback without that override.
+
+Primary platform references: [WebKit iPhone streaming](https://webkit.org/blog/14735/webkit-features-in-safari-17-1/), [WebKit original MP4 recorder](https://webkit.org/blog/11353/mediarecorder-api/), [WebM on iOS 17.4](https://webkit.org/blog/15063/webkit-features-in-safari-17-4/), [Chromium media muxers](https://chromium.googlesource.com/chromium/src/+/HEAD/media/muxers/README.md), [Chrome screen-sharing controls](https://developer.chrome.com/docs/web-platform/screen-sharing-controls), [Chrome versus Chromium codecs](https://www.chromium.org/audio-video/).

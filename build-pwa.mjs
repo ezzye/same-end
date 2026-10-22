@@ -6,6 +6,16 @@ import {execFileSync} from 'node:child_process';
 const dir=path.dirname(fileURLToPath(import.meta.url)), out=path.join(dir,'dist');
 await mkdir(out,{recursive:true});
 let html=await readFile(path.join(dir,'app.html'),'utf8');
+const legacyTorrent=await readFile(path.join(dir,'vendor/webtorrent-legacy.js'),'utf8');
+html=html.replace(/(<script[^>]+id="magnet-vendor">)[\s\S]*?(<\/script>)/,(_,a,b)=>a+legacyTorrent+b);
+const browserCompat=await readFile(path.join(dir,'browser-compat.js'),'utf8');
+const compatPattern=/(<script id="browser-compat">)[\s\S]*?(<\/script>)/;
+if(!compatPattern.test(html))throw Error('Embedded browser compatibility shim is missing.');
+html=html.replace(compatPattern,(_,open,close)=>open+browserCompat+close);
+const mediaPlayer=await readFile(path.join(dir,'media-player.js'),'utf8');
+const mediaPattern=/(<script id="same-end-media">)[\s\S]*?(<\/script>)/;
+if(!mediaPattern.test(html))throw Error('Embedded media helper slot is missing.');
+html=html.replace(mediaPattern,(_,open,close)=>open+mediaPlayer+close);
 // The standalone source includes its engine for offline sharing. Always hydrate
 // the web build from the canonical module so fixes cannot silently drift.
 const transport=(await readFile(path.join(dir,'magnet-transport.js'),'utf8')).replace("import WebTorrent from './vendor/webtorrent.min.js';",'const WebTorrent=window.WebTorrent;');
@@ -66,7 +76,7 @@ videoOnly.onclick=async()=>{videoOnlySelected=true;changed();try{await navigator
 for(const id of ['demo','capture']){const begin=$(id).onclick;$(id).onclick=async event=>{await begin(event);const snapshot=window.PrivateCast.snapshot();if(snapshot.active&&snapshot.role==='source'){try{await window.SameEndSocial.prepareCastClub();$('room-social-status').textContent='Chat opens here when a mate connects.'}catch(e){$('room-social-status').textContent='Video works, but live chat could not connect. '+e.message}}};}
 const room=$('watch-room'),roomFull=$('room-fullscreen');
 function showDiary(){document.body.classList.add('room-show-diary');if(!$('back-to-room')){const back=document.createElement('button');back.id='back-to-room';back.className='room-diary-back';back.textContent='Back to the picture ↑';back.onclick=()=>{document.body.classList.remove('room-show-diary');room.scrollIntoView({block:'start'})};$('club-social').prepend(back)}}
-function fullRoomChanged(){const expanded=document.fullscreenElement===room||room.classList.contains('room-expanded');roomFull.textContent=expanded?'Exit full room':'Full room';roomFull.setAttribute('aria-pressed',String(expanded))}
+function fullRoomChanged(){room.classList.toggle('is-browser-fullscreen',document.fullscreenElement===room);const expanded=document.fullscreenElement===room||room.classList.contains('room-expanded');roomFull.textContent=expanded?'Exit full room':'Full room';roomFull.setAttribute('aria-pressed',String(expanded))}
 roomFull.onclick=async()=>{if(document.fullscreenElement===room){await document.exitFullscreen();return}if(room.classList.contains('room-expanded')){room.classList.remove('room-expanded');fullRoomChanged();return}try{if(!room.requestFullscreen)throw Error('Fullscreen unavailable');await room.requestFullscreen()}catch{room.classList.add('room-expanded');fullRoomChanged()}};
 const stopRoom=$('stop').onclick;$('stop').onclick=()=>{room.classList.remove('room-expanded');fullRoomChanged();if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});stopRoom()};
 document.addEventListener('fullscreenchange',fullRoomChanged);document.addEventListener('keydown',e=>{if(e.key==='Escape'){room.classList.remove('room-expanded');fullRoomChanged()}});
@@ -96,6 +106,7 @@ self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(e.request.me
 `);
 
 await writeFile(path.join(out,'test-guide.html'),await readFile(path.join(dir,'test-guide.html')));
+await writeFile(path.join(out,'device-check.html'),await readFile(path.join(dir,'device-check.html')));
 
 // Ship only the reviewed extension files. No dependencies, profiles or local data.
 await mkdir(path.join(dir,'extension/icons'),{recursive:true});
