@@ -4,7 +4,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=path.join(path.dirname(fileURLToPath(import.meta.url)),'dist');
 try{await access(path.join(root,'index.html'));}catch{await import('./build-pwa.mjs');}
-const allowed=new Map([['/','index.html'],['/index.html','index.html'],['/watch.html','watch.html'],['/manifest.webmanifest','manifest.webmanifest'],['/sw.js','sw.js'],['/test-guide.html','test-guide.html'],['/icon-192.png','icon-192.png'],['/icon-512.png','icon-512.png']]);
+const allowed=new Map([['/','index.html'],['/index.html','index.html'],['/watch.html','watch.html'],['/manifest.webmanifest','manifest.webmanifest'],['/sw.js','sw.js'],['/test-guide.html','test-guide.html'],['/device-check.html','device-check.html'],['/icon-192.png','icon-192.png'],['/icon-512.png','icon-512.png']]);
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.webmanifest':'application/manifest+json','.png':'image/png'};
 const port=Number(process.env.PORT||8792);
 http.createServer(async(req,res)=>{const requestUrl=new URL(req.url,'http://localhost');

@@ -1,6 +1,6 @@
 {
   "name": "same-end",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": false,
   "description": "A private, delayed group viewing prototype for media you are allowed to share.",
   "license": "MIT",
@@ -8,9 +8,12 @@
   "scripts": {
     "start": "node serve.mjs",
     "build": "node build-pwa.mjs",
-    "test": "node --test tests/backup-protocol.test.mjs tests/magnet-recovery.test.mjs tests/pwa-shell.test.mjs backend/test/control.test.mjs tests/fixture-feed.test.mjs tests/reader-core.test.mjs tests/reader-worker.test.mjs",
+    "test": "node --test tests/backup-protocol.test.mjs tests/magnet-recovery.test.mjs tests/pwa-shell.test.mjs tests/media-player.test.mjs backend/test/control.test.mjs tests/fixture-feed.test.mjs tests/reader-core.test.mjs tests/reader-worker.test.mjs",
     "test:social": "node tests/social-browser.test.mjs",
-    "refresh:fixtures": "node scripts/update-fixtures.mjs"
+    "refresh:fixtures": "node scripts/update-fixtures.mjs",
+    "build:vendor": "node scripts/build-vendor.mjs",
+    "test:media": "node tests/media-playback-browser.test.mjs",
+    "test:peers": "node tests/platform-peer-browser.test.mjs"
   },
   "engines": {
     "node": ">=20"

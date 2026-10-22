@@ -17,3 +17,5 @@ private*
 *invitation*
 *.torrent
 *.magnet
+
+.idea/
