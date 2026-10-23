@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-10-22",
-  "fetchedAt": "2026-10-22T09:23:27.745Z",
-  "dataHash": "a36e6a466c6c44884ee5ea3c8c51bb03cf528f92a7b7dbe4678c2e884021110d",
+  "checkedAt": "2026-10-23",
+  "fetchedAt": "2026-10-23T09:19:11.762Z",
+  "dataHash": "6c2f12a6efd8855d4fb8c65b567cb207f2b81df1b505380b351993312b50a098",
   "timezone": "UTC",
   "provider": "TheSportsDB",
   "providerApi": "v1",
@@ -9,126 +9,6 @@
   "coverage": "partial",
   "note": "Automatically refreshed starter suggestions; not comprehensive. TV channel data can be missing or stale and does not confirm rights, package requirements, or household availability. Verify with the linked source or broadcaster. Add matches manually when absent.",
   "fixtures": [
-    {
-      "id": "thesportsdb-2594862",
-      "provider": "TheSportsDB",
-      "providerEventId": "2594862",
-      "providerTeamIds": [
-        "134010",
-        "133603"
-      ],
-      "home": "Lech Poznań",
-      "away": "Sunderland",
-      "title": "Lech Poznań v Sunderland",
-      "competition": "UEFA Europa League",
-      "startsAt": 1792687500000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2594862",
-      "checkedAt": "2026-10-22",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "Qatar",
-          "channel": "BeIN Sports 4 Qatar",
-          "providerChannelId": "8518"
-        },
-        {
-          "country": "Norway",
-          "channel": "V Sport 3 NO",
-          "providerChannelId": "8562"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
-      "id": "thesportsdb-2594782",
-      "provider": "TheSportsDB",
-      "providerEventId": "2594782",
-      "providerTeamIds": [
-        "134395",
-        "133619"
-      ],
-      "home": "Jablonec",
-      "away": "Brighton and Hove Albion",
-      "title": "Jablonec v Brighton and Hove Albion",
-      "competition": "UEFA Conference League",
-      "startsAt": 1792687500000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2594782",
-      "checkedAt": "2026-10-22",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "Qatar",
-          "channel": "BeIN Sports 5 Qatar",
-          "providerChannelId": "8519"
-        },
-        {
-          "country": "Czechia",
-          "channel": "Sport 1 Czechia",
-          "providerChannelId": "2936"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
-      "id": "thesportsdb-2594884",
-      "provider": "TheSportsDB",
-      "providerEventId": "2594884",
-      "providerTeamIds": [
-        "133794",
-        "133632"
-      ],
-      "home": "Beşiktaş",
-      "away": "Crystal Palace",
-      "title": "Beşiktaş v Crystal Palace",
-      "competition": "UEFA Europa League",
-      "startsAt": 1792695600000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2594884",
-      "checkedAt": "2026-10-22",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "Qatar",
-          "channel": "BeIN Sports 2 Qatar",
-          "providerChannelId": "8828"
-        },
-        {
-          "country": "Qatar",
-          "channel": "BeIN Sports English 2 Qatar",
-          "providerChannelId": "4372"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
-      "id": "thesportsdb-2594812",
-      "provider": "TheSportsDB",
-      "providerEventId": "2594812",
-      "providerTeamIds": [
-        "134301",
-        "133667"
-      ],
-      "home": "Bournemouth",
-      "away": "AC Milan",
-      "title": "Bournemouth v AC Milan",
-      "competition": "UEFA Europa League",
-      "startsAt": 1792695600000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2594812",
-      "checkedAt": "2026-10-22",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "The Netherlands",
-          "channel": "Ziggo Sport 5",
-          "providerChannelId": "7900"
-        },
-        {
-          "country": "Qatar",
-          "channel": "BeIN Sports 1 Qatar",
-          "providerChannelId": "8515"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
     {
       "id": "thesportsdb-2494075",
       "provider": "TheSportsDB",
@@ -143,7 +23,7 @@
       "competition": "English Premier League",
       "startsAt": 1792782000000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494075",
-      "checkedAt": "2026-10-22",
+      "checkedAt": "2026-10-23",
       "status": "scheduled",
       "tv": [
         {
@@ -173,7 +53,7 @@
       "competition": "English Premier League",
       "startsAt": 1792841400000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494077",
-      "checkedAt": "2026-10-22",
+      "checkedAt": "2026-10-23",
       "status": "scheduled",
       "tv": [
         {
@@ -203,7 +83,7 @@
       "competition": "English Premier League",
       "startsAt": 1792850400000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494072",
-      "checkedAt": "2026-10-22",
+      "checkedAt": "2026-10-23",
       "status": "scheduled",
       "tv": [
         {
@@ -233,7 +113,7 @@
       "competition": "English Premier League",
       "startsAt": 1792850400000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494079",
-      "checkedAt": "2026-10-22",
+      "checkedAt": "2026-10-23",
       "status": "scheduled",
       "tv": [
         {
@@ -274,7 +154,7 @@
       "competition": "English Premier League",
       "startsAt": 1792859400000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494073",
-      "checkedAt": "2026-10-22",
+      "checkedAt": "2026-10-23",
       "status": "scheduled",
       "tv": [
         {
@@ -315,7 +195,7 @@
       "competition": "English Premier League",
       "startsAt": 1792936800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494076",
-      "checkedAt": "2026-10-22",
+      "checkedAt": "2026-10-23",
       "status": "scheduled",
       "tv": [
         {
@@ -345,7 +225,7 @@
       "competition": "English Premier League",
       "startsAt": 1792936800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494070",
-      "checkedAt": "2026-10-22",
+      "checkedAt": "2026-10-23",
       "status": "scheduled",
       "tv": [
         {
@@ -375,7 +255,7 @@
       "competition": "English Premier League",
       "startsAt": 1792936800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494074",
-      "checkedAt": "2026-10-22",
+      "checkedAt": "2026-10-23",
       "status": "scheduled",
       "tv": [
         {
@@ -405,7 +285,7 @@
       "competition": "English Premier League",
       "startsAt": 1792936800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494071",
-      "checkedAt": "2026-10-22",
+      "checkedAt": "2026-10-23",
       "status": "scheduled",
       "tv": [
         {
@@ -446,7 +326,7 @@
       "competition": "English Premier League",
       "startsAt": 1792945800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494078",
-      "checkedAt": "2026-10-22",
+      "checkedAt": "2026-10-23",
       "status": "scheduled",
       "tv": [
         {
