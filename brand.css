@@ -331,3 +331,11 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
  .room .club-chat-shell .club-message-meta time{display:none!important}
 }
 @media(prefers-reduced-motion:reduce){.club-chat-shell .club-reaction:hover:not(:disabled){transform:none}}
+
+/* Copy the complete private invitation where the link is shown. */
+.invitation-copy-row{display:flex;align-items:stretch;gap:8px;min-width:0}
+.invitation-copy-row #browser-invitation{flex:1;min-width:0;width:0;margin:0;background:#fff}
+.invitation-copy-row #copy-private-invitation{flex:none;gap:7px;min-height:44px;padding:9px 12px;border-radius:8px;background:#073c2a;color:#fff;border-color:#073c2a;font-size:13px}
+.invitation-copy-row #copy-private-invitation:hover{background:#0b563b}
+.invite-actions .copy-ready{background:#073c2a!important;color:#fff;border-color:#073c2a}
+.invite-actions .copy-ready:hover{background:#0b563b!important}
