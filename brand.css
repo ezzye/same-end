@@ -1,5 +1,5 @@
 :root{--paper:#f5f6f3;--ink:#073c2a;--soft:#52645c;--line:#cfd7d1;--orange:#e42a24;--white:#fff;--green:#0e773e;--radius:14px;--hero-image:url('__HERO_IMAGE__');--club-image:url('__CLUB_IMAGE__')}
-body{background:#f5f6f3;color:#073c2a;font-family:system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:1240px;padding:0 28px 35px}.topbar{min-height:86px;border-bottom:0}.brand{font-size:29px;letter-spacing:-1.7px}.brand-symbol i{background:#0a6939}.brand>span:last-child{color:#e42a24!important}.top-note{color:#254b37;font-weight:700}.topbar .brand{gap:12px}.hero.football-hero{display:block;position:relative;isolation:isolate;overflow:hidden;border-radius:16px;min-height:420px;padding:50px 48px 38px;background:#052819;background-image:linear-gradient(90deg,rgba(1,31,19,.90),rgba(1,31,19,.53) 48%,rgba(0,0,0,.04) 76%),var(--hero-image);background-size:cover;background-position:center 57%;margin-bottom:26px;color:#fff;box-shadow:0 7px 22px #062b1a15}.hero.football-hero h1{font-family:'Arial Narrow',Impact,system-ui,sans-serif;font-weight:900;font-size:64px;font-size:clamp(52px,6.7vw,86px);letter-spacing:-3px;margin:18px 0 20px;line-height:.98;max-width:680px}.hero.football-hero h1 em{color:#fff;text-decoration:underline;text-decoration-color:#ef2b24;text-decoration-thickness:8px;text-underline-offset:8px}.hero .eyebrow{color:#fff;font-size:11px;letter-spacing:2.2px}.hero .eyebrow:before{background:#fa3d32}.hero .lede{color:#f4f7f4;font-size:18px;max-width:440px;text-shadow:0 1px 8px #0007}.hero-actions{display:flex;gap:11px;flex-wrap:wrap;align-items:center;margin:23px 0 0}.hero-actions button{background:#e12b24;border-color:#e12b24;border-radius:8px;min-height:48px;padding:12px 20px;color:#fff;font-size:14px}.hero-actions button:hover{background:#c51f1a}.hero-actions .hero-link{background:#ffffff0a;border:1px solid #ffffff88;color:#fff;text-decoration:none;font-size:14px;padding:11px 17px;border-radius:8px;font-weight:750}.hero-note{font-size:11px;letter-spacing:.1px;color:#e1ede2;margin:15px 0 0}.matchday-strip{display:flex;gap:16px;justify-content:space-between;align-items:center;padding:13px 0 18px;border-bottom:1px solid #cfd7d1;margin-bottom:25px;font-size:12px;color:#3f594b}.matchday-strip span{display:inline-flex;gap:8px;align-items:center}.matchday-strip b{font-size:10px;letter-spacing:1.5px;background:#073c2a;color:#fff;border-radius:3px;padding:4px 7px}.matchday-strip a{font-weight:750}.panel{border-radius:13px;border-color:#cbd4cc;background:#fff;box-shadow:0 2px 0 #0a3b2110}.step{background:#0c703b;color:#fff}.panel-heading h2{font-family:'Arial Narrow',system-ui,sans-serif;font-size:23px;letter-spacing:-.8px}.start-actions #capture{background:#e12b24;border-color:#e12b24;color:#fff;border-radius:8px}.start-actions #capture:hover{background:#c3221b}.start-actions #demo{border-radius:8px;border-color:#94a89a;color:#123e29}.start-actions #demo:hover{background:#f1f7f1}.invitation-card{background:#fff;border-top:4px solid #0d743d;padding-top:23px}.invite-intro{color:#475e50}.invite-actions #make-magnet{background:#096235;border-color:#096235;border-radius:8px}.invite-actions #make-magnet:hover:not(:disabled){background:#084d2c}button:disabled{opacity:.48}.privacy-line,.magnet-progress{color:#435b4b}.micro{color:#586b5f}.room{background:#072c1c;color:#fff;border-color:#072c1c;border-radius:14px}.room .room-title:before{background:#34d175}.room .stage-empty{background:radial-gradient(ellipse at 50% 120%,#144f30,#041c11 70%)}.room .countdown{color:#fff}.room .room-controls button{border-radius:7px}.room .friend-badge{background:#113e27;border-color:#37674a}.footer{border-color:#b4c4b8}.settings[open]{background:#fff}.footer-note{color:#52665a}.settings>summary:before{color:#0a6e38}.room-active .football-hero,.joining .football-hero,.has-social-club .football-hero{display:none}.room-active .matchday-strip,.joining .matchday-strip,.has-social-club .matchday-strip{display:none}.has-social-club .flow{margin-top:22px}.has-social-club .topbar{border-bottom:1px solid var(--line);margin-bottom:22px}.club-cover-photo{background-image:linear-gradient(90deg,#051f15e8,#061d1580 60%,#0003),var(--club-image);background-size:cover;background-position:center 55%}.trust-footer{font-size:11px;color:#5a6c61;margin-top:12px}.hero-link:focus-visible,button:focus-visible{outline:3px solid #12b15c;outline-offset:4px}@media(max-width:700px){main{padding:0 15px 26px}.topbar{min-height:76px;gap:10px}.brand{font-size:24px}.top-note{font-size:10px;max-width:140px;text-align:right}.hero.football-hero{min-height:430px;padding:34px 25px 30px;background-position:65% center;background-image:linear-gradient(90deg,rgba(1,27,16,.90),rgba(1,27,16,.48)),var(--hero-image);border-radius:12px;margin-bottom:18px}.hero.football-hero h1{font-size:59px;letter-spacing:-2.5px;max-width:330px}.hero.football-hero .lede{font-size:16px;max-width:280px}.hero-actions{gap:9px;margin-top:22px}.hero-actions button,.hero-actions .hero-link{font-size:13px;padding:11px 15px}.matchday-strip{gap:10px;align-items:flex-start;font-size:11px;flex-wrap:wrap;padding-bottom:17px;margin-bottom:18px}.matchday-strip .strip-source{display:none}.panel-heading h2{font-size:21px}.panel{border-radius:12px}.invitation-card{padding-top:18px}.hero-note{font-size:10px}.room .room-title{font-size:17px}}
+body{background:#f5f6f3;color:#073c2a;font-family:system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:1240px;padding:0 28px 35px}.topbar{min-height:86px;border-bottom:0}.brand{font-size:29px;letter-spacing:-1.7px}.brand-symbol i{background:#0a6939}.brand-dot{color:#e42a24}.top-note{color:#254b37;font-weight:700}.topbar .brand{gap:12px}.hero.football-hero{display:block;position:relative;isolation:isolate;overflow:hidden;border-radius:16px;min-height:420px;padding:50px 48px 38px;background:#052819;background-image:linear-gradient(90deg,rgba(1,31,19,.90),rgba(1,31,19,.53) 48%,rgba(0,0,0,.04) 76%),var(--hero-image);background-size:cover;background-position:center 57%;margin-bottom:26px;color:#fff;box-shadow:0 7px 22px #062b1a15}.hero.football-hero h1{font-family:'Arial Narrow',Impact,system-ui,sans-serif;font-weight:900;font-size:64px;font-size:clamp(52px,6.7vw,86px);letter-spacing:-3px;margin:18px 0 20px;line-height:.98;max-width:680px}.hero.football-hero h1 em{color:#fff;text-decoration:underline;text-decoration-color:#ef2b24;text-decoration-thickness:8px;text-underline-offset:8px}.hero .eyebrow{color:#fff;font-size:11px;letter-spacing:2.2px}.hero .eyebrow:before{background:#fa3d32}.hero .lede{color:#f4f7f4;font-size:18px;max-width:440px;text-shadow:0 1px 8px #0007}.hero-actions{display:flex;gap:11px;flex-wrap:wrap;align-items:center;margin:23px 0 0}.hero-actions button{background:#e12b24;border-color:#e12b24;border-radius:8px;min-height:48px;padding:12px 20px;color:#fff;font-size:14px}.hero-actions button:hover{background:#c51f1a}.hero-actions .hero-link{background:#ffffff0a;border:1px solid #ffffff88;color:#fff;text-decoration:none;font-size:14px;padding:11px 17px;border-radius:8px;font-weight:750}.hero-note{font-size:11px;letter-spacing:.1px;color:#e1ede2;margin:15px 0 0}.matchday-strip{display:flex;gap:16px;justify-content:space-between;align-items:center;padding:13px 0 18px;border-bottom:1px solid #cfd7d1;margin-bottom:25px;font-size:12px;color:#3f594b}.matchday-strip span{display:inline-flex;gap:8px;align-items:center}.matchday-strip b{font-size:10px;letter-spacing:1.5px;background:#073c2a;color:#fff;border-radius:3px;padding:4px 7px}.matchday-strip a{font-weight:750}.panel{border-radius:13px;border-color:#cbd4cc;background:#fff;box-shadow:0 2px 0 #0a3b2110}.step{background:#0c703b;color:#fff}.panel-heading h2{font-family:'Arial Narrow',system-ui,sans-serif;font-size:23px;letter-spacing:-.8px}.start-actions #capture{background:#e12b24;border-color:#e12b24;color:#fff;border-radius:8px}.start-actions #capture:hover{background:#c3221b}.start-actions #demo{border-radius:8px;border-color:#94a89a;color:#123e29}.start-actions #demo:hover{background:#f1f7f1}.invitation-card{background:#fff;border-top:4px solid #0d743d;padding-top:23px}.invite-intro{color:#475e50}.invite-actions #make-magnet{background:#096235;border-color:#096235;border-radius:8px}.invite-actions #make-magnet:hover:not(:disabled){background:#084d2c}button:disabled{opacity:.48}.privacy-line,.magnet-progress{color:#435b4b}.micro{color:#586b5f}.room{background:#072c1c;color:#fff;border-color:#072c1c;border-radius:14px}.room .room-title:before{background:#34d175}.room .stage-empty{background:radial-gradient(ellipse at 50% 120%,#144f30,#041c11 70%)}.room .countdown{color:#fff}.room .room-controls button{border-radius:7px}.room .friend-badge{background:#113e27;border-color:#37674a}.footer{border-color:#b4c4b8}.settings[open]{background:#fff}.footer-note{color:#52665a}.settings>summary:before{color:#0a6e38}.room-active .football-hero,.joining .football-hero,.has-social-club .football-hero{display:none}.room-active .matchday-strip,.joining .matchday-strip,.has-social-club .matchday-strip{display:none}.has-social-club .flow{margin-top:22px}.has-social-club .topbar{border-bottom:1px solid var(--line);margin-bottom:22px}.club-cover-photo{background-image:linear-gradient(90deg,#051f15e8,#061d1580 60%,#0003),var(--club-image);background-size:cover;background-position:center 55%}.trust-footer{font-size:11px;color:#5a6c61;margin-top:12px}.hero-link:focus-visible,button:focus-visible{outline:3px solid #12b15c;outline-offset:4px}@media(max-width:700px){main{padding:0 15px 26px}.topbar{min-height:76px;gap:10px}.brand{font-size:24px}.top-note{font-size:10px;max-width:140px;text-align:right}.hero.football-hero{min-height:430px;padding:34px 25px 30px;background-position:65% center;background-image:linear-gradient(90deg,rgba(1,27,16,.90),rgba(1,27,16,.48)),var(--hero-image);border-radius:12px;margin-bottom:18px}.hero.football-hero h1{font-size:59px;letter-spacing:-2.5px;max-width:330px}.hero.football-hero .lede{font-size:16px;max-width:280px}.hero-actions{gap:9px;margin-top:22px}.hero-actions button,.hero-actions .hero-link{font-size:13px;padding:11px 15px}.matchday-strip{gap:10px;align-items:flex-start;font-size:11px;flex-wrap:wrap;padding-bottom:17px;margin-bottom:18px}.matchday-strip .strip-source{display:none}.panel-heading h2{font-size:21px}.panel{border-radius:12px}.invitation-card{padding-top:18px}.hero-note{font-size:10px}.room .room-title{font-size:17px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 
 :root{--club-tint:#f0f3f1;--club-paper:#fff;--club-ink:#123d2a;--club-border:#c6d2ca;--club-soft:#4b6355}
@@ -124,3 +124,109 @@ body.room-active.room-show-diary #club-social{display:block}
 @media(min-width:701px){.start-card>.muted,.invite-intro{min-height:24px;margin-bottom:0}.start-card .start-actions,.invite-actions{margin-top:20px}}
 @media(max-width:700px){.brand{white-space:nowrap;flex-shrink:0}.brand-symbol{flex-shrink:0}.top-note{font-size:9px}}
 @media(max-width:360px){.brand{font-size:22px;gap:8px!important}.top-note{max-width:100px;font-size:8px}.topbar{gap:8px}}
+
+
+/* ------------------------------------------------------------------
+   Landing refresh: clearer first steps, steadier rhythm, mobile-first fold.
+   Appended last so it wins over the earlier layered rules without !important.
+   ------------------------------------------------------------------ */
+:root{--pitch:#073c2a;--turf:#0b6b38;--kit:#e12b24;--kit-dark:#bf1f19;--chalk:#f5f6f3;--rule:#d5ddd7;--muted:#56695e;--card-shadow:0 1px 0 #0a3b2112,0 10px 28px -18px #06301d4d}
+body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+
+/* Header: the full stop belongs to the wordmark. */
+.topbar{min-height:78px}
+.brand-word{display:inline-flex;align-items:baseline;white-space:nowrap}
+.brand-dot{margin-left:1px}
+.top-note{font-size:13px;color:#2f5140}
+
+/* Hero: one strong statement, then three plain facts. */
+.hero.football-hero{min-height:0;padding:46px 48px 36px;box-shadow:0 18px 40px -28px #031e12b3}
+.hero.football-hero h1{white-space:nowrap;margin:14px 0 18px}
+.hero.football-hero h1 em{font-style:normal;text-decoration-thickness:7px;text-underline-offset:9px}
+.hero.football-hero .lede{max-width:430px}
+.hero-points{list-style:none;padding:0;margin:26px 0 0;display:flex;flex-wrap:wrap;gap:8px;font-size:12.5px;letter-spacing:0;color:#fff;max-width:none}
+.hero-points li{display:inline-flex;align-items:center;gap:7px;padding:7px 12px 7px 10px;border-radius:999px;background:#ffffff14;border:1px solid #ffffff38;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);font-weight:600;line-height:1.2}
+.hero-points li:before{content:"";flex:none;width:14px;height:14px;border-radius:50%;background:#27c266 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M4 7.2l2 2 4-4.4' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat}
+
+/* The two steps read as one sequence: do this, then this. */
+#quick-room.flow{position:relative;gap:18px;align-items:stretch}
+.start-card,.invitation-card{border:1px solid var(--rule);border-radius:16px;box-shadow:var(--card-shadow);padding:26px 26px 24px}
+.start-card{border-top:4px solid var(--kit)}
+.invitation-card{border-top:4px solid var(--turf)}
+.panel-heading{gap:11px}
+.panel-heading .step{width:30px;height:30px;margin:0;font-size:14px;flex:none}
+.start-card .step{background:var(--kit)}
+.invitation-card .step{background:var(--turf)}
+.panel-heading h2{font-size:25px;line-height:1.1}
+.start-card>.muted,.invite-intro{color:#3f574a;font-size:15px;margin-top:6px}
+.start-actions #capture,.invite-actions #make-magnet{min-height:52px;font-size:16px;letter-spacing:-.1px;border-radius:10px;transition:background-color .15s ease,transform .15s ease,box-shadow .15s ease}
+.start-actions #capture{box-shadow:0 8px 18px -10px #c51f1acc}
+.start-actions #capture:hover{background:var(--kit-dark);transform:translateY(-1px)}
+.start-actions #capture:active,.invite-actions #make-magnet:active:not(:disabled){transform:translateY(0)}
+.invite-actions #make-magnet:not(:disabled){box-shadow:0 8px 18px -10px #06402288}
+/* A locked step should look waiting, not broken. */
+.invite-actions #make-magnet:disabled{opacity:1;background:#eef2ef;border:1px dashed #a9bbb0;color:#5d7266;box-shadow:none}
+.start-card .micro{font-size:13px;color:var(--muted);margin-top:12px}
+.host-hint{margin:auto 0 0;padding:12px 14px 0 0;font-size:12.5px;line-height:1.55;color:var(--muted);border-top:1px solid #e3e9e5;margin-top:18px}
+.privacy-line{font-size:12px}
+.magnet-progress{font-weight:600;color:#2f4e3e}
+.join-entry{margin-top:16px;padding-top:0;border-top:0}
+.join-entry>summary{display:flex;align-items:center;gap:10px;min-height:48px;padding:10px 14px;border:1px solid var(--rule);border-radius:10px;background:#f6f8f6;list-style:none;font-size:14px;color:var(--pitch)}
+.join-entry>summary::-webkit-details-marker{display:none}
+.join-entry>summary:before{content:"";flex:none;width:18px;height:18px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Cpath d='M3 7l9 6 9-6'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Cpath d='M3 7l9 6 9-6'/%3E%3C/svg%3E") center/contain no-repeat}
+.join-entry>summary:after{content:"+";margin-left:auto;font-size:20px;line-height:1;color:#406351}
+.join-entry[open]>summary:after{content:"−"}
+.join-entry>summary:hover{background:#eef4ef}
+.join-entry[open]>summary{border-bottom-left-radius:0;border-bottom-right-radius:0}
+.join-entry[open]{border:1px solid var(--rule);border-radius:10px}
+.join-entry[open]>summary{border:0;border-bottom:1px solid var(--rule)}
+.join-entry[open]>:not(summary){margin-left:14px;margin-right:14px}
+.join-entry[open] .row{margin-bottom:14px}
+.join-entry input{width:100%}
+
+/* Secondary rows: an icon makes each one scannable at a glance. */
+.secondary-section{border-radius:14px;border-color:var(--rule);box-shadow:0 1px 0 #0a3b2110}
+.secondary-section>summary{gap:16px;padding:16px 22px 16px 18px}
+.secondary-section>summary:before{content:"";flex:none;width:40px;height:40px;border-radius:11px;background:#e9f2ec center/22px no-repeat}
+#match-extras>summary:before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b6b38' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M16 3v4M8 3v4M3 10h18'/%3E%3Cpath d='M12 14v3h3'/%3E%3C/svg%3E")}
+#club-extras>summary:before{background-color:#fdeceb;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c4221c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z'/%3E%3Cpath d='M9 10.5h6M9 14h6'/%3E%3C/svg%3E")}
+.secondary-section>summary strong{font-size:16px;color:var(--pitch)}
+.secondary-section>summary small{font-size:13px;color:var(--muted)}
+.secondary-section>summary:after{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;border:1px solid var(--rule);font-size:20px;transition:background-color .15s ease}
+.secondary-section>summary:hover:after{background:#fff}
+
+/* Footer: quieter, aligned to the same edges. */
+.footer{border-top-color:var(--rule)}
+.footer-note{color:var(--muted)}
+
+@media(max-width:700px){
+ main{padding:0 14px 24px}
+ .topbar{min-height:66px}
+ .brand{font-size:23px}
+ .brand-symbol{height:26px}
+ .top-note{display:none}
+ .hero.football-hero{padding:26px 22px 22px;border-radius:14px;margin-bottom:14px;background-position:68% center}
+ .hero.football-hero h1{font-size:44px;font-size:clamp(34px,11.6vw,52px);letter-spacing:-1.8px;margin:12px 0 14px;line-height:1.02;max-width:none}
+ .hero.football-hero h1 em{text-decoration-thickness:5px;text-underline-offset:6px}
+ .hero.football-hero .lede{font-size:15px;line-height:1.5;max-width:300px}
+ .hero-points{margin-top:16px;gap:6px;font-size:11.5px}
+ .hero-points li{padding:5px 10px 5px 7px}
+ .hero-points li:before{width:12px;height:12px;background-size:12px}
+ #quick-room.flow{gap:12px}
+ .start-card,.invitation-card{padding:20px 18px 18px;border-radius:14px}
+ .panel-heading h2{font-size:22px}
+ .start-card>.muted,.invite-intro{font-size:14px}
+ .host-hint{font-size:12px}
+ .start-card>.muted,.invite-intro{margin-bottom:0}
+ .start-card .start-actions,.invite-actions{margin-top:16px}
+ .secondary-section>summary{padding:14px 16px 14px 14px;gap:13px;min-height:72px}
+ .secondary-section>summary:before{width:38px;height:38px;border-radius:10px;background-size:20px}
+ .secondary-section>summary strong{font-size:15px}
+ .secondary-section>summary small{font-size:12px}
+}
+@media(max-width:360px){
+ .hero.football-hero{padding:22px 18px 20px}
+ .hero-points li{font-size:11px}
+ .start-card,.invitation-card{padding:18px 15px 16px}
+}
+@media(prefers-reduced-motion:reduce){.start-actions #capture:hover{transform:none}}
