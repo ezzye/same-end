@@ -1,7 +1,11 @@
-/* Guidance only: macOS owns screen-capture permission. No OS settings are read or changed. */
+/* Phone hosting policy and Mac capture guidance. No OS settings are changed. */
 (()=>{
  'use strict';
  const key='sameend.mac-share-guidance',ua=navigator.userAgent||'';
+ // Desktop-mode iPhones and iPads can identify as Macintosh. Keep touch Apple devices join-only.
+ const phone=/iPhone|iPad|iPod|Android.*Mobile|Windows Phone|IEMobile|BlackBerry|BB10|Opera Mini/i.test(ua)||navigator.userAgentData?.mobile===true||(/Macintosh|Mac OS X/.test(ua)&&navigator.maxTouchPoints>1);
+ const phoneMessage='Start a cast on a computer.';
+ if(phone){const capture=document.getElementById('capture'),demo=document.getElementById('demo');if(capture){capture.disabled=true;capture.hidden=true;}if(demo){demo.disabled=true;demo.title=phoneMessage;}}
  const mac=/Macintosh|Mac OS X/.test(ua)&&!(/iPhone|iPad|iPod/.test(ua)||navigator.maxTouchPoints>1);
  const applicable=mac&&/Chrome\/|Edg\//.test(ua);
  let seen=false,panel;
@@ -19,5 +23,5 @@
   document.getElementById('mac-share-context').textContent=denied?'Nothing was captured. If you cancelled the tab picker, try again. If macOS blocked sharing, check the permission below; Same End cannot tell these two cases apart.':'The first share can need a Mac permission change and a browser restart. Save any work in other browser tabs first. Same End never asks for your administrator password.';
   panel.hidden=false;document.getElementById('mac-share-continue').focus();
  }
- window.SameEndShareHelp={beforeShare(){if(!applicable||seen)return false;show();return true;},denied(){if(applicable)show(true);}};
+ window.SameEndShareHelp={phone,phoneMessage,beforeShare(){if(phone)return true;if(!applicable||seen)return false;show();return true;},denied(){if(applicable)show(true);}};
 })();
