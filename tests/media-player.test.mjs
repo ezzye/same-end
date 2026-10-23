@@ -59,6 +59,15 @@ function assertBounded(player){
   assert.equal(player.queueBytes,queueBytes,'append accounting diverges from retained buffers');
 }
 
+test('decoded programme position maps compatibility clip time and never reports a desired target as playout',()=>{
+  const h=harness(),{player,video}=h;
+  video.currentTime=7.25;assert.equal(player.programTime(),7.25);
+  player.enqueue(piece(9),epoch);player.fallback('test');player.sync(18.2);
+  video.currentTime=.25;assert.equal(player.programTime(),18.25);
+  video.readyState=0;assert.equal(player.programTime(),null);
+  player.close();assert.equal(player.programTime(),null);
+});
+
 test('suspended streaming stays bounded through 1000 pieces and resumes at the current clock window',()=>{
   const h=harness(),{player,managed}=h;
   for(let seq=0;seq<1000;seq++){player.enqueue(piece(seq),epoch);assertBounded(player);}

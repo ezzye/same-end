@@ -6,9 +6,16 @@ A magnet viewer keeps the cast configuration, shared clock offset, verified clip
 cache, MediaSource and downstream connections when its supplying wire closes.
 The existing authenticated swarm is searched for a rooted supplier of the **same
 cast and original source bytes**. Each recovery window allows at most eight
-requests or 45 seconds, with a five-second request timeout/cooldown. A user or
-rehearsal can start a fresh bounded window with `PrivateCast.recoverSupplier()`.
+requests or 45 seconds, with a five-second request timeout/cooldown. Exhausted
+windows retry automatically with bounded backoff. A user or rehearsal can also
+start a fresh bounded window with `PrivateCast.recoverSupplier()`.
 This does not create an alternative tracker or network route.
+
+Updated peers measure acknowledged delivery and rotate an open-but-stalled
+supplier after a conservative watchdog grace. They preserve the same clock and
+skip already verified history during handover. Capacity-aware admission keeps
+the existing two-child ceiling. See [delivery and recovery](delivery-recovery.md)
+for the negotiated receipt/resume fields, bounded measurements and test limits.
 
 A supplier reserves pending downstream slots before accepting, so two concurrent
 children cannot be overcommitted by a third request. Both sides check full source
