@@ -56,3 +56,5 @@
 .delivery-state{font-size:.9rem;line-height:1.4;padding:.65rem .85rem;margin:.6rem 0;border-radius:.5rem;background:#fff1cc;color:#443b17;border:1px solid #d3b760}
 .delivery-state[hidden]{display:none}
 .test-log{padding:12px 0;border-bottom:1px solid #cdd8c9}.test-log-body{max-width:800px;padding-top:12px}.test-log-toggle{display:flex;align-items:center;gap:9px}.test-log-toggle input{width:auto;min-height:0}.test-log-body .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.test-log-body button{font-size:14px}.test-log-body p{overflow-wrap:anywhere}
+
+.mac-share-help[hidden]{display:none}.mac-share-help{position:fixed;inset:0;z-index:11000;background:#001e18bd;display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}.mac-share-window{max-width:680px;max-height:calc(100vh - 40px);overflow:auto;background:#fff;color:#173c2c;border-radius:16px;padding:26px;box-shadow:0 20px 70px #0005}.mac-share-window h2{margin:0 0 14px}.mac-share-window p,.mac-share-window li{font-size:15px;line-height:1.6}.mac-share-window li{padding-bottom:8px}.mac-share-window a{color:inherit}.mac-share-window .row{margin-top:16px;flex-wrap:wrap}

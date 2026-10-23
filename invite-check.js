@@ -5,10 +5,10 @@
   const $=id=>document.getElementById(id);
   const MESSAGES={
     'browser-feature':'This browser is missing a feature needed for the picture. Open the invitation in Safari, Chrome or Edge.',
-    'room-unavailable':'The picture could not connect. Check that your host still has the room open, and ask for a fresh invitation.',
+    'room-unavailable':'The picture could not connect. Check your host still has the room open. If it works on Wi-Fi but not 5G or a hotspot, the network may be blocking a direct connection; this version has no relay fallback.',
     'chat-unavailable':'Chat could not connect. You can still try the picture. Your host can use the report below to help.',
     'video-decode':'The picture could not play in this browser. Try Safari, Chrome or Edge, or ask your host to start a fresh room.',
-    'connection-slow':'The room is taking longer to connect. Keep this page open and check that your host is still sharing.',
+    'connection-slow':'The picture is taking longer to connect. Check your host is still sharing. Try Wi-Fi if you are using 5G or a hotspot: this version cannot bridge a blocked direct connection.',
     'picture-stalled':'Your picture has stopped advancing. Keep the page open while the room reconnects.',
     'app-error':'Something interrupted joining. Send your host this check so they can help.',
     'invitation-incomplete':'This invitation is incomplete. Ask your host to send a fresh, complete link.'
@@ -34,13 +34,14 @@
   function facts(){
     let snap=null;try{snap=window.PrivateCast?.snapshot();}catch{}
     const v=$('player');const allowed=(x,choices)=>choices.includes(x)?x:null;
-    return {phase:S.phase,role:allowed(snap?.role,['source','viewer']),mediaFormat:typeof snap?.mime==='string'?(snap.mime.startsWith('video/mp4')?'mp4':snap.mime.startsWith('video/webm')?'webm':null):null,playbackMode:allowed(snap?.playbackMode,['mse','clips']),groupDelaySeconds:allowed(snap?.config?.delay,[10,60,300]),peerConnected:!!snap?.peers?.some(p=>p.ready&&p.state==='connected'),clockReady:snap?.clockReady===true,videoPiecesReceived:Number(snap?.received)>0,pictureAdvanced:S.picture,audioTrackIncluded:snap?.config?.audio===true,muted:v?.muted===true,pageVisible:document.visibilityState==='visible',online:navigator.onLine!==false,verifiedReserveSeconds:Number.isFinite(snap?.reserveSeconds)?Math.max(0,Math.min(600,Math.round(snap.reserveSeconds))):null,supplierHealth:allowed(snap?.supplierHealth,['healthy','supplier-unresponsive','source-path-stalled','source-progress-stalled','upstream-recovering']),recoveries:Number.isSafeInteger(snap?.recovery?.recoveries)?Math.max(0,Math.min(10000,snap.recovery.recoveries)):0};
+    return {connectionMode:'direct-only',relayFallbackConfigured:false,authenticatedPeerCount:Number.isSafeInteger(snap?.transport?.authenticatedPeers)?Math.max(0,Math.min(12,snap.transport.authenticatedPeers)):null,descriptorLoaded:!!snap?.config,phase:S.phase,role:allowed(snap?.role,['source','viewer']),mediaFormat:typeof snap?.mime==='string'?(snap.mime.startsWith('video/mp4')?'mp4':snap.mime.startsWith('video/webm')?'webm':null):null,playbackMode:allowed(snap?.playbackMode,['mse','clips']),groupDelaySeconds:allowed(snap?.config?.delay,[10,60,300]),peerConnected:!!snap?.peers?.some(p=>p.ready&&p.state==='connected'),clockReady:snap?.clockReady===true,videoPiecesReceived:Number(snap?.received)>0,pictureAdvanced:S.picture,audioTrackIncluded:snap?.config?.audio===true,muted:v?.muted===true,pageVisible:document.visibilityState==='visible',online:navigator.onLine!==false,verifiedReserveSeconds:Number.isFinite(snap?.reserveSeconds)?Math.max(0,Math.min(600,Math.round(snap.reserveSeconds))):null,supplierHealth:allowed(snap?.supplierHealth,['healthy','supplier-unresponsive','source-path-stalled','source-progress-stalled','upstream-recovering']),recoveries:Number.isSafeInteger(snap?.recovery?.recoveries)?Math.max(0,Math.min(10000,snap.recovery.recoveries)):0};
   }
   // Validate again on receipt: reports originate from other club members.
   function cleanReport(input={}){
     const one=(v,list)=>list.includes(v)?v:null,version=v=>typeof v==='string'&&/^[0-9]+(?:[._][0-9]+){0,4}$/.test(v)&&v.length<=24?v:null;
     const checks={},joining={},d=input.device||{},j=input.joining||{},c=input.checks||{};
     for(const k of ['secureContext','webCrypto','webRTC','mp4Reported','mediaSource','managedMediaSource'])checks[k]=c[k]===true;
+    joining.connectionMode=one(j.connectionMode,['direct-only']);joining.relayFallbackConfigured=typeof j.relayFallbackConfigured==='boolean'?j.relayFallbackConfigured:null;joining.authenticatedPeerCount=Number.isSafeInteger(j.authenticatedPeerCount)?Math.max(0,Math.min(12,j.authenticatedPeerCount)):null;joining.descriptorLoaded=typeof j.descriptorLoaded==='boolean'?j.descriptorLoaded:null;
     joining.phase=one(j.phase,['not-started','checking','finding-room','joining-chat','club-ready','waiting-for-group','playing']);joining.role=one(j.role,['source','viewer']);joining.mediaFormat=one(j.mediaFormat,['mp4','webm']);joining.playbackMode=one(j.playbackMode,['mse','clips']);joining.groupDelaySeconds=one(j.groupDelaySeconds,[10,60,300]);
     for(const k of ['peerConnected','clockReady','videoPiecesReceived','pictureAdvanced','audioTrackIncluded','muted','pageVisible','online'])joining[k]=j[k]===true;
     joining.verifiedReserveSeconds=Number.isFinite(j.verifiedReserveSeconds)?Math.max(0,Math.min(600,Math.round(j.verifiedReserveSeconds))):null;joining.supplierHealth=one(j.supplierHealth,['healthy','supplier-unresponsive','source-path-stalled','source-progress-stalled','upstream-recovering']);joining.recoveries=Number.isSafeInteger(j.recoveries)?Math.max(0,Math.min(10000,j.recoveries)):0;
