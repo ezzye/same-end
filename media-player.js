@@ -105,6 +105,14 @@
       this.play().catch(()=>{});
       return {waiting:false,drift,playing:!v.paused};
     }
+    // Decoded programme position, including the source-relative offset in clip mode.
+    // This deliberately differs from a desired clock target: tests need actual playout.
+    programTime(){
+      if(this.closed||this.video.readyState<2)return null;
+      if(this.mode==='mse')return this.video.currentTime;
+      const piece=this.pieces.find(p=>p.meta.seq===this.current);
+      return piece?(piece.meta.start-this.epoch)/1000+this.video.currentTime:null;
+    }
     // Call synchronously from a click: iOS sound permission cannot be acquired
     // later from a timer or loadedmetadata callback.
     play(){const result=this.video.play();return Promise.resolve(result).then(()=>{this.blocked=false;},error=>{if(error.name==='NotAllowedError')this.blocked=true;throw error;});}

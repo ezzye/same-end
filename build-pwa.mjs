@@ -29,6 +29,10 @@ const sourceAudio=await readFile(path.join(dir,'source-audio.js'),'utf8');
 const sourceAudioSlot=/(<script id="source-audio-module">)[\s\S]*?(<\/script>)/;
 if(!sourceAudioSlot.test(html))throw Error('Missing source sound check slot.');
 html=html.replace(sourceAudioSlot,(_,a,b)=>a+sourceAudio+b);
+const deliveryHealth=await readFile(path.join(dir,'delivery-health.js'),'utf8');
+const deliverySlot=/(<script id="delivery-health-module">)[\s\S]*?(<\/script>)/;
+if(!deliverySlot.test(html))throw Error('Missing delivery health slot.');
+html=html.replace(deliverySlot,(_,a,b)=>a+deliveryHealth+b);
 const engine=await readFile(path.join(dir,'engine.js'),'utf8');
 html=html.replace(/(<script id="cast-engine">)[\s\S]*?(<\/script>)/,(_,a,b)=>a+engine+b);
 
