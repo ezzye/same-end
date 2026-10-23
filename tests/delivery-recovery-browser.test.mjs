@@ -50,7 +50,7 @@ tracker.on('connection',socket=>{
 await new Promise(r=>server.listen(0,'127.0.0.1',r));origin='https://127.0.0.1:'+server.address().port;
 const trackerURL=origin.replace('https:','wss:')+'/tracker';
 assert(originalHTML.includes('wss://tracker.openwebtorrent.com'),'Expected production tracker configuration');
-servedHTML=originalHTML.replaceAll('wss://tracker.openwebtorrent.com',trackerURL);
+servedHTML=originalHTML.replace(/wss:\/\/tracker\.[A-Za-z0-9.-]+(?:\/[A-Za-z0-9_/-]*)?/g,trackerURL);
 const report={schema:1,startedAt:new Date().toISOString(),buildSHA256:createHash('sha256').update(originalHTML).digest('hex'),environment:{browser:'Installed Google Chrome',isolatedContexts:true,oneComputer:true,physicalDevices:false,separateNetworks:false,actualWebRTC:true,generatedPictureAnd220HzTone:true,discovery:'In-process local WSS BitTorrent tracker; production tracker URL replaced in served HTML only',autoplayOverride:true,selfSignedLocalCertificateOverride:true,visibilityEmulated:false},cases:[],tracker:trackerStats,trackerErrors,pass:false};
 const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--autoplay-policy=no-user-gesture-required','--ignore-certificate-errors','--disable-background-timer-throttling','--disable-renderer-backgrounding']});
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
