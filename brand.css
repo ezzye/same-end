@@ -230,3 +230,103 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
  .start-card,.invitation-card{padding:18px 15px 16px}
 }
 @media(prefers-reduced-motion:reduce){.start-actions #capture:hover{transform:none}}
+
+/* ------------------------------------------------------------------
+   Live chat: flat, scannable rows like a live-stream chat. Coloured
+   initials identify each mate; the composer stays one line until needed.
+   ------------------------------------------------------------------ */
+.club-chat-shell{position:relative}
+.club-chat-heading{align-items:center}
+.club-chat-watching{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:650;white-space:nowrap}
+.club-chat-watching:before{content:"";width:7px;height:7px;border-radius:50%;background:#e12b24;box-shadow:0 0 0 3px #e12b2433}
+.club-messages-wrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
+.club-messages-wrap>.club-messages{flex:1;scroll-behavior:auto}
+.club-chat-shell .club-messages{scroll-behavior:auto}
+.club-chat-shell .club-message{display:flex;align-items:flex-start;gap:10px;width:auto;max-width:none;margin:0;padding:5px 8px;border-radius:8px;background:none}
+.club-chat-shell .club-message.is-self{margin-left:0;background:none;color:inherit}
+.club-chat-shell .club-message.is-self time{color:#6a7c71}
+.club-chat-shell .club-message:hover{background:#0a3b2109}
+.club-avatar{flex:none;display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;font-size:12px;font-weight:800;line-height:1;color:#fff;background:#0b7a3e;user-select:none}
+.club-avatar[data-tone="1"]{background:#b45309}.club-avatar[data-tone="2"]{background:#1d4ed8}.club-avatar[data-tone="3"]{background:#be123c}.club-avatar[data-tone="4"]{background:#7e22ce}.club-avatar[data-tone="5"]{background:#a16207}.club-avatar[data-tone="6"]{background:#0f766e}.club-avatar[data-tone="7"]{background:#9d174d}
+.club-message-body{min-width:0;flex:1;padding-top:3px;line-height:1.4}
+.club-chat-shell .club-message-meta{display:inline;margin:0}
+.club-chat-shell .club-message-meta strong{display:inline;font-size:13px;font-weight:750;max-width:none;color:#0b7a3e;margin-right:6px}
+.club-message-meta strong[data-tone="1"]{color:#b45309}.club-message-meta strong[data-tone="2"]{color:#1d4ed8}.club-message-meta strong[data-tone="3"]{color:#be123c}.club-message-meta strong[data-tone="4"]{color:#7e22ce}.club-message-meta strong[data-tone="5"]{color:#a16207}.club-message-meta strong[data-tone="6"]{color:#0f766e}.club-message-meta strong[data-tone="7"]{color:#9d174d}
+.club-chat-shell .club-message.is-self .club-message-meta strong{color:#fff;background:#0b6b38;border-radius:4px;padding:1px 6px}
+.club-chat-shell .club-message-meta time{display:none;font-size:11px;color:#6a7c71;margin:0 6px 0 0;font-variant-numeric:tabular-nums}
+.club-chat-shell .club-message:hover time,.club-chat-shell .club-message:focus-within time{display:inline}
+.club-chat-shell .club-message p{display:inline;margin:0;font-size:14px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
+/* New messages arrive while reading history: a pill, not a jump. */
+.club-chat-shell .club-unread{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);z-index:2;min-height:32px!important;padding:6px 14px!important;border-radius:999px!important;font-size:12px!important;font-weight:700;box-shadow:0 6px 18px -6px #0008;white-space:nowrap}
+/* Composer */
+.club-chat-shell form{display:flex;flex-direction:column;gap:8px;padding:10px 12px 10px}
+.club-chat-identity{display:flex;align-items:center;gap:8px;min-width:0}
+.club-chat-identity .club-avatar{width:22px;height:22px;font-size:11px}
+.club-chat-shell .club-nick-edit{all:unset;box-sizing:border-box;cursor:pointer;font-size:12px;line-height:1.3;color:#4b6355;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-radius:4px}
+.club-chat-shell .club-nick-edit b{color:inherit;font-weight:750}
+.club-nick-action{margin-left:4px;text-decoration:underline;text-underline-offset:3px;font-weight:650}
+.club-chat-shell .club-nick-edit:focus-visible{outline:2px solid #12b15c;outline-offset:2px}
+.club-chat-shell .club-nick-row label{margin:0 0 4px}
+.club-chat-shell .club-chat-compose{display:flex;align-items:flex-end;gap:8px;margin:0}
+.club-chat-shell .club-chat-compose textarea{resize:none;height:42px;min-height:42px;max-height:132px;padding:10px 14px;border-radius:21px;font-size:14px!important;line-height:1.4;overflow-y:auto}
+.club-chat-shell .club-chat-compose button{flex:none;width:42px;min-width:42px;height:42px;min-height:42px;padding:0;border-radius:50%;display:inline-grid;place-items:center}
+.club-chat-shell .club-chat-compose button svg{margin-left:2px}
+.club-reactions{display:flex;gap:2px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.club-reactions::-webkit-scrollbar{display:none}
+.club-chat-shell .club-reaction{flex:none;min-height:34px;min-width:34px;width:34px;height:34px;padding:0;border:0;border-radius:50%;background:transparent;font-size:18px;line-height:1;transition:background-color .12s ease,transform .12s ease}
+.club-chat-shell .club-reaction:hover:not(:disabled){background:#0a3b2112;filter:none;transform:scale(1.12)}
+.club-chat-shell #club-chat-feedback{margin:0!important}
+
+/* In the watch room the chat goes dark, like a theatre-mode stream. */
+.room .club-chat-shell{background:#0b2619;color:#e7f0eb;border:1px solid #ffffff1f;border-radius:12px}
+.room .club-chat-shell .club-chat-heading{background:transparent;padding:12px 14px 2px}
+.room .club-chat-shell .club-chat-heading h3{font-size:15px;color:#fff}
+.room .club-chat-watching{color:#cfe2d7}
+.room .club-chat-shell .club-chat-connection{background:transparent;color:#8fae9e;font-size:11px;padding:0 14px 10px;border-bottom:1px solid #ffffff17}
+.room .club-chat-shell .club-messages{padding:8px 6px}
+.room .club-chat-shell .club-message{padding:5px 8px;margin:0}
+.room .club-chat-shell .club-message:hover{background:#ffffff0b}
+.room .club-chat-shell .club-message p{font-size:14px;color:#e7f0eb;line-height:1.45}
+.room .club-chat-shell .club-message-meta strong{font-size:13px;color:#7ee2a8}
+.room .club-message-meta strong[data-tone="1"]{color:#ffb86b}.room .club-message-meta strong[data-tone="2"]{color:#8ec5ff}.room .club-message-meta strong[data-tone="3"]{color:#ff8fa3}.room .club-message-meta strong[data-tone="4"]{color:#d5a6ff}.room .club-message-meta strong[data-tone="5"]{color:#ffe07a}.room .club-message-meta strong[data-tone="6"]{color:#6fe0e0}.room .club-message-meta strong[data-tone="7"]{color:#f4a3d6}
+.room .club-chat-shell .club-message.is-self .club-message-meta strong{color:#062014;background:#7ee2a8}
+.room .club-chat-shell .club-message-meta time{color:#86a596;font-size:11px}
+.room .club-chat-shell form{border-top:1px solid #ffffff17;padding:10px 12px}
+.room .club-chat-shell .club-nick-edit{color:#a9c4b6;font-size:12px}
+.room .club-chat-shell .club-nick-edit b{color:#fff}
+.room .club-chat-shell label{color:#a9c4b6;font-size:11px}
+.room .club-chat-shell #club-nick{background:#ffffff12;border-color:#ffffff2e;color:#fff;font-size:13px;min-height:36px;padding:7px 12px;border-radius:8px}
+.room .club-chat-shell .club-chat-compose textarea{background:#ffffff12;border:1px solid #ffffff2e;color:#fff;font-size:14px!important;height:42px;min-height:42px;padding:10px 14px}
+.room .club-chat-shell .club-chat-compose textarea::placeholder,.room .club-chat-shell #club-nick::placeholder{color:#8fae9e}
+.room .club-chat-shell .club-chat-compose textarea:focus,.room .club-chat-shell #club-nick:focus{outline:none;border-color:#7ee2a8;box-shadow:0 0 0 3px #7ee2a833}
+.room .club-chat-shell .club-chat-compose button{background:#e12b24;border-color:#e12b24;color:#fff;width:42px;min-width:42px;height:42px;min-height:42px;padding:0}
+.room .club-chat-shell .club-chat-compose button:hover:not(:disabled){background:#c51f1a;filter:none}
+.room .club-chat-shell .club-reaction{background:transparent;border:0;min-height:34px;width:34px;height:34px}
+.room .club-chat-shell .club-reaction:hover:not(:disabled){background:#ffffff14}
+.room .club-chat-shell #club-chat-feedback{color:#86a596;font-size:11px!important}
+.room .club-chat-shell .club-unread{background:#fff;color:#073c2a;border-color:#fff}
+/* A wider chat column once there is room for it. */
+@media(min-width:1100px){.room .social-watch-layout{grid-template-columns:minmax(0,1fr) 340px}}
+@media(min-width:1500px){.room .social-watch-layout{grid-template-columns:minmax(0,1fr) 380px}}
+/* The picture sets the row height; the chat fills it and scrolls inside. */
+@media(min-width:761px){@supports (contain:size){.room .social-watch-layout.has-live-chat>.club-chat-shell{contain:size;height:auto;max-height:none;min-height:430px;align-self:stretch}}}
+
+/* Phones: the picture stays pinned while the chat fills the rest of the screen. */
+@media(max-width:760px){
+ .room:not(.room-expanded):not(.is-browser-fullscreen) .social-watch-layout.has-live-chat{display:block}
+ .room:not(.room-expanded):not(.is-browser-fullscreen) .social-watch-layout.has-live-chat>.stage{position:-webkit-sticky;position:sticky;top:0;z-index:6;border-radius:10px;box-shadow:0 8px 16px -10px #000c}
+ .room:not(.room-expanded):not(.is-browser-fullscreen) .social-watch-layout.has-live-chat>.club-chat-shell{margin-top:10px;height:440px;height:max(340px,calc(100vh - 56vw - 112px));height:max(340px,calc(100svh - 56vw - 112px))}
+ body.room-active.room-mates-ready .topbar{min-height:48px;margin-bottom:6px}
+ body.room-active.room-mates-ready .topbar .brand{font-size:20px}
+ body.room-active.room-mates-ready .brand-symbol{height:22px}
+ .room .room-header{margin-bottom:8px}
+ .room .club-chat-shell .club-chat-heading{padding:10px 12px 0}
+ .room .club-chat-shell .club-chat-connection{padding:0 12px 8px;font-size:10.5px}
+ .room .club-chat-shell form{padding:8px 10px;gap:6px}
+ .room .club-chat-shell .club-chat-compose textarea,.room .club-chat-shell #club-nick{font-size:16px!important}
+ .room .club-chat-shell .club-message p{font-size:15px}
+ .room .club-chat-shell .club-reaction{width:38px;height:38px;min-width:38px;font-size:20px}
+ .room .club-chat-shell #club-chat-feedback{display:none}
+ .room .club-chat-shell .club-message-meta time{display:none!important}
+}
+@media(prefers-reduced-motion:reduce){.club-chat-shell .club-reaction:hover:not(:disabled){transform:none}}
