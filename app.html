@@ -492,7 +492,7 @@ window.SameEndInviteSample="AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAbAbW9v
   function facts(){
     let snap=null;try{snap=window.PrivateCast?.snapshot();}catch{}
     const v=$('player');const allowed=(x,choices)=>choices.includes(x)?x:null;
-    return {phase:S.phase,role:allowed(snap?.role,['source','viewer']),mediaFormat:typeof snap?.mime==='string'?(snap.mime.startsWith('video/mp4')?'mp4':snap.mime.startsWith('video/webm')?'webm':null):null,playbackMode:allowed(snap?.playbackMode,['mse','clips']),groupDelaySeconds:allowed(snap?.config?.delay,[10,60,300]),peerConnected:!!snap?.peers?.some(p=>p.ready&&p.state==='connected'),clockReady:snap?.clockReady===true,videoPiecesReceived:Number(snap?.received)>0,pictureAdvanced:S.picture,audioTrackIncluded:snap?.config?.audio===true,muted:v?.muted===true,pageVisible:document.visibilityState==='visible',online:navigator.onLine!==false,verifiedReserveSeconds:Number.isFinite(snap?.reserveSeconds)?Math.max(0,Math.min(600,Math.round(snap.reserveSeconds))):null,supplierHealth:allowed(snap?.supplierHealth,['healthy','supplier-unresponsive','source-path-stalled','source-progress-stalled']),recoveries:Number.isSafeInteger(snap?.recovery?.recoveries)?Math.max(0,Math.min(10000,snap.recovery.recoveries)):0};
+    return {phase:S.phase,role:allowed(snap?.role,['source','viewer']),mediaFormat:typeof snap?.mime==='string'?(snap.mime.startsWith('video/mp4')?'mp4':snap.mime.startsWith('video/webm')?'webm':null):null,playbackMode:allowed(snap?.playbackMode,['mse','clips']),groupDelaySeconds:allowed(snap?.config?.delay,[10,60,300]),peerConnected:!!snap?.peers?.some(p=>p.ready&&p.state==='connected'),clockReady:snap?.clockReady===true,videoPiecesReceived:Number(snap?.received)>0,pictureAdvanced:S.picture,audioTrackIncluded:snap?.config?.audio===true,muted:v?.muted===true,pageVisible:document.visibilityState==='visible',online:navigator.onLine!==false,verifiedReserveSeconds:Number.isFinite(snap?.reserveSeconds)?Math.max(0,Math.min(600,Math.round(snap.reserveSeconds))):null,supplierHealth:allowed(snap?.supplierHealth,['healthy','supplier-unresponsive','source-path-stalled','source-progress-stalled','upstream-recovering']),recoveries:Number.isSafeInteger(snap?.recovery?.recoveries)?Math.max(0,Math.min(10000,snap.recovery.recoveries)):0};
   }
   // Validate again on receipt: reports originate from other club members.
   function cleanReport(input={}){
@@ -501,7 +501,7 @@ window.SameEndInviteSample="AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAbAbW9v
     for(const k of ['secureContext','webCrypto','webRTC','mp4Reported','mediaSource','managedMediaSource'])checks[k]=c[k]===true;
     joining.phase=one(j.phase,['not-started','checking','finding-room','joining-chat','club-ready','waiting-for-group','playing']);joining.role=one(j.role,['source','viewer']);joining.mediaFormat=one(j.mediaFormat,['mp4','webm']);joining.playbackMode=one(j.playbackMode,['mse','clips']);joining.groupDelaySeconds=one(j.groupDelaySeconds,[10,60,300]);
     for(const k of ['peerConnected','clockReady','videoPiecesReceived','pictureAdvanced','audioTrackIncluded','muted','pageVisible','online'])joining[k]=j[k]===true;
-    joining.verifiedReserveSeconds=Number.isFinite(j.verifiedReserveSeconds)?Math.max(0,Math.min(600,Math.round(j.verifiedReserveSeconds))):null;joining.supplierHealth=one(j.supplierHealth,['healthy','supplier-unresponsive','source-path-stalled','source-progress-stalled']);joining.recoveries=Number.isSafeInteger(j.recoveries)?Math.max(0,Math.min(10000,j.recoveries)):0;
+    joining.verifiedReserveSeconds=Number.isFinite(j.verifiedReserveSeconds)?Math.max(0,Math.min(600,Math.round(j.verifiedReserveSeconds))):null;joining.supplierHealth=one(j.supplierHealth,['healthy','supplier-unresponsive','source-path-stalled','source-progress-stalled','upstream-recovering']);joining.recoveries=Number.isSafeInteger(j.recoveries)?Math.max(0,Math.min(10000,j.recoveries)):0;
     const stamp=typeof input.checkedAt==='string'?Date.parse(input.checkedAt):NaN;
     return {schema:1,app:'Same End',build:typeof input.build==='string'&&/^(?:local|[a-f0-9]{7,40})$/.test(input.build)?input.build:'unknown',checkedAt:Number.isFinite(stamp)?new Date(stamp).toISOString():null,device:{os:one(d.os,['iOS','iPadOS','Android','ChromeOS','Windows','macOS','Linux','BSD','Other'])||'Other',version:version(d.version),browser:one(d.browser,['Edge','Firefox','Chrome','Safari','Other'])||'Other',browserVersion:version(d.browserVersion),reportedByBrowser:true},invitationKind:one(input.invitationKind,['screen','club']),checks,silentSample:one(input.silentSample,['not-run','unavailable','cancelled','decoded','not-confirmed-without-tap','decode-not-confirmed']),joining,problem:Object.hasOwn(MESSAGES,input.problem)?input.problem:null,observedProblems:Array.isArray(input.observedProblems)?input.observedProblems.filter(k=>Object.hasOwn(MESSAGES,k)).slice(0,8):[],privacy:'Created on this device. Private links, keys, chat, names, IP addresses and raw errors are excluded. Sent only when you choose; host inbox access is restricted to the organiser.'};
   }
@@ -997,8 +997,18 @@ function maintainDelivery(){
  if(parent){
   // Browser suspension is not a failed network. Give the resumed page fresh grace.
   if(gap>5000){parent.connectedAt=t;parent.lastProgressAt=t;parent.lastControlAt=t;ping(parent);}
-  const reason=SameEndDelivery.assessSupplier({nowMs:t,connectedAt:parent.connectedAt,lastControlAt:parent.lastControlAt,lastProgressAt:parent.lastProgressAt,lastVerifiedAt:parent.lastVerifiedAt,rooted:state.sourceReachable,sourceNowMs:t+state.offset,sampleGapMs:gap});
-  state.supplierHealth=reason||'healthy';
+  let reason=SameEndDelivery.assessSupplier({nowMs:t,connectedAt:parent.connectedAt,lastControlAt:parent.lastControlAt,lastProgressAt:parent.lastProgressAt,lastVerifiedAt:parent.lastVerifiedAt,rooted:state.sourceReachable,sourceNowMs:t+state.offset,sampleGapMs:gap}),deferred=false;
+  if(state.sourceReachable)parent.pathLostAt=null;
+  else if(parent.pathLostAt==null)parent.pathLostAt=t;
+  // A shared upstream interruption reaches every hop together. Do not race a
+  // responsive parent for its only replacement slot while our cache can cover it.
+  if(reason&&reason!=='supplier-unresponsive'&&t-parent.lastControlAt<6000&&verifiedReserve()>20){
+   const depth=Math.max(1,state.trail?.length||1);
+   const progressGrace=12000+Math.min(12000,(depth-1)*4000);
+   const repairing=!state.sourceReachable&&t-parent.pathLostAt<15000;
+   if(t-parent.lastProgressAt<progressGrace||repairing){reason=null;deferred=true;}
+  }
+  state.supplierHealth=deferred?'upstream-recovering':reason||'healthy';
   if(reason&&magnetTransport?.recoverSupplier(reason)){log('Supplying path stopped delivering; finding another route without changing match time.');}
  }
  // Forwarding and repairs must continue even when this device's player is paused.

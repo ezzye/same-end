@@ -34,7 +34,7 @@ function harness(overrides = {}) {
     performance:{now:()=>nowValue},
     now:()=>nowValue, MAX_CLIP:4*1024*1024, MAX_CACHE:192*1024*1024,
     SameEndDelivery:window.SameEndDelivery,
-    log:()=>{}, update:()=>{}, stageWindow:()=>{}, renderDelivery:()=>{},
+    log:()=>{}, update:()=>{}, stageWindow:()=>{}, renderDelivery:()=>{},verifiedReserve:()=>5,
     cleanCache:()=>{},
     send:(peer,message)=>sent.push({peer,message}),
     downstream:()=>[...state.peers.values()].filter(p=>p.direction==='down'&&!p.closed),
@@ -179,4 +179,16 @@ test('supplier recovery preserves epoch, delay and offset; quiet with recent ver
   assert.equal(recoveries,1);
   assert.equal(reason,'source-progress-stalled');
   assert.deepEqual({epoch:state.config.epoch,delay:state.config.delay,offset:state.offset},before);
+});
+
+test('a buffered downstream gives its responsive parent bounded recovery priority without hiding a dead connection',()=>{
+  const {ctx,state}=harness({trail:['source','relay']});ctx.verifiedReserve=()=>60;
+  const parent={direction:'up',ready:true,connectedAt:nowValue-60000,lastControlAt:nowValue,lastProgressAt:nowValue-13000,lastVerifiedAt:nowValue-13000};state.peers.set('parent',parent);
+  let calls=0;ctx.magnetTransport={recoverSupplier(){calls++;return true;}};
+  ctx.maintainDelivery();assert.equal(calls,0);assert.equal(state.supplierHealth,'upstream-recovering');
+  parent.lastProgressAt=nowValue-17000;ctx.maintainDelivery();assert.equal(calls,1,'depth grace must expire');
+  state.sourceReachable=false;parent.pathLostAt=null;ctx.maintainDelivery();assert.equal(calls,1,'new root loss grants a bounded repair interval');
+  parent.pathLostAt=nowValue-16000;ctx.maintainDelivery();assert.equal(calls,2,'root-loss grace must expire');
+  parent.pathLostAt=nowValue;parent.lastControlAt=nowValue-13000;ctx.maintainDelivery();assert.equal(calls,3,'unresponsive control bypasses repair grace');
+  state.sourceReachable=true;parent.lastControlAt=nowValue;parent.lastProgressAt=nowValue-13000;ctx.verifiedReserve=()=>5;ctx.maintainDelivery();assert.equal(calls,4,'a shallow reserve cannot defer recovery');
 });

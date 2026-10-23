@@ -47,6 +47,14 @@ unrooted path is distinguished from a rooted-but-stalled path. Source audio
 silence is never used to decide that a network route failed. A sampling gap over
 five seconds resets the local watchdog grace after browser suspension.
 
+To avoid a parent and child competing for the same replacement slot, a deeper
+viewer with more than 20 seconds of verified reserve gives a responsive parent
+four additional seconds per hop (capped at 12 extra seconds). A newly unrooted
+parent gets a bounded 15-second repair interval. Missing control replies bypass
+this grace, and a shallow reserve does not defer recovery. The parent retains
+its children while repairing its own upstream; a still-stalled parent is
+eventually replaced rather than trusted indefinitely.
+
 `recoverSupplier(reason)` closes only the failed upstream wire and gives that
 supplier a 20-second cooldown. The authenticated swarm searches existing
 source-rooted alternatives, preserving downstream connections, clock offset,

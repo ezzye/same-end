@@ -58,8 +58,18 @@ function maintainDelivery(){
  if(parent){
   // Browser suspension is not a failed network. Give the resumed page fresh grace.
   if(gap>5000){parent.connectedAt=t;parent.lastProgressAt=t;parent.lastControlAt=t;ping(parent);}
-  const reason=SameEndDelivery.assessSupplier({nowMs:t,connectedAt:parent.connectedAt,lastControlAt:parent.lastControlAt,lastProgressAt:parent.lastProgressAt,lastVerifiedAt:parent.lastVerifiedAt,rooted:state.sourceReachable,sourceNowMs:t+state.offset,sampleGapMs:gap});
-  state.supplierHealth=reason||'healthy';
+  let reason=SameEndDelivery.assessSupplier({nowMs:t,connectedAt:parent.connectedAt,lastControlAt:parent.lastControlAt,lastProgressAt:parent.lastProgressAt,lastVerifiedAt:parent.lastVerifiedAt,rooted:state.sourceReachable,sourceNowMs:t+state.offset,sampleGapMs:gap}),deferred=false;
+  if(state.sourceReachable)parent.pathLostAt=null;
+  else if(parent.pathLostAt==null)parent.pathLostAt=t;
+  // A shared upstream interruption reaches every hop together. Do not race a
+  // responsive parent for its only replacement slot while our cache can cover it.
+  if(reason&&reason!=='supplier-unresponsive'&&t-parent.lastControlAt<6000&&verifiedReserve()>20){
+   const depth=Math.max(1,state.trail?.length||1);
+   const progressGrace=12000+Math.min(12000,(depth-1)*4000);
+   const repairing=!state.sourceReachable&&t-parent.pathLostAt<15000;
+   if(t-parent.lastProgressAt<progressGrace||repairing){reason=null;deferred=true;}
+  }
+  state.supplierHealth=deferred?'upstream-recovering':reason||'healthy';
   if(reason&&magnetTransport?.recoverSupplier(reason)){log('Supplying path stopped delivering; finding another route without changing match time.');}
  }
  // Forwarding and repairs must continue even when this device's player is paused.
