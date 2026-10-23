@@ -19,6 +19,7 @@
     "test:host-reports": "node tests/host-reports-browser.test.mjs",
     "test:source-audio": "node tests/source-audio-browser.test.mjs",
     "test:recovery": "node tests/delivery-recovery-browser.test.mjs",
+    "test:share-help": "node tests/share-help-browser.test.mjs",
     "test:diagnostics": "node tests/diagnostics-browser.test.mjs"
   },
   "engines": {

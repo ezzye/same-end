@@ -86,7 +86,7 @@ import WebTorrent from './vendor/webtorrent.min.js';
       u.hash=''; this.label=String((this.getStatus()||{}).label||'Friend').slice(0,40);
       const client=await this._client();
       await new Promise((resolve,reject)=>{
-        let timer=setTimeout(()=>reject(Error('No cast source found. Check that it is online and that tracker access is available.')),30000);
+        let timer=setTimeout(()=>reject(Error('No direct picture connection found. Check the source is online and the introduction service is reachable. If Wi-Fi works but 5G or a hotspot does not, this version has no relay fallback.')),30000);
         const xt=u.searchParams.get('xt');if(!/^urn:btih:[a-f\d]{40}$/i.test(xt||''))return reject(Error('Magnet must contain a valid BitTorrent infohash.'));
         const clean='magnet:?xt='+xt+this.trackers.map(x=>'&tr='+encodeURIComponent(x)).join('');
         const t=client.add(clean,{store:MemoryStore,storeCacheSlots:0,destroyStoreOnDestroy:true},torrent=>{
