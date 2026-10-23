@@ -5,7 +5,7 @@ body{background:#f5f6f3;color:#073c2a;font-family:system-ui,-apple-system,Segoe 
 :root{--club-tint:#f0f3f1;--club-paper:#fff;--club-ink:#123d2a;--club-border:#c6d2ca;--club-soft:#4b6355}
 :root[data-club-theme="red"]{--club-accent:#df2825;--club-tint:#f5f5f4;--club-ink:#431b1d;--club-border:#d9cccb}
 :root[data-club-theme="night"]{--club-accent:#18374d;--club-tint:#f0f2f4;--club-ink:#173246;--club-border:#bfcbd1}
-body:not(.has-social-club):not(.club-intent) #club-social{display:none}
+
 .club-social{border-radius:14px;background:#fff}.club-topline{background:#073c2a;color:#fff;padding:12px 24px}.club-social .club-saved-button{border-radius:5px}.club-heading{background-image:linear-gradient(90deg,#04281cf5,#04281cce 48%,#04281c50),var(--club-image);background-size:cover;background-position:center 56%;padding:36px 27px;min-height:184px;color:#fff}.club-heading h2{font-family:'Arial Narrow',Impact,system-ui,sans-serif;font-size:42px;letter-spacing:-1.4px;color:#fff}.club-heading p{color:#e3eee7}.club-heading-actions button{border-radius:7px;background:#e22a24;border-color:#e22a24;color:#fff}.club-heading-actions button.secondary{background:#ffffff0b;color:#fff;border-color:#ffffff90}.club-heading-actions button:hover:not(:disabled){background:#cf2823}.club-invite{background:#fff}.club-notice{background:#f6f7f6}.club-chat-shell{background:#fff;border-radius:11px}.club-chat-heading{background:#073c2a;color:#fff;padding-bottom:9px}.club-chat-heading h3,.room .club-chat-shell .club-chat-heading h3{color:#fff}.club-chat-connection{background:#073c2a;color:#d7e9df;padding-top:0}.club-message{background:#f0f2f0}.club-message.is-self{background:#0a6d3a;color:#fff}.club-message.is-self time{color:#d4e9db}.club-social button{border-radius:7px}.club-waiting{background:#f0f3f0;border-left:3px solid var(--club-accent);border-radius:0;margin-top:20px}.club-live{margin-top:20px;border-radius:8px}.club-start-copy h2{font-family:'Arial Narrow',Impact,system-ui,sans-serif}.club-event-time{color:#096336}.club-event-copy strong{letter-spacing:-.3px}.club-social .club-notice.club-error{color:#7b2620;background:#fff5f2}:root[data-club-theme="red"] .club-topline,:root[data-club-theme="red"] .club-chat-heading,:root[data-club-theme="red"] .club-chat-connection{background:#a8191c}:root[data-club-theme="red"] .club-heading{background-image:linear-gradient(90deg,#570d12f5,#570d12bd 48%,#570d1230),var(--club-image)}:root[data-club-theme="night"] .club-topline,:root[data-club-theme="night"] .club-chat-heading,:root[data-club-theme="night"] .club-chat-connection{background:#102a3b}:root[data-club-theme="night"] .club-heading{background-image:linear-gradient(90deg,#071c2af5,#071c2acc 48%,#071c2a50),var(--club-image)}
 @media(max-width:760px){.club-heading{min-height:220px;padding:25px 20px;background-position:68% center}.club-heading h2{font-size:36px}.club-heading-actions{margin-top:18px}.club-topline{padding:12px 18px}}
 
@@ -40,7 +40,7 @@ body.room-active main{max-width:1540px;padding-left:16px;padding-right:16px}
 /* Keep the watching surface first; diary and club administration stay one click away. */
 body.room-active main{display:flex;flex-direction:column}
 body.room-active .topbar{order:0;min-height:64px;margin-bottom:12px}
-body.room-active #club-social{order:3;display:none}
+body.room-active #club-social{order:3}
 body.room-active.room-show-diary #club-social{display:block}
 body.room-active #watch-room{order:1;margin-bottom:12px}
 body.room-active #quick-room{order:2}
@@ -53,3 +53,74 @@ body:not(.room-active) .room-diary-back{display:none}
 
 /* Keep the two quick-start cards directly under the landing banner. */
 body:not(.room-active):not(.joining) #quick-room{margin:0 0 22px}.has-social-club:not(.room-active):not(.joining) .football-hero{display:block}
+
+/* Watch first. Native disclosure rows keep the match-day extras within reach. */
+.hero.football-hero{min-height:354px;padding:38px 42px 32px;margin-bottom:20px;background-position:center 58%}
+.hero.football-hero h1{font-size:clamp(52px,6.3vw,78px);margin:16px 0 22px}
+.hero.football-hero .lede{font-size:17px;line-height:1.55;margin-bottom:0}
+.hero-note{margin-top:18px}
+.flow{gap:16px}
+.start-card,.invitation-card{padding:24px;display:flex;flex-direction:column}
+.start-card .start-actions{margin-top:20px;margin-bottom:0}
+.start-card .micro{margin-top:10px}
+.invitation-card{border-top-width:1px}
+.invite-intro,.start-card>.muted{font-size:14px;line-height:1.6;max-width:390px}
+.invite-actions{margin-top:20px;margin-bottom:0}
+.privacy-line{font-size:11px;line-height:1.5;margin-top:11px}
+.magnet-progress{font-size:12px;margin-top:10px}
+.join-entry{padding-top:13px;border-top:1px solid var(--line);margin-top:15px}
+.join-entry summary{cursor:pointer;min-height:28px}
+.secondary-section{border:1px solid var(--line);border-radius:12px;background:#fff;margin:0 0 12px;min-width:0;overflow:hidden}
+.secondary-section>summary{list-style:none;display:flex;align-items:center;gap:16px;padding:17px 20px;cursor:pointer;min-height:72px}
+.secondary-section>summary::-webkit-details-marker{display:none}
+.secondary-section>summary>span{display:flex;flex-wrap:wrap;gap:4px 18px;align-items:baseline;flex:1;min-width:0}
+.secondary-section>summary strong{font-size:15px;letter-spacing:-.2px}
+.secondary-section>summary small{font-size:12px;color:#607368}
+.secondary-section>summary:after{content:'+';font-size:24px;font-weight:450;line-height:1;color:#406351}
+.secondary-section[open]>summary:after{content:'−'}
+.secondary-section>summary:hover{background:#f2f6f1}
+.secondary-section[open]>summary{border-bottom:1px solid var(--line)}
+.secondary-content{padding:18px}
+.secondary-content>:last-child{margin-bottom:0}
+.secondary-content .club-social{margin:0;border:0;border-radius:8px;box-shadow:none}
+.secondary-content .match-finder{margin-bottom:0;background:#fff;border-color:#d8e0d8}
+.secondary-content .pl-discovery{font-size:12px;padding:12px 14px;margin:0 0 12px}
+.secondary-content .personal-listings{margin-bottom:16px}
+#club-extras .club-notification{border:0;margin:0;padding:12px 0 4px}
+#club-extras .club-diary-head,#club-extras .club-events{padding-left:0;padding-right:0}
+#club-extras .club-diary-head{margin-top:16px}
+#club-extras #club-plan{margin-left:0;margin-right:0}
+#club-extras .club-heading{min-height:148px;padding:26px 24px}
+#club-extras .club-heading h2{font-size:34px}
+#club-extras .club-fold{margin-top:0;margin-bottom:0}
+#club-extras .club-fold>summary{min-height:52px;display:flex;align-items:center}
+#club-extras .club-fold>summary:after{margin-left:auto}
+.footer{margin-top:22px;padding-top:20px}
+.footer-note{font-size:11px;line-height:1.6}
+body.room-active #match-extras{order:3}
+body.room-active #club-extras{order:3}
+body.room-active .footer{order:4}
+body.room-active #quick-room{margin-bottom:12px}
+body.joining #match-extras,body.joining #club-extras{display:none}
+/* Administration must remain reachable when explicitly requested during a room. */
+body.room-active.room-show-diary #club-social{display:block}
+@media(max-width:700px){
+ .hero.football-hero{min-height:320px;padding:30px 24px 28px;margin-bottom:16px;background-position:64% center}
+ .hero.football-hero h1{font-size:57px;letter-spacing:-2.5px;margin:16px 0 22px}
+ .hero.football-hero .lede{font-size:15px;max-width:270px}
+ .hero-note{font-size:10px;margin-top:20px;max-width:230px}
+ .flow{gap:12px}
+ .start-card,.invitation-card{padding:20px}
+ .start-actions,.invite-actions{margin-top:16px}
+ .secondary-section>summary{padding:15px 17px;min-height:76px}
+ .secondary-section>summary>span{display:block}
+ .secondary-section>summary strong,.secondary-section>summary small{display:block}
+ .secondary-section>summary small{margin-top:3px;font-size:11px}
+ .secondary-content{padding:12px}
+ #club-extras .club-heading{padding:22px 18px}
+ #club-extras .club-heading h2{font-size:30px}
+ .footer{margin-top:18px}
+}
+@media(min-width:701px){.start-card>.muted,.invite-intro{min-height:24px;margin-bottom:0}.start-card .start-actions,.invite-actions{margin-top:20px}}
+@media(max-width:700px){.brand{white-space:nowrap;flex-shrink:0}.brand-symbol{flex-shrink:0}.top-note{font-size:9px}}
+@media(max-width:360px){.brand{font-size:22px;gap:8px!important}.top-note{max-width:100px;font-size:8px}.topbar{gap:8px}}
