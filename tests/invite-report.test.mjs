@@ -13,3 +13,10 @@ test('local test summaries are scrubbed before opt-in host reports',async()=>{
  const report=ctx.SameEndInviteCheck.cleanReport({testSession:{reportId:'0123456789abcdef',castTag:'0123456789ab',durationSeconds:5400,lastStatus:{drift:.03,key:'PRIVATE-KEY'},events:[{type:'mark',value:'chat-ok'},{type:'mark',value:'PRIVATE-NAME'}],samples:[{url:'PRIVATE-URL'}],privateLink:'PRIVATE-INVITE'}});
  const text=JSON.stringify(report);assert(!text.includes('PRIVATE-'));assert.equal(report.testSession.lastStatus.drift,.03);assert.equal(report.testSession.events.length,1);assert(!('samples' in report.testSession));assert(Buffer.byteLength(text)<6000);
 });
+
+// Added timings are untrusted on receipt, including when peers forge extra fields.
+test('startup timing report keeps bounded numbers and excludes arbitrary fields',()=>{
+ const ctx=createContext({URLSearchParams,Uint8Array,Date,Math,JSON,setTimeout(){},setInterval(){},navigator:{userAgent:''},location:{hash:''},document:{getElementById(){return null}},addEventListener(){}});ctx.window=ctx;runInContext(code,ctx);
+ const report=ctx.SameEndInviteCheck.cleanReport({startup:{pictureSearchMs:0,chatReadyMs:17.9,firstMediaMs:Infinity,clockReadyMs:-1,descriptorReadyMs:'PRIVATE-KEY',firstPictureMs:99999999,rawSdp:'PRIVATE-SDP',url:'PRIVATE-INVITE'}});
+ assert.equal(report.startup.pictureSearchMs,0);assert.equal(report.startup.chatReadyMs,18);assert.equal(report.startup.firstMediaMs,null);assert.equal(report.startup.clockReadyMs,null);assert.equal(report.startup.descriptorReadyMs,null);assert.equal(report.startup.firstPictureMs,3600000);assert(!JSON.stringify(report).includes('PRIVATE-'));
+});

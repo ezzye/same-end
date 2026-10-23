@@ -22,7 +22,8 @@
     "test:direct-routes": "node tests/direct-route-browser.test.mjs",
     "test:recovery": "node tests/delivery-recovery-browser.test.mjs",
     "test:share-help": "node tests/share-help-browser.test.mjs",
-    "test:diagnostics": "node tests/diagnostics-browser.test.mjs"
+    "test:diagnostics": "node tests/diagnostics-browser.test.mjs",
+    "test:startup-social": "node tests/startup-social-browser.test.mjs"
   },
   "engines": {
     "node": ">=20"

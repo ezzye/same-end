@@ -25,8 +25,8 @@ import WebTorrent from './vendor/webtorrent.min.js';
   MemoryStore.prototype.close=MemoryStore.prototype.destroy=function(cb=()=>{}){if(this.closed)return queueMicrotask(()=>cb(null));this.closed=true;this.chunks=null;queueMicrotask(()=>cb(null));};
 
   class MagnetTransport {
-    constructor({getStatus=()=>({}),onSession=()=>{},onPeer=()=>{},onError=()=>{},onRecovery=()=>{},onTopology=()=>{},trackers=TRACKERS}={}) {
-      this.readStatus=getStatus; this.onSession=onSession; this.onPeer=onPeer; this.onError=onError; this.onRecovery=onRecovery; this.onTopology=onTopology;
+    constructor({getStatus=()=>({}),onSession=()=>{},onPeer=()=>{},onError=()=>{},onRecovery=()=>{},onTopology=()=>{},onProgress=()=>{},trackers=TRACKERS}={}) {
+      this.readStatus=getStatus; this.onSession=onSession; this.onPeer=onPeer; this.onError=onError; this.onRecovery=onRecovery; this.onTopology=onTopology; this.onProgress=onProgress;
       this.trackers=Array.from(new Set(trackers.map(x=>{const u=new URL(x);if(u.protocol!=='wss:')throw Error('Trackers must use secure WebSocket.');return u.href;}))).slice(0,2);
       this.client=null; this.torrent=null; this.key=null; this.role=null; this.node=String((getStatus()||{}).nodeId||id()); this.label='Friend';
       this.config=null; this.closed=false; this.wires=new Map(); this.links=new Map(); this.timer=null; this.trail=[]; this.parent=null; this.parentRequest=null; this.down=0; this.clockReady=false;
@@ -66,6 +66,7 @@ import WebTorrent from './vendor/webtorrent.min.js';
       if(this.recovery){this.recovery.reason=String(reason||'supplier-failed').slice(0,80);this.recovery.failures=this.failures;}
     }
     snapshot(){return {parent:this.parent?.remote?.nodeId||null,trail:[...this.trail],sourceReachable:this.getStatus().rooted,recovery:this.recovery?{...this.recovery,recoveries:this.recoveries,failures:this.failures}:null,authenticatedPeers:[...this.wires.values()].filter(s=>s.auth).length,network:this.network?{...this.network,elapsedSeconds:Math.max(0,Math.min(86400,Math.floor((Date.now()-this.networkStarted)/1000)))}:null};}
+    _progress(name){try{this.onProgress(name);}catch{}}
     _status(){ return this.getStatus(); }
     async _cryptoKey(key){ return crypto.subtle.importKey('raw',key,{name:'HMAC',hash:'SHA-256'},false,['sign','verify']); }
     async _mac(text){ return new Uint8Array(await crypto.subtle.sign('HMAC',this.hmac,encoder.encode(text))); }
@@ -74,11 +75,11 @@ import WebTorrent from './vendor/webtorrent.min.js';
     _watchDiscovery(t){
       const current=()=>!this.closed&&this.torrent===t;
       const observe=()=>{const d=t.discovery;if(!current()||!d||this.observedDiscovery===d)return;this.observedDiscovery=d;
-        d.on?.('trackerAnnounce',()=>{if(current())this.network.trackerReplies=Math.min(10000,this.network.trackerReplies+1);});
+        d.on?.('trackerAnnounce',()=>{if(current()){this.network.trackerReplies=Math.min(10000,this.network.trackerReplies+1);this._progress('tracker-reply');}});
         d.on?.('peer',peer=>{if(!current()||!peer||typeof peer!=='object'||this.observedPeers.has(peer))return;this.observedPeers.add(peer);this.network.peerAttempts=Math.min(10000,this.network.peerAttempts+1);
           peer.on?.('error',()=>{if(current())this.network.peerErrors=Math.min(10000,this.network.peerErrors+1);});
           const pc=peer._pc;if(!pc?.addEventListener)return;this.network.monitoredPeers=Math.min(10000,this.network.monitoredPeers+1);let connected=false,failed=false;
-          const iceState=()=>{if(!current())return;const state=pc.iceConnectionState;if(!connected&&['connected','completed'].includes(state)){connected=true;this.network.iceConnected++;}if(!failed&&state==='failed'){failed=true;this.network.iceFailed++;}};pc.addEventListener('iceconnectionstatechange',iceState);iceState();
+          const iceState=()=>{if(!current())return;const state=pc.iceConnectionState;if(!connected&&['connected','completed'].includes(state)){connected=true;this.network.iceConnected++;this._progress('ice-connected');}if(!failed&&state==='failed'){failed=true;this.network.iceFailed++;}};pc.addEventListener('iceconnectionstatechange',iceState);iceState();
           pc.addEventListener('icecandidate',event=>{if(!current())return;const type=event.candidate?.type;if(type==='host')this.network.hostCandidates=Math.min(10000,this.network.hostCandidates+1);if(type==='srflx'||type==='prflx')this.network.reflexiveCandidates=Math.min(10000,this.network.reflexiveCandidates+1);});
         });
       };
@@ -152,11 +153,11 @@ import WebTorrent from './vendor/webtorrent.min.js';
       if(m.type==='_pc_auth'){
         if(!s.remote||!await crypto.subtle.verify('HMAC',this.hmac,un64(m.proof),encoder.encode(s.challenge+'|'+s.remote.nodeId)))return;
         if(m.nodeId!==undefined&&(!this._validStatus(m)||m.nodeId!==s.remote.nodeId))return;
-        s.auth=true; s.remote={...s.remote,...m}; this._send(s,{type:'_pc_ready',proof:b64(await this._mac(s.remote.challenge+'|'+this.node))}); this._assign(s); return;
+        s.auth=true;this._progress('peer-authenticated'); s.remote={...s.remote,...m}; this._send(s,{type:'_pc_ready',proof:b64(await this._mac(s.remote.challenge+'|'+this.node))}); this._assign(s); return;
       }
       if(m.type==='_pc_ready'){
         if(!s.remote||!await crypto.subtle.verify('HMAC',this.hmac,un64(m.proof),encoder.encode(s.challenge+'|'+s.remote.nodeId)))return;
-        s.auth=true; this._assign(s); return;
+        s.auth=true;this._progress('peer-authenticated'); this._assign(s); return;
       }
       if(!s.auth)return;
       if(m.type==='_pc_status'){
