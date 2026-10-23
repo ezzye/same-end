@@ -55,3 +55,4 @@
 .room-sound-help{font-size:12px;color:#c3d7c9;margin:5px 0 8px}
 .delivery-state{font-size:.9rem;line-height:1.4;padding:.65rem .85rem;margin:.6rem 0;border-radius:.5rem;background:#fff1cc;color:#443b17;border:1px solid #d3b760}
 .delivery-state[hidden]{display:none}
+.test-log{padding:12px 0;border-bottom:1px solid #cdd8c9}.test-log-body{max-width:800px;padding-top:12px}.test-log-toggle{display:flex;align-items:center;gap:9px}.test-log-toggle input{width:auto;min-height:0}.test-log-body .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.test-log-body button{font-size:14px}.test-log-body p{overflow-wrap:anywhere}

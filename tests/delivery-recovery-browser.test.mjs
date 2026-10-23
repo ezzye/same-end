@@ -140,7 +140,8 @@ try{
    const leaveAfter=await g.record('child recovered after graceful relay departure');assertIdentity(leaveBefore.child,leaveAfter.child);assert(!leaveAfter.child.sourceEnded,'Relay departure must not impersonate source end');await g.sampleFor(6500);g.result.afterGracefulLeave=await g.assertPlayback(['source','sibling','child']);
    g.result.reserveContinuity=g.assertContinuousSince(at,['source','sibling','child']);
    await child.locator('#player').screenshot({path:fileURLToPath(new URL('reserve-recovered-picture.png',output))});
-   await source.evaluate(()=>PrivateCast.testing.endRoom());await until(async()=>(await Promise.all([source,sibling,child].map(snapshot))).every(s=>!s.config&&s.sourceEnded),12000,'Signed source end did not propagate');await g.record('signed source end verified');assert.deepEqual(g.result.errors,[]);g.result.pass=true;
+   await source.evaluate(()=>PrivateCast.testing.endRoom());await until(async()=>(await Promise.all([source,sibling,child].map(snapshot))).every(s=>!s.config&&s.sourceEnded),12000,'Signed source end did not propagate');await g.record('signed source end verified');
+   assert.deepEqual(g.result.errors,[]);g.result.pass=true;
   }finally{await g.finish();}
  }
  if(selected==='all'||selected==='stall'){
@@ -155,7 +156,13 @@ try{
    await g.sampleFor(5500);const openLoss=await g.record('application messages absent while transport connection stays open');assert.equal(openLoss.child.supplier?.id,beforeApplicationLoss.child.supplier.id);assert(openLoss.child.peers.some(p=>p.direction==='up'&&p.ready));
    await until(async()=>{const s=await snapshot(child);return s.supplier?.id&&s.supplier.id!==beforeApplicationLoss.child.supplier.id&&s.sourceReachable&&s.received>beforeApplicationLoss.child.received+2;},50000,'Missing application control and media did not trigger automatic supplier replacement');
    await child.evaluate(()=>PrivateCast.testing.stallIncoming({enabled:false}));const afterApplicationLoss=await g.record('selected application path lost and alternate supplier restored');assertIdentity(beforeApplicationLoss.child,afterApplicationLoss.child);g.result.applicationLossRecoveryMs=Date.now()-lossAt;await g.sampleFor(7000);g.result.afterApplicationPathRestore=await g.assertPlayback(['source','relay','sibling','child']);
-   await source.evaluate(()=>PrivateCast.testing.endRoom());await until(async()=>(await Promise.all(Object.values(g.peers).map(snapshot))).every(s=>!s.config&&s.sourceEnded),12000,'Signed source end did not propagate');await g.record('signed source end verified');assert.deepEqual(g.result.errors,[]);g.result.pass=true;
+   await source.evaluate(()=>PrivateCast.testing.endRoom());await until(async()=>(await Promise.all(Object.values(g.peers).map(snapshot))).every(s=>!s.config&&s.sourceEnded),12000,'Signed source end did not propagate');await g.record('signed source end verified');
+   await child.waitForFunction(()=>SameEndDiagnostics.report()?.finish==='ended');
+   const logs=await Promise.all(Object.values(g.peers).map(p=>p.evaluate(()=>SameEndDiagnostics.report())));
+   const childLog=logs[3];assert(childLog.counts.supplierChanges>=1,'local diagnostics retain actual supplier changes');assert(childLog.events.some(e=>e.type==='recovery'&&e.value.includes('searching')),'actual watchdog recovery appears in local timeline');assert(childLog.samples.some(s=>s.programTime>0&&Number.isFinite(s.targetProgramTime)),'mapped group positions are sampled during real playback');
+   assert(logs.every(r=>r.finish==='ended'&&r.samples.length>0),'source end preserves local reports on all peers');
+   const codes=logs.map(r=>r.castTag);assert(codes.every(c=>c&&c===codes[0]),'one non-secret test code correlates all local reports');g.result.localDiagnostics=logs.map(r=>({reportId:r.reportId,castTag:r.castTag,sampleCount:r.samples.length,supplierChanges:r.counts.supplierChanges,recoveryEvents:r.events.filter(e=>e.type==='recovery'),finish:r.finish}));
+   assert.deepEqual(g.result.errors,[]);g.result.pass=true;
   }finally{await g.finish();}
  }
  if(selected==='all'||selected==='loss'){

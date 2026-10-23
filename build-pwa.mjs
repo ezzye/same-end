@@ -33,6 +33,7 @@ const deliveryHealth=await readFile(path.join(dir,'delivery-health.js'),'utf8');
 const deliverySlot=/(<script id="delivery-health-module">)[\s\S]*?(<\/script>)/;
 if(!deliverySlot.test(html))throw Error('Missing delivery health slot.');
 html=html.replace(deliverySlot,(_,a,b)=>a+deliveryHealth+b);
+for(const [id,file]of [['diagnostics-core','diagnostics-core.js'],['session-diagnostics-ui','diagnostics-ui.js']]){const body=await readFile(path.join(dir,file),'utf8'),pattern=new RegExp('(<script id="'+id+'">)[\\s\\S]*?(</script>)');if(!pattern.test(html))throw Error('Missing test diagnostics slot.');html=html.replace(pattern,(_,a,b)=>a+body+b);}
 const engine=await readFile(path.join(dir,'engine.js'),'utf8');
 html=html.replace(/(<script id="cast-engine">)[\s\S]*?(<\/script>)/,(_,a,b)=>a+engine+b);
 

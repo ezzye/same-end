@@ -1,0 +1,253 @@
+(function(root) {
+  "use strict";
+  const KEY = "same-end-diagnostics-v1", SAMPLE_MS = 5e3, MAX_SAMPLES = 1440, MAX_EVENTS = 200, MAX_BYTES = 2 * 1024 * 1024;
+  const enums = { role: ["source", "viewer"], recovery: ["idle", "searching", "connected", "exhausted", "manual-rejoin", "stopped"], reason: ["none", "timeout", "network", "source-ended", "no-supplier", "manual", "unknown", "media-stalled", "supplier-failed", "supplier-disconnected", "automatic-retry", "supplier-unresponsive", "source-path-stalled", "source-progress-stalled"], audio: ["checking", "sound", "quiet", "no-track", "unavailable"], health: ["healthy", "supplier-unresponsive", "source-path-stalled", "source-progress-stalled", "upstream-recovering"], mark: ["sound-heard", "picture-ok", "chat-ok", "no-sound", "picture-frozen", "out-of-sync", "chat-problem", "connection-lost", "relay-leaving", "network-change"], finish: ["ended", "left", "closed", "interrupted", "recording-stopped", "unknown"] };
+  const fields = ["delay", "programTime", "targetProgramTime", "drift", "reserveSeconds", "bufferedSeconds", "received", "sentBytes", "stalls", "recoveryCount", "attempts", "aggregateMbps", "queue", "peerCount", "ready", "paused", "muted", "volume", "decodedFrames", "playbackBlocked", "visible", "online", "sourceReachable", "sourceEnded", "clockReady", "clockOffsetMs", "pendingBytes", "oldestPendingMs", "congestedChildren", "measuredChildren", "relayLimit", "forwardingCount", "controlFailures", "chatMessageCount"];
+  function num(v) {
+    return typeof v === "number" && Number.isFinite(v) ? Math.max(-1e12, Math.min(1e12, v)) : null;
+  }
+  function date(v) {
+    return typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(1e15, v)) : null;
+  }
+  function count(v) {
+    const n = num(v);
+    return n === null ? null : Math.max(0, n);
+  }
+  function bool(v) {
+    return typeof v === "boolean" ? v : null;
+  }
+  function pick(v, list) {
+    return list.includes(v) ? v : null;
+  }
+  function hashTag(v) {
+    return typeof v === "string" && /^[a-f0-9]{12}$/i.test(v) ? v.toLowerCase() : null;
+  }
+  function safeState(x) {
+    x = x && typeof x === "object" ? x : {};
+    const o = {};
+    for (const k of fields) {
+      let v = x[k];
+      o[k] = k === "ready" ? typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(4, v)) : null : ["paused", "muted", "playbackBlocked", "visible", "online", "sourceReachable", "sourceEnded", "clockReady"].includes(k) ? bool(v) : k === "drift" || k === "programTime" || k === "targetProgramTime" || k === "clockOffsetMs" ? num(v) : count(v);
+    }
+    o.role = pick(x.role, enums.role);
+    o.recovery = pick(x.recovery, enums.recovery);
+    o.reason = pick(x.reason, enums.reason);
+    o.supplierHealth = pick(x.supplierHealth, enums.health);
+    o.sourceAudio = pick(x.sourceAudio, enums.audio);
+    return o;
+  }
+  function safeEventValue(e) {
+    if (e.type === "mark") return pick(e.value, enums.mark);
+    if (e.type === "app-error") return e.value === "error" || e.value === "unhandled-rejection" ? e.value : null;
+    if (e.type === "recovery") {
+      const m = typeof e.value === "string" && /^(idle|searching|connected|exhausted|manual-rejoin|stopped)-\d{1,9}-(none|timeout|network|source-ended|no-supplier|manual|unknown|media-stalled|supplier-failed|supplier-disconnected|automatic-retry|supplier-unresponsive|source-path-stalled|source-progress-stalled)$/.exec(e.value);
+      return m ? e.value : null;
+    }
+    if (e.type === "supplier-change") return e.value === "changed" ? "changed" : null;
+    if (e.type === "source-audio") return pick(e.value, enums.audio);
+    if (e.type === "visibility") return e.value === "true" || e.value === "false" ? e.value : null;
+    if (e.type === "online") return e.value === "true" || e.value === "false" ? e.value : null;
+    return null;
+  }
+  function cleanReport(x) {
+    if (!x || typeof x !== "object") return null;
+    const id = typeof x.reportId === "string" && /^[a-f0-9]{16}$/i.test(x.reportId) ? x.reportId.toLowerCase() : null;
+    if (!id) return null;
+    return { version: 1, reportId: id, build: typeof x.build === "string" && /^(local|[a-f0-9]{7,40})$/.test(x.build) ? x.build : null, castTag: hashTag(x.castTag), startedAt: date(x.startedAt), endedAt: date(x.endedAt), durationSeconds: count(x.durationSeconds), samplesDropped: count(x.samplesDropped) || 0, eventsDropped: count(x.eventsDropped) || 0, finish: pick(x.finish, enums.finish), persisted: bool(x.persisted), samples: Array.isArray(x.samples) ? x.samples.slice(-MAX_SAMPLES).map((s) => ({ at: date(s && s.at), gapSeconds: num(s && s.gapSeconds), ...safeState(s && (s.state || s)) })) : [], events: Array.isArray(x.events) ? x.events.slice(-MAX_EVENTS).map((e) => ({ at: date(e && e.at), atSeconds: num(e && e.atSeconds), type: pick(e && e.type, ["recovery", "supplier-change", "source-audio", "visibility", "online", "app-error", "mark"]), value: safeEventValue(e || {}) })).filter((e) => e.value) : [], counts: x.counts && typeof x.counts === "object" ? { observations: num(x.counts.observations) || 0, supplierChanges: num(x.counts.supplierChanges) || 0, marks: num(x.counts.marks) || 0, errors: num(x.counts.errors) || 0 } : { observations: 0, supplierChanges: 0, marks: 0, errors: 0 }, status: safeState(x.status) };
+  }
+  function trimSamples(report, n) {
+    if (!report || !n) return;
+    const removed = report.samples.splice(0, n).length;
+    report.samplesDropped = (report.samplesDropped || 0) + removed;
+  }
+  function randomId() {
+    const b = new Uint8Array(8);
+    if (root.crypto && root.crypto.getRandomValues) root.crypto.getRandomValues(b);
+    else for (let i = 0; i < 8; i++) b[i] = Math.random() * 256 | 0;
+    return [...b].map((v) => v.toString(16).padStart(2, "0")).join("");
+  }
+  function Collector(opts) {
+    opts = opts || {};
+    this.now = opts.now || Date.now;
+    this.mono = opts.monotonic || (() => root.performance?.now?.() ?? this.now());
+    this.storage = opts.storage || null;
+    this.build = typeof opts.build === "string" ? opts.build : null;
+    this.castId = null;
+    this.lastSupplier = null;
+    this.lastState = null;
+    this.lastSample = -Infinity;
+    this.session = null;
+    this.previous = null;
+    this.persisted = !!this.storage;
+    this._restore();
+  }
+  Collector.prototype._restore = function() {
+    try {
+      const raw = this.storage?.getItem(KEY);
+      if (!raw) return;
+      if (raw.length > MAX_BYTES) throw Error();
+      const x = JSON.parse(raw);
+      this.previous = cleanReport(x?.last);
+      if (x?.active && !x.active.endedAt) {
+        const interrupted = cleanReport(x.active);
+        if (interrupted) {
+          interrupted.finish = "interrupted";
+          this.previous = interrupted;
+        }
+      }
+    } catch (_) {
+      this.previous = null;
+      this.persisted = false;
+    }
+  };
+  Collector.prototype._persist = function() {
+    try {
+      if (!this.storage) throw Error();
+      const active = this.session && !this.session.endedAt ? this.session : null;
+      const last = this.session?.endedAt ? this.session : this.previous;
+      const pack = () => JSON.stringify({ active: cleanReport(active), last: cleanReport(last) });
+      if (this.session) this.session.persisted = true;
+      let data = pack();
+      for (let tries = 0; data.length > MAX_BYTES && tries < 12; tries++) {
+        const target = last?.samples.length ? last : active;
+        if (!target?.samples.length) break;
+        const remove = Math.max(1, Math.ceil(target.samples.length * Math.min(0.8, (data.length - MAX_BYTES) / data.length + 0.05)));
+        trimSamples(target, remove);
+        data = pack();
+      }
+      if (data.length > MAX_BYTES) throw Error();
+      this.storage.setItem(KEY, data);
+      this.persisted = true;
+    } catch (_) {
+      this.persisted = false;
+      if (this.session) this.session.persisted = false;
+    }
+  };
+  Collector.prototype._start = function(cfg) {
+    if (this.session) {
+      if (!this.session.endedAt) this.finish("left");
+      this.previous = cleanReport(this.session);
+    }
+    this.session = { version: 1, reportId: randomId(), build: this.build, castTag: null, startedAt: date(this.now()), endedAt: null, durationSeconds: 0, finish: null, persisted: this.persisted, samplesDropped: 0, eventsDropped: 0, samples: [], events: [], counts: { observations: 0, supplierChanges: 0, marks: 0, errors: 0 }, status: {} };
+    this.session.startedMono = this.mono();
+    this.castId = typeof cfg.id === "string" ? cfg.id : null;
+    this.lastSupplier = null;
+    this.lastState = null;
+    this.lastSample = -Infinity;
+    this._persist();
+  };
+  Collector.prototype.setCastTag = function(tag) {
+    if (this.session) this.session.castTag = hashTag(tag);
+    this._persist();
+  };
+  Collector.prototype._event = function(type, value) {
+    if (!this.session) return;
+    this.session.events.push({ at: date(this.now()), atSeconds: num(Math.max(0, (this.mono() - this.session.startedMono) / 1e3)), type, value });
+    if (this.session.events.length > MAX_EVENTS) {
+      const n = this.session.events.length - MAX_EVENTS;
+      this.session.events.splice(0, n);
+      this.session.eventsDropped += n;
+    }
+  };
+  Collector.prototype.observe = function(snapshot, playerFacts, environment) {
+    snapshot = snapshot && typeof snapshot === "object" ? snapshot : {};
+    const cfg = snapshot.config;
+    if (cfg && typeof cfg.id === "string" && (cfg.id !== this.castId || this.session?.endedAt)) this._start(cfg);
+    else if (!cfg && this.session && !this.session.endedAt) this.finish("ended");
+    if (!this.session || this.session.endedAt) return this.summary();
+    const d = snapshot.delivery || {}, r = snapshot.recovery || {}, p = playerFacts || {}, env = environment || {};
+    const state = safeState({ role: snapshot.role, delay: cfg?.delay, programTime: snapshot.programTime, targetProgramTime: snapshot.targetProgramTime, drift: snapshot.drift, reserveSeconds: snapshot.reserveSeconds, bufferedSeconds: snapshot.bufferedSeconds, received: snapshot.received, sentBytes: snapshot.sentBytes, stalls: snapshot.stalls, recovery: r.state, recoveryCount: r.recoveries, attempts: r.attempts, reason: r.reason, sourceReachable: snapshot.sourceReachable, sourceEnded: snapshot.sourceEnded, supplierHealth: snapshot.supplierHealth, sourceAudio: snapshot.sourceAudio?.status, clockReady: snapshot.clockReady, clockOffsetMs: snapshot.offset, aggregateMbps: d.measured === true ? d.deliveredMbps : null, pendingBytes: Array.isArray(d.peers) ? d.peers.reduce((a, p2) => a + (count(p2?.pendingBytes) || 0), 0) : null, oldestPendingMs: Array.isArray(d.peers) ? d.peers.reduce((a, p2) => Math.max(a, count(p2?.oldestPendingMs) || 0), 0) : null, congestedChildren: Array.isArray(d.peers) ? d.peers.filter((p2) => p2?.health === "congested").length : null, measuredChildren: Array.isArray(d.peers) ? d.peers.filter((p2) => p2?.measured === true).length : null, relayLimit: d.relayLimit, forwardingCount: Array.isArray(d.peers) ? d.peers.length : null, controlFailures: env.controlFailures, chatMessageCount: env.chatMessageCount, queue: Array.isArray(snapshot.peers) ? snapshot.peers.reduce((a, q) => a + (Number.isFinite(q?.queued) ? q.queued : Number.isFinite(q?.queuedBytes) ? q.queuedBytes : 0), 0) : null, peerCount: Array.isArray(snapshot.peers) ? snapshot.peers.length : null, ready: p.ready, paused: p.paused, muted: p.muted, volume: p.volume, decodedFrames: p.decodedFrames, playbackBlocked: p.playbackBlocked, visible: env.visible, online: env.online });
+    this.session.counts.observations++;
+    const prev = this.lastState;
+    if (prev) {
+      for (const [k, t] of [["sourceAudio", "source-audio"], ["visible", "visibility"], ["online", "online"]]) if (state[k] !== prev[k] && state[k] !== null) this._event(t, String(state[k]));
+      if (state.recovery !== prev.recovery || state.recoveryCount !== prev.recoveryCount || state.reason !== prev.reason) {
+        const v = [state.recovery || "idle", Math.max(0, Math.round(state.recoveryCount || 0)), state.reason || "unknown"].join("-");
+        this._event("recovery", v);
+      }
+    }
+    if (snapshot.supplier && typeof snapshot.supplier === "object" && typeof snapshot.supplier.id === "string") {
+      const sid = snapshot.supplier.id;
+      if (this.lastSupplier !== null && this.lastSupplier !== sid) {
+        this.session.counts.supplierChanges++;
+        this._event("supplier-change", "changed");
+      }
+      this.lastSupplier = sid;
+    }
+    this.lastState = state;
+    this.session.status = state;
+    const mt = this.mono(), elapsed = Math.max(0, (mt - this.session.startedMono) / 1e3 || 0);
+    this.session.durationSeconds = Math.round(elapsed);
+    if (mt - this.lastSample >= SAMPLE_MS) {
+      const gap = this.lastSample === -Infinity ? null : Math.max(0, (mt - this.lastSample) / 1e3 - SAMPLE_MS / 1e3);
+      this.session.samples.push({ at: date(this.now()), gapSeconds: num(gap), ...state });
+      if (this.session.samples.length > MAX_SAMPLES) trimSamples(this.session, this.session.samples.length - MAX_SAMPLES);
+      this.lastSample = mt;
+      this._persist();
+    }
+    return this.summary();
+  };
+  Collector.prototype.mark = function(code) {
+    const c = pick(code, enums.mark);
+    if (c && this.session) {
+      this.session.counts.marks++;
+      this._event("mark", c);
+      this._persist();
+      return true;
+    }
+    return false;
+  };
+  Collector.prototype.appError = function(code) {
+    if (this.session && !this.session.endedAt) {
+      const c = code === "unhandled-rejection" ? "unhandled-rejection" : "error";
+      this.session.counts.errors++;
+      this._event("app-error", c);
+      this._persist();
+    }
+  };
+  Collector.prototype.finish = function(reason) {
+    if (!this.session || this.session.endedAt) return this.report();
+    this.session.finish = pick(reason, enums.finish) || "unknown";
+    this.session.endedAt = date(this.now());
+    const mt = this.mono();
+    this.session.durationSeconds = Math.round(Math.max(0, (mt - this.session.startedMono) / 1e3 || 0));
+    this.session.status = this.lastState || {};
+    this.previous = this.session;
+    this._persist();
+    return this.report();
+  };
+  Collector.prototype.report = function() {
+    return cleanReport(this.session || this.previous);
+  };
+  Collector.prototype.summary = function() {
+    const r = this.session || this.previous;
+    if (!r) return null;
+    return cleanSummary({ reportId: r.reportId, castTag: r.castTag, durationSeconds: r.durationSeconds, finish: r.finish, counts: r.counts, samplesDropped: r.samplesDropped, eventsDropped: r.eventsDropped, lastStatus: r.status, events: r.events.slice(-12) });
+  };
+  Collector.prototype.clear = function() {
+    this.session = null;
+    this.previous = null;
+    this.castId = null;
+    this.lastState = null;
+    this.lastSupplier = null;
+    try {
+      this.storage?.removeItem(KEY);
+    } catch (_) {
+      this.persisted = false;
+    }
+  };
+  function cleanSummary(x) {
+    try {
+      if (typeof x === "string") x = JSON.parse(x);
+      if (!x || typeof x !== "object") return null;
+      const id = typeof x.reportId === "string" && /^[a-f0-9]{16}$/i.test(x.reportId) ? x.reportId.toLowerCase() : null;
+      if (!id) return null;
+      const events = Array.isArray(x.events) ? x.events.slice(-12).map((e) => ({ atSeconds: num(e && e.atSeconds), type: pick(e && e.type, ["recovery", "supplier-change", "source-audio", "visibility", "online", "app-error", "mark"]), value: safeEventValue(e || {}) })).filter((e) => e.type && e.value) : [];
+      const o = { version: 1, reportId: id, castTag: hashTag(x.castTag), durationSeconds: count(x.durationSeconds), samplesDropped: count(x.samplesDropped) || 0, eventsDropped: count(x.eventsDropped) || 0, finish: pick(x.finish, enums.finish), counts: { observations: num(x.counts?.observations) || 0, supplierChanges: num(x.counts?.supplierChanges) || 0, marks: num(x.counts?.marks) || 0, errors: num(x.counts?.errors) || 0 }, lastStatus: safeState(x.lastStatus), events };
+      return JSON.stringify(o).length <= 4096 ? o : null;
+    } catch (_) {
+      return null;
+    }
+  }
+  root.SameEndDiagnosticsCore = { Collector, cleanSummary };
+})(typeof window !== "undefined" ? window : globalThis);

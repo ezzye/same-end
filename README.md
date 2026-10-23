@@ -32,6 +32,10 @@ In an open club, expand **Try it together · three-laptop rehearsal**. The organ
 
 Repeat with **5-minute match delay** and allow at least six minutes to observe playback. A viewer can choose **Try one supplier reconnect on this viewer** to exercise its own supplying connection. Use **End rehearsal for everyone** and **Download test report** to keep the observations. Reports include decoded frames, advancing playback, drift, stalls and reconnects; remote observations and physical-device labels are self-reported. They cannot independently attest separate hardware or homes. A ten-second warm-up does not prove five-minute playback, protected-stream capture or notification delivery.
 
+## Keep a private test report
+
+On every device, open **Room settings & help → Your test report**. Local logging starts with a room, keeps a bounded five-second history, survives a normal end or reload, and never uploads itself. **Mark now** records a fixed observation such as sound stopping or a picture freeze. **Download test report** saves an offline HTML file; **Send summary to host** sends only a compact snapshot to the existing encrypted help inbox. Download before changing rooms or clearing browser data. See [test evidence, privacy and limits](docs/test-observability.md). Generated rehearsals now last up to two hours from creation. Real 90-minute, separate-device/network acceptance is still required.
+
 ## What runs where
 
 The static app and fixture list are public. A small cloud control service stores encrypted club details, chat and the current live invitation, plus the timing and browser subscription metadata needed for reminders. It does not carry or store the video, subscription-service credentials or club decryption keys.
