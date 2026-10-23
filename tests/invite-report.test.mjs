@@ -5,3 +5,11 @@ test('diagnostics report allowlists facts even when every underlying object cont
  runInContext(code,ctx);const report=ctx.SameEndInviteCheck.report(),text=JSON.stringify(report);assert(!text.includes(secret));for(const x of['192.0.2.123','example.invalid','#owner=','nodeId','sdp'])assert(!text.includes(x));assert.equal(report.build,'unknown');assert.equal(report.device.version,'27.0.1');assert.equal(report.joining.peerConnected,true);assert.equal(report.joining.groupDelaySeconds,300);assert.equal(report.joining.mediaFormat,'mp4');assert.equal(report.joining.verifiedReserveSeconds,14);assert.equal(report.joining.supplierHealth,'source-progress-stalled');assert.equal(report.joining.recoveries,2);
 });
 test('built invitations include automatic check before secret-consuming social code',async()=>{const html=await readFile(new URL('../dist/watch.html',import.meta.url),'utf8');assert(html.indexOf('id="invite-check-module"')<html.indexOf('id="same-end-social"'));assert.match(html,/Send report to your host/);assert.match(html,/Connection help &amp; report/);assert.match(html,/SameEndInviteCheck/);assert.match(html,/start\(["']screen["']\)/);assert.match(html,/id="invite-check-sample"/);});
+
+
+test('local test summaries are scrubbed before opt-in host reports',async()=>{
+ const ctx=createContext({URLSearchParams,Uint8Array,Date,Math,JSON,setTimeout(){},setInterval(){},navigator:{userAgent:''},location:{hash:''},document:{getElementById(){return null}},addEventListener(){}});ctx.window=ctx;
+ runInContext(await readFile(new URL('../diagnostics-core.js',import.meta.url),'utf8'),ctx);runInContext(code,ctx);
+ const report=ctx.SameEndInviteCheck.cleanReport({testSession:{reportId:'0123456789abcdef',castTag:'0123456789ab',durationSeconds:5400,lastStatus:{drift:.03,key:'PRIVATE-KEY'},events:[{type:'mark',value:'chat-ok'},{type:'mark',value:'PRIVATE-NAME'}],samples:[{url:'PRIVATE-URL'}],privateLink:'PRIVATE-INVITE'}});
+ const text=JSON.stringify(report);assert(!text.includes('PRIVATE-'));assert.equal(report.testSession.lastStatus.drift,.03);assert.equal(report.testSession.events.length,1);assert(!('samples' in report.testSession));assert(Buffer.byteLength(text)<6000);
+});

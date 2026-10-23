@@ -80,6 +80,20 @@ try {
   await owner.waitForFunction(()=>document.querySelector('#host-report-state')?.textContent==='Inbox is up to date.');
   assert((await owner.locator('#host-report-list').innerText()).includes(await member.evaluate(()=>SameEndInviteCheck.report().device.browser)));
   for(const secret of ['RAW-ERROR-DO-NOT-STORE','PRIVATE-INVITE-DO-NOT-STORE','PRIVATE-CHAT-DO-NOT-STORE'])assert(!(await owner.locator('#host-report-list').innerText()).includes(secret));
+  // A fresh explicit send after an acknowledged delivery must not reuse the
+  // old encrypted envelope. Only the bounded summary may leave this device.
+  const fresh=await member.evaluate(async()=>{
+    window.SameEndDiagnostics={summary:()=>({reportId:'1122334455667788',castTag:'aabbccddeeff',durationSeconds:900,counts:{marks:2},lastStatus:{reserveSeconds:120,recoveryCount:1,stalls:0},events:[{type:'mark',atSeconds:55,value:'sound-heard'}],samples:[{private:'FULL-HISTORY-DO-NOT-SEND'}],url:'PRIVATE-URL-DO-NOT-SEND'})};
+    await SameEndSocial.sendDeviceReport(SameEndInviteCheck.report());return SameEndInviteCheck.report().testSession;
+  });
+  assert(fresh&&fresh.castTag==='aabbccddeeff');
+  const newPost=requests.findLast(r=>r.method==='POST'&&r.path.endsWith('/reports'));
+  assert.notEqual(JSON.parse(newPost.body).id,firstBody.id,'fresh acknowledged report gets a new id');
+  assert(Buffer.byteLength(newPost.body)<12288,'encrypted compact report fits API limit');
+  await owner.locator('#host-report-refresh').click();
+  await owner.waitForFunction(()=>document.querySelector('#host-report-list').textContent.includes('aabbccddeeff'));
+  const inbox=await owner.locator('#host-report-list').textContent();
+  assert(inbox.includes('sound-heard'));assert(!inbox.includes('FULL-HISTORY-DO-NOT-SEND'));assert(!inbox.includes('PRIVATE-URL-DO-NOT-SEND'));
   await owner.screenshot({path:fileURLToPath(new URL('owner-inbox.png',output)),mask:[owner.locator('#club-invite-url'),owner.locator('#club-owner-url')]});
   await owner.setViewportSize({width:390,height:844}); await member.setViewportSize({width:390,height:844});
   assert.equal(await owner.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'owner layout has no horizontal overflow at 390px');

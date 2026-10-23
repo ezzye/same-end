@@ -116,6 +116,7 @@
     const pending=queuedReport;
     const result=await request('/clubs/'+club.id+'/reports',{method:'POST',body:{id:pending.id,envelope:pending.envelope}},club);
     if(result.id!==pending.id)throw Error('The host inbox did not confirm the report. Please try again.');
+    if(queuedReport===pending)queuedReport=null;
     return {accepted:true};
   }
   let reportRows=[],reportRead=new Set(),reportFetch=null,reportFetchedAt=0,reportDialog=null,reportFocus=null;
@@ -125,7 +126,10 @@
     updateReportButtons();const list=$('host-report-list');if(!list)return;list.replaceChildren();
     if(!reportRows.length){list.append(element('p','club-muted','No device reports yet. If a mate has trouble joining, their report button sends it here.'));return;}
     for(const row of reportRows){const r=row.report,d=r.device;const card=element('details','host-report-card'),summary=element('summary','',d.os+(d.version?' '+d.version:'')+' · '+d.browser+(d.browserVersion?' '+d.browserVersion:'')+' · '+new Date(row.receivedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));
-      card.append(summary,element('p','',r.problem?'Problem: '+r.problem.replace(/-/g,' '):'Device check shared by your mate.'),element('pre','',JSON.stringify(r,null,2)));list.append(card);}
+      card.append(summary,element('p','',r.problem?'Problem: '+r.problem.replace(/-/g,' '):'Device check shared by your mate.'));
+      if(r.testSession){const t=r.testSession,ls=t.lastStatus;card.append(element('p','','Test '+(t.castTag||'code unavailable')+' · '+Math.floor((t.durationSeconds||0)/60)+' min recorded · '+(ls.recoveryCount??'unknown')+' recoveries · '+(ls.stalls??'unknown')+' playback stalls.'));card.append(element('p','','Verified picture ahead: '+(ls.reserveSeconds===null?'unknown':ls.reserveSeconds.toFixed(1)+' s')+'. This is a compact snapshot; ask for the downloaded test report for the full timeline.'));}
+      card.append(element('pre','',JSON.stringify(r,null,2)));list.append(card);}
+
   }
   async function refreshDeviceReports(force=false){
     if(!S.club?.owner)return;const club=S.club,generation=S.generation;
