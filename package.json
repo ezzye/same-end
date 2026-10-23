@@ -14,6 +14,7 @@
     "build:vendor": "node scripts/build-vendor.mjs",
     "test:media": "node tests/media-playback-browser.test.mjs",
     "test:peers": "node tests/platform-peer-browser.test.mjs",
+    "test:invite-feedback": "node tests/invite-feedback-browser.test.mjs",
     "test:invites": "node tests/invite-check-browser.test.mjs",
     "test:legacy-apis": "node --test tests/legacy-api-browser.test.mjs",
     "test:host-reports": "node tests/host-reports-browser.test.mjs",

@@ -5,16 +5,18 @@
   const $=id=>document.getElementById(id);
   const MESSAGES={
     'browser-feature':'This browser is missing a feature needed for the picture. Open the invitation in Safari, Chrome or Edge.',
-    'room-unavailable':'The picture could not connect. Check your host still has the room open. If it works on Wi-Fi but not 5G or a hotspot, the network may be blocking a direct connection; keep the host and a mate on another network online while Same End tries other direct routes. Some networks still block every available route.',
+    'room-unavailable':'You are not watching yet. Check that your host is still sharing, then try again. If it still fails, send your host the report below.',
+    'picture-unavailable':'You are not watching yet. We are still trying other connections in the background. Check your host is sharing, try another network, or send your host a report.',
+    'playback-blocked':'The room is connected, but this browser needs you to tap Play before the picture and sound can start.',
     'chat-unavailable':'Chat could not connect. You can still try the picture. Your host can use the report below to help.',
     'video-decode':'The picture could not play in this browser. Try Safari, Chrome or Edge, or ask your host to start a fresh room.',
-    'connection-slow':'The picture is taking longer to connect. Check your host is still sharing. Try Wi-Fi if you are using 5G or a hotspot: Same End will keep trying direct routes for up to 90 seconds. A mate already watching on another network may help.',
-    'picture-stalled':'Your picture has stopped advancing. Keep the page open while the room reconnects.',
+    'connection-slow':'You are not watching yet. We are still looking for a connection and will keep trying for up to 90 seconds. Keep this page open.',
+    'picture-stalled':'The picture is no longer moving. Same End is reconnecting automatically. If it does not return, try again or send your host a report.',
     'app-error':'Something interrupted joining. Send your host this check so they can help.',
     'invitation-incomplete':'This invitation is incomplete. Ask your host to send a fresh, complete link.'
   };
   const S={active:false,kind:'screen',attempt:0,started:0,phase:'not-started',checks:null,sample:'not-run',failure:null,failures:[],connectedAt:null,lastAdvance:0,lastTime:null,picture:false,hasPicture:false,sharing:false};
-  let probePromise=null,probeCancel=null,timer=null,panel=null,completed=false;
+  let probePromise=null,probeCancel=null,timer=null,panel=null,completed=false,backdrop=null,dismissed=false,returnFocus=null;
   function device(){
     const ua=navigator.userAgent||'';const pick=re=>{const m=ua.match(re);return m?m[1].replace(/_/g,'.').slice(0,24):null;};
     let os='Other',version=null,browser='Other',browserVersion=null;
@@ -60,22 +62,34 @@
   }
   function mount(){
     if(panel)return panel;const main=document.querySelector('main');if(!main)return null;
-    panel=document.createElement('section');panel.id='invite-check';panel.className='invite-check';panel.setAttribute('aria-label','Joining check');
-    panel.innerHTML='<div class="invite-check-top"><div><strong id="invite-check-title">Getting your seat ready…</strong><p id="invite-check-message" role="status" aria-live="polite">Checking your browser while we connect.</p></div><button id="invite-check-help" class="secondary" type="button">Having trouble?</button></div><div id="invite-check-actions" hidden><p class="invite-check-privacy">Send this check to the person who invited you. It leaves out your private link and chat.</p><div class="invite-check-buttons"><button id="invite-check-share" type="button">Send report to your host</button><button id="invite-check-other" class="secondary" type="button">Share another way</button><button id="invite-check-copy" class="secondary" type="button">Copy report</button><button id="invite-check-save" class="secondary" type="button">Save report</button></div><p id="invite-check-report-status" role="status" aria-live="polite"></p><details><summary>What the report contains</summary><textarea id="invite-check-report" readonly aria-label="Private device report" rows="9"></textarea></details></div>';
+    panel=document.createElement('section');panel.id='invite-check';panel.className='invite-check';panel.setAttribute('aria-label','Joining check');panel.setAttribute('tabindex','-1');
+    panel.innerHTML='<div class="invite-check-top"><div><span id="invite-check-icon" aria-hidden="true">…</span><h2 id="invite-check-title">Connecting your picture…</h2><p id="invite-check-message" role="status" aria-live="polite">Checking your browser while we connect.</p></div><button id="invite-check-help" class="secondary" type="button">Having trouble?</button></div><div id="invite-check-next"><button id="invite-check-retry" type="button" hidden>Try connecting again</button><button id="invite-check-play" type="button" hidden>Play picture and sound</button><button id="invite-check-dismiss" class="secondary" type="button" hidden>Close</button></div><div id="invite-check-actions" hidden><p class="invite-check-privacy">Send this check to the person who invited you. It leaves out your private link and chat.</p><div class="invite-check-buttons"><button id="invite-check-share" type="button">Send report to your host</button><button id="invite-check-other" class="secondary" type="button">Share another way</button><button id="invite-check-copy" class="secondary" type="button">Copy report</button><button id="invite-check-save" class="secondary" type="button">Save report</button></div><p id="invite-check-report-status" role="status" aria-live="polite"></p><details><summary>What the report contains</summary><textarea id="invite-check-report" readonly aria-label="Private device report" rows="9"></textarea></details></div>';
     const top=main.querySelector('.topbar');if(top)top.after(panel);else main.prepend(panel);
-    $('invite-check-help').onclick=()=>{showHelp();};
+    backdrop=document.createElement('div');backdrop.className='invite-check-backdrop';backdrop.hidden=true;document.body.append(backdrop);backdrop.onclick=dismiss;
+    $('invite-check-help').onclick=()=>{dismissed=false;showHelp();render();};$('invite-check-dismiss').onclick=dismiss;$('invite-check-retry').onclick=retry;$('invite-check-play').onclick=()=>{$('sound')?.click();};
+    panel.addEventListener('keydown',event=>{if(!panel.classList.contains('is-failure-dialog'))return;if(event.key==='Escape'){event.preventDefault();dismiss();}if(event.key==='Tab'){const controls=[...panel.querySelectorAll('button,summary,a,textarea')].filter(el=>!el.disabled&&el.getClientRects().length),first=controls[0],last=controls[controls.length-1];if(event.shiftKey&&(document.activeElement===first||document.activeElement===panel)){event.preventDefault();last?.focus();}else if(!event.shiftKey&&(document.activeElement===last||document.activeElement===panel)){event.preventDefault();first?.focus();}}});
     $('invite-check-share').onclick=sendToHost;$('invite-check-other').onclick=shareReport;$('invite-check-copy').onclick=copyReport;$('invite-check-save').onclick=saveReport;
     return panel;
   }
   function reportText(){const text='Same End connection check\n'+JSON.stringify(report(),null,2);if($('invite-check-report'))$('invite-check-report').value=text;return text;}
   function showHelp(){mount();if(!panel)return;panel.hidden=false;$('invite-check-actions').hidden=false;reportText();}
+  function fatal(){return ['room-unavailable','picture-unavailable','browser-feature','video-decode','invitation-incomplete','app-error','picture-stalled'].includes(S.failure);}
+  function closeDialog(){if(!panel)return;const restore=panel.classList.contains('is-failure-dialog')&&panel.contains(document.activeElement);panel.classList.remove('is-failure-dialog');panel.removeAttribute('aria-modal');panel.setAttribute('role','region');backdrop.hidden=true;document.body.classList.remove('has-join-failure');if(restore&&returnFocus?.isConnected)returnFocus.focus();}
+  function dismiss(){dismissed=true;closeDialog();if($('invite-check-help'))$('invite-check-help').focus();}
+  function openDialog(){if(dismissed||panel.classList.contains('is-failure-dialog'))return;try{if(document.fullscreenElement)document.exitFullscreen?.().catch(()=>{});else if($('player')?.webkitDisplayingFullscreen)$('player').webkitExitFullscreen?.();}catch{}returnFocus=document.activeElement;panel.classList.add('is-failure-dialog');panel.setAttribute('role','alertdialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-labelledby','invite-check-title');panel.setAttribute('aria-describedby','invite-check-message');backdrop.hidden=false;document.body.classList.add('has-join-failure');try{panel.focus({preventScroll:true});}catch{panel.focus();}}
+  async function retry(){const button=$('invite-check-retry');if(button.disabled)return;button.disabled=true;closeDialog();try{const started=await window.PrivateCast?.retryJoin?.();if(started===false)fail('room-unavailable');}catch{fail('room-unavailable');}finally{render();}}
   function render(){
-    mount();if(!panel)return;
-    if(S.failure){panel.hidden=false;panel.classList.add('invite-check-problem');$('invite-check-title').textContent='Let’s get you connected';$('invite-check-message').textContent=MESSAGES[S.failure];showHelp();}
-    else{panel.classList.remove('invite-check-problem');$('invite-check-title').textContent=S.phase==='playing'||S.phase==='club-ready'?'You’re in':S.phase==='waiting-for-group'?'Your seat is ready':'Getting your seat ready…';$('invite-check-message').textContent=S.phase==='waiting-for-group'?'Connected. Everyone waits for the same delayed picture.':S.phase==='playing'?'Your picture is playing with the group.':S.phase==='club-ready'?'Your club is open.':'Checking your browser while we connect.';}
+    mount();if(!panel)return;const error=fatal(),blocked=S.failure==='playback-blocked';
+    panel.classList.toggle('invite-check-problem',!!S.failure);panel.classList.toggle('invite-check-error',error);panel.classList.toggle('invite-check-action',blocked);panel.dataset.severity=error?'error':S.failure?'warning':'progress';
+    $('invite-check-retry').hidden=!error||!window.PrivateCast?.canRetryJoin?.();$('invite-check-retry').disabled=!!window.PrivateCast?.snapshot?.()?.joiningBusy;$('invite-check-play').hidden=!blocked;$('invite-check-dismiss').hidden=!error;
+    $('invite-check-dismiss').textContent=window.SameEndSocial?.snapshot?.().connected?'Keep chat open':'Close';
+    const titles={'room-unavailable':'The picture didn’t connect','picture-unavailable':'The picture hasn’t connected','browser-feature':'This browser can’t show the picture','video-decode':'The picture couldn’t play','invitation-incomplete':'This invitation is incomplete','app-error':'Something interrupted joining','picture-stalled':'Your picture has stopped','connection-slow':'Picture not connected — still trying','playback-blocked':'Tap Play to start watching','chat-unavailable':'Live chat couldn’t connect'};
+    $('invite-check-icon').textContent=error?'!':blocked?'▶':S.failure?'…':'○';
+    if(S.failure){panel.hidden=false;$('invite-check-title').textContent=titles[S.failure];$('invite-check-message').textContent=MESSAGES[S.failure];if(error){if($('invite-check-actions').hidden)showHelp();openDialog();}else closeDialog();}
+    else{closeDialog();$('invite-check-title').textContent=S.phase==='playing'?'You’re watching':S.phase==='club-ready'?'Your club is open':S.phase==='waiting-for-group'?'Connected — waiting for the group':'Connecting your picture…';$('invite-check-message').textContent=S.phase==='waiting-for-group'?'The picture starts after the group’s chosen delay. This wait is expected.':S.phase==='playing'?'Your picture is playing with the group.':S.phase==='club-ready'?'Your club is open.':'Finding a direct route to your host or another mate. This can take up to 90 seconds.';}
   }
-  function fail(code){if(!S.active||!Object.hasOwn(MESSAGES,code))return;if(S.failure==='browser-feature'&&code!=='browser-feature')return;if(code!==S.failure&&$('invite-check-share')){$('invite-check-share').disabled=false;$('invite-check-share').textContent='Send report to your host';}S.failure=code;if(!S.failures.includes(code)&&S.failures.length<8)S.failures.push(code);render();}
-  function clearProblem(){if(!S.failure)return;S.failure=null;if(panel){panel.classList.remove('invite-check-problem');$('invite-check-actions').hidden=true;}}
+  function fail(code){if(!S.active||!Object.hasOwn(MESSAGES,code))return;if(S.failure==='browser-feature'&&code!=='browser-feature')return;if(code!==S.failure&&$('invite-check-share')){$('invite-check-share').disabled=false;$('invite-check-share').textContent='Send report to your host';}if(S.failure!==code)dismissed=false;S.failure=code;if(!S.failures.includes(code)&&S.failures.length<8)S.failures.push(code);render();}
+  function clearProblem(){if(!S.failure)return;S.failure=null;dismissed=false;closeDialog();if(panel){panel.classList.remove('invite-check-problem');$('invite-check-actions').hidden=true;}}
   function probe(){
     if(probePromise)return probePromise;
     probePromise=new Promise(resolve=>{
@@ -86,9 +100,11 @@
       try{const raw=atob(window.SameEndInviteSample),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);url=URL.createObjectURL(new Blob([bytes],{type:'video/mp4'}));v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';v.setAttribute('playsinline','');v.setAttribute('aria-hidden','true');v.className='invite-check-probe';v.onloadeddata=()=>{if(v.readyState>=2)finish('decoded');};v.onerror=()=>finish('decode-not-confirmed');mount()?.append(v);v.src=url;v.load();v.play().catch(()=>{});}catch{finish('decode-not-confirmed');}
     });return probePromise;
   }
-  function start(kind='screen'){
-    if(S.active){if(kind==='screen'&&S.kind!=='screen'){S.kind='screen';S.started=Date.now();S.phase='checking';S.connectedAt=null;S.lastAdvance=0;S.lastTime=null;S.picture=false;S.hasPicture=false;completed=false;clearProblem();probe();if(!S.checks.webRTC)fail('browser-feature');}return;}
-    S.active=true;if($('invite-check-share')){$('invite-check-share').disabled=false;$('invite-check-share').textContent='Send report to your host';}S.kind=kind==='club'?'club':'screen';S.started=Date.now();S.phase='checking';S.checks=capabilities();completed=false;mount();render();
+  function start(kind='screen',options={}){
+    if(options.fresh&&S.active){clearInterval(timer);timer=null;S.active=false;clearProblem();}
+
+    if(S.active){if(kind==='screen'&&S.kind!=='screen'){S.kind='screen';S.started=Date.now();S.phase='checking';S.connectedAt=null;S.lastAdvance=0;S.lastTime=null;S.picture=false;S.hasPicture=false;completed=false;clearProblem();mount();if(panel)panel.hidden=false;render();probe();if(!S.checks.webRTC)fail('browser-feature');}return;}
+    S.active=true;S.attempt++;S.failure=null;S.failures=[];S.connectedAt=null;S.lastAdvance=0;S.lastTime=null;S.picture=false;S.hasPicture=false;dismissed=false;if($('invite-check-actions'))$('invite-check-actions').hidden=true;if($('invite-check-share')){$('invite-check-share').disabled=false;$('invite-check-share').textContent='Send report to your host';}S.kind=kind==='club'?'club':'screen';S.started=Date.now();S.phase='checking';S.checks=capabilities();completed=false;mount();if(panel)panel.hidden=false;render();
     if(!S.checks.secureContext||!S.checks.webCrypto||(S.kind==='screen'&&!S.checks.webRTC))fail('browser-feature');
     if(S.kind==='screen')probe();timer=setInterval(observe,700);observe();
   }
@@ -96,15 +112,17 @@
   function observe(){
     if(!S.active)return;let snap;try{snap=window.PrivateCast?.snapshot();}catch{return;}
     if(S.kind==='club'){if(window.SameEndSocial?.snapshot().connected){phase('club-ready');}return;}
-    if(!snap?.config){if(!completed&&Date.now()-S.started>45000&&!S.failure)fail('connection-slow');return;}
+    if(!snap?.config){if(!completed){const elapsed=Date.now()-S.started;if(snap?.network?.phase==='failed')fail('room-unavailable');else if(elapsed>90000&&S.failure!=='browser-feature')fail('picture-unavailable');else if(elapsed>15000&&!S.failure)fail('connection-slow');else if(S.failure)render();}return;}
     if(snap.role!=='viewer')return;
     const connected=snap.peers?.some(p=>p.ready&&p.state==='connected');if(connected&&!S.connectedAt)S.connectedAt=Date.now();
-    if(!snap.clockReady&&!completed&&Date.now()-S.started>45000&&!S.failure)fail('connection-slow');
+    if(!snap.clockReady&&!completed){if(Date.now()-S.started>90000)fail('picture-unavailable');else if(Date.now()-S.started>15000&&!S.failure)fail('connection-slow');}
     if(S.failure==='chat-unavailable'&&window.SameEndSocial?.snapshot().connected)clearProblem();
     const target=snap.clockReady?(Date.now()+snap.offset-snap.config.epoch)/1000-snap.config.delay:null;
     const v=$('player');if(target!==null&&target<0&&connected){S.phase='waiting-for-group';if(!['chat-unavailable','video-decode','browser-feature'].includes(S.failure))clearProblem();render();return;}
-    if(v&&v.readyState>=2&&!v.paused){const t=v.currentTime;if(S.lastTime!==null&&Math.abs(t-S.lastTime)>.02){S.picture=true;S.hasPicture=true;S.lastAdvance=Date.now();S.phase='playing';completed=true;if(S.failure!=='chat-unavailable')clearProblem();if(panel&&!S.failure)panel.hidden=true;}S.lastTime=t;}
-    if(target!==null&&target>=0&&Date.now()-Math.max(S.connectedAt||S.started,S.lastAdvance)>25000&&!S.failure&&document.visibilityState==='visible')fail(S.hasPicture?'picture-stalled':'connection-slow');
+    if(target!==null&&target>=0&&snap.playbackBlocked&&document.visibilityState==='visible'){if(S.failure!=='playback-blocked')fail('playback-blocked');return;}
+    if(v&&v.readyState>=2&&!v.paused){const t=v.currentTime;if(S.lastTime!==null&&Math.abs(t-S.lastTime)>.02){S.picture=true;S.hasPicture=true;S.lastAdvance=Date.now();S.phase='playing';completed=true;if(S.failure!=='chat-unavailable')clearProblem();render();if(panel&&!S.failure)panel.hidden=true;}S.lastTime=t;}
+    if(target!==null&&target>=0&&Date.now()-Math.max(S.connectedAt||S.started,S.lastAdvance,Number.isFinite(snap.config.epoch)?snap.config.epoch+snap.config.delay*1000-(snap.offset||0):0)>25000&&!S.failure&&document.visibilityState==='visible')fail(S.hasPicture?'picture-stalled':'picture-unavailable');
+    if(S.failure)render();
   }
   async function sendToHost(){
     if(S.sharing)return;
@@ -117,7 +135,7 @@
   async function shareReport(){const text=reportText();if(typeof navigator.share==='function'){try{await navigator.share({title:'Same End connection check',text});$('invite-check-report-status').textContent='Report handed to your sharing app. Choose your host to send it.';return;}catch(e){if(e.name==='AbortError')return;}}await copyReport();}
   async function copyReport(){const text=reportText();try{if(!navigator.clipboard?.writeText)throw Error();await navigator.clipboard.writeText(text);$('invite-check-report-status').textContent='Report copied. Paste it into your chat with your host.';}catch{const box=$('invite-check-report');box.closest('details').open=true;box.focus();box.select();$('invite-check-report-status').textContent='Report selected. Choose Copy, then paste it into your chat with your host.';}}
   function saveReport(){const file=new Blob([JSON.stringify(report(),null,2)],{type:'application/json'}),url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download='same-end-connection-report.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),4000);$('invite-check-report-status').textContent='Report saved. Attach it to your chat with your host.';}
-  function stop(){clearInterval(timer);timer=null;probeCancel?.();S.active=false;if(panel)panel.hidden=true;}
+  function stop(){clearInterval(timer);timer=null;probeCancel?.();S.active=false;closeDialog();if(panel)panel.hidden=true;}
   window.SameEndInviteCheck={start,phase,fail,report,cleanReport,stop};
   if($('room-check-help'))$('room-check-help').onclick=()=>{if(!S.active)start('screen');showHelp();panel?.scrollIntoView({block:'center',behavior:'smooth'});};
   window.addEventListener('error',()=>{if(S.active)fail('app-error');});
