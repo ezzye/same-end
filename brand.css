@@ -130,7 +130,7 @@ body.room-active.room-show-diary #club-social{display:block}
    Landing refresh: clearer first steps, steadier rhythm, mobile-first fold.
    Appended last so it wins over the earlier layered rules without !important.
    ------------------------------------------------------------------ */
-:root{--pitch:#073c2a;--turf:#0b6b38;--kit:#e12b24;--kit-dark:#bf1f19;--chalk:#f5f6f3;--rule:#d5ddd7;--muted:#56695e;--card-shadow:0 1px 0 #0a3b2112,0 10px 28px -18px #06301d4d}
+:root{--match-surface:#073c2a;--match-edge:#315945;--match-text:#f5f7f1;--match-muted:#c7d9cd;--pitch:#073c2a;--turf:#0b6b38;--kit:#e12b24;--kit-dark:#bf1f19;--chalk:#f5f6f3;--rule:#d5ddd7;--muted:#56695e;--card-shadow:0 1px 0 #0a3b2112,0 10px 28px -18px #06301d4d}
 body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 
 /* Header: the full stop belongs to the wordmark. */
@@ -150,50 +150,65 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 
 /* The two steps read as one sequence: do this, then this. */
 #quick-room.flow{position:relative;gap:18px;align-items:stretch}
-.start-card,.invitation-card{border:1px solid var(--rule);border-radius:16px;box-shadow:var(--card-shadow);padding:26px 26px 24px}
+.room{background:var(--match-surface);border-color:var(--match-edge);border-radius:16px;box-shadow:var(--card-shadow)}
+.start-card,.invitation-card{background:var(--match-surface);color:var(--match-text);border:1px solid var(--match-edge);border-radius:16px;box-shadow:var(--card-shadow);padding:26px 26px 24px}
 .start-card{border-top:4px solid var(--kit)}
-.invitation-card{border-top:4px solid var(--turf)}
+.invitation-card{border-top:4px solid var(--kit)}
 .panel-heading{gap:11px}
 .panel-heading .step{width:30px;height:30px;margin:0;font-size:14px;flex:none}
 .start-card .step{background:var(--kit)}
-.invitation-card .step{background:var(--turf)}
+.invitation-card .step{background:var(--kit)}
 .panel-heading h2{font-size:25px;line-height:1.1}
-.start-card>.muted,.invite-intro{color:#3f574a;font-size:15px;margin-top:6px}
+.start-card .panel-heading h2,.invitation-card .panel-heading h2{color:var(--match-text)}
+.start-card>.muted,.invite-intro{color:var(--match-muted);font-size:15px;margin-top:6px}
 .start-actions #capture,.invite-actions #make-magnet{min-height:52px;font-size:16px;letter-spacing:-.1px;border-radius:10px;transition:background-color .15s ease,transform .15s ease,box-shadow .15s ease}
 .start-actions #capture{box-shadow:0 8px 18px -10px #c51f1acc}
 .start-actions #capture:hover{background:var(--kit-dark);transform:translateY(-1px)}
 .start-actions #capture:active,.invite-actions #make-magnet:active:not(:disabled){transform:translateY(0)}
-.invite-actions #make-magnet:not(:disabled){box-shadow:0 8px 18px -10px #06402288}
+.invite-actions #make-magnet:not(:disabled){background:var(--kit);border-color:var(--kit);color:#fff;box-shadow:0 8px 18px -10px #c51f1acc}
+.invite-actions #make-magnet:hover:not(:disabled){background:var(--kit-dark)}
 /* A locked step should look waiting, not broken. */
-.invite-actions #make-magnet:disabled{opacity:1;background:#eef2ef;border:1px dashed #a9bbb0;color:#5d7266;box-shadow:none}
-.start-card .micro{font-size:13px;color:var(--muted);margin-top:12px}
-.host-hint{margin:auto 0 0;padding:12px 14px 0 0;font-size:12.5px;line-height:1.55;color:var(--muted);border-top:1px solid #e3e9e5;margin-top:18px}
+.invite-actions #make-magnet:disabled{opacity:1;background:#ffffff08;border:1px dashed #668c77;color:var(--match-muted);box-shadow:none}
+.start-card .micro{font-size:13px;color:var(--match-muted);margin-top:12px}
+.host-hint{margin:auto 0 0;padding:12px 14px 0 0;font-size:12.5px;line-height:1.55;color:var(--match-muted);border-top:1px solid #ffffff26;margin-top:18px}
 .privacy-line{font-size:12px}
+.invitation-card .privacy-line,.invitation-card .micro{color:var(--match-muted)}
+.invitation-card label{color:var(--match-text)}
+.invitation-card .magnet-progress{color:var(--match-text)}
+.invitation-card #join-magnet-button{background:var(--kit);border-color:var(--kit);color:#fff}
+.invitation-card .invite-actions .secondary{background:transparent;border-color:#668c77;color:var(--match-text)}
+.invitation-card .invite-actions .secondary:hover{background:#ffffff16}
+.invitation-card .invite-actions .copy-ready{background:var(--kit)!important;border-color:var(--kit);color:#fff}
+.invitation-card .invite-actions .copy-ready:hover{background:var(--kit-dark)!important}
+.invitation-card .invitation-copy-row button{background:var(--match-text);border-color:var(--match-text);color:var(--pitch)}
+.invitation-card .invitation-copy-row button:hover:not(:disabled){background:#dce9df;border-color:#dce9df}
 .magnet-progress{font-weight:600;color:#2f4e3e}
 .join-entry{margin-top:16px;padding-top:0;border-top:0}
-.join-entry>summary{display:flex;align-items:center;gap:10px;min-height:48px;padding:10px 14px;border:1px solid var(--rule);border-radius:10px;background:#f6f8f6;list-style:none;font-size:14px;color:var(--pitch)}
+.join-entry>summary{display:flex;align-items:center;gap:10px;min-height:48px;padding:10px 14px;border:1px solid #668c77;border-radius:10px;background:#ffffff0a;list-style:none;font-size:14px;color:var(--match-text)}
 .join-entry>summary::-webkit-details-marker{display:none}
 .join-entry>summary:before{content:"";flex:none;width:18px;height:18px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Cpath d='M3 7l9 6 9-6'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Cpath d='M3 7l9 6 9-6'/%3E%3C/svg%3E") center/contain no-repeat}
-.join-entry>summary:after{content:"+";margin-left:auto;font-size:20px;line-height:1;color:#406351}
+.join-entry>summary:after{content:"+";margin-left:auto;font-size:20px;line-height:1;color:var(--match-muted)}
 .join-entry[open]>summary:after{content:"−"}
-.join-entry>summary:hover{background:#eef4ef}
+.join-entry>summary:hover{background:#ffffff16}
 .join-entry[open]>summary{border-bottom-left-radius:0;border-bottom-right-radius:0}
-.join-entry[open]{border:1px solid var(--rule);border-radius:10px}
-.join-entry[open]>summary{border:0;border-bottom:1px solid var(--rule)}
+.join-entry[open]{border:1px solid #668c77;border-radius:10px}
+.join-entry[open]>summary{border:0;border-bottom:1px solid #668c77}
 .join-entry[open]>:not(summary){margin-left:14px;margin-right:14px}
 .join-entry[open] .row{margin-bottom:14px}
 .join-entry input{width:calc(100% - 28px)}
 
 /* Secondary rows: an icon makes each one scannable at a glance. */
-.secondary-section{border-radius:14px;border-color:var(--rule);box-shadow:0 1px 0 #0a3b2110}
-.secondary-section>summary{gap:16px;padding:16px 22px 16px 18px}
-.secondary-section>summary:before{content:"";flex:none;width:40px;height:40px;border-radius:11px;background:#e9f2ec center/22px no-repeat}
+.secondary-section{border-radius:16px;border-color:var(--match-edge);box-shadow:var(--card-shadow)}
+.secondary-section>summary{gap:16px;padding:16px 22px 16px 18px;background:var(--match-surface);color:var(--match-text);border-left:4px solid var(--kit)}
+.secondary-section>summary:hover{background:#0b4932}
+.secondary-section[open]>summary{border-bottom-color:var(--match-edge)}
+.secondary-section>summary:before{content:"";flex:none;width:40px;height:40px;border-radius:11px;background:#f5f7f1 center/22px no-repeat}
 #match-extras>summary:before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b6b38' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M16 3v4M8 3v4M3 10h18'/%3E%3Cpath d='M12 14v3h3'/%3E%3C/svg%3E")}
-#club-extras>summary:before{background-color:#fdeceb;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c4221c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z'/%3E%3Cpath d='M9 10.5h6M9 14h6'/%3E%3C/svg%3E")}
-.secondary-section>summary strong{font-size:16px;color:var(--pitch)}
-.secondary-section>summary small{font-size:13px;color:var(--muted)}
-.secondary-section>summary:after{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;border:1px solid var(--rule);font-size:20px;transition:background-color .15s ease}
-.secondary-section>summary:hover:after{background:#fff}
+#club-extras>summary:before{background-color:#f5f7f1;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b6b38' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z'/%3E%3Cpath d='M9 10.5h6M9 14h6'/%3E%3C/svg%3E")}
+.secondary-section>summary strong{font-family:'Arial Narrow',system-ui,sans-serif;font-size:19px;letter-spacing:-.4px;color:var(--match-text)}
+.secondary-section>summary small{font-size:13px;color:var(--match-muted)}
+.secondary-section>summary:after{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;border:1px solid #668c77;color:var(--match-text);background:#ffffff08;font-size:20px;transition:background-color .15s ease}
+.secondary-section>summary:hover:after{background:#ffffff18}
 
 /* Footer: quieter, aligned to the same edges. */
 .footer{border-top-color:var(--rule)}
@@ -221,7 +236,7 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
  .start-card .start-actions,.invite-actions{margin-top:16px}
  .secondary-section>summary{padding:14px 16px 14px 14px;gap:13px;min-height:72px}
  .secondary-section>summary:before{width:38px;height:38px;border-radius:10px;background-size:20px}
- .secondary-section>summary strong{font-size:15px}
+ .secondary-section>summary strong{font-size:18px}
  .secondary-section>summary small{font-size:12px}
 }
 @media(max-width:360px){
