@@ -76,6 +76,7 @@ try {
   const serialized=JSON.stringify([...store.items.values()]);
   for(const secret of ['RAW-ERROR-DO-NOT-STORE','PRIVATE-INVITE-DO-NOT-STORE','PRIVATE-CHAT-DO-NOT-STORE'])assert(!serialized.includes(secret),`backend excludes ${secret}`);
   assert.equal((await store.query('CLUB#'+await member.evaluate(()=>SameEndSocial.snapshot().id),{from:'MSG#',to:'MSG#\uffff'})).length,0,'device report is not chat');
+  if(!await owner.locator('#club-host-inbox').isVisible())await owner.locator('#club-extras > summary').click();
   await owner.locator('#club-host-inbox').click(); await owner.locator('#host-report-inbox').waitFor({state:'visible'});
   await owner.waitForFunction(()=>document.querySelector('#host-report-state')?.textContent==='Inbox is up to date.');
   assert((await owner.locator('#host-report-list').innerText()).includes(await member.evaluate(()=>SameEndInviteCheck.report().device.browser)));
@@ -83,7 +84,7 @@ try {
   // A fresh explicit send after an acknowledged delivery must not reuse the
   // old encrypted envelope. Only the bounded summary may leave this device.
   const fresh=await member.evaluate(async()=>{
-    window.SameEndDiagnostics={summary:()=>({reportId:'1122334455667788',castTag:'aabbccddeeff',durationSeconds:900,counts:{marks:2},lastStatus:{reserveSeconds:120,recoveryCount:1,stalls:0},events:[{type:'mark',atSeconds:55,value:'sound-heard'}],samples:[{private:'FULL-HISTORY-DO-NOT-SEND'}],url:'PRIVATE-URL-DO-NOT-SEND'})};
+    window.SameEndDiagnostics={summary:()=>({reportId:'1122334455667788',castTag:'aabbccddeeff',durationSeconds:900,counts:{marks:2},lastStatus:{role:'viewer',targetProgramTime:900,ready:4,reserveSeconds:120,recoveryCount:1,stalls:0,mediaDiagnostics:{delivery:{requiredPiecePresent:true,verifiedReserveSeconds:120,requiredPieceLeadMs:10000},playback:{mode:'native-window',width:1280,height:720,windowSeconds:16,firstFrameMs:30,decodedFrames:100}}},events:[{type:'mark',atSeconds:55,value:'sound-heard'}],samples:[{private:'FULL-HISTORY-DO-NOT-SEND'}],url:'PRIVATE-URL-DO-NOT-SEND'})};
     await SameEndSocial.sendDeviceReport(SameEndInviteCheck.report());return SameEndInviteCheck.report().testSession;
   });
   assert(fresh&&fresh.castTag==='aabbccddeeff');

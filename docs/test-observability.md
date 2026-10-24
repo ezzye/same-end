@@ -5,12 +5,12 @@ Normal casts and generated rehearsals now have a **Room settings & help → Your
 ## Evidence collected
 
 - Actual mapped programme position and group target, drift, clock readiness/offset and verified contiguous reserve.
-- Recovery states, coded watchdog reasons, attempts, supplier-change count, decoded frame count and playback stalls.
+- Recovery states, coded watchdog reasons, attempts, supplier-change count, decoded and dropped frame counts, playback mode (`mse` or `clips`), coded fallback reason and media error code (1–4). Stall totals are waiting transitions observed, not measured freeze count or freeze duration.
 - Aggregate acknowledged downstream delivery (null until measured), pending acknowledgement age/bytes, congestion count, forwarding count and queues. These are delivery observations, not maximum broadband speed estimates.
 - Source signal state, listener mute/volume, player readiness/paused/blocked state, document visibility, online flag, control-service failures and chat-message count. These do not prove audible output, readable picture or chat receipt.
 - Fixed manual observations (picture, sound, chat, freeze, silence, sync issue, relay departure, network change) and generic error categories, without raw errors/stacks.
 
-One browser report is not a room-wide trace. Device clocks can differ; compare mapped positions/targets and observations with the same hashed test code, allowing for sample times. Remote rehearsal statuses are sparse, self-reported summaries. Full individual reports are needed for a detailed investigation.
+One browser report is not a room-wide trace. Playback mode/reason and media error code help identify a decoder-path failure, but do not include a raw browser error message. Device clocks can differ; compare mapped positions/targets and observations with the same hashed test code, allowing for sample times. Remote rehearsal statuses are sparse, self-reported summaries. Full individual reports are needed for a detailed investigation.
 
 ## Limits and persistence
 

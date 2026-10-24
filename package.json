@@ -8,11 +8,13 @@
   "scripts": {
     "start": "node serve.mjs",
     "build": "node build-pwa.mjs",
-    "test": "node --test tests/backup-protocol.test.mjs tests/magnet-recovery.test.mjs tests/magnet-discovery.test.mjs tests/pwa-shell.test.mjs tests/media-player.test.mjs tests/source-audio.test.mjs tests/delivery-health.test.mjs tests/delivery-engine.test.mjs tests/diagnostics-core.test.mjs tests/rehearsal-metrics.test.mjs tests/invite-report.test.mjs backend/test/control.test.mjs tests/fixture-feed.test.mjs tests/reader-core.test.mjs tests/reader-worker.test.mjs tests/legacy-browser.test.mjs",
+    "test": "node --test tests/native-mp4.test.mjs tests/backup-protocol.test.mjs tests/magnet-recovery.test.mjs tests/magnet-discovery.test.mjs tests/pwa-shell.test.mjs tests/media-player.test.mjs tests/source-audio.test.mjs tests/delivery-health.test.mjs tests/delivery-engine.test.mjs tests/diagnostics-core.test.mjs tests/rehearsal-metrics.test.mjs tests/invite-report.test.mjs backend/test/control.test.mjs tests/fixture-feed.test.mjs tests/reader-core.test.mjs tests/reader-worker.test.mjs tests/legacy-browser.test.mjs",
     "test:social": "node tests/social-browser.test.mjs",
     "refresh:fixtures": "node scripts/update-fixtures.mjs",
     "build:vendor": "node scripts/build-vendor.mjs",
     "test:media": "node tests/media-playback-browser.test.mjs",
+    "test:media-resize": "node tests/media-resize-browser.test.mjs",
+    "test:host-playback": "node tests/host-playback-browser.test.mjs",
     "test:peers": "node tests/platform-peer-browser.test.mjs",
     "test:invite-feedback": "node tests/invite-feedback-browser.test.mjs",
     "test:invites": "node tests/invite-check-browser.test.mjs",
@@ -23,7 +25,8 @@
     "test:recovery": "node tests/delivery-recovery-browser.test.mjs",
     "test:share-help": "node tests/share-help-browser.test.mjs",
     "test:diagnostics": "node tests/diagnostics-browser.test.mjs",
-    "test:startup-social": "node tests/startup-social-browser.test.mjs"
+    "test:startup-social": "node tests/startup-social-browser.test.mjs",
+    "test:native-window": "node tests/native-window-browser.test.mjs"
   },
   "engines": {
     "node": ">=20"

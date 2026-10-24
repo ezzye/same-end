@@ -30,6 +30,20 @@ test('maps real delivery, peer queue, player ready state, and epoch timestamps s
   const s=c.report();assert.equal(s.startedAt,1792796400000);assert.equal(s.samples[0].aggregateMbps,1.5);assert.equal(s.samples[0].queue,130);assert.equal(s.samples[0].peerCount,2);assert.equal(s.samples[0].clockOffsetMs,-20);assert.equal(s.samples[0].congestedChildren,1);assert.equal(s.samples[0].pendingBytes,14);assert.equal(s.samples[0].ready,4);assert.equal(JSON.stringify(s).includes('PRIVATE-'),false);
 });
 
+test('allows only coded playback diagnostics and round-trips them through restore',()=>{
+  const storage=memoryStorage(),first=setup({storage});
+  first.observe({playbackMode:'clips',playbackFallbackReason:'decode-error',mediaErrorCode:3},{droppedFrames:7});
+  const status=first.c.report().status;
+  assert.deepEqual([status.playbackMode,status.playbackFallbackReason,status.mediaErrorCode,status.droppedFrames],['clips','decode-error',3,7]);
+  const restored=setup({storage}).c.report().status;
+  assert.deepEqual([restored.playbackMode,restored.playbackFallbackReason,restored.mediaErrorCode,restored.droppedFrames],['clips','decode-error',3,7]);
+  first.observe({playbackMode:'SECRET_MODE',playbackFallbackReason:'raw decoder error: TOKEN',mediaErrorCode:5,rawError:'RAW_SECRET'},{droppedFrames:-1});
+  const serialized=JSON.stringify(first.c.report());
+  for(const secret of ['SECRET_MODE','TOKEN','RAW_SECRET'])assert.equal(serialized.includes(secret),false);
+  const latest=first.c.report().status;
+  assert.deepEqual([latest.playbackMode,latest.playbackFallbackReason,latest.mediaErrorCode,latest.droppedFrames],[null,null,null,0]);
+});
+
 test('samples every five seconds, exposes gaps, and caps the two-hour history',()=>{
   const {c,observe,advance}=setup();observe();advance(5000);observe();advance(16000);observe();assert.equal(c.report().samples.length,3);assert.equal(c.report().samples[2].gapSeconds,11);
   for(let i=0;i<1500;i++){advance(5000);observe();}assert.equal(c.report().samples.length,1440);
@@ -50,8 +64,8 @@ test('tag validation, compact summary sanitizer, and summary byte limit',()=>{
   const {c,observe}=setup();observe();c.setCastTag('aabbccddeeff');assert.equal(c.summary().castTag,'aabbccddeeff');
   const clean=globalThis; // sanitizer is evaluated in the same isolated browser global below
   const w={};vm.runInNewContext(source,{window:w,globalThis:w,Uint8Array,Math,Date,JSON});
-  const sanitize=w.SameEndDiagnosticsCore.cleanSummary(JSON.stringify({...c.summary(),extra:'AUTH',lastStatus:{url:'https://x',drift:3},events:[{type:'mark',value:'chat-ok'},{type:'mark',value:'private-name'}]}));
-  assert.equal(sanitize.events.length,1);assert.equal(sanitize.lastStatus.drift,3);assert.equal('url' in sanitize.lastStatus,false);assert.ok(JSON.stringify(sanitize).length<=4096);assert.equal(clean,globalThis);
+  const sanitize=w.SameEndDiagnosticsCore.cleanSummary(JSON.stringify({...c.summary(),extra:'AUTH',lastStatus:{url:'https://x',drift:3,playbackMode:'mse',playbackFallbackReason:'buffer-append',mediaErrorCode:4,droppedFrames:11,rawError:'RAW_SECRET'},events:[{type:'mark',value:'chat-ok'},{type:'mark',value:'private-name'}]}));
+  assert.equal(sanitize.events.length,1);assert.equal(sanitize.lastStatus.drift,3);assert.equal('url' in sanitize.lastStatus,false);assert.deepEqual([sanitize.lastStatus.playbackMode,sanitize.lastStatus.playbackFallbackReason,sanitize.lastStatus.mediaErrorCode,sanitize.lastStatus.droppedFrames],['mse','buffer-append',4,11]);assert.equal('rawError' in sanitize.lastStatus,false);assert.ok(JSON.stringify(sanitize).length<=4096);assert.equal(clean,globalThis);
 });
 
 test('storage failures and quota exhaustion remain in memory and report failure',()=>{
@@ -82,4 +96,38 @@ test('retains sample and event truncation counts and actual watchdog reasons',()
  assert(c.report().events.some(e=>e.value==='searching-1-supplier-unresponsive'));
  for(let i=0;i<1450;i++){advance(5000);observe();}for(let i=0;i<201;i++)c.mark('chat-ok');
  assert(c.report().samplesDropped>0);assert(c.report().eventsDropped>0);assert(c.report().events.every(e=>e.value));
+});
+
+test('sanitises structured media diagnostics and preserves older reports without inventing facts',()=>{
+ const {c,observe}=setup();observe({role:'source',mediaDiagnostics:{capture:{width:1920,height:1080,frameRate:30,targetVideoMbps:4,actualMediaMbps:3.2,lastPieceAgeSeconds:2,recordingLatencyMs:80,sourceAudio:'sound',rawError:'RAW_SECRET',url:'https://SECRET.test'},delivery:{requiredPiecePresent:true,requiredPieceLeadMs:-120,verifiedReserveSeconds:8,token:'TOKEN_SECRET'},playback:{mode:'native-window',windowSeconds:5,srcChanges:2,width:1280,height:720,decodedFrames:30,errorCode:4,message:'ERROR_SECRET'}}});
+ const status=c.report().status, text=JSON.stringify(c.report());
+ assert.deepEqual([status.mediaDiagnostics.capture.actualMediaMbps,status.mediaDiagnostics.capture.recordingLatencyMs,status.mediaDiagnostics.delivery.requiredPieceLeadMs,status.mediaDiagnostics.playback.mode,status.mediaDiagnostics.playback.windowSeconds],[3.2,80,-120,'native-window',5]);
+ for(const secret of ['RAW_SECRET','SECRET.test','TOKEN_SECRET','ERROR_SECRET'])assert.equal(text.includes(secret),false);
+ assert.equal(status.mediaDiagnostics.playback.message,undefined);
+ const viewer=setup();viewer.observe({mediaDiagnostics:{capture:{width:1920,lastPieceAgeSeconds:999}}});assert.equal(viewer.c.report().status.mediaDiagnostics.capture,null);
+ const old={...c.report(),status:{role:'viewer',ready:4},samples:[{at:1,role:'viewer',ready:4}]};delete old.status.mediaDiagnostics;
+ const w={};vm.runInNewContext(source,{window:w,globalThis:w,Uint8Array,Math,Date,JSON});
+ const oldClean=w.SameEndDiagnosticsCore.cleanSummary({...c.summary(),lastStatus:old.status});
+ assert.equal(oldClean.lastStatus.mediaDiagnostics,undefined);
+});
+
+test('assesses delivery, decoder, warmup, autoplay, stalled playback, source capture, and unknown separately',()=>{
+ const w={};vm.runInNewContext(source,{window:w,globalThis:w,Uint8Array,Math,Date,JSON});
+ const assess=w.SameEndDiagnosticsCore.assessMediaDiagnostics;
+ const result=(status,samples=[])=>assess(status,samples);
+ assert.equal(result({role:'viewer',targetProgramTime:0,mediaDiagnostics:{delivery:{requiredPiecePresent:false}}}).findings[0].code,'required-piece-missing');
+ assert.equal(result({role:'viewer',targetProgramTime:-1,mediaDiagnostics:{delivery:{requiredPiecePresent:false}}}).state,'unknown');
+ assert.equal(result({role:'viewer',ready:1,targetProgramTime:0,mediaDiagnostics:{delivery:{requiredPiecePresent:true}}}).findings[0].code,'decoder-startup-evidence');
+ assert.equal(result({role:'viewer',ready:1,targetProgramTime:-1,mediaDiagnostics:{delivery:{requiredPiecePresent:true}}}).state,'unknown');
+ assert.equal(result({role:'viewer',ready:4,playbackBlocked:true,mediaDiagnostics:{delivery:{requiredPiecePresent:true}}}).findings[0].code,'playback-blocked');
+ assert.equal(result({role:'viewer',ready:1,targetProgramTime:0,playbackBlocked:true,mediaDiagnostics:{delivery:{requiredPiecePresent:true}}}).findings[0].code,'playback-blocked');
+ assert.equal(result({role:'source',mediaDiagnostics:{capture:{lastPieceAgeSeconds:11}}}).findings[0].code,'source-piece-stale');
+ assert.equal(result({role:'viewer',mediaDiagnostics:{capture:{lastPieceAgeSeconds:900}}}).state,'unknown');
+ const prior={at:1000,targetProgramTime:2,programTime:5,decodedFrames:20,visible:true,paused:false,playbackBlocked:false,mediaDiagnostics:{delivery:{requiredPiecePresent:true},playback:{decodedFrames:20}}};
+ const current={at:4000,targetProgramTime:5,programTime:5,decodedFrames:20,visible:true,paused:false,playbackBlocked:false,mediaDiagnostics:{delivery:{requiredPiecePresent:true},playback:{decodedFrames:20}}};
+ assert.equal(result({role:'viewer'},[prior,current]).findings[0].code,'no-frame-growth');
+ assert.equal(result({role:'viewer'},[prior,{...current,visible:false}]).findings.some(f=>f.code==='no-frame-growth'),false);
+ assert.equal(result({role:'viewer'},[{...prior,paused:true},current]).findings.some(f=>f.code==='no-frame-growth'),false);
+ assert.equal(result({role:'viewer'},[prior,{...current,at:2500}]).findings.some(f=>f.code==='no-frame-growth'),false);
+ assert.equal(result({role:'viewer',mediaDiagnostics:{capture:{width:320,frameRate:5,targetVideoMbps:0.2,actualMediaMbps:0.1}}}).state,'unknown');
 });

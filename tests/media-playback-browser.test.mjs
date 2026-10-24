@@ -8,10 +8,10 @@ import { createHash } from 'node:crypto';
 const require = createRequire(import.meta.url);
 let pw;
 try { pw = require('playwright'); } catch { pw = await import(process.env.SAMEEND_PLAYWRIGHT || (process.env.HOME + '/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs')); }
-const root = new URL('../', import.meta.url), out = new URL('privatework/media-playback/', root);
+const root = new URL('../', import.meta.url), out = new URL(process.env.SAMEEND_MEDIA_OUT || 'privatework/media-playback/', root);
 await mkdir(out, { recursive: true });
 const code = await readFile(new URL('media-player.js', root), 'utf8');
-const mime = 'video/mp4;codecs=avc1.42E01E,mp4a.40.2';
+const mime = process.env.SAMEEND_MEDIA_MIME || 'video/mp4;codecs=avc1.42E01E,mp4a.40.2';
 let manifest = [];
 const html = `<!doctype html><meta charset="utf-8"><title>Generated media compatibility acceptance</title><style>body{font:18px system-ui;background:#152817;color:white}video{width:640px;max-width:95vw}button{font:inherit;padding:12px}</style><video id="video" muted controls playsinline></video><p><button id="sound">Turn sound on</button><button id="play">Play</button></p><canvas id="sample" width="32" height="18" hidden></canvas><script src="/media-player.js"></script><script>
 window.errors=[];window.modes=[];window.frameCallbacks=0;window.liveURLs=new Set();
@@ -38,7 +38,7 @@ const report = {schema:1,date:new Date().toISOString(),sourceSHA256:createHash('
 const browsers = [];
 async function recordFixtures() {
   if (process.env.SAMEEND_MEDIA_REUSE === '1') {
-    try { manifest = JSON.parse(await readFile(new URL('fixtures.json',out),'utf8')); assert.equal(manifest.length,14);await Promise.all(manifest.map(async p=>assert.equal(createHash('sha256').update(await readFile(new URL(p.file,out))).digest('hex'),p.sha256)));return; } catch {manifest=[];}
+    try { manifest = JSON.parse(await readFile(new URL('fixtures.json',out),'utf8')); assert.equal(manifest.length,14);assert(manifest.every(p=>p.recordedMime.toLowerCase()===mime.toLowerCase()));await Promise.all(manifest.map(async p=>assert.equal(createHash('sha256').update(await readFile(new URL(p.file,out))).digest('hex'),p.sha256)));return; } catch {manifest=[];}
   }
   const captured=[];
   // Isolate the recording process as well as the recorder. Hardware encoders
