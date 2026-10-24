@@ -36,7 +36,44 @@
     o.sourceAudio = pick(x.sourceAudio, enums.audio);
     o.playbackMode = pick(x.playbackMode, enums.playbackMode);
     o.playbackFallbackReason = x.playbackFallbackReason === null ? null : pick(x.playbackFallbackReason, enums.playbackFallbackReason);
+    if (x.mediaDiagnostics && typeof x.mediaDiagnostics === "object") {
+      o.mediaDiagnostics = safeMediaDiagnostics(x.mediaDiagnostics);
+      if (o.role !== "source") o.mediaDiagnostics.capture = null;
+    }
     return o;
+  }
+  function safeMediaDiagnostics(x) {
+    x = x && typeof x === "object" ? x : {};
+    const metric = (v, max = 1e6) => typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(max, v)) : null;
+    const dimension = (v) => Number.isInteger(v) && v >= 0 && v <= 16384 ? v : null;
+    const group = (name, fields) => x[name] && typeof x[name] === "object" ? fields(x[name]) : null;
+    return {
+      capture: group("capture", (c) => ({ width: dimension(c.width), height: dimension(c.height), frameRate: metric(c.frameRate, 240), targetVideoMbps: metric(c.targetVideoMbps, 1000), actualMediaMbps: metric(c.actualMediaMbps, 1000), lastPieceSeconds: metric(c.lastPieceSeconds, 3600), lastPieceAgeSeconds: metric(c.lastPieceAgeSeconds, 86400), recordingLatencyMs: metric(c.recordingLatencyMs, 1e7), sourceAudio: pick(c.sourceAudio, enums.audio) })),
+      delivery: group("delivery", (d) => ({ requiredPiecePresent: bool(d.requiredPiecePresent), requiredPieceLeadMs: typeof d.requiredPieceLeadMs === "number" && Number.isFinite(d.requiredPieceLeadMs) ? Math.max(-60000, Math.min(600000, d.requiredPieceLeadMs)) : null, verifiedReserveSeconds: metric(d.verifiedReserveSeconds, 86400) })),
+      playback: group("playback", (p) => ({ mode: pick(p.mode, ["mse", "clips", "native-window"]), packagingReason: pick(p.packagingReason,["short","configuration","timeline","size","structure","inband-config","overlap","decode"]), fallbackReason: p.fallbackReason === null ? null : pick(p.fallbackReason, enums.playbackFallbackReason), errorCode: Number.isInteger(p.errorCode) && p.errorCode >= 1 && p.errorCode <= 4 ? p.errorCode : null, width: dimension(p.width), height: dimension(p.height), playableAheadSeconds: metric(p.playableAheadSeconds, 86400), windowSeconds: metric(p.windowSeconds, 86400), srcChanges: metric(p.srcChanges, 1e6), lastLoadMs: metric(p.lastLoadMs, 1e7), firstFrameMs: metric(p.firstFrameMs, 1e7), decodedFrames: metric(p.decodedFrames, 1e12), droppedFrames: metric(p.droppedFrames, 1e12) }))
+    };
+  }
+  function assessMediaDiagnostics(status, samples) {
+    status = status && typeof status === "object" ? status : {};
+    const md = status.mediaDiagnostics || {}, capture = md.capture || {}, delivery = md.delivery || {}, playback = md.playback || {};
+    const findings = [];
+    const pastWarmup = typeof status.targetProgramTime === "number" && status.targetProgramTime >= 0;
+    if (status.role === "source" && typeof capture.lastPieceAgeSeconds === "number" && capture.lastPieceAgeSeconds > 10) findings.push({ layer: "capture", code: "source-piece-stale" });
+    if (pastWarmup && delivery.requiredPiecePresent === false) findings.push({ layer: "delivery", code: "required-piece-missing" });
+    if (delivery.requiredPiecePresent === true && ((status.playbackBlocked !== true && pastWarmup && typeof status.ready === "number" && status.ready <= 1) || playback.errorCode !== null && playback.errorCode !== undefined || status.mediaErrorCode !== null && status.mediaErrorCode !== undefined)) findings.push({ layer: "playback", code: "decoder-startup-evidence" });
+    const prior = Array.isArray(samples) && samples.length > 1 ? samples[samples.length - 2] : null;
+    const current = Array.isArray(samples) && samples.length ? samples[samples.length - 1] : null;
+    const oldPlayback = prior?.mediaDiagnostics?.playback, currentPlayback = current?.mediaDiagnostics?.playback;
+    const frameCount = currentPlayback?.decodedFrames ?? current?.decodedFrames;
+    const oldFrameCount = oldPlayback?.decodedFrames ?? prior?.decodedFrames;
+    const targetAdvanced = typeof current?.targetProgramTime === "number" && typeof prior?.targetProgramTime === "number" && current.targetProgramTime - prior.targetProgramTime >= 2;
+    const intervalMs = typeof current?.at === "number" && typeof prior?.at === "number" ? current.at - prior.at : null;
+    const active = (sample) => sample?.visible === true && sample?.paused === false && sample?.playbackBlocked === false;
+    if (prior && current && frameCount !== null && frameCount !== undefined && oldFrameCount !== null && oldFrameCount !== undefined && frameCount <= oldFrameCount && active(prior) && active(current) && prior.mediaDiagnostics?.delivery?.requiredPiecePresent === true && current.mediaDiagnostics?.delivery?.requiredPiecePresent === true && targetAdvanced && currentPlayback?.srcChanges === oldPlayback?.srcChanges && (intervalMs === null || intervalMs >= 2000)) findings.push({ layer: "playback", code: "no-frame-growth" });
+    if (findings.length) return { state: "evidence", findings };
+    if (status.playbackBlocked === true) return { state: "autoplay-or-user-action", findings: [{ layer: "playback", code: "playback-blocked" }] };
+    if (delivery.requiredPiecePresent === true && playback.decodedFrames > 0) return { state: "observed-playback", findings: [] };
+    return { state: "unknown", findings: [] };
   }
   function safeEventValue(e) {
     if (e.type === "mark") return pick(e.value, enums.mark);
@@ -158,7 +195,7 @@
     else if (!cfg && this.session && !this.session.endedAt) this.finish("ended");
     if (!this.session || this.session.endedAt) return this.summary();
     const d = snapshot.delivery || {}, r = snapshot.recovery || {}, p = playerFacts || {}, env = environment || {};
-    const state = safeState({ role: snapshot.role, delay: cfg?.delay, programTime: snapshot.programTime, targetProgramTime: snapshot.targetProgramTime, drift: snapshot.drift, reserveSeconds: snapshot.reserveSeconds, bufferedSeconds: snapshot.bufferedSeconds, received: snapshot.received, sentBytes: snapshot.sentBytes, stalls: snapshot.stalls, recovery: r.state, recoveryCount: r.recoveries, attempts: r.attempts, reason: r.reason, sourceReachable: snapshot.sourceReachable, sourceEnded: snapshot.sourceEnded, supplierHealth: snapshot.supplierHealth, sourceAudio: snapshot.sourceAudio?.status, clockReady: snapshot.clockReady, clockOffsetMs: snapshot.offset, playbackMode: snapshot.playbackMode, playbackFallbackReason: snapshot.playbackFallbackReason, mediaErrorCode: snapshot.mediaErrorCode, aggregateMbps: d.measured === true ? d.deliveredMbps : null, pendingBytes: Array.isArray(d.peers) ? d.peers.reduce((a, p2) => a + (count(p2?.pendingBytes) || 0), 0) : null, oldestPendingMs: Array.isArray(d.peers) ? d.peers.reduce((a, p2) => Math.max(a, count(p2?.oldestPendingMs) || 0), 0) : null, congestedChildren: Array.isArray(d.peers) ? d.peers.filter((p2) => p2?.health === "congested").length : null, measuredChildren: Array.isArray(d.peers) ? d.peers.filter((p2) => p2?.measured === true).length : null, relayLimit: d.relayLimit, forwardingCount: Array.isArray(d.peers) ? d.peers.length : null, controlFailures: env.controlFailures, chatMessageCount: env.chatMessageCount, queue: Array.isArray(snapshot.peers) ? snapshot.peers.reduce((a, q) => a + (Number.isFinite(q?.queued) ? q.queued : Number.isFinite(q?.queuedBytes) ? q.queuedBytes : 0), 0) : null, peerCount: Array.isArray(snapshot.peers) ? snapshot.peers.length : null, ready: p.ready, paused: p.paused, muted: p.muted, volume: p.volume, decodedFrames: p.decodedFrames, droppedFrames: p.droppedFrames, playbackBlocked: p.playbackBlocked, visible: env.visible, online: env.online });
+    const state = safeState({ role: snapshot.role, delay: cfg?.delay, programTime: snapshot.programTime, targetProgramTime: snapshot.targetProgramTime, drift: snapshot.drift, reserveSeconds: snapshot.reserveSeconds, bufferedSeconds: snapshot.bufferedSeconds, received: snapshot.received, sentBytes: snapshot.sentBytes, stalls: snapshot.stalls, recovery: r.state, recoveryCount: r.recoveries, attempts: r.attempts, reason: r.reason, sourceReachable: snapshot.sourceReachable, sourceEnded: snapshot.sourceEnded, supplierHealth: snapshot.supplierHealth, sourceAudio: snapshot.sourceAudio?.status, clockReady: snapshot.clockReady, clockOffsetMs: snapshot.offset, playbackMode: snapshot.playbackMode, playbackFallbackReason: snapshot.playbackFallbackReason, mediaErrorCode: snapshot.mediaErrorCode, mediaDiagnostics: snapshot.mediaDiagnostics, aggregateMbps: d.measured === true ? d.deliveredMbps : null, pendingBytes: Array.isArray(d.peers) ? d.peers.reduce((a, p2) => a + (count(p2?.pendingBytes) || 0), 0) : null, oldestPendingMs: Array.isArray(d.peers) ? d.peers.reduce((a, p2) => Math.max(a, count(p2?.oldestPendingMs) || 0), 0) : null, congestedChildren: Array.isArray(d.peers) ? d.peers.filter((p2) => p2?.health === "congested").length : null, measuredChildren: Array.isArray(d.peers) ? d.peers.filter((p2) => p2?.measured === true).length : null, relayLimit: d.relayLimit, forwardingCount: Array.isArray(d.peers) ? d.peers.length : null, controlFailures: env.controlFailures, chatMessageCount: env.chatMessageCount, queue: Array.isArray(snapshot.peers) ? snapshot.peers.reduce((a, q) => a + (Number.isFinite(q?.queued) ? q.queued : Number.isFinite(q?.queuedBytes) ? q.queuedBytes : 0), 0) : null, peerCount: Array.isArray(snapshot.peers) ? snapshot.peers.length : null, ready: p.ready, paused: p.paused, muted: p.muted, volume: p.volume, decodedFrames: p.decodedFrames, droppedFrames: p.droppedFrames, playbackBlocked: p.playbackBlocked, visible: env.visible, online: env.online });
     this.session.counts.observations++;
     const prev = this.lastState;
     if (prev) {
@@ -251,5 +288,5 @@
       return null;
     }
   }
-  root.SameEndDiagnosticsCore = { Collector, cleanSummary };
+  root.SameEndDiagnosticsCore = { Collector, cleanSummary, safeMediaDiagnostics, assessMediaDiagnostics };
 })(typeof window !== "undefined" ? window : globalThis);

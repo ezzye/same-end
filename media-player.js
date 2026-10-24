@@ -56,13 +56,13 @@
   class Player {
     constructor(video,mime,{onError=()=>{},onMode=()=>{}}={}){
       if(!canPlay(mime,video))throw Error('This browser cannot play this cast. Ask the host to start a fresh room in updated Chrome, Edge or Safari so it uses iPhone-compatible MP4.');
-      this.video=video;this.mime=mime;this.nativeMime=nativeMime(mime,video);this.onError=onError;this.onMode=onMode;
+      this.video=video;this.mime=mime;this.nativeWindow=null;this.playbackMetrics={srcChanges:0,lastLoadMs:null,firstFrameMs:null};this.nativeMime=nativeMime(mime,video);this.onError=onError;this.onMode=onMode;
       this.queue=[];this.queueBytes=0;this.pieces=[];this.pieceBytes=0;this.urls=new Map();this.mode='clips';this.fallbackReason='unsupported-mse';this.mediaErrorCode=null;this.closed=false;this.blocked=false;this.current=null;this.loading=false;this.duration=0;this.demand=true;this.lastRepair=0;
       video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');
       // Required for iPhone ManagedMediaSource without a separate AirPlay URL.
       video.disableRemotePlayback=true;video.preload='auto';video.autoplay=true;
-      this.onVideoError=()=>{if(this.closed)return;const code=video.error?.code;this.mediaErrorCode=Number.isInteger(code)&&code>=1&&code<=4?code:null;if(this.mode==='mse')this.fallback('Streaming buffer unavailable; using compatibility playback.','decode-error');else this.onError('This device could not decode the picture. Ask the host to start a new room using MP4 in updated Chrome, Edge or Safari.');};
-      video.addEventListener('error',this.onVideoError);
+      this.onVideoError=()=>{if(this.closed)return;const code=video.error?.code;this.mediaErrorCode=Number.isInteger(code)&&code>=1&&code<=4?code:null;if(this.nativeWindow){this.nativeJoinDisabled=true;this.packagingReason='decode';URL.revokeObjectURL(this.nativeWindow.url);this.nativeWindow=null;this.current=null;this.video.pause();this.video.removeAttribute('src');this.video.load();this.onMode('clips','Using individual pieces after a compatibility-window decode error.');return;}if(this.mode==='mse')this.fallback('Streaming buffer unavailable; using compatibility playback.','decode-error');else this.onError('This device could not decode the picture. Ask the host to start a new room using MP4 in updated Chrome, Edge or Safari.');};
+      video.addEventListener('error',this.onVideoError);this.onFirstFrame=()=>{if(this.loadStartedAt!==undefined&&this.playbackMetrics.firstFrameMs===null&&video.readyState>=2)this.playbackMetrics.firstFrameMs=Math.max(0,Date.now()-this.loadStartedAt);};video.addEventListener('loadeddata',this.onFirstFrame);
       const C=sourceConstructor(mime);
       if(C){
         this.mode='mse';this.fallbackReason=null;this.source=new C();this.sourceURL=URL.createObjectURL(this.source);
@@ -106,6 +106,33 @@
       for(const [seq,url] of this.urls)if(seq!==piece.meta.seq&&!this.pieces.some(p=>p.meta.seq===seq)){URL.revokeObjectURL(url);this.urls.delete(seq);}
       return this.urls.get(piece.meta.seq);
     }
+    lookAheadSeconds(){return this.mode==='clips'&&!this.nativeJoinDisabled&&window.SameEndNativeMP4&&this.mime.startsWith('video/mp4')?22:4;}
+    // Make a complete local presentation from matching verified pieces. One
+    // video element retains its sound permission; no duplicate audio players.
+    loadNative(piece){
+      let joined=null;
+      if(!this.nativeJoinDisabled&&window.SameEndNativeMP4&&this.mime.startsWith('video/mp4')){
+        const candidates=this.pieces.filter(p=>p.meta.seq>=piece.meta.seq).sort((a,b)=>a.meta.seq-b.meta.seq).slice(0,12);
+        joined=window.SameEndNativeMP4.assemble(candidates,{maxSeconds:16});
+      }
+      if(!this.nativeJoinDisabled)this.packagingReason=joined?.ok?joined.reason:(joined?.reason||null);
+      if(this.nativeWindow){URL.revokeObjectURL(this.nativeWindow.url);this.nativeWindow=null;}
+      let url;
+      if(joined?.ok){
+        let parts=joined.parts;
+        if(this.nativeMime!==this.mime){const length=parts.reduce((n,b)=>n+b.byteLength,0),copy=new Uint8Array(length);let pos=0;for(const part of parts){copy.set(part,pos);pos+=part.byteLength;}parts=[nativeMP4(copy)];}
+        url=URL.createObjectURL(new Blob(parts,{type:this.nativeMime||this.mime}));
+        this.nativeWindow={url,start:joined.start,end:joined.end,pieceCount:joined.pieceCount,mediaSeconds:joined.mediaSeconds};
+      }else url=this.urlFor(piece);
+      this.current=piece.meta.seq;this.duration=piece.meta.duration/1000;
+      this.playbackMetrics.srcChanges++;this.playbackMetrics.firstFrameMs=null;this.loadStartedAt=Date.now();
+      this.video.src=url;this.video.load();this.playbackMetrics.lastLoadMs=Math.max(0,Date.now()-this.loadStartedAt);
+      this.play().catch(()=>{});
+    }
+    facts(){
+      const v=this.video;let ahead=0;for(let i=0;i<v.buffered.length;i++)if(v.currentTime>=v.buffered.start(i)&&v.currentTime<v.buffered.end(i))ahead=v.buffered.end(i)-v.currentTime;
+      const q=v.getVideoPlaybackQuality?.();return{mode:this.nativeWindow?'native-window':this.mode,fallbackReason:this.fallbackReason,packagingReason:this.packagingReason||null,errorCode:this.mediaErrorCode,width:v.videoWidth||0,height:v.videoHeight||0,playableAheadSeconds:ahead,windowSeconds:this.nativeWindow?(this.nativeWindow.end-this.nativeWindow.start)/1000:null,srcChanges:this.playbackMetrics.srcChanges,lastLoadMs:this.playbackMetrics.lastLoadMs,firstFrameMs:this.playbackMetrics.firstFrameMs,decodedFrames:q?.totalVideoFrames??v.webkitDecodedFrameCount??null,droppedFrames:q?.droppedVideoFrames??v.webkitDroppedFrameCount??null};
+    }
     sync(target){
       const v=this.video;
       if(target>=0){const cutoff=this.epoch+target*1000-4000;this.pieces=this.pieces.filter(p=>p.meta.start+p.meta.duration>=cutoff);this.pieceBytes=this.pieces.reduce((n,p)=>n+p.buf.byteLength,0);this.queue=this.queue.filter(p=>p.meta.start+p.meta.duration>=cutoff);this.queueBytes=this.queue.reduce((n,p)=>n+p.buf.byteLength,0);}
@@ -129,19 +156,16 @@
         if(!inRange&&!this.sb.updating&&Date.now()-this.lastRepair>1200){const absolute=this.epoch+target*1000,piece=this.pieces.find(p=>absolute>=p.meta.start&&absolute<p.meta.start+p.meta.duration);if(piece&&!this.queue.some(p=>p.meta.seq===piece.meta.seq)){this.lastRepair=Date.now();this.queue.unshift(piece);this.queueBytes+=piece.buf.byteLength;while(this.queue.length>20||this.queueBytes>20*1024*1024)this.queueBytes-=this.queue.pop().buf.byteLength;this.pump();}}
       }else{
         const absolute=this.epoch+target*1000;
-        const piece=this.pieces.find(p=>absolute>=p.meta.start&&absolute<p.meta.start+p.meta.duration);
-        if(!piece){v.pause();return {waiting:true,drift:null};}
-        localTarget=(absolute-piece.meta.start)/1000;
-        if(this.current!==piece.meta.seq){
-          this.current=piece.meta.seq;this.duration=piece.meta.duration/1000;
-          v.src=this.urlFor(piece);v.load();
-          // Keep a single media element: older iOS can stop one video when another
-          // starts, and audio permission belongs to the element the user tapped.
-          this.play().catch(()=>{});
+        const withinWindow=this.nativeWindow&&absolute>=this.nativeWindow.start&&absolute<this.nativeWindow.end;
+        if(!withinWindow){
+          const piece=this.pieces.find(p=>absolute>=p.meta.start&&absolute<p.meta.start+p.meta.duration);
+          if(!piece){v.pause();return {waiting:true,drift:null};}
+          if(this.current!==piece.meta.seq||this.nativeWindow)this.loadNative(piece);
         }
-        // Some browsers initially expose only the first MP4 fragment duration.
-        // Pausing against that growing duration deadlocks otherwise valid clips.
-        inRange=v.readyState>=2&&localTarget<this.duration-.025;
+        if(this.nativeWindow)localTarget=(absolute-this.nativeWindow.start)/1000;
+        else{const piece=this.pieces.find(p=>p.meta.seq===this.current);if(!piece){v.pause();return{waiting:true,drift:null};}localTarget=(absolute-piece.meta.start)/1000;}
+        inRange=v.readyState>=2&&!this.nativeWindow&&localTarget<this.duration-.025;
+        if(this.nativeWindow&&v.readyState>=2){for(let i=0;i<v.buffered.length;i++){const start=v.buffered.start(i),end=v.buffered.end(i);if(localTarget>=start&&localTarget<end)inRange=true;else if(i>0&&localTarget>=v.buffered.end(i-1)&&localTarget<start&&start-v.buffered.end(i-1)<=.15){try{v.currentTime=start+.001;inRange=true;}catch{}}}}
       }
       if(!inRange){v.pause();return {waiting:true,drift:null};}
       const drift=localTarget-v.currentTime;
@@ -154,6 +178,7 @@
     programTime(){
       if(this.closed||this.video.readyState<2)return null;
       if(this.mode==='mse')return this.video.currentTime;
+      if(this.nativeWindow)return (this.nativeWindow.start-this.epoch)/1000+this.video.currentTime;
       const piece=this.pieces.find(p=>p.meta.seq===this.current);
       return piece?(piece.meta.start-this.epoch)/1000+this.video.currentTime:null;
     }
@@ -161,7 +186,7 @@
     // later from a timer or loadedmetadata callback.
     play(){const result=this.video.play();return Promise.resolve(result).then(()=>{this.blocked=false;},error=>{if(error.name==='NotAllowedError')this.blocked=true;throw error;});}
     close(){
-      this.closed=true;clearTimeout(this.openTimer);this.video.removeEventListener('error',this.onVideoError);
+      this.closed=true;clearTimeout(this.openTimer);this.video.removeEventListener('error',this.onVideoError);this.video.removeEventListener('loadeddata',this.onFirstFrame);if(this.nativeWindow)URL.revokeObjectURL(this.nativeWindow.url);this.nativeWindow=null;
       this.video.pause();this.video.removeAttribute('src');this.video.load();
       if(this.sourceURL)URL.revokeObjectURL(this.sourceURL);
       for(const url of this.urls.values())URL.revokeObjectURL(url);

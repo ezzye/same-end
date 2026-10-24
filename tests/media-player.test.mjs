@@ -165,3 +165,15 @@ test('browser eviction repairs from retained media without duplicate growth, and
   assert.equal(player.queueBytes,0);assert.equal(player.pieceBytes,0);
   player.enqueue(piece(100),epoch);assert.equal(player.pieces.length,0,'a closed player must not retain new data');
 });
+
+
+test('fully cached native windows survive internal boundaries and piece pruning; a rejected window recovers once to original pieces',async()=>{
+ const {make}=await import('./helpers/native-mp4-fixture.mjs');const native=await readFile(new URL('../native-mp4.js',import.meta.url),'utf8');
+ const handlers=new Map();let loads=0,next=0;const live=new Set();
+ const video={currentTime:0,readyState:4,paused:true,buffered:{length:1,start:()=>0,end:()=>16},canPlayType:()=> 'probably',setAttribute(){},removeAttribute(){},load(){loads++;},pause(){this.paused=true;},play(){this.paused=false;return Promise.resolve();},addEventListener(n,f){handlers.set(n,f);},removeEventListener(n){handlers.delete(n);}};
+ const context=createContext({window:{},document:{createElement:()=>video},Blob,Date,setTimeout:()=>0,clearTimeout(){},URL:{createObjectURL(){const u='blob:'+ ++next;live.add(u);return u;},revokeObjectURL(u){live.delete(u);}}});runInContext(native,context);runInContext(source,context);const player=new context.window.SameEndMedia.Player(video,'video/mp4');
+ const inputs=Array.from({length:8},(_,seq)=>({meta:{seq,start:epoch+seq*2000,duration:2000},buf:make({swap:seq%2===1})}));for(const p of inputs)player.enqueue(p,epoch);
+ for(let n=0;n<12;n++){video.currentTime=n+.1;assert.equal(player.sync(n+.1).waiting,false);}
+ assert.equal(loads,1,'internal two-second boundaries must not replace the source');assert.equal(player.facts().mode,'native-window');assert.equal(player.programTime(),11.1);assert(!player.pieces.some(p=>p.meta.seq===0),'test actually pruned the first source piece');
+ video.error={code:3};handlers.get('error')();assert.equal(player.nativeJoinDisabled,true);assert.equal(player.nativeWindow,null);video.currentTime=.1;player.sync(12.1);assert.equal(player.facts().mode,'clips');assert.equal(player.facts().packagingReason,'decode');assert.equal(loads,3,'one clear plus one original-piece retry');player.close();assert.equal(live.size,0,'all window and piece URLs released');
+});

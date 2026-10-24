@@ -359,7 +359,103 @@ window.WebTorrent=SameEndTorrentModule.default;
 })();
 </script>
 <!-- CAST_MAGNET_ASSETS_END -->
-<script id="same-end-media">/* Signed, independently playable pieces stay on the peers. No server conversion.
+<script id="same-end-media">/* Bounded playback-only remux of independently recorded fragmented MP4.
+ * Signed source bytes are never modified or forwarded in this representation.
+ * Unsupported structures fail closed to the existing individual-file player. */
+(function(root){
+'use strict';
+const MAX_PIECE=4*1024*1024,MAX_WINDOW=20*1024*1024,MAX_PIECES=12,MAX_SECONDS=24;
+function reject(code){throw new Error(code);}
+function bytes(value){return ArrayBuffer.isView(value)?new Uint8Array(value.buffer,value.byteOffset,value.byteLength):new Uint8Array(value);}
+function hex(a){let s='';for(const n of a)s+=n.toString(16).padStart(2,'0');return s;}
+function parser(value){
+ const b=bytes(value);if(b.length<16||b.length>MAX_PIECE)reject('size');const d=new DataView(b.buffer,b.byteOffset,b.byteLength);
+ const u32=p=>{if(p<0||p+4>b.length)reject('bounds');return d.getUint32(p);};
+ const u64=p=>{const n=u32(p)*4294967296+u32(p+4);if(!Number.isSafeInteger(n))reject('timestamp');return n;};
+ const text=p=>String.fromCharCode(...b.subarray(p,p+4));
+ function boxes(start,end){let p=start,out=[];if(start<0||end>b.length)reject('bounds');while(p<end){if(p+8>end||out.length>4096)reject('structure');const n=u32(p);if(n<8||p+n>end)reject('structure');out.push({p,n,t:text(p+4)});p+=n;}return out;}
+ const children=x=>boxes(x.p+8,x.p+x.n),one=(xs,t)=>{const a=xs.filter(x=>x.t===t);if(a.length!==1)reject('structure');return a[0];};
+ function timing(box){const v=b[box.p+8];if(v>1)reject('version');const scale=box.p+(v?28:20),dur=box.p+(v?32:24);if(dur+(v?8:4)>box.p+box.n)reject('structure');const timescale=u32(scale);if(!timescale)reject('timescale');return{timescale,dur,wide:!!v};}
+ const top=boxes(0,b.length),ftyp=one(top,'ftyp'),moov=one(top,'moov');
+ if(ftyp.p!==0||top.indexOf(moov)!==1)reject('structure');const mc=children(moov),mvhd=one(mc,'mvhd'),movie=timing(mvhd),mvex=one(mc,'mvex');
+ if(mc.some(x=>!['mvhd','trak','mvex','udta','free'].includes(x.t)))reject('structure');
+ const trex=new Map();for(const x of children(mvex)){if(x.t!=='trex'||x.n!==32)reject('structure');trex.set(u32(x.p+12),{description:u32(x.p+16),duration:u32(x.p+20),size:u32(x.p+24),flags:u32(x.p+28)});}
+ const tracks=[];
+ for(const trak of mc.filter(x=>x.t==='trak')){
+  const tc=children(trak);if(tc.some(x=>x.t==='edts'))reject('edit-list');const tkhd=one(tc,'tkhd'),version=b[tkhd.p+8];if(version>1)reject('version');
+  const idPos=tkhd.p+(version?28:20),id=u32(idPos),tkDur=tkhd.p+(version?36:28),mdia=one(tc,'mdia'),md=children(mdia),mdhd=one(md,'mdhd'),mt=timing(mdhd),handler=text(one(md,'hdlr').p+16);
+  if(!['vide','soun'].includes(handler)||tracks.some(t=>t.handler===handler))reject('tracks');const stbl=one(children(one(md,'minf')),'stbl'),sc=children(stbl),stsd=one(sc,'stsd');
+  for(const t of ['stts','stsc','stco']){const x=one(sc,t);if(u32(x.p+12)!==0)reject('not-fragmented');}
+  if(u32(stsd.p+12)!==1)reject('description');const entry=boxes(stsd.p+16,stsd.p+stsd.n);if(entry.length!==1)reject('description');const defaults=trex.get(id);if(!defaults||defaults.description!==1)reject('defaults');
+  const track={id,handler,timescale:mt.timescale,tkDur,tkWide:!!version,mdDur:mt.dur,mdWide:mt.wide,description:hex(b.subarray(stsd.p+16,stsd.p+stsd.n)),defaults,ends:0};
+  if(handler==='vide'){
+   const sample=entry[0];if(!['avc1','avc3'].includes(sample.t)||sample.n<86)reject('codec');const avc=one(boxes(sample.p+86,sample.p+sample.n),'avcC'),p=avc.p+8,end=avc.p+avc.n;if(p+6>end)reject('codec');track.nalLength=(b[p+4]&3)+1;let q=p+6;track.parameterSets=[];
+   const sets=n=>{for(let i=0;i<n;i++){if(q+2>end)reject('codec');const size=d.getUint16(q);q+=2;if(!size||q+size>end)reject('codec');track.parameterSets.push(hex(b.subarray(q,q+size)));q+=size;}};
+   sets(b[p+5]&31);if(q>=end)reject('codec');sets(b[q++]);
+  }else if(entry[0].t!=='mp4a')reject('codec');tracks.push(track);
+ }
+ if(!tracks.some(t=>t.handler==='vide')||tracks.length>2||trex.size!==tracks.length)reject('tracks');
+ const fragments=[];for(let i=2;i<top.length;i++){
+  const moof=top[i];if(moof.t==='mfra'||moof.t==='free')continue;if(moof.t!=='moof')reject('structure');const mdats=[];while(top[i+1]?.t==='mdat')mdats.push(top[++i]);if(!mdats.length)reject('structure');
+  const fs=children(moof),mfhd=one(fs,'mfhd'),patches=[],seen=new Set();
+  for(const traf of fs.filter(x=>x.t==='traf')){
+   const ts=children(traf);if(ts.some(x=>!['tfhd','tfdt','trun'].includes(x.t)))reject('structure');const tfhd=one(ts,'tfhd'),flags=u32(tfhd.p+8)&0xffffff;
+   if(!(flags&0x020000)||(flags&1)||(flags&0x010000)||(flags&~0x02003a))reject('addressing');const track=tracks.find(t=>t.id===u32(tfhd.p+12));if(!track||seen.has(track.id))reject('tracks');seen.add(track.id);
+   let q=tfhd.p+16,def={...track.defaults};if(flags&2){if(u32(q)!==1)reject('description');q+=4;}if(flags&8){def.duration=u32(q);q+=4;}if(flags&16){def.size=u32(q);q+=4;}if(flags&32){def.flags=u32(q);q+=4;}if(q!==tfhd.p+tfhd.n)reject('structure');
+   const tfdt=one(ts,'tfdt'),v=b[tfdt.p+8];if(v>1||tfdt.n!==(v?20:16))reject('timestamp');const start=v?u64(tfdt.p+12):u32(tfdt.p+12);let ticks=0,first=true;
+   for(const trun of ts.filter(x=>x.t==='trun')){
+    const f=u32(trun.p+8)&0xffffff,n=u32(trun.p+12);if(!(f&1)||(f&~0x705)||n<1||n>20000)reject('run');let pos=trun.p+16;const offset=d.getInt32(pos);pos+=4;if(f&4)pos+=4;let data=moof.p+offset;
+    for(let s=0;s<n;s++){
+     const duration=f&0x100?u32(pos):def.duration;if(f&0x100)pos+=4;const size=f&0x200?u32(pos):def.size;if(f&0x200)pos+=4;if(f&0x400)pos+=4;if(f&0x800)pos+=4;
+     if(!duration||!size||!mdats.some(m=>data>=m.p+8&&data+size<=m.p+m.n))reject('sample');
+     if(track.handler==='vide'){
+      let at=data,idr=false;while(at<data+size){if(at+track.nalLength>data+size)reject('nal');let len=0;for(let k=0;k<track.nalLength;k++)len=len*256+b[at+k];at+=track.nalLength;if(!len||at+len>data+size)reject('nal');const kind=b[at]&31;if(kind===5)idr=true;if((kind===7||kind===8)&&!track.parameterSets.includes(hex(b.subarray(at,at+len))))reject('inband-config');at+=len;}
+      if(first&&fragments.length===0&&!idr)reject('random-access');
+     }
+     first=false;ticks+=duration;data+=size;
+    }if(pos!==trun.p+trun.n)reject('run');
+   }
+   if(track.lastDecodeEnd!==undefined&&start<track.lastDecodeEnd)reject('overlap');if(track.lastDecodeEnd===undefined&&start>track.timescale*.15)reject('timestamp');if(track.lastDecodeEnd!==undefined&&start-track.lastDecodeEnd>track.timescale*.15)reject('timeline');track.lastDecodeEnd=start+ticks;track.ends=Math.max(track.ends,start+ticks);patches.push({track,tfhd:tfhd.p+12,tfdt:tfdt.p+12,wide:!!v,start});
+  }
+  if(seen.size!==tracks.length)reject('tracks');fragments.push({moof,mdats,mfhd:mfhd.p+12,patches});
+ }
+ if(!fragments.length||fragments.length>64)reject('structure');return{b,ftyp,moov,movie,tracks,fragments};
+}
+function compatible(a,b){return a.tracks.length===b.tracks.length&&a.tracks.every(t=>b.tracks.some(u=>u.handler===t.handler&&u.timescale===t.timescale&&u.description===t.description&&JSON.stringify(u.defaults)===JSON.stringify(t.defaults)));}
+function setTime(view,pos,wide,n){if(!Number.isSafeInteger(n)||n<0||(!wide&&n>4294967295))reject('timestamp');if(wide){view.setUint32(pos,Math.floor(n/4294967296));view.setUint32(pos+4,n%4294967296);}else view.setUint32(pos,n);}
+function assemble(pieces,{maxSeconds=16,maxBytes=MAX_WINDOW}={}){
+ if(!Array.isArray(pieces)||!pieces.length||pieces.length>MAX_PIECES)return{ok:false,reason:'size'};
+ maxSeconds=Math.min(MAX_SECONDS,Math.max(2,maxSeconds));maxBytes=Math.min(MAX_WINDOW,Math.max(MAX_PIECE,maxBytes));
+ try{
+  const first=pieces[0],start=first.meta?.start;if(!Number.isFinite(start))reject('timeline');let reference=null,total=0,end=start,previous=null,reason=null;const selected=[],lastEnds=new Map();
+  for(const piece of pieces){
+   const m=piece.meta;if(!m||!Number.isSafeInteger(m.seq)||!Number.isFinite(m.start)||!Number.isFinite(m.duration)||m.duration<100||m.duration>10000)reject('timeline');
+   if(previous&&(m.seq!==previous.seq+1||Math.abs(m.start-(previous.start+previous.duration))>150)){reason='timeline';break;}
+   if(selected.length&&m.start+m.duration-start>maxSeconds*1000+150)break;
+   let parsed;try{parsed=parser(piece.buf);}catch(e){if(selected.length){reason=e.message;break;}throw e;}
+   if(parsed.tracks.some(t=>t.ends/t.timescale>m.duration/1000+.15||t.ends/t.timescale<m.duration/1000-.25)){reason='timeline';break;}
+   if(reference&&!compatible(reference,parsed)){reason='configuration';break;}reference=reference||parsed;
+   if(total+parsed.b.length>maxBytes){reason='size';break;}let overlaps=false;for(const t of parsed.tracks){const offset=(m.start-start)/1000,previousEnd=lastEnds.get(t.handler);if(previousEnd!==undefined&&offset<previousEnd-.1)overlaps=true;}if(overlaps){reason='overlap';break;}for(const t of parsed.tracks)lastEnds.set(t.handler,(m.start-start)/1000+t.ends/t.timescale);total+=parsed.b.length;selected.push({piece,parsed});end=m.start+m.duration;previous=m;
+  }
+  if(selected.length<2)return{ok:false,reason:reason||'short'};
+  const output=[reference.b.slice(reference.ftyp.p,reference.ftyp.p+reference.ftyp.n)],init=reference.b.slice(reference.moov.p,reference.moov.p+reference.moov.n),iv=new DataView(init.buffer),trackEnds=new Map();let sequence=1;
+  for(const {piece,parsed} of selected){
+   const offsetMs=piece.meta.start-start;
+   for(const f of parsed.fragments){
+    const block=parsed.b.slice(f.moof.p,f.mdats[f.mdats.length-1].p+f.mdats[f.mdats.length-1].n),v=new DataView(block.buffer);v.setUint32(f.mfhd-f.moof.p,sequence++);
+    for(const patch of f.patches){const destination=reference.tracks.find(t=>t.handler===patch.track.handler),offset=Math.round(offsetMs*destination.timescale/1000);v.setUint32(patch.tfhd-f.moof.p,destination.id);setTime(v,patch.tfdt-f.moof.p,patch.wide,patch.start+offset);trackEnds.set(destination.handler,Math.max(trackEnds.get(destination.handler)||0,offset+patch.track.ends));}
+    output.push(block);
+   }
+  }
+  let movieEnd=0;for(const t of reference.tracks){const ticks=trackEnds.get(t.handler)||0,seconds=ticks/t.timescale;movieEnd=Math.max(movieEnd,seconds);setTime(iv,t.mdDur-reference.moov.p,t.mdWide,ticks);setTime(iv,t.tkDur-reference.moov.p,t.tkWide,Math.round(seconds*reference.movie.timescale));}
+  setTime(iv,reference.movie.dur-reference.moov.p,reference.movie.wide,Math.ceil(movieEnd*reference.movie.timescale));output.splice(1,0,init);
+  return{ok:true,parts:output,start,end,mediaSeconds:movieEnd,pieceCount:selected.length,firstSeq:first.meta.seq,lastSeq:selected[selected.length-1].piece.meta.seq,reason};
+ }catch(e){return{ok:false,reason:['size','bounds','structure','timestamp','version','timescale','edit-list','not-fragmented','description','defaults','tracks','codec','addressing','run','sample','nal','inband-config','random-access','timeline','overlap'].includes(e.message)?e.message:'structure'};}
+}
+root.SameEndNativeMP4={assemble,inspect:value=>{try{const p=parser(value);return{ok:true,tracks:p.tracks.map(t=>({handler:t.handler,id:t.id,timescale:t.timescale,seconds:t.ends/t.timescale})),fragments:p.fragments.length};}catch(e){return{ok:false,reason:e.message};}}};
+})(window);
+
+/* Signed, independently playable pieces stay on the peers. No server conversion.
  * MP4/H.264 + AAC is preferred so older Apple browsers can join the same cast.
  */
 (() => {
@@ -417,13 +513,13 @@ window.WebTorrent=SameEndTorrentModule.default;
   class Player {
     constructor(video,mime,{onError=()=>{},onMode=()=>{}}={}){
       if(!canPlay(mime,video))throw Error('This browser cannot play this cast. Ask the host to start a fresh room in updated Chrome, Edge or Safari so it uses iPhone-compatible MP4.');
-      this.video=video;this.mime=mime;this.nativeMime=nativeMime(mime,video);this.onError=onError;this.onMode=onMode;
+      this.video=video;this.mime=mime;this.nativeWindow=null;this.playbackMetrics={srcChanges:0,lastLoadMs:null,firstFrameMs:null};this.nativeMime=nativeMime(mime,video);this.onError=onError;this.onMode=onMode;
       this.queue=[];this.queueBytes=0;this.pieces=[];this.pieceBytes=0;this.urls=new Map();this.mode='clips';this.fallbackReason='unsupported-mse';this.mediaErrorCode=null;this.closed=false;this.blocked=false;this.current=null;this.loading=false;this.duration=0;this.demand=true;this.lastRepair=0;
       video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');
       // Required for iPhone ManagedMediaSource without a separate AirPlay URL.
       video.disableRemotePlayback=true;video.preload='auto';video.autoplay=true;
-      this.onVideoError=()=>{if(this.closed)return;const code=video.error?.code;this.mediaErrorCode=Number.isInteger(code)&&code>=1&&code<=4?code:null;if(this.mode==='mse')this.fallback('Streaming buffer unavailable; using compatibility playback.','decode-error');else this.onError('This device could not decode the picture. Ask the host to start a new room using MP4 in updated Chrome, Edge or Safari.');};
-      video.addEventListener('error',this.onVideoError);
+      this.onVideoError=()=>{if(this.closed)return;const code=video.error?.code;this.mediaErrorCode=Number.isInteger(code)&&code>=1&&code<=4?code:null;if(this.nativeWindow){this.nativeJoinDisabled=true;this.packagingReason='decode';URL.revokeObjectURL(this.nativeWindow.url);this.nativeWindow=null;this.current=null;this.video.pause();this.video.removeAttribute('src');this.video.load();this.onMode('clips','Using individual pieces after a compatibility-window decode error.');return;}if(this.mode==='mse')this.fallback('Streaming buffer unavailable; using compatibility playback.','decode-error');else this.onError('This device could not decode the picture. Ask the host to start a new room using MP4 in updated Chrome, Edge or Safari.');};
+      video.addEventListener('error',this.onVideoError);this.onFirstFrame=()=>{if(this.loadStartedAt!==undefined&&this.playbackMetrics.firstFrameMs===null&&video.readyState>=2)this.playbackMetrics.firstFrameMs=Math.max(0,Date.now()-this.loadStartedAt);};video.addEventListener('loadeddata',this.onFirstFrame);
       const C=sourceConstructor(mime);
       if(C){
         this.mode='mse';this.fallbackReason=null;this.source=new C();this.sourceURL=URL.createObjectURL(this.source);
@@ -467,6 +563,33 @@ window.WebTorrent=SameEndTorrentModule.default;
       for(const [seq,url] of this.urls)if(seq!==piece.meta.seq&&!this.pieces.some(p=>p.meta.seq===seq)){URL.revokeObjectURL(url);this.urls.delete(seq);}
       return this.urls.get(piece.meta.seq);
     }
+    lookAheadSeconds(){return this.mode==='clips'&&!this.nativeJoinDisabled&&window.SameEndNativeMP4&&this.mime.startsWith('video/mp4')?22:4;}
+    // Make a complete local presentation from matching verified pieces. One
+    // video element retains its sound permission; no duplicate audio players.
+    loadNative(piece){
+      let joined=null;
+      if(!this.nativeJoinDisabled&&window.SameEndNativeMP4&&this.mime.startsWith('video/mp4')){
+        const candidates=this.pieces.filter(p=>p.meta.seq>=piece.meta.seq).sort((a,b)=>a.meta.seq-b.meta.seq).slice(0,12);
+        joined=window.SameEndNativeMP4.assemble(candidates,{maxSeconds:16});
+      }
+      if(!this.nativeJoinDisabled)this.packagingReason=joined?.ok?joined.reason:(joined?.reason||null);
+      if(this.nativeWindow){URL.revokeObjectURL(this.nativeWindow.url);this.nativeWindow=null;}
+      let url;
+      if(joined?.ok){
+        let parts=joined.parts;
+        if(this.nativeMime!==this.mime){const length=parts.reduce((n,b)=>n+b.byteLength,0),copy=new Uint8Array(length);let pos=0;for(const part of parts){copy.set(part,pos);pos+=part.byteLength;}parts=[nativeMP4(copy)];}
+        url=URL.createObjectURL(new Blob(parts,{type:this.nativeMime||this.mime}));
+        this.nativeWindow={url,start:joined.start,end:joined.end,pieceCount:joined.pieceCount,mediaSeconds:joined.mediaSeconds};
+      }else url=this.urlFor(piece);
+      this.current=piece.meta.seq;this.duration=piece.meta.duration/1000;
+      this.playbackMetrics.srcChanges++;this.playbackMetrics.firstFrameMs=null;this.loadStartedAt=Date.now();
+      this.video.src=url;this.video.load();this.playbackMetrics.lastLoadMs=Math.max(0,Date.now()-this.loadStartedAt);
+      this.play().catch(()=>{});
+    }
+    facts(){
+      const v=this.video;let ahead=0;for(let i=0;i<v.buffered.length;i++)if(v.currentTime>=v.buffered.start(i)&&v.currentTime<v.buffered.end(i))ahead=v.buffered.end(i)-v.currentTime;
+      const q=v.getVideoPlaybackQuality?.();return{mode:this.nativeWindow?'native-window':this.mode,fallbackReason:this.fallbackReason,packagingReason:this.packagingReason||null,errorCode:this.mediaErrorCode,width:v.videoWidth||0,height:v.videoHeight||0,playableAheadSeconds:ahead,windowSeconds:this.nativeWindow?(this.nativeWindow.end-this.nativeWindow.start)/1000:null,srcChanges:this.playbackMetrics.srcChanges,lastLoadMs:this.playbackMetrics.lastLoadMs,firstFrameMs:this.playbackMetrics.firstFrameMs,decodedFrames:q?.totalVideoFrames??v.webkitDecodedFrameCount??null,droppedFrames:q?.droppedVideoFrames??v.webkitDroppedFrameCount??null};
+    }
     sync(target){
       const v=this.video;
       if(target>=0){const cutoff=this.epoch+target*1000-4000;this.pieces=this.pieces.filter(p=>p.meta.start+p.meta.duration>=cutoff);this.pieceBytes=this.pieces.reduce((n,p)=>n+p.buf.byteLength,0);this.queue=this.queue.filter(p=>p.meta.start+p.meta.duration>=cutoff);this.queueBytes=this.queue.reduce((n,p)=>n+p.buf.byteLength,0);}
@@ -490,19 +613,16 @@ window.WebTorrent=SameEndTorrentModule.default;
         if(!inRange&&!this.sb.updating&&Date.now()-this.lastRepair>1200){const absolute=this.epoch+target*1000,piece=this.pieces.find(p=>absolute>=p.meta.start&&absolute<p.meta.start+p.meta.duration);if(piece&&!this.queue.some(p=>p.meta.seq===piece.meta.seq)){this.lastRepair=Date.now();this.queue.unshift(piece);this.queueBytes+=piece.buf.byteLength;while(this.queue.length>20||this.queueBytes>20*1024*1024)this.queueBytes-=this.queue.pop().buf.byteLength;this.pump();}}
       }else{
         const absolute=this.epoch+target*1000;
-        const piece=this.pieces.find(p=>absolute>=p.meta.start&&absolute<p.meta.start+p.meta.duration);
-        if(!piece){v.pause();return {waiting:true,drift:null};}
-        localTarget=(absolute-piece.meta.start)/1000;
-        if(this.current!==piece.meta.seq){
-          this.current=piece.meta.seq;this.duration=piece.meta.duration/1000;
-          v.src=this.urlFor(piece);v.load();
-          // Keep a single media element: older iOS can stop one video when another
-          // starts, and audio permission belongs to the element the user tapped.
-          this.play().catch(()=>{});
+        const withinWindow=this.nativeWindow&&absolute>=this.nativeWindow.start&&absolute<this.nativeWindow.end;
+        if(!withinWindow){
+          const piece=this.pieces.find(p=>absolute>=p.meta.start&&absolute<p.meta.start+p.meta.duration);
+          if(!piece){v.pause();return {waiting:true,drift:null};}
+          if(this.current!==piece.meta.seq||this.nativeWindow)this.loadNative(piece);
         }
-        // Some browsers initially expose only the first MP4 fragment duration.
-        // Pausing against that growing duration deadlocks otherwise valid clips.
-        inRange=v.readyState>=2&&localTarget<this.duration-.025;
+        if(this.nativeWindow)localTarget=(absolute-this.nativeWindow.start)/1000;
+        else{const piece=this.pieces.find(p=>p.meta.seq===this.current);if(!piece){v.pause();return{waiting:true,drift:null};}localTarget=(absolute-piece.meta.start)/1000;}
+        inRange=v.readyState>=2&&!this.nativeWindow&&localTarget<this.duration-.025;
+        if(this.nativeWindow&&v.readyState>=2){for(let i=0;i<v.buffered.length;i++){const start=v.buffered.start(i),end=v.buffered.end(i);if(localTarget>=start&&localTarget<end)inRange=true;else if(i>0&&localTarget>=v.buffered.end(i-1)&&localTarget<start&&start-v.buffered.end(i-1)<=.15){try{v.currentTime=start+.001;inRange=true;}catch{}}}}
       }
       if(!inRange){v.pause();return {waiting:true,drift:null};}
       const drift=localTarget-v.currentTime;
@@ -515,6 +635,7 @@ window.WebTorrent=SameEndTorrentModule.default;
     programTime(){
       if(this.closed||this.video.readyState<2)return null;
       if(this.mode==='mse')return this.video.currentTime;
+      if(this.nativeWindow)return (this.nativeWindow.start-this.epoch)/1000+this.video.currentTime;
       const piece=this.pieces.find(p=>p.meta.seq===this.current);
       return piece?(piece.meta.start-this.epoch)/1000+this.video.currentTime:null;
     }
@@ -522,7 +643,7 @@ window.WebTorrent=SameEndTorrentModule.default;
     // later from a timer or loadedmetadata callback.
     play(){const result=this.video.play();return Promise.resolve(result).then(()=>{this.blocked=false;},error=>{if(error.name==='NotAllowedError')this.blocked=true;throw error;});}
     close(){
-      this.closed=true;clearTimeout(this.openTimer);this.video.removeEventListener('error',this.onVideoError);
+      this.closed=true;clearTimeout(this.openTimer);this.video.removeEventListener('error',this.onVideoError);this.video.removeEventListener('loadeddata',this.onFirstFrame);if(this.nativeWindow)URL.revokeObjectURL(this.nativeWindow.url);this.nativeWindow=null;
       this.video.pause();this.video.removeAttribute('src');this.video.load();
       if(this.sourceURL)URL.revokeObjectURL(this.sourceURL);
       for(const url of this.urls.values())URL.revokeObjectURL(url);
@@ -1090,7 +1211,44 @@ window.SameEndInviteSample="AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAbAbW9v
     o.sourceAudio = pick(x.sourceAudio, enums.audio);
     o.playbackMode = pick(x.playbackMode, enums.playbackMode);
     o.playbackFallbackReason = x.playbackFallbackReason === null ? null : pick(x.playbackFallbackReason, enums.playbackFallbackReason);
+    if (x.mediaDiagnostics && typeof x.mediaDiagnostics === "object") {
+      o.mediaDiagnostics = safeMediaDiagnostics(x.mediaDiagnostics);
+      if (o.role !== "source") o.mediaDiagnostics.capture = null;
+    }
     return o;
+  }
+  function safeMediaDiagnostics(x) {
+    x = x && typeof x === "object" ? x : {};
+    const metric = (v, max = 1e6) => typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(max, v)) : null;
+    const dimension = (v) => Number.isInteger(v) && v >= 0 && v <= 16384 ? v : null;
+    const group = (name, fields) => x[name] && typeof x[name] === "object" ? fields(x[name]) : null;
+    return {
+      capture: group("capture", (c) => ({ width: dimension(c.width), height: dimension(c.height), frameRate: metric(c.frameRate, 240), targetVideoMbps: metric(c.targetVideoMbps, 1000), actualMediaMbps: metric(c.actualMediaMbps, 1000), lastPieceSeconds: metric(c.lastPieceSeconds, 3600), lastPieceAgeSeconds: metric(c.lastPieceAgeSeconds, 86400), recordingLatencyMs: metric(c.recordingLatencyMs, 1e7), sourceAudio: pick(c.sourceAudio, enums.audio) })),
+      delivery: group("delivery", (d) => ({ requiredPiecePresent: bool(d.requiredPiecePresent), requiredPieceLeadMs: typeof d.requiredPieceLeadMs === "number" && Number.isFinite(d.requiredPieceLeadMs) ? Math.max(-60000, Math.min(600000, d.requiredPieceLeadMs)) : null, verifiedReserveSeconds: metric(d.verifiedReserveSeconds, 86400) })),
+      playback: group("playback", (p) => ({ mode: pick(p.mode, ["mse", "clips", "native-window"]), packagingReason: pick(p.packagingReason,["short","configuration","timeline","size","structure","inband-config","overlap","decode"]), fallbackReason: p.fallbackReason === null ? null : pick(p.fallbackReason, enums.playbackFallbackReason), errorCode: Number.isInteger(p.errorCode) && p.errorCode >= 1 && p.errorCode <= 4 ? p.errorCode : null, width: dimension(p.width), height: dimension(p.height), playableAheadSeconds: metric(p.playableAheadSeconds, 86400), windowSeconds: metric(p.windowSeconds, 86400), srcChanges: metric(p.srcChanges, 1e6), lastLoadMs: metric(p.lastLoadMs, 1e7), firstFrameMs: metric(p.firstFrameMs, 1e7), decodedFrames: metric(p.decodedFrames, 1e12), droppedFrames: metric(p.droppedFrames, 1e12) }))
+    };
+  }
+  function assessMediaDiagnostics(status, samples) {
+    status = status && typeof status === "object" ? status : {};
+    const md = status.mediaDiagnostics || {}, capture = md.capture || {}, delivery = md.delivery || {}, playback = md.playback || {};
+    const findings = [];
+    const pastWarmup = typeof status.targetProgramTime === "number" && status.targetProgramTime >= 0;
+    if (status.role === "source" && typeof capture.lastPieceAgeSeconds === "number" && capture.lastPieceAgeSeconds > 10) findings.push({ layer: "capture", code: "source-piece-stale" });
+    if (pastWarmup && delivery.requiredPiecePresent === false) findings.push({ layer: "delivery", code: "required-piece-missing" });
+    if (delivery.requiredPiecePresent === true && ((status.playbackBlocked !== true && pastWarmup && typeof status.ready === "number" && status.ready <= 1) || playback.errorCode !== null && playback.errorCode !== undefined || status.mediaErrorCode !== null && status.mediaErrorCode !== undefined)) findings.push({ layer: "playback", code: "decoder-startup-evidence" });
+    const prior = Array.isArray(samples) && samples.length > 1 ? samples[samples.length - 2] : null;
+    const current = Array.isArray(samples) && samples.length ? samples[samples.length - 1] : null;
+    const oldPlayback = prior?.mediaDiagnostics?.playback, currentPlayback = current?.mediaDiagnostics?.playback;
+    const frameCount = currentPlayback?.decodedFrames ?? current?.decodedFrames;
+    const oldFrameCount = oldPlayback?.decodedFrames ?? prior?.decodedFrames;
+    const targetAdvanced = typeof current?.targetProgramTime === "number" && typeof prior?.targetProgramTime === "number" && current.targetProgramTime - prior.targetProgramTime >= 2;
+    const intervalMs = typeof current?.at === "number" && typeof prior?.at === "number" ? current.at - prior.at : null;
+    const active = (sample) => sample?.visible === true && sample?.paused === false && sample?.playbackBlocked === false;
+    if (prior && current && frameCount !== null && frameCount !== undefined && oldFrameCount !== null && oldFrameCount !== undefined && frameCount <= oldFrameCount && active(prior) && active(current) && prior.mediaDiagnostics?.delivery?.requiredPiecePresent === true && current.mediaDiagnostics?.delivery?.requiredPiecePresent === true && targetAdvanced && currentPlayback?.srcChanges === oldPlayback?.srcChanges && (intervalMs === null || intervalMs >= 2000)) findings.push({ layer: "playback", code: "no-frame-growth" });
+    if (findings.length) return { state: "evidence", findings };
+    if (status.playbackBlocked === true) return { state: "autoplay-or-user-action", findings: [{ layer: "playback", code: "playback-blocked" }] };
+    if (delivery.requiredPiecePresent === true && playback.decodedFrames > 0) return { state: "observed-playback", findings: [] };
+    return { state: "unknown", findings: [] };
   }
   function safeEventValue(e) {
     if (e.type === "mark") return pick(e.value, enums.mark);
@@ -1212,7 +1370,7 @@ window.SameEndInviteSample="AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAbAbW9v
     else if (!cfg && this.session && !this.session.endedAt) this.finish("ended");
     if (!this.session || this.session.endedAt) return this.summary();
     const d = snapshot.delivery || {}, r = snapshot.recovery || {}, p = playerFacts || {}, env = environment || {};
-    const state = safeState({ role: snapshot.role, delay: cfg?.delay, programTime: snapshot.programTime, targetProgramTime: snapshot.targetProgramTime, drift: snapshot.drift, reserveSeconds: snapshot.reserveSeconds, bufferedSeconds: snapshot.bufferedSeconds, received: snapshot.received, sentBytes: snapshot.sentBytes, stalls: snapshot.stalls, recovery: r.state, recoveryCount: r.recoveries, attempts: r.attempts, reason: r.reason, sourceReachable: snapshot.sourceReachable, sourceEnded: snapshot.sourceEnded, supplierHealth: snapshot.supplierHealth, sourceAudio: snapshot.sourceAudio?.status, clockReady: snapshot.clockReady, clockOffsetMs: snapshot.offset, playbackMode: snapshot.playbackMode, playbackFallbackReason: snapshot.playbackFallbackReason, mediaErrorCode: snapshot.mediaErrorCode, aggregateMbps: d.measured === true ? d.deliveredMbps : null, pendingBytes: Array.isArray(d.peers) ? d.peers.reduce((a, p2) => a + (count(p2?.pendingBytes) || 0), 0) : null, oldestPendingMs: Array.isArray(d.peers) ? d.peers.reduce((a, p2) => Math.max(a, count(p2?.oldestPendingMs) || 0), 0) : null, congestedChildren: Array.isArray(d.peers) ? d.peers.filter((p2) => p2?.health === "congested").length : null, measuredChildren: Array.isArray(d.peers) ? d.peers.filter((p2) => p2?.measured === true).length : null, relayLimit: d.relayLimit, forwardingCount: Array.isArray(d.peers) ? d.peers.length : null, controlFailures: env.controlFailures, chatMessageCount: env.chatMessageCount, queue: Array.isArray(snapshot.peers) ? snapshot.peers.reduce((a, q) => a + (Number.isFinite(q?.queued) ? q.queued : Number.isFinite(q?.queuedBytes) ? q.queuedBytes : 0), 0) : null, peerCount: Array.isArray(snapshot.peers) ? snapshot.peers.length : null, ready: p.ready, paused: p.paused, muted: p.muted, volume: p.volume, decodedFrames: p.decodedFrames, droppedFrames: p.droppedFrames, playbackBlocked: p.playbackBlocked, visible: env.visible, online: env.online });
+    const state = safeState({ role: snapshot.role, delay: cfg?.delay, programTime: snapshot.programTime, targetProgramTime: snapshot.targetProgramTime, drift: snapshot.drift, reserveSeconds: snapshot.reserveSeconds, bufferedSeconds: snapshot.bufferedSeconds, received: snapshot.received, sentBytes: snapshot.sentBytes, stalls: snapshot.stalls, recovery: r.state, recoveryCount: r.recoveries, attempts: r.attempts, reason: r.reason, sourceReachable: snapshot.sourceReachable, sourceEnded: snapshot.sourceEnded, supplierHealth: snapshot.supplierHealth, sourceAudio: snapshot.sourceAudio?.status, clockReady: snapshot.clockReady, clockOffsetMs: snapshot.offset, playbackMode: snapshot.playbackMode, playbackFallbackReason: snapshot.playbackFallbackReason, mediaErrorCode: snapshot.mediaErrorCode, mediaDiagnostics: snapshot.mediaDiagnostics, aggregateMbps: d.measured === true ? d.deliveredMbps : null, pendingBytes: Array.isArray(d.peers) ? d.peers.reduce((a, p2) => a + (count(p2?.pendingBytes) || 0), 0) : null, oldestPendingMs: Array.isArray(d.peers) ? d.peers.reduce((a, p2) => Math.max(a, count(p2?.oldestPendingMs) || 0), 0) : null, congestedChildren: Array.isArray(d.peers) ? d.peers.filter((p2) => p2?.health === "congested").length : null, measuredChildren: Array.isArray(d.peers) ? d.peers.filter((p2) => p2?.measured === true).length : null, relayLimit: d.relayLimit, forwardingCount: Array.isArray(d.peers) ? d.peers.length : null, controlFailures: env.controlFailures, chatMessageCount: env.chatMessageCount, queue: Array.isArray(snapshot.peers) ? snapshot.peers.reduce((a, q) => a + (Number.isFinite(q?.queued) ? q.queued : Number.isFinite(q?.queuedBytes) ? q.queuedBytes : 0), 0) : null, peerCount: Array.isArray(snapshot.peers) ? snapshot.peers.length : null, ready: p.ready, paused: p.paused, muted: p.muted, volume: p.volume, decodedFrames: p.decodedFrames, droppedFrames: p.droppedFrames, playbackBlocked: p.playbackBlocked, visible: env.visible, online: env.online });
     this.session.counts.observations++;
     const prev = this.lastState;
     if (prev) {
@@ -1305,7 +1463,7 @@ window.SameEndInviteSample="AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAbAbW9v
       return null;
     }
   }
-  root.SameEndDiagnosticsCore = { Collector, cleanSummary };
+  root.SameEndDiagnosticsCore = { Collector, cleanSummary, safeMediaDiagnostics, assessMediaDiagnostics };
 })(typeof window !== "undefined" ? window : globalThis);
 </script>
 <script id="share-help-module">/* Phone hosting policy and Mac capture guidance. No OS settings are changed. */
@@ -1344,7 +1502,7 @@ const base=Date.now()-performance.now(), now=()=>base+performance.now();
 const state={config:null,key:null,pub:null,stream:null,recorder:null,active:false,role:null,offset:0,clockReady:false,clockSamples:[],peers:new Map(),cache:[],cacheBytes:0,seq:0,seen:new Set(),source:null,sb:null,player:null,append:[],appending:false,pending:null,pendingOffer:null,out:null,demoCleanup:null,url:null,captureTimer:null,received:0,sent:0,drift:null,lastAppendSeq:-1,stopped:false,sourceChain:Promise.resolve(),recovery:{state:"idle",attempts:0,recoveries:0},stalls:0,playbackStarted:false,waiting:false,sourceReachable:false,sourceEnded:false,supplier:null,lastReceivedAt:null};
 let magnetTransport=null,magnetBusy=false,magnetCleanup=Promise.resolve(),lastJoinLink=null;
 let sourceAudioMonitor=null,sourceAudioState=null,sourceAudioKind=null;
-let lastNetworkCheck=null;
+let lastNetworkCheck=null,captureStats=null;
 // Delivery receipts confirm verified pieces, not maximum internet speed or playback.
 let lastMaintenance=0,relayLimitOverride=null,stallOutgoing=null,stallIncoming=null;
 function downstream(){return [...state.peers.values()].filter(p=>p.direction==='down'&&!p.closed);}
@@ -1357,6 +1515,14 @@ function relayLimit(){
 function verifiedReserve(){
  if(!state.config||!state.clockReady)return 0;
  return SameEndDelivery.reserveSeconds(state.cache.map(s=>({start:s.meta.start,end:s.meta.start+s.meta.duration})),now()+state.offset-state.config.delay*1000);
+}
+function mediaDiagnostics(){
+ const cfg=state.config,target=cfg&&state.clockReady?now()+state.offset-cfg.delay*1000:null;
+ const required=target===null?null:state.cache.find(s=>target>=s.meta.start&&target<s.meta.start+s.meta.duration);
+ // A small recorder timing gap is neither a missing signed piece nor bandwidth evidence.
+ const near=target===null?false:state.cache.some(s=>s.meta.start>target&&s.meta.start-target<=100);
+ return{capture:state.role==='source'&&captureStats?{...captureStats,sourceAudio:sourceAudioState?.status||null,lastPieceAgeSeconds:Math.max(0,(now()-captureStats.lastPieceAt)/1000)}:null,
+ delivery:{requiredPiecePresent:target===null||!cfg||target<cfg.epoch?null:!!required||near,requiredPieceLeadMs:required?required.meta.start+cfg.delay*1000-required.verifiedAt:null,verifiedReserveSeconds:verifiedReserve()},playback:state.player?.facts?.()||null};
 }
 function deliverySnapshot(){
  const peers=downstream().map(p=>({id:p.nodeId||p.id,receipts:p.deliveryVersion===1,...p.meter?.snapshot(),queuedBytes:p.queued}));
@@ -1464,7 +1630,7 @@ function cleanCache(){const cutoff=now()+state.offset-(state.config.delay+30)*10
 async function acceptSegment(meta,buf,from){if(!state.config||state.stopped)return;if(!meta||meta.cast!==state.config.id||!Number.isSafeInteger(meta.seq)||meta.seq<0||!Number.isFinite(meta.start)||meta.start>(now()+state.offset)+45000||!Number.isFinite(meta.duration)||meta.duration<100||meta.duration>10000||meta.mime!==state.config.mime||meta.size!==buf.byteLength||buf.byteLength>MAX_CLIP)throw Error('Invalid or out-of-window video piece.');if(meta.start+meta.duration<(now()+state.offset)-(state.config.delay+30)*1000)return;if(meta.v!==undefined&&meta.v!==1&&meta.v!==2)throw Error('Unsupported signed media version.');
 if(state.config.segmentVersion===2&&meta.v!==2)throw Error('This cast requires source-bound media signatures.');
 if(meta.v===2&&(state.config.segmentVersion!==2||typeof meta.sourceId!=='string'||!meta.sourceId||!Number.isSafeInteger(meta.sourceEpoch)||meta.sourceEpoch<0||typeof meta.programId!=='string'||!meta.programId||meta.sourceId!==state.config.sourceId||meta.sourceEpoch!==state.config.sourceEpoch||meta.programId!==state.config.programId||meta.alignmentVersion!==1||!Number.isFinite(meta.programStartTime)||Math.abs(meta.programStartTime-(meta.start-state.config.epoch))>1))throw Error('Video piece has an unauthorised source or programme timeline.');
-const identity=segmentKey(meta);if(state.seen.has(identity))return;if(await hash(buf)!==meta.hash||!await crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'},state.pub,un64(meta.sig),enc.encode(canonical(meta))))throw Error('Video piece failed its source signature.');if(!state.config||state.stopped||state.config.id!==meta.cast||state.seen.has(identity))return;state.seen.add(identity);state.received++;if(from)window.SameEndInviteCheck?.mark?.('first-media');state.lastReceivedAt=now();const segment={meta,buf};state.cache.push(segment);state.cache.sort((a,b)=>a.meta.seq-b.meta.seq);if(from){from.lastVerifiedAt=now();if(meta.seq>from.highestSeq){from.highestSeq=meta.seq;from.lastProgressAt=now();}receipt(from,meta);}state.cacheBytes+=buf.byteLength;cleanCache();stageWindow();update();}
+const identity=segmentKey(meta);if(state.seen.has(identity))return;if(await hash(buf)!==meta.hash||!await crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'},state.pub,un64(meta.sig),enc.encode(canonical(meta))))throw Error('Video piece failed its source signature.');if(!state.config||state.stopped||state.config.id!==meta.cast||state.seen.has(identity))return;state.seen.add(identity);state.received++;if(from)window.SameEndInviteCheck?.mark?.('first-media');state.lastReceivedAt=now();const segment={meta,buf,verifiedAt:now()+state.offset};state.cache.push(segment);state.cache.sort((a,b)=>a.meta.seq-b.meta.seq);if(from){from.lastVerifiedAt=now();if(meta.seq>from.highestSeq){from.highestSeq=meta.seq;from.lastProgressAt=now();}receipt(from,meta);}state.cacheBytes+=buf.byteLength;cleanCache();stageWindow();update();}
 async function waitBuffer(p){const until=performance.now()+7000;while(p.channel?.readyState==='open'&&p.channel.bufferedAmount>256*1024){if(performance.now()>until)throw Error('This connection is too slow for the selected picture quality.');await new Promise(r=>setTimeout(r,15));}if(p.channel?.readyState!=='open')throw Error('Connection closed.');}
 function enqueue(p,segment){if(p.closed||!p.ready)return;if(p.queued+segment.buf.byteLength>MAX_QUEUE){dropPeer(p,'A slow outgoing connection was closed to keep memory bounded.');return;}p.queued+=segment.buf.byteLength;p.chain=p.chain.then(async()=>{if(p.closed)return;await waitBuffer(p);if(p.deliveryVersion===1)p.meter.sent(segment.meta);p.channel.send(JSON.stringify({type:'segment',meta:segment.meta}));for(let i=0;i<segment.buf.byteLength;i+=SLICE){await waitBuffer(p);p.channel.send(segment.buf.slice(i,i+SLICE));}state.sent+=segment.buf.byteLength;}).catch(e=>{if(!p.closed)dropPeer(p,e.message);}).finally(()=>{p.queued-=segment.buf.byteLength;});}
 function send(p,m){if(p.channel?.readyState==='open')p.channel.send(JSON.stringify(m));}
@@ -1485,10 +1651,10 @@ async function makeInvite(){if(!state.config||!state.clockReady||state.stopped)t
 function validateOffer(o){if(!o||o.format!=='private-cast'||o.version!==1||!['offer','answer'].includes(o.type)||typeof o.id!=='string'||o.id.length>80||typeof o.sdp?.sdp!=='string'||o.sdp.sdp.length>40000||o.sdp.type!==o.type)throw Error('This is not a valid Same End invitation or reply.');if(o.type==='offer'){const c=o.config;if(!Number.isFinite(o.expires)||now()>o.expires+60000||o.expires-now()>20*60000)throw Error('This invitation has expired or its clock is too far from yours. Ask for a fresh invitation and check both clocks.');if(!c||typeof c.id!=='string'||!Number.isFinite(c.epoch)||![10,60,300].includes(c.delay)||!SameEndMedia.allowedMime(c.mime)||!c.publicKey||!Array.isArray(o.trail)||o.trail.length>12)throw Error('Unsupported cast settings.');if(o.trail.includes(state.nodeId))throw Error('This invitation would make a relay loop.');if(state.config)throw Error('Leave your current cast before accepting another invitation.');}else if(!state.pendingOffer||state.pendingOffer.id!==o.id||!state.peers.has(o.id)||now()>state.pendingOffer.expires)throw Error('No matching unused invitation is waiting on this laptop.');}
 async function readIncoming(){const text=$('incoming').value.trim();if(!text)throw Error('Open a connection file or paste its code first.');const o=parse(text);validateOffer(o);state.pending=o;$('approve').textContent=o.type==='offer'?'Join cast and create reply':'Connect to this viewer';$('confirm-text').textContent=o.type==='offer'?'Join the cast supplied by '+String(o.from||'a friend').slice(0,40)+'? Accepting creates a reply file for you to save and send back. Your computer may relay video to friends you invite.':'Connect to this viewer: accepting sends them your live video. The connection starts when the direct link opens.';$('confirm').classList.remove('hidden');}
 async function approve(){const o=state.pending;if(!o)throw Error('Read an invitation or reply first.');validateOffer(o);state.pending=null;$('confirm').classList.add('hidden');if(o.type==='offer'){await init(o.config,'viewer');state.offset=0;state.clockReady=false;state.trail=o.trail;const p=makePeer(o.id,'up');p.label=String(o.from||'friend').slice(0,40);try{await p.pc.setRemoteDescription(o.sdp);await p.pc.setLocalDescription(await p.pc.createAnswer());await gather(p.pc);setOut({format:'private-cast',version:1,type:'answer',id:o.id,from:label(),sdp:p.pc.localDescription.toJSON()},'castreply');status('Reply ready. Return it privately to your supplying friend, who must accept it.');p.timers.push(setTimeout(()=>{if(!p.ready)dropPeer(p,'The invitation was not completed. Try a fresh connection.');},Math.max(1,Math.min(15*60000,o.expires-now()))));}catch(e){dropPeer(p,'Could not join.');throw e;}}else{const p=state.peers.get(o.id);p.label=String(o.from||'friend').slice(0,40);await p.pc.setRemoteDescription(o.sdp);state.pendingOffer=null;$('outgoing-wrap').classList.add('hidden');state.out=null;status('Reply accepted. Waiting for the direct connection to open.');}update();}
-async function start(stream,cleanup,sourceKind='screen'){checkPlatform(true);if(state.config){stream.getTracks().forEach(t=>t.stop());throw Error('Leave your current cast first.');}lastNetworkCheck=null;lastJoinLink=null;const audio=stream.getAudioTracks().length>0;const mime=SameEndMedia.recordingMime(audio);if(!mime||!SameEndMedia.canPlay(mime)){stream.getTracks().forEach(t=>t.stop());cleanup?.();throw Error('This browser cannot record a shareable picture. Use updated Chrome, Edge or Safari on a computer.');}state.key=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);const publicKey=await crypto.subtle.exportKey('jwk',state.key.publicKey);state.stream=stream;state.demoCleanup=cleanup;state.seq=0;state.active=true;state.offset=0;state.clockReady=true;state.trail=[];const epoch=now();await init({id:crypto.randomUUID(),epoch,delay:Number($('delay').value),mime,publicKey,audio,segmentVersion:2,sourceId:crypto.randomUUID(),sourceEpoch:0,programId:crypto.randomUUID(),alignmentVersion:1},'source');state.sourceReachable=true;monitorSourceAudio(stream,sourceKind);lifecycle();for(const t of stream.getVideoTracks())t.addEventListener('ended',()=>{if(state.active)end('Screen sharing ended.');},{once:true});record();status(mime.startsWith('video/mp4')?'Cast running. Your delayed picture will begin shortly. You can invite a friend now.':'Cast running in WebM. Older iPhones and iPads need the host to use updated Chrome, Edge or Safari for MP4.');}
-function record(){if(!state.active)return;const started=now();let recorder;try{recorder=new MediaRecorder(state.stream,{mimeType:state.config.mime,videoBitsPerSecond:Number($('quality').value),audioBitsPerSecond:96000});}catch(e){end('Recording failed: '+e.message);return;}state.recorder=recorder;const parts=[];let ended=started;recorder.ondataavailable=e=>{if(e.data.size)parts.push(e.data);};recorder.onerror=e=>end('Screen recording failed: '+(e.error?.message||'unknown error'));recorder.onstop=()=>{const still=state.active,cast=state.config?.id,seq=state.seq++;if(still)record();if(!still)return;state.sourceChain=state.sourceChain.then(async()=>{if(!state.active||state.config?.id!==cast)return;try{const blob=new Blob(parts,{type:state.config.mime});if(!blob.size)return;if(blob.size>MAX_CLIP)throw Error('A video piece was too large. End and use a lower picture quality.');const buf=await blob.arrayBuffer();const meta={v:2,cast:state.config.id,sourceId:state.config.sourceId,sourceEpoch:state.config.sourceEpoch,programId:state.config.programId,programStartTime:started-state.config.epoch,alignmentVersion:1,seq,start:started,duration:ended-started,size:buf.byteLength,mime:state.config.mime,hash:await hash(buf)};meta.sig=b64(new Uint8Array(await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},state.key.privateKey,enc.encode(canonical(meta)))));await acceptSegment(meta,buf,null);}catch(e){if(state.active)end(e.message);}});};recorder.start();state.captureTimer=setTimeout(()=>{ended=now();if(recorder.state==='recording')recorder.stop();},2000);}
+async function start(stream,cleanup,sourceKind='screen'){checkPlatform(true);if(state.config){stream.getTracks().forEach(t=>t.stop());throw Error('Leave your current cast first.');}lastNetworkCheck=null;lastJoinLink=null;const audio=stream.getAudioTracks().length>0;const mime=SameEndMedia.recordingMime(audio);if(!mime||!SameEndMedia.canPlay(mime)){stream.getTracks().forEach(t=>t.stop());cleanup?.();throw Error('This browser cannot record a shareable picture. Use updated Chrome, Edge or Safari on a computer.');}state.key=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);const publicKey=await crypto.subtle.exportKey('jwk',state.key.publicKey);state.stream=stream;state.demoCleanup=cleanup;state.seq=0;state.active=true;state.offset=0;state.clockReady=true;state.trail=[];captureStats=null;const epoch=now();await init({id:crypto.randomUUID(),epoch,delay:Number($('delay').value),mime,publicKey,audio,segmentVersion:2,sourceId:crypto.randomUUID(),sourceEpoch:0,programId:crypto.randomUUID(),alignmentVersion:1},'source');state.sourceReachable=true;monitorSourceAudio(stream,sourceKind);lifecycle();for(const t of stream.getVideoTracks())t.addEventListener('ended',()=>{if(state.active)end('Screen sharing ended.');},{once:true});record();status(mime.startsWith('video/mp4')?'Cast running. Your delayed picture will begin shortly. You can invite a friend now.':'Cast running in WebM. Older iPhones and iPads need the host to use updated Chrome, Edge or Safari for MP4.');}
+function record(){if(!state.active)return;const started=now();let recorder;try{recorder=new MediaRecorder(state.stream,{mimeType:state.config.mime,videoBitsPerSecond:Number($('quality').value),audioBitsPerSecond:96000});}catch(e){end('Recording failed: '+e.message);return;}state.recorder=recorder;const parts=[];let ended=started;recorder.ondataavailable=e=>{if(e.data.size)parts.push(e.data);};recorder.onerror=e=>end('Screen recording failed: '+(e.error?.message||'unknown error'));recorder.onstop=()=>{const still=state.active,cast=state.config?.id,seq=state.seq++;if(still)record();if(!still)return;state.sourceChain=state.sourceChain.then(async()=>{if(!state.active||state.config?.id!==cast)return;try{const blob=new Blob(parts,{type:state.config.mime});if(!blob.size)return;if(blob.size>MAX_CLIP)throw Error('A video piece was too large. End and use a lower picture quality.');const buf=await blob.arrayBuffer();const meta={v:2,cast:state.config.id,sourceId:state.config.sourceId,sourceEpoch:state.config.sourceEpoch,programId:state.config.programId,programStartTime:started-state.config.epoch,alignmentVersion:1,seq,start:started,duration:ended-started,size:buf.byteLength,mime:state.config.mime,hash:await hash(buf)};meta.sig=b64(new Uint8Array(await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},state.key.privateKey,enc.encode(canonical(meta)))));captureStats={width:state.stream.getVideoTracks()[0]?.getSettings().width??null,height:state.stream.getVideoTracks()[0]?.getSettings().height??null,frameRate:state.stream.getVideoTracks()[0]?.getSettings().frameRate??null,targetVideoMbps:Number($('quality').value)/1e6,actualMediaMbps:buf.byteLength*8/1e6/(meta.duration/1000),lastPieceSeconds:meta.duration/1000,lastPieceAt:ended,recordingLatencyMs:Math.max(0,now()-ended)};await acceptSegment(meta,buf,null);}catch(e){if(state.active)end(e.message);}});};recorder.start();state.captureTimer=setTimeout(()=>{ended=now();if(recorder.state==='recording')recorder.stop();},2000);}
 async function demo(){checkPlatform(true);const canvas=document.createElement('canvas');canvas.width=960;canvas.height=540;const ctx=canvas.getContext('2d');let frame=0;const timer=setInterval(()=>{const t=now();ctx.fillStyle='#142b3c';ctx.fillRect(0,0,960,540);ctx.fillStyle='#d7e9ef';ctx.font='bold 58px system-ui';ctx.fillText('SAME END',44,100);ctx.font='32px system-ui';ctx.fillText(new Date(t).toISOString().slice(11,23)+' source clock',44,170);ctx.fillStyle='#b04a71';ctx.fillRect((frame++*7)%800,260,150,80);ctx.fillStyle='white';ctx.font='24px system-ui';ctx.fillText('A moving picture generated on this computer',44,445);},40);const stream=canvas.captureStream(25);let ac;try{ac=new AudioContext();await ac.resume();const dest=ac.createMediaStreamDestination(),osc=ac.createOscillator(),gain=ac.createGain();osc.frequency.value=220;gain.gain.value=.025;osc.connect(gain).connect(dest);osc.start();stream.addTrack(dest.stream.getAudioTracks()[0]);}catch(e){log('Demo audio unavailable: '+e.message);}await start(stream,()=>{clearInterval(timer);ac?.close();},'demo');}
-function stageWindow(){if(!state.config||!state.clockReady||state.stopped)return;cleanCache();const target=now()+state.offset-state.config.delay*1000;const useful=state.cache.filter(s=>s.meta.start+s.meta.duration>=target-4000&&s.meta.start<=target+4000);for(const s of useful){if(!state.appendedSeq.has(s.meta.seq)){state.player?.enqueue(s,state.config.epoch);state.appendedSeq.add(s.meta.seq);state.lastAppendSeq=Math.max(state.lastAppendSeq,s.meta.seq);}}while(state.appendedSeq.size>400)state.appendedSeq.delete(state.appendedSeq.values().next().value);const forward=state.cache.filter(s=>s.meta.start+s.meta.duration>=target-4000);for(const p of state.peers.values())if(p.direction==='down'&&p.ready&&!p.closed&&!(stallOutgoing&&(stallOutgoing===true||stallOutgoing===p.nodeId||stallOutgoing===p.id))){let count=0;for(const s of forward)if(s.meta.seq>p.lastSentSeq&&p.queued<4*1024*1024&&count<2){enqueue(p,s);p.lastSentSeq=s.meta.seq;count++;}}}
+function stageWindow(){if(!state.config||!state.clockReady||state.stopped)return;cleanCache();const target=now()+state.offset-state.config.delay*1000;const useful=state.cache.filter(s=>s.meta.start+s.meta.duration>=target-4000&&s.meta.start<=target+(state.player?.lookAheadSeconds?.()||4)*1000);for(const s of useful){if(!state.appendedSeq.has(s.meta.seq)){state.player?.enqueue(s,state.config.epoch);state.appendedSeq.add(s.meta.seq);state.lastAppendSeq=Math.max(state.lastAppendSeq,s.meta.seq);}}while(state.appendedSeq.size>400)state.appendedSeq.delete(state.appendedSeq.values().next().value);const forward=state.cache.filter(s=>s.meta.start+s.meta.duration>=target-4000);for(const p of state.peers.values())if(p.direction==='down'&&p.ready&&!p.closed&&!(stallOutgoing&&(stallOutgoing===true||stallOutgoing===p.nodeId||stallOutgoing===p.id))){let count=0;for(const s of forward)if(s.meta.seq>p.lastSentSeq&&p.queued<4*1024*1024&&count<2){enqueue(p,s);p.lastSentSeq=s.meta.seq;count++;}}}
 function syncPlayback(){if(!state.config||!state.clockReady||!state.player||document.visibilityState==='hidden')return;stageWindow();const target=(now()+state.offset-state.config.epoch)/1000-state.config.delay;const result=state.player.sync(target);if(target<0){const remaining=Math.ceil(-target);$('play-state').textContent='The group starts in '+Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0')+' · everyone waits for the same source-clock moment.';return;}if(result.waiting){if(!state.waiting&&state.playbackStarted)state.stalls++;state.waiting=true;state.drift=null;$('play-state').textContent=state.sourceReachable?'Waiting for the piece at the shared play time. Your view rejoins the group’s current moment when it arrives.':'The source path is unavailable. Saved video is limited; future picture needs an online source.';update();return;}state.waiting=false;state.playbackStarted=true;state.drift=result.drift;$('play-state').textContent=$('player').paused?'Tap Turn my sound on to start playback.':'Following the group clock · '+state.config.delay+' seconds behind capture'+(state.player.mode==='clips'?' · compatibility playback may pause briefly between pieces.':'.');update();}
 async function end(message='You ended this connection.',sourceEnd=null){
  if(state.stopped)return;
@@ -1537,7 +1703,7 @@ state.nodeId=crypto.randomUUID();window.PrivateCast={joinMagnet,canRetryJoin,ret
   stallOutgoing:({enabled,peerId}={})=>{stallOutgoing=enabled?(peerId||true):null;return !!stallOutgoing;},
   stallIncoming:({enabled}={})=>{const p=[...state.peers.values()].find(p=>p.direction==='up'&&!p.closed);stallIncoming=enabled?p?.id||null:null;return !!stallIncoming;},
   disconnectUpstream:()=>{if(!state.config||state.role!=='viewer')return false;const p=[...state.peers.values()].find(p=>p.direction==='up');if(!p)return false;dropPeer(p,'Rehearsal: this viewer disconnected its own supplying connection.');return true;}
-},snapshot:()=>({joiningBusy:magnetBusy,network:magnetTransport?.snapshot()?.network||lastNetworkCheck,playbackBlocked:state.player?.blocked===true,programTime:state.player?.programTime()??null,targetProgramTime:state.config&&state.clockReady?(now()+state.offset-state.config.epoch)/1000-state.config.delay:null,reserveSeconds:verifiedReserve(),delivery:deliverySnapshot(),supplierHealth:state.supplierHealth||null,sourceAudio:sourceAudioState?{...sourceAudioState}:null,nodeId:state.nodeId,trail:[...(state.trail||[])],supplier:state.supplier,recovery:{...state.recovery},stalls:state.stalls,sourceReachable:state.sourceReachable,sourceEnded:state.sourceEnded,lastReceivedAt:state.lastReceivedAt,transport:magnetTransport?.snapshot()||null,role:state.role,active:state.active,playbackMode:state.player?.mode||null,playbackFallbackReason:state.player?.fallbackReason||null,mediaErrorCode:state.player?.mediaErrorCode??null,mime:state.config?.mime||null,config:state.config?{id:state.config.id,delay:state.config.delay,epoch:state.config.epoch,audio:state.config.audio,sourceId:state.config.sourceId,sourceEpoch:state.config.sourceEpoch,programId:state.config.programId,segmentVersion:state.config.segmentVersion}:null,received:state.received,sentBytes:state.sent,cacheBytes:state.cacheBytes,cacheSegments:state.cache.length,cacheOldest:state.cache[0]?.meta.start??null,paused:$('player').paused,bufferedSeconds:Array.from({length:$('player').buffered.length},(_,i)=>$('player').buffered.end(i)-$('player').buffered.start(i)).reduce((a,b)=>a+b,0),offset:state.offset,clockReady:state.clockReady,drift:state.drift,playTime:$('player').currentTime,ready:$('player').readyState,tracks:state.stream?.getTracks().map(t=>({kind:t.kind,state:t.readyState,...(t.kind==='audio'?{localPlaybackSuppressed:t.getSettings().suppressLocalAudioPlayback===true}:{})}))||[],peers:[...state.peers.values()].map(p=>({id:p.nodeId||p.id,label:p.label,direction:p.direction,state:p.pc.connectionState,ready:p.ready,queued:p.queued}))})};
+},snapshot:()=>({mediaDiagnostics:mediaDiagnostics(),joiningBusy:magnetBusy,network:magnetTransport?.snapshot()?.network||lastNetworkCheck,playbackBlocked:state.player?.blocked===true,programTime:state.player?.programTime()??null,targetProgramTime:state.config&&state.clockReady?(now()+state.offset-state.config.epoch)/1000-state.config.delay:null,reserveSeconds:verifiedReserve(),delivery:deliverySnapshot(),supplierHealth:state.supplierHealth||null,sourceAudio:sourceAudioState?{...sourceAudioState}:null,nodeId:state.nodeId,trail:[...(state.trail||[])],supplier:state.supplier,recovery:{...state.recovery},stalls:state.stalls,sourceReachable:state.sourceReachable,sourceEnded:state.sourceEnded,lastReceivedAt:state.lastReceivedAt,transport:magnetTransport?.snapshot()||null,role:state.role,active:state.active,playbackMode:state.player?.mode||null,playbackFallbackReason:state.player?.fallbackReason||null,mediaErrorCode:state.player?.mediaErrorCode??null,mime:state.config?.mime||null,config:state.config?{id:state.config.id,delay:state.config.delay,epoch:state.config.epoch,audio:state.config.audio,sourceId:state.config.sourceId,sourceEpoch:state.config.sourceEpoch,programId:state.config.programId,segmentVersion:state.config.segmentVersion}:null,received:state.received,sentBytes:state.sent,cacheBytes:state.cacheBytes,cacheSegments:state.cache.length,cacheOldest:state.cache[0]?.meta.start??null,paused:$('player').paused,bufferedSeconds:Array.from({length:$('player').buffered.length},(_,i)=>$('player').buffered.end(i)-$('player').buffered.start(i)).reduce((a,b)=>a+b,0),offset:state.offset,clockReady:state.clockReady,drift:state.drift,playTime:$('player').currentTime,ready:$('player').readyState,tracks:state.stream?.getTracks().map(t=>({kind:t.kind,state:t.readyState,...(t.kind==='audio'?{localPlaybackSuppressed:t.getSettings().suppressLocalAudioPlayback===true}:{})}))||[],peers:[...state.peers.values()].map(p=>({id:p.nodeId||p.id,label:p.label,direction:p.direction,state:p.pc.connectionState,ready:p.ready,queued:p.queued}))})};
 if(window.PrivateCastDesktop){$('native-setup').classList.remove('hidden');window.PrivateCastDesktop.onMagnet(link=>{joinMagnet(link).catch(e=>status(e.message));});}
 let screenLock=null,screenLockPending=false;
 async function keepAwake(){if(screenLockPending||(screenLock&&!screenLock.released)||!state.config||document.visibilityState!=='visible'||!navigator.wakeLock?.request)return;screenLockPending=true;try{const lock=await navigator.wakeLock.request('screen');if(!state.config||document.visibilityState!=='visible')await lock.release();else screenLock=lock;}catch(e){log('Keep this screen awake while watching.');}finally{screenLockPending=false;}}
@@ -1563,6 +1729,23 @@ setInterval(refresh,400);refresh();})();
   const $ = (id) => document.getElementById(id), preference = "sameend.test-log-enabled";
   let collector, storage, enabled = true, lastCast = null, hashedCast = null, timer, sending = false;
   const labels = { "sound-heard": "I can hear sound", "picture-ok": "Picture looks good", "chat-ok": "Chat worked", "no-sound": "Sound stopped", "picture-frozen": "Picture froze", "out-of-sync": "We seem out of step", "chat-problem": "Chat problem", "connection-lost": "Connection dropped", "relay-leaving": "A relay is leaving", "network-change": "I changed network" };
+  const mediaReasons = { "source-piece-stale": "Source capture has not produced a recent piece", "required-piece-missing": "Required piece was missing at the playback deadline", "decoder-startup-evidence": "Startup/decode readiness evidence: required media was present, but this does not confirm a decoder fault", "no-frame-growth": "No frame growth while target time advanced during visible, unpaused playback", "playback-blocked": "Playback is blocked and may need a user action" };
+  const metric = (v, suffix = "") => v === null || v === undefined ? "Unknown" : String(v) + suffix;
+  const pieceLead = (v) => v === null || v === undefined ? "Unknown" : v > 0 ? v + " ms ahead of deadline" : v < 0 ? Math.abs(v) + " ms late" : "at deadline";
+  const factRows = (title, facts) => "<h3>" + escape(title) + "</h3><table><tbody>" + facts.map(([k, v]) => "<tr><th>" + escape(k) + "</th><td>" + escape(v) + "</td></tr>").join("") + "</tbody></table>";
+  function mediaAssessment(report) {
+    return window.SameEndDiagnosticsCore.assessMediaDiagnostics(report.status, report.samples);
+  }
+  function mediaSummaryText(report) {
+    const a = mediaAssessment(report);
+    if (a.findings.length) return a.findings.map((f) => mediaReasons[f.code]).filter(Boolean).join("; ");
+    if (a.state === "observed-playback") return "Required piece and decoded frames were observed.";
+    return "Picture path cause is unknown from the retained evidence.";
+  }
+  function mediaShortLabel(report) {
+    const a = mediaAssessment(report);
+    return a.state === "evidence" ? "review picture evidence" : a.state === "autoplay-or-user-action" ? "playback needs a user action" : a.state === "observed-playback" ? "picture facts recorded" : "picture cause unknown";
+  }
   const escape = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   function tick() {
     if (!collector || !enabled) return render();
@@ -1598,7 +1781,10 @@ setInterval(refresh,400);refresh();})();
     $("test-log-send").disabled = sending || !summary || !window.SameEndSocial?.canSendDeviceReport?.();
     const line = summary ? (enabled ? "Local test log" : "Saved local test log") + " \xB7 " + Math.floor((summary.durationSeconds || 0) / 60) + " min \xB7 " + (summary.counts?.marks || 0) + " marked observations" + (collector.persisted === false ? " \xB7 saving on this device is unavailable; download before closing." : ". Kept on this device; nothing is uploaded automatically.") : enabled ? "Your private test log starts when a room opens." : "Local test logging is off.";
     const forwarding = summary?.lastStatus?.forwardingCount;
-    const info = line + (typeof forwarding === "number" ? " Forwarding picture to " + forwarding + " mate" + (forwarding === 1 ? "" : "s") + "." : "");
+    const assessment = collector.report();
+    const info = line + (typeof forwarding === "number" ? " Forwarding picture to " + forwarding + " mate" + (forwarding === 1 ? "" : "s") + "." : "") + (assessment ? " Picture check: " + mediaSummaryText(assessment) : "");
+    const collapsed = $("test-log").querySelector("summary");
+    if (collapsed) collapsed.textContent = "Your test report" + (assessment ? " · " + mediaShortLabel(assessment) : "");
     if (status.textContent !== info) status.textContent = info;
   }
   function download(file) {
@@ -1646,7 +1832,10 @@ setInterval(refresh,400);refresh();})();
     const rows = summary.map(([a, b]) => "<tr><th>" + escape(a) + "</th><td>" + escape(b) + "</td></tr>").join("");
     const timeline = events.map((e) => "<tr><td>" + escape(e.atSeconds ?? "?") + " s</td><td>" + escape(e.type) + "</td><td>" + escape(labels[e.value] || e.value) + "</td></tr>").join("");
     const observations = ["picture-ok", "sound-heard", "chat-ok"].map((code) => "<li>" + escape(labels[code]) + ": <strong>" + (events.some((e) => e.type === "mark" && e.value === code) ? "marked by this tester" : "not recorded in the retained timeline") + "</strong></li>").join("");
-    return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Same End test report</title><style>body{margin:0;background:#f5f3ec;color:#163e2d;font:17px/1.6 system-ui,sans-serif}header{background:#073d2b;color:white;padding:30px}main{max-width:980px;padding:24px;margin:auto}section{background:white;border:1px solid #cfdbce;border-radius:12px;padding:22px;margin:0 0 20px}h1,h2{line-height:1.2}button{padding:12px 17px;margin:4px;border:1px solid #98b5a4;border-radius:8px;font:inherit;background:white;color:#073d2b}table{border-collapse:collapse;width:100%;font-size:15px}td,th{text-align:left;vertical-align:top;border-bottom:1px solid #d5dfd3;padding:10px;overflow-wrap:anywhere}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}.scroll{overflow:auto}.note{padding:12px;background:#fff1ce;border-radius:8px}summary{cursor:pointer;font-weight:bold}</style></head><body><header><h1>Same End test report</h1><p>Private observations from one browser. Generated ' + escape((/* @__PURE__ */ new Date()).toLocaleString()) + '</p><button id="save">Save HTML</button><button id="share">Share file</button><p id="file-status">This file opens offline. Send the HTML file itself to share it.</p></header><main><section><h2>This browser\u2019s test</h2><table>' + rows + '</table><p class="note">A report is evidence, not an automatic pass. Different homes, human-audible sound, working chat and a full match need your confirmation. A connected peer or an included audio track does not prove those things.</p><ul>' + observations + '</ul></section><section><h2>What happened</h2><div class="scroll"><table><thead><tr><th>Time from start</th><th>Event</th><th>Observation</th></tr></thead><tbody>' + timeline + "</tbody></table></div><p>Latest two hours at five-second intervals, with at most 200 events and a 2 MiB storage ceiling shared with the previous report. Dropped entries are counted above. Browser suspension can leave sampling gaps. Programme position and target position help compare reports with the same test code; device wall clocks and self-reported data are not independent proof of synchronisation.</p></section><section><h2>What the plan still needs</h2><p>Check: at least three separate networks; 90 minutes of the intended session; the oldest supported device; picture, sound and chat; late join; relay departure; temporary network interruption; sleep/return. Record which steps you actually tried.</p><p>This test does not implement or prove adaptive picture quality, background audio, more than two children per relay, coordinated live delay changes or switching to an independently captured backup.</p></section><details><summary>Full sanitised local measurements</summary><pre>" + escape(JSON.stringify(report, null, 2)) + "</pre></details><p>No programme, audio recording, chat text, invitation, password, peer address or raw error is included. Sharing this file is your choice.</p></main><script>(" + fileControls.toString() + ")();<\/script></body></html>";
+    const md = s.mediaDiagnostics || {}, c = md.capture || {}, d = md.delivery || {}, p = md.playback || {}, assessment = mediaAssessment(report);
+    const findingRows = assessment.findings.length ? assessment.findings.map((f) => [f.layer === "playback" ? "Startup / decoder" : f.layer === "delivery" ? "Network delivery" : "Source capture", mediaReasons[f.code] || "Evidence recorded"]) : [["Assessment", mediaSummaryText(report)]];
+    const mediaTables = "<h3>Reasoning from observed evidence</h3><table><tbody>" + findingRows.map(([a, b]) => "<tr><th>" + escape(a) + "</th><td>" + escape(b) + "</td></tr>").join("") + "</tbody></table>" + factRows("Source capture facts", [["Role", s.role === "source" ? "This device is the source" : s.role === "viewer" ? "Viewer; source capture is not assessed from this device" : "Unknown"], ["Captured width / height", metric(c.width) + " × " + metric(c.height)], ["Observed frame rate", metric(c.frameRate, " fps")], ["Target video rate", metric(c.targetVideoMbps, " Mbps")], ["Measured media rate", metric(c.actualMediaMbps, " Mbps")], ["Last piece age", s.role === "source" ? metric(c.lastPieceAgeSeconds, " s") : "Not assessed on viewer"], ["Recording latency", s.role === "source" ? metric(c.recordingLatencyMs, " ms") : "Not assessed on viewer"], ["Source audio", s.role === "source" ? metric(c.sourceAudio) : "Not assessed on viewer"]]) + factRows("Network delivery facts", [["Required piece present", metric(d.requiredPiecePresent)], ["Required piece lead / lateness", pieceLead(d.requiredPieceLeadMs)], ["Verified reserve", metric(d.verifiedReserveSeconds, " s")]]) + factRows("Playback facts", [["Mode", metric(p.mode)], ["Fallback reason", metric(p.fallbackReason)], ["Media error code", metric(p.errorCode)], ["Decoded width / height", metric(p.width) + " × " + metric(p.height)], ["Playable ahead", metric(p.playableAheadSeconds, " s")], ["Window", metric(p.windowSeconds, " s")], ["Source changes", metric(p.srcChanges)], ["Last load / first frame", metric(p.lastLoadMs, " ms") + " / " + metric(p.firstFrameMs, " ms")], ["Decoded / dropped frames", metric(p.decodedFrames) + " / " + metric(p.droppedFrames)]]);
+    return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Same End test report</title><style>body{margin:0;background:#f5f3ec;color:#163e2d;font:17px/1.6 system-ui,sans-serif}header{background:#073d2b;color:white;padding:30px}main{max-width:980px;padding:24px;margin:auto}section{background:white;border:1px solid #cfdbce;border-radius:12px;padding:22px;margin:0 0 20px}h1,h2{line-height:1.2}h3{margin-bottom:4px}button{padding:12px 17px;margin:4px;border:1px solid #98b5a4;border-radius:8px;font:inherit;background:white;color:#073d2b}table{border-collapse:collapse;width:100%;font-size:15px}td,th{text-align:left;vertical-align:top;border-bottom:1px solid #d5dfd3;padding:10px;overflow-wrap:anywhere}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}.scroll{overflow:auto}.note{padding:12px;background:#fff1ce;border-radius:8px}summary{cursor:pointer;font-weight:bold}</style></head><body><header><h1>Same End test report</h1><p>Private observations from one browser. Generated ' + escape((/* @__PURE__ */ new Date()).toLocaleString()) + '</p><button id="save">Save HTML</button><button id="share">Share file</button><p id="file-status">This file opens offline. Send the HTML file itself to share it.</p></header><main><section><h2>This browser\u2019s test</h2><table>' + rows + '</table><p class="note">A report is evidence, not an automatic pass. Different homes, human-audible sound, working chat and a full match need your confirmation. A connected peer or an included audio track does not prove those things.</p><ul>' + observations + '</ul></section><section><h2>Picture path diagnostics</h2><p>' + escape(mediaSummaryText(report)) + '</p>' + mediaTables + '<p class="note">These are separate layer facts. Resolution, frame rate and measured rate are observations, not automatic quality judgments. A viewer cannot establish the source capture state.</p></section><section><h2>What happened</h2><div class="scroll"><table><thead><tr><th>Time from start</th><th>Event</th><th>Observation</th></tr></thead><tbody>' + timeline + "</tbody></table></div><p>Latest two hours at five-second intervals, with at most 200 events and a 2 MiB storage ceiling shared with the previous report. Dropped entries are counted above. Browser suspension can leave sampling gaps. Programme position and target position help compare reports with the same test code; device wall clocks and self-reported data are not independent proof of synchronisation.</p></section><section><h2>What the plan still needs</h2><p>Check: at least three separate networks; 90 minutes of the intended session; the oldest supported device; picture, sound and chat; late join; relay departure; temporary network interruption; sleep/return. Record which steps you actually tried.</p><p>This test does not implement or prove adaptive picture quality, background audio, more than two children per relay, coordinated live delay changes or switching to an independently captured backup.</p></section><details><summary>Full sanitised local measurements</summary><pre>" + escape(JSON.stringify(report, null, 2)) + "</pre></details><p>No programme, audio recording, chat text, invitation, password, peer address or raw error is included. Sharing this file is your choice.</p></main><script>(" + fileControls.toString() + ")();<\/script></body></html>";
   }
   function htmlFile() {
     return new File([htmlReport()], "same-end-test-report.html", { type: "text/html" });
