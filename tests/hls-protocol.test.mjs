@@ -1,0 +1,8 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {encodeBundle,decodeBundle,validPath} from '../hls-protocol.js';
+const enc=new TextEncoder();
+const batch=()=>({start:2,duration:2,playlistStart:0,files:[{path:'master.m3u8',mime:'application/vnd.apple.mpegurl',bytes:enc.encode('#EXTM3U\nplaylist-1.m3u8\n')},{path:'playlist-1.m3u8',mime:'application/vnd.apple.mpegurl',start:0,bytes:enc.encode('#EXTM3U\n#EXTINF:2,\nsegment-1-1.m4s\n')},{path:'segment-1-1.m4s',mime:'video/mp4',bytes:new Uint8Array([0,1,2,3])}]});
+test('standard media bytes and playlist times survive signed-transport framing',()=>{const src=batch(),out=decodeBundle(encodeBundle(src));assert.equal(out.start,2);assert.equal(out.duration,2);assert.equal(out.playlistStart,0);for(let i=0;i<src.files.length;i++){assert.equal(out.files[i].path,src.files[i].path);assert.deepEqual(new Uint8Array(out.files[i].bytes),src.files[i].bytes);}assert.equal(out.files[1].start,0);});
+test('envelope rejects traversal, duplicate paths, invalid times, types and lengths',()=>{for(const mutate of [b=>b.files[2].path='../outside.m4s',b=>b.files[2].path='https://outside.test/a.m4s',b=>b.files[2].path=b.files[0].path,b=>b.duration=0,b=>b.playlistStart=10,b=>b.files[2].mime='text/html']){const b=batch();mutate(b);assert.throws(()=>encodeBundle(b));}const buf=encodeBundle(batch());assert.throws(()=>decodeBundle(buf.slice(0,-1)));const bad=buf.slice(0);new DataView(bad).setUint32(0,999999);assert.throws(()=>decodeBundle(bad));});
+test('paths cannot escape the private cache namespace',()=>{for(const p of ['../a.m4s','a/../b.m4s','/a.m4s','a//b.m4s','a%2fb.m4s','a.m4s?x=1','a.m3u8#x','a.js'])assert.equal(validPath(p),false,p);assert.equal(validPath('segments/a-1.m4s'),true);});

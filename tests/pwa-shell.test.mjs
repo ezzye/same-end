@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {Script,createContext,runInContext} from 'node:vm';
 import {MessageChannel} from 'node:worker_threads';
 import * as webStreams from 'node:stream/web';
-test('generated app includes artwork, clubs, rehearsal and syntactically valid inline scripts',async()=>{const html=await readFile(new URL('../dist/index.html',import.meta.url),'utf8');assert.match(html,/data:image\/webp;base64/);assert.match(html,/same-end-social/);assert.match(html,/SameEndRehearsal/);assert.doesNotMatch(html,/__HERO_IMAGE__|__CLUB_IMAGE__/);for(const[,attr,body]of html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)){if(/type="(?:text\/plain|application\/x-privatecast)"/.test(attr))continue;new Script(body);}assert.match(html,/Private club keys and video are not included/);});
+test('generated app includes artwork, clubs, rehearsal and syntactically valid inline scripts',async()=>{const html=await readFile(new URL('../dist/index.html',import.meta.url),'utf8');assert.match(html,/data:image\/webp;base64/);assert.match(html,/same-end-social/);assert.match(html,/SameEndRehearsal/);assert.doesNotMatch(html,/__HERO_IMAGE__|__CLUB_IMAGE__/);for(const[,attr,body]of html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)){if(/type="application\/json"|id="webtorrent-license"/.test(attr))continue;new Script(body);}assert.match(html,/Private club keys and video are not included/);});
 test('standalone byte shim lets the bundled WebTorrent client initialize without modern typed-array methods',async()=>{
   const html=await readFile(new URL('../dist/index.html',import.meta.url),'utf8');
   const shim=html.match(/<script id="browser-compat">([\s\S]*?)<\/script>/)?.[1];

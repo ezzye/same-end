@@ -3,7 +3,7 @@ import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
-import {transform} from 'esbuild';
+import {transform,build} from 'esbuild';
 const dir=path.dirname(fileURLToPath(import.meta.url)), out=path.join(dir,'dist');
 const browserTargets=['es2017','safari12.1','ios12.2','chrome80','edge80','firefox78'];
 await mkdir(out,{recursive:true});
@@ -18,6 +18,18 @@ const mediaPlayer=(await readFile(path.join(dir,'capture-normalize.js'),'utf8'))
 const mediaPattern=/(<script id="same-end-media">)[\s\S]*?(<\/script>)/;
 if(!mediaPattern.test(html))throw Error('Embedded media helper slot is missing.');
 html=html.replace(mediaPattern,(_,open,close)=>open+mediaPlayer+close);
+// Packager and players are pinned, bundled and served with the app. No remote
+// script or video origin is needed by the verified-cache HLS loaders.
+const streaming=await build({entryPoints:[path.join(dir,'streaming-entry.js')],bundle:true,write:false,format:'iife',globalName:'SameEndHLS',platform:'browser',target:browserTargets,minify:true,legalComments:'inline'});
+const captureBundle=await build({entryPoints:[path.join(dir,'capture-entry.js')],bundle:true,write:false,format:'iife',globalName:'SameEndHLSCapture',platform:'browser',target:['es2020','chrome94','edge94','safari17'],minify:true,legalComments:'inline'});
+html=html.replace(mediaPattern,(_,open,bodyClose)=>open+mediaPlayer+bodyClose+'<script id="same-end-standard-streaming">'+streaming.outputFiles[0].text+'</script><script id="same-end-hls-capture" type="text/plain">'+captureBundle.outputFiles[0].text+'</script>');
+// Preserve full upstream licence notices and source availability in saved HTML.
+const notices=[['hls.js 1.7.3','HLSJS-LICENSE.txt','https://github.com/video-dev/hls.js/tree/v1.7.3'],['Mediabunny 1.62.1','MEDIABUNNY-LICENSE.txt','https://www.npmjs.com/package/mediabunny/v/1.62.1']];
+const escapeHTML=s=>s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+let licenceSections='';
+for(const [name,file,url] of notices){licenceSections+='<details><summary>'+name+'</summary><p><a href="'+url+'">Versioned upstream source</a> · bundled without upstream source modifications.</p><pre style="white-space:pre-wrap">'+escapeHTML(await readFile(path.join(dir,'vendor',file),'utf8'))+'</pre></details>';}
+html=html.replace(/<\/body>(?=<\/html>\s*$)/,'<details class="third-party-notices" style="margin:1rem"><summary>Open-source licences</summary>'+licenceSections+'</details></body>');
+await writeFile(path.join(out,'third-party.html'),'<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Same End open-source software</title><body style="font:16px system-ui;max-width:60rem;margin:2rem auto;padding:1rem"><h1>Same End open-source software</h1>'+licenceSections+'</body></html>');
 for(const [id,file,tag] of [['invite-check-style','invite-check.css','style'],['invite-check-sample','invite-sample.js','script'],['invite-check-module','invite-check.js','script']]){const body=await readFile(path.join(dir,file),'utf8');const pattern=new RegExp('(<'+tag+' id="'+id+'">)[\\s\\S]*?(</'+tag+'>)');if(!pattern.test(html))throw Error('Missing invitation check slot.');html=html.replace(pattern,(_,a,b)=>a+body+b);}
 // The standalone source includes its engine for offline sharing. Always hydrate
 // the web build from the canonical module so fixes cannot silently drift.
@@ -117,7 +129,8 @@ await writeFile(path.join(out,'manifest.webmanifest'),JSON.stringify({id:'./',na
 async function png(n){const z=[];const crc=b=>{let c=-1;for(const x of b){c^=x;for(let i=0;i<8;i++)c=(c>>>1)^((c&1)?0xedb88320:0)}return(c^-1)>>>0};const chunk=(t,d)=>{let b=Buffer.concat([Buffer.from(t),d]),h=Buffer.alloc(4);h.writeUInt32BE(d.length);let c=Buffer.alloc(4);c.writeUInt32BE(crc(b));return Buffer.concat([h,b,c])};let raw=Buffer.alloc(n*(n*4+1));for(let y=0;y<n;y++){let row=y*(n*4+1);for(let x=0;x<n;x++){let k=row+1+x*4;const px=x/n,py=y/n,cream=[255,255,255],forest=[7,60,42],coral=[228,42,36];let color=forest;const stripes=[{x:.23,y:.36,h:.36},{x:.41,y:.24,h:.48},{x:.59,y:.44,h:.28}];for(const bar of stripes){if(px>bar.x&&px<bar.x+.12&&py>bar.y&&py<bar.y+bar.h)color=cream;}if((px-.81)**2+(py-.68)**2<.055**2)color=coral;raw[k]=color[0];raw[k+1]=color[1];raw[k+2]=color[2];raw[k+3]=255}}let ih=Buffer.alloc(13);ih.writeUInt32BE(n);ih.writeUInt32BE(n,4);ih.set([8,6,0,0,0],8);return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),chunk('IHDR',ih),chunk('IDAT',(await import('node:zlib')).deflateSync(raw)),chunk('IEND',Buffer.alloc(0))])}
 for(const n of [192,512])await writeFile(path.join(out,`icon-${n}.png`),await png(n));
 const shell=['index.html','watch.html','manifest.webmanifest','icon-192.png','icon-512.png'];let digest=createHash('sha256');for(const f of shell)digest.update(await readFile(path.join(out,f)));const version=digest.digest('hex').slice(0,16);
-const serviceWorker=`const CACHE='private-cast-${version}',FILES=${JSON.stringify(shell.map(x=>'./'+x))};
+const workerBundle=await build({entryPoints:[path.join(dir,'hls-sw-handler.js')],bundle:true,write:false,format:'iife',globalName:'SameEndHLSWorker',platform:'browser',target:browserTargets,minify:true});
+const serviceWorker=workerBundle.outputFiles[0].text+`\nSameEndHLSWorker.install(self);\nconst CACHE='private-cast-${version}',FILES=${JSON.stringify(shell.map(x=>'./'+x))};
 const BASE=new URL('./',self.location.href),INDEX=new URL('index.html',BASE).href,ALLOWED=new Set(FILES.map(f=>new URL(f,BASE).href));
 self.addEventListener('message',e=>{if(e.data?.type==='ACTIVATE_UPDATE')self.skipWaiting()});
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>Promise.all(FILES.map(async f=>{const key=new URL(f,BASE),url=new URL(key);url.searchParams.set('v',CACHE);const response=await fetch(url.href,{cache:'reload'});if(!response.ok)throw Error('App update unavailable');await c.put(key.href,response)})))));

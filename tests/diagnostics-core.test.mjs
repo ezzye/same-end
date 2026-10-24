@@ -148,3 +148,11 @@ test('seek recovery evidence survives private host summaries without copying raw
 });
 
 test('capture conversion diagnostics retain bounded counters and suppress raw pixels',()=>{const {c,observe}=setup();observe({role:'source',mediaDiagnostics:{capture:{pixelNormalization:'active',normalizedFrames:603,normalizationTargetFrameRate:25,normalizationMeanMs:1.8,normalizationMaxMs:22,pixels:'PRIVATE_PIXELS'}}});const x=c.summary().lastStatus.mediaDiagnostics.capture;assert.equal(x.pixelNormalization,'active');assert.equal(x.normalizedFrames,603);assert.equal(x.normalizationTargetFrameRate,25);assert.equal(x.normalizationMeanMs,1.8);assert(!JSON.stringify(c.summary()).includes('PRIVATE_PIXELS'));observe({role:'source',mediaDiagnostics:{capture:{pixelNormalization:'PRIVATE_UNKNOWN',normalizedFrames:Infinity,normalizationMeanMs:-1}}});const y=c.summary().lastStatus.mediaDiagnostics.capture;assert.equal(y.pixelNormalization,null);assert.equal(y.normalizedFrames,null);assert.equal(y.normalizationMeanMs,0);});
+
+
+test('standard HLS reports retain safe player versions and native timeline anchors',()=>{
+ for(const mode of ['hls','hls-native']) {
+  const {c,observe}=setup();observe({playbackMode:mode,mediaDiagnostics:{playback:{mode,hlsVersion:'1.7.3',nativeProgramOriginSeconds:30.25,initialProgrammeStart:31,cacheBytes:2000,cacheFiles:8,errorCount:0,secret:'PRIVATE_KEY'}}});
+  const status=c.report().status;assert.equal(status.playbackMode,mode);assert.equal(status.mediaDiagnostics.playback.mode,mode);assert.equal(status.mediaDiagnostics.playback.hlsVersion,'1.7.3');assert.equal(status.mediaDiagnostics.playback.nativeProgramOriginSeconds,30.25);assert.equal(status.mediaDiagnostics.playback.initialProgrammeStart,31);assert.equal(status.mediaDiagnostics.playback.secret,undefined);
+ }
+});
