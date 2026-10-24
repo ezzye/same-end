@@ -56,7 +56,7 @@
   class Player {
     constructor(video,mime,{onError=()=>{},onMode=()=>{}}={}){
       if(!canPlay(mime,video))throw Error('This browser cannot play this cast. Ask the host to start a fresh room in updated Chrome, Edge or Safari so it uses iPhone-compatible MP4.');
-      this.video=video;this.mime=mime;this.nativeWindow=null;this.playbackMetrics={srcChanges:0,lastLoadMs:null,firstFrameMs:null};this.nativeMime=nativeMime(mime,video);this.onError=onError;this.onMode=onMode;
+      this.video=video;this.mime=mime;this.nativeWindow=null;this.playbackMetrics={srcChanges:0,lastLoadMs:null,firstFrameMs:null};this.nativeMime=nativeMime(mime,video);this.nativeBlobType=mime.startsWith('video/mp4')?'video/mp4':(this.nativeMime||mime);this.onError=onError;this.onMode=onMode;
       this.queue=[];this.queueBytes=0;this.pieces=[];this.pieceBytes=0;this.urls=new Map();this.mode='clips';this.fallbackReason='unsupported-mse';this.mediaErrorCode=null;this.closed=false;this.blocked=false;this.current=null;this.loading=false;this.duration=0;this.demand=true;this.lastRepair=0;
       video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');
       // Required for iPhone ManagedMediaSource without a separate AirPlay URL.
@@ -102,7 +102,7 @@
       }catch(e){this.fallback('Using compatibility playback after a buffer error.','buffer-append');}
     }
     urlFor(piece){
-      if(!this.urls.has(piece.meta.seq))this.urls.set(piece.meta.seq,URL.createObjectURL(new Blob([this.nativeMime!==this.mime?nativeMP4(piece.buf):piece.buf],{type:this.nativeMime||this.mime})));
+      if(!this.urls.has(piece.meta.seq))this.urls.set(piece.meta.seq,URL.createObjectURL(new Blob([this.nativeMime!==this.mime?nativeMP4(piece.buf):piece.buf],{type:this.nativeBlobType})));
       for(const [seq,url] of this.urls)if(seq!==piece.meta.seq&&!this.pieces.some(p=>p.meta.seq===seq)){URL.revokeObjectURL(url);this.urls.delete(seq);}
       return this.urls.get(piece.meta.seq);
     }
@@ -121,7 +121,7 @@
       if(joined?.ok){
         let parts=joined.parts;
         if(this.nativeMime!==this.mime){const length=parts.reduce((n,b)=>n+b.byteLength,0),copy=new Uint8Array(length);let pos=0;for(const part of parts){copy.set(part,pos);pos+=part.byteLength;}parts=[nativeMP4(copy)];}
-        url=URL.createObjectURL(new Blob(parts,{type:this.nativeMime||this.mime}));
+        url=URL.createObjectURL(new Blob(parts,{type:this.nativeBlobType}));
         this.nativeWindow={url,start:joined.start,end:joined.end,pieceCount:joined.pieceCount,mediaSeconds:joined.mediaSeconds};
       }else url=this.urlFor(piece);
       this.current=piece.meta.seq;this.duration=piece.meta.duration/1000;

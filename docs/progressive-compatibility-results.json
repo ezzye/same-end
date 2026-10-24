@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-24",
+  "status": "Local picture fix; deployment held for physical Apple sound acceptance",
+  "generalChecksPassed": 137,
+  "physical": {
+    "device": "Provider-reported physical iPad Pro 12.9 2020, iOS 14",
+    "allPiecesBeforePlayback": 12,
+    "samples": 189,
+    "formatErrors": [],
+    "player": {
+      "mode": "native-window",
+      "fallbackReason": "unsupported-mse",
+      "packagingReason": null,
+      "errorCode": null,
+      "width": 1280,
+      "height": 720,
+      "playableAheadSeconds": 1.9223999999999997,
+      "windowSeconds": 8.020800048828125,
+      "srcChanges": 3,
+      "lastLoadMs": 42,
+      "firstFrameMs": 306,
+      "decodedFrames": 621,
+      "droppedFrames": 0
+    },
+    "video": {
+      "ready": 4,
+      "time": 6.0916,
+      "width": 1280,
+      "height": 720,
+      "paused": false
+    },
+    "muted": true,
+    "audioContext": "suspended",
+    "maxDriftSeconds": 0.7347001953124987,
+    "soundAcceptance": "Unverified: automated device taps did not unlock AudioContext",
+    "sessionClosed": true
+  },
+  "robustness": {
+    "branch": "feat/relay-selection-repair",
+    "commit": "5ddc331",
+    "unitTestsPassed": 32,
+    "localWebRTCQualification": "Capacity route and repair cases passed; max decoded frame gaps 67ms/84ms, tone present, max clock drift below40ms, no TURN",
+    "longComparison": "Incomplete for weak-supplier fix; deployment decision remains held"
+  }
+}
