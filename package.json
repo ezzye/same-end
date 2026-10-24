@@ -28,7 +28,8 @@
     "test:startup-social": "node tests/startup-social-browser.test.mjs",
     "test:native-window": "node tests/native-window-browser.test.mjs",
     "test:media-background": "node tests/media-background-browser.test.mjs",
-    "test:alternate-player": "node tests/alternate-player-browser.test.mjs"
+    "test:alternate-player": "node tests/alternate-player-browser.test.mjs",
+    "test:apple-clock": "npm run test:native-window && node tests/apple-clock-browser.test.mjs"
   },
   "engines": {
     "node": ">=20"

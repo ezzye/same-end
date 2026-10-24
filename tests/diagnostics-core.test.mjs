@@ -138,3 +138,11 @@ test('buffer pressure and seek diagnostics survive export without raw errors or 
  assert.deepEqual([p.mseErrorPhase,p.mseErrorName,p.mseQuotaRecoveries,p.seekPendingMs],['append','QuotaExceededError',1,600]);assert.equal(s.c.report().status.playbackFallbackReason,'buffer-quota');assert(!JSON.stringify(s.c.summary()).includes('PRIVATE_SECRET'));
  s.observe({mediaDiagnostics:{playback:{mseErrorPhase:'PRIVATE_SECRET',mseErrorName:'PRIVATE_SECRET'}}});assert.equal(s.c.report().status.mediaDiagnostics.playback.mseErrorName,null);
 });
+
+
+test('seek recovery evidence survives private host summaries without copying raw browser data',()=>{
+ const {c,observe}=setup();observe({playbackFallbackReason:'seek-stalled',mediaDiagnostics:{playback:{presentedFrameTime:42.25,presentedFrameAgeMs:80,mediaElementTime:41.8,syncSeekRequests:3,gapSeekRequests:1,rawFrames:'PRIVATE_FRAME_CONTENT',sourceURL:'https://private.invalid'}}});
+ const p=c.summary().lastStatus.mediaDiagnostics.playback;assert.deepEqual([p.presentedFrameTime,p.presentedFrameAgeMs,p.mediaElementTime,p.syncSeekRequests,p.gapSeekRequests],[42.25,80,41.8,3,1]);assert.equal(c.summary().lastStatus.playbackFallbackReason,'seek-stalled');
+ assert(!JSON.stringify(c.summary()).includes('PRIVATE_FRAME_CONTENT'));assert(!JSON.stringify(c.summary()).includes('private.invalid'));
+ observe({mediaDiagnostics:{playback:{presentedFrameTime:NaN,presentedFrameAgeMs:Infinity,syncSeekRequests:-40,gapSeekRequests:'private'}}});const bad=c.report().status.mediaDiagnostics.playback;assert.equal(bad.presentedFrameTime,null);assert.equal(bad.presentedFrameAgeMs,null);assert.equal(bad.syncSeekRequests,0);assert.equal(bad.gapSeekRequests,null);
+});
