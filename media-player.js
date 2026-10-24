@@ -56,7 +56,9 @@
   class Player {
     constructor(video,mime,{onError=()=>{},onMode=()=>{}}={}){
       if(!canPlay(mime,video))throw Error('This browser cannot play this cast. Ask the host to start a fresh room in updated Chrome, Edge or Safari so it uses iPhone-compatible MP4.');
-      this.video=video;this.mime=mime;this.nativeWindow=null;this.nativeLoading=false;this.currentNativeURL=null;this.playbackMetrics={srcChanges:0,lastLoadMs:null,firstFrameMs:null};this.nativeMime=nativeMime(mime,video);this.nativeBlobType=mime.startsWith('video/mp4')?'video/mp4':(this.nativeMime||mime);this.onError=onError;this.onMode=onMode;
+      // Scope the stable-track workaround to Apple's decoder, including
+      // browsers using WebKit under a different brand.
+      this.video=video;this.mime=mime;this.normalizeMP4=(typeof video.webkitSupportsPresentationMode==='function'||typeof video.webkitEnterFullscreen==='function')&&mime.startsWith('video/mp4')&&!!window.SameEndNativeMP4?.createStream;this.nativeWindow=null;this.nativeLoading=false;this.currentNativeURL=null;this.playbackMetrics={srcChanges:0,lastLoadMs:null,firstFrameMs:null};this.nativeMime=nativeMime(mime,video);this.nativeBlobType=mime.startsWith('video/mp4')?'video/mp4':(this.nativeMime||mime);this.onError=onError;this.onMode=onMode;
       this.queue=[];this.queueBytes=0;this.pieces=[];this.pieceBytes=0;this.urls=new Map();this.mode='clips';this.fallbackReason='unsupported-mse';this.mediaErrorCode=null;this.closed=false;this.blocked=false;this.soundBlocked=false;this.soundRequested=false;this.lastPlayError=null;this.current=null;this.loading=false;this.duration=0;this.demand=true;this.lastRepair=0;
       this.playbackTarget=null;this.suspended=false;this.mseErrorPhase=null;this.mseErrorName=null;this.mseEvictions=0;this.mseQuotaRecoveries=0;this.quotaRetrySeq=null;
       this.seekCount=0;this.seekStarted=null;this.longestSeekMs=0;
@@ -78,7 +80,7 @@
         // from zero and correcting the visible jump on a later clock tick.
         try{this.seek(this.nativeStartTime,'clock',true);}catch{}
       }};video.addEventListener('loadedmetadata',this.onMetadata);
-      const C=sourceConstructor(mime);
+      const C=sourceConstructor(mime);this.mseImplementation=C===window.ManagedMediaSource?'managed':C?'standard':null;
       if(C){
         this.mode='mse';this.fallbackReason=null;this.source=new C();this.sourceURL=URL.createObjectURL(this.source);
         this.source.addEventListener('sourceopen',()=>{if(this.closed||this.mode!=='mse')return;clearTimeout(this.openTimer);try{
@@ -99,14 +101,25 @@
       if(!this.nativeMime){this.onError('This browser cannot play this cast format. Ask the host to start a fresh MP4 room in updated Chrome, Edge or Safari.');return;}
       clearTimeout(this.openTimer);this.presented=null;this.mode='clips';this.fallbackReason=reason;this.sb=null;this.queue=[];this.queueBytes=0;
       this.video.pause();this.video.removeAttribute('src');this.video.load();
-      if(this.sourceURL)URL.revokeObjectURL(this.sourceURL);this.sourceURL=null;this.source=null;
+      if(this.sourceURL)URL.revokeObjectURL(this.sourceURL);this.sourceURL=null;this.source=null;this.fragmentStream=null;
       this.onMode(this.mode,message);
     }
     enqueue(piece,epoch){
       if(this.closed)return;
       this.epoch=epoch;this.pieces.push(piece);this.pieceBytes+=piece.buf.byteLength;
       while(this.pieces.length>24||this.pieceBytes>20*1024*1024)this.pieceBytes-=this.pieces.shift().buf.byteLength;
-      if(this.mode==='mse'){this.queue.push(piece);this.queueBytes+=piece.buf.byteLength;while(this.queue.length>20||this.queueBytes>20*1024*1024)this.queueBytes-=this.queue.shift().buf.byteLength;this.pump();}
+      if(this.mode==='mse'){
+        // A late join begins near zero in this decoder, while the signed cast
+        // and group clock keep their original programme coordinates. Older
+        // pieces remain cached for forwarding and native fallback.
+        if(this.mseOrigin===undefined&&this.normalizeMP4){
+          const target=this.playbackTarget??(piece.meta.start-epoch)/1000;
+          if(piece.meta.start+piece.meta.duration<=epoch+Math.max(0,target)*1000)return;
+          this.mseOrigin=(piece.meta.start-epoch)/1000;
+        }
+        this.queue.push(piece);this.queueBytes+=piece.buf.byteLength;
+        while(this.queue.length>20||this.queueBytes>20*1024*1024)this.queueBytes-=this.queue.shift().buf.byteLength;this.pump();
+      }
     }
     // The group clock keeps advancing when a hidden page pauses its video.
     // Retain verified pieces for forwarding, but stop filling the decoder while
@@ -123,11 +136,13 @@
     }
     pump(){
       const sb=this.sb;if(this.closed||this.mode!=='mse'||!sb||sb.updating||this.suspended||!this.demand||!this.queue.length)return;
-      const piece=this.queue[0],t=Math.max(this.video.currentTime,this.playbackTarget??0);let phase='remove';
+      const piece=this.queue[0],t=Math.max(this.video.currentTime,(this.playbackTarget??0)-(this.mseOrigin||0));let phase='remove';
       try{
         if(t>18&&sb.buffered.length&&sb.buffered.start(0)<t-14){sb.remove(0,t-12);this.mseEvictions++;return;}
-        phase='timestamp-offset';sb.timestampOffset=(piece.meta.start-this.epoch)/1000;
-        phase='append';sb.appendBuffer(piece.buf);
+        // Keep track IDs and fragment timestamps stable on a playback copy.
+        // Repeated recorder instances can swap audio/video IDs.
+        phase='timestamp-offset';const normalize=this.normalizeMP4;sb.timestampOffset=normalize?0:(piece.meta.start-this.epoch)/1000-(this.mseOrigin||0);if(normalize&&!this.fragmentStream)this.fragmentStream=window.SameEndNativeMP4.createStream(this.epoch+(this.mseOrigin||0)*1000);
+        phase='append';let bytes=piece.buf;if(this.fragmentStream){const part=this.fragmentStream.append(piece);if(!part.ok)throw Error(part.reason);bytes=part.bytes;}sb.appendBuffer(bytes);
         this.queue.shift();this.queueBytes-=piece.buf.byteLength;
         if(this.quotaRetrySeq===piece.meta.seq){this.mseQuotaRecoveries++;this.quotaRetrySeq=null;}
       }catch(e){
@@ -188,7 +203,7 @@
     facts(){
       const v=this.video;let ahead=0;for(let i=0;i<v.buffered.length;i++)if(v.currentTime>=v.buffered.start(i)&&v.currentTime<v.buffered.end(i))ahead=v.buffered.end(i)-v.currentTime;
       let bufferedSeconds=0;for(let i=0;i<v.buffered.length;i++)bufferedSeconds+=v.buffered.end(i)-v.buffered.start(i);
-      const q=v.getVideoPlaybackQuality?.();return{presentedFrameTime:this.presented?.time??null,presentedFrameAgeMs:this.presented?Math.max(0,Date.now()-this.presented.at):null,mediaElementTime:v.currentTime,syncSeekRequests:this.syncSeekRequests,gapSeekRequests:this.gapSeekRequests,muted:v.muted===true,soundBlocked:this.soundBlocked,soundRequested:this.soundRequested,playError:this.lastPlayError,mode:this.nativeWindow?'native-window':this.mode,fallbackReason:this.fallbackReason,packagingReason:this.packagingReason||null,errorCode:this.mediaErrorCode,width:v.videoWidth||0,height:v.videoHeight||0,playableAheadSeconds:ahead,windowSeconds:this.nativeWindow?(this.nativeWindow.end-this.nativeWindow.start)/1000:null,srcChanges:this.playbackMetrics.srcChanges,lastLoadMs:this.playbackMetrics.lastLoadMs,firstFrameMs:this.playbackMetrics.firstFrameMs,decodedFrames:q?.totalVideoFrames??v.webkitDecodedFrameCount??null,droppedFrames:q?.droppedVideoFrames??v.webkitDroppedFrameCount??null,mseErrorPhase:this.mseErrorPhase,mseErrorName:this.mseErrorName,mseEvictions:this.mseEvictions,mseQuotaRecoveries:this.mseQuotaRecoveries,decoderBufferedSeconds:bufferedSeconds,appendQueuePieces:this.queue.length,seekCount:this.seekCount,seekPendingMs:this.seekStarted===null?0:Math.max(0,Date.now()-this.seekStarted),longestSeekMs:this.longestSeekMs};
+      const q=v.getVideoPlaybackQuality?.();return{mseImplementation:this.mseImplementation,mseNormalized:this.normalizeMP4,mseProgramOriginSeconds:this.mseOrigin??null,presentedFrameTime:this.presented?.time??null,presentedFrameAgeMs:this.presented?Math.max(0,Date.now()-this.presented.at):null,mediaElementTime:v.currentTime,syncSeekRequests:this.syncSeekRequests,gapSeekRequests:this.gapSeekRequests,muted:v.muted===true,soundBlocked:this.soundBlocked,soundRequested:this.soundRequested,playError:this.lastPlayError,mode:this.nativeWindow?'native-window':this.mode,fallbackReason:this.fallbackReason,packagingReason:this.packagingReason||null,errorCode:this.mediaErrorCode,width:v.videoWidth||0,height:v.videoHeight||0,playableAheadSeconds:ahead,windowSeconds:this.nativeWindow?(this.nativeWindow.end-this.nativeWindow.start)/1000:null,srcChanges:this.playbackMetrics.srcChanges,lastLoadMs:this.playbackMetrics.lastLoadMs,firstFrameMs:this.playbackMetrics.firstFrameMs,decodedFrames:q?.totalVideoFrames??v.webkitDecodedFrameCount??null,droppedFrames:q?.droppedVideoFrames??v.webkitDroppedFrameCount??null,mseErrorPhase:this.mseErrorPhase,mseErrorName:this.mseErrorName,mseEvictions:this.mseEvictions,mseQuotaRecoveries:this.mseQuotaRecoveries,decoderBufferedSeconds:bufferedSeconds,appendQueuePieces:this.queue.length,seekCount:this.seekCount,seekPendingMs:this.seekStarted===null?0:Math.max(0,Date.now()-this.seekStarted),longestSeekMs:this.longestSeekMs};
     }
     sync(target){
       const v=this.video;
@@ -197,22 +212,23 @@
       if(target<0){v.pause();return {waiting:true,drift:null};}
       let localTarget=target,inRange=false;
       if(this.mode==='mse'){
+        localTarget=target-(this.mseOrigin||0);
         if(!this.sb)return {waiting:true,drift:null};
         for(let i=0;i<v.buffered.length;i++){
           const start=v.buffered.start(i),end=v.buffered.end(i);
-          if(target>=start&&target<end)inRange=true;
+          if(localTarget>=start&&localTarget<end)inRange=true;
           // Independently recorded AAC/video can leave a few unencoded samples
           // between pieces. Do not deliberately pause or repeatedly seek back
           // into that hole. Skip only a bounded, already-buffered capture gap;
           // actual programme position still reports the decoded media clock.
-          if(i>0&&target>=v.buffered.end(i-1)&&target<start&&start-v.buffered.end(i-1)<=.15){
+          if(i>0&&localTarget>=v.buffered.end(i-1)&&localTarget<start&&start-v.buffered.end(i-1)<=.15){
             try{this.seek(start+.001,'gap');inRange=true;}catch{}
           }
         }
         // A buffered Apple seek can fail to complete even though its target is
         // present. Do not keep seeking through that failure: use the existing
         // native player and the same verified pieces and group target.
-        if(inRange&&v.seeking&&this.seekStarted!==null&&Date.now()-this.seekStarted>1500&&(!this.presented||Date.now()-this.presented.at>500||Math.abs(target-this.presented.time)>.75)&&this.nativeMime){
+        if(inRange&&v.seeking&&this.seekStarted!==null&&Date.now()-this.seekStarted>1500&&(!this.presented||Date.now()-this.presented.at>500||Math.abs(localTarget-this.presented.time)>.75)&&this.nativeMime){
           this.fallback('Trying another player after playback stopped.','seek-stalled');return this.sync(target);
         }
         // Managed buffers may evict data independently. Repair from our verified
@@ -238,7 +254,7 @@
       // Repeated fractional rate writes can silence/stall native Apple file playback.
       // Keep that path at normal speed; bounded seeks still enforce the group clock.
       const drift=localTarget-this.mediaTime();
-      try{if(Math.abs(drift)>.75)this.seek(localTarget,'clock');else if(!v.seeking){const rate=1;if(v.playbackRate!==rate)v.playbackRate=rate;}}catch(e){return {waiting:true,drift:null};}
+      try{if(Math.abs(drift)>.75)this.seek(localTarget,'clock');else if(!v.seeking&&v.playbackRate!==1)v.playbackRate=1;}catch(e){return {waiting:true,drift:null};}
       this.play().catch(()=>{});
       return {waiting:false,drift,playing:!v.paused};
     }
@@ -246,7 +262,7 @@
     // This deliberately differs from a desired clock target: tests need actual playout.
     programTime(){
       if(this.closed||this.nativeLoading||this.video.readyState<2)return null;
-      if(this.mode==='mse')return this.mediaTime();
+      if(this.mode==='mse')return (this.mseOrigin||0)+this.mediaTime();
       if(this.nativeWindow)return (this.nativeWindow.start-this.epoch)/1000+this.mediaTime();
       const piece=this.pieces.find(p=>p.meta.seq===this.current);
       return piece?(piece.meta.start-this.epoch)/1000+this.mediaTime():null;
@@ -273,7 +289,7 @@
       this.video.pause();this.video.removeAttribute('src');this.video.load();
       if(this.sourceURL)URL.revokeObjectURL(this.sourceURL);
       for(const url of this.urls.values())URL.revokeObjectURL(url);
-      this.urls.clear();this.queue=[];this.queueBytes=0;this.pieces=[];this.pieceBytes=0;this.sb=null;this.source=null;
+      this.urls.clear();this.queue=[];this.queueBytes=0;this.pieces=[];this.pieceBytes=0;this.sb=null;this.source=null;this.fragmentStream=null;
     }
   }
   window.SameEndMedia={allowedMime,recordingMime,canPlay,nativeMP4,Player};

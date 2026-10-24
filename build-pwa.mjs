@@ -14,7 +14,7 @@ const browserCompat=await readFile(path.join(dir,'browser-compat.js'),'utf8');
 const compatPattern=/(<script id="browser-compat">)[\s\S]*?(<\/script>)/;
 if(!compatPattern.test(html))throw Error('Embedded browser compatibility shim is missing.');
 html=html.replace(compatPattern,(_,open,close)=>open+browserCompat+close);
-const mediaPlayer=(await readFile(path.join(dir,'native-mp4.js'),'utf8'))+'\n'+await readFile(path.join(dir,'media-player.js'),'utf8');
+const mediaPlayer=(await readFile(path.join(dir,'capture-normalize.js'),'utf8'))+'\n'+(await readFile(path.join(dir,'native-mp4.js'),'utf8'))+'\n'+await readFile(path.join(dir,'media-player.js'),'utf8');
 const mediaPattern=/(<script id="same-end-media">)[\s\S]*?(<\/script>)/;
 if(!mediaPattern.test(html))throw Error('Embedded media helper slot is missing.');
 html=html.replace(mediaPattern,(_,open,close)=>open+mediaPlayer+close);
