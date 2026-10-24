@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {webcrypto} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
+import {encodeBundle,decodeBundle} from '../hls-protocol.js';
 
 const engine = await readFile(new URL('../engine.js', import.meta.url), 'utf8');
 const deliveryCode = await readFile(new URL('../delivery-health.js', import.meta.url), 'utf8');
@@ -27,14 +28,14 @@ function harness(overrides = {}) {
   };
   const window = {};
   const ctx = {
-    window, state, sent, crypto:webcrypto, enc, TextEncoder, TextDecoder, Uint8Array, ArrayBuffer,
+    window, state, sent, SameEndHLS:{decodeBundle}, crypto:webcrypto, enc, TextEncoder, TextDecoder, Uint8Array, ArrayBuffer,
     Number, Math, JSON, Set, Map, Promise, Error, Date, Buffer,
     btoa:value=>Buffer.from(value,'binary').toString('base64'),
     atob:value=>Buffer.from(value,'base64').toString('binary'),
     performance:{now:()=>nowValue},
     now:()=>nowValue, MAX_CLIP:4*1024*1024, MAX_CACHE:192*1024*1024,
     SameEndDelivery:window.SameEndDelivery,
-    log:()=>{}, update:()=>{}, stageWindow:()=>{}, renderDelivery:()=>{},verifiedReserve:()=>5,
+    log:()=>{}, update:()=>{}, lifecycle:()=>{ctx.lifecycleCount=(ctx.lifecycleCount||0)+1}, stageWindow:()=>{}, renderDelivery:()=>{},verifiedReserve:()=>5,
     cleanCache:()=>{},
     send:(peer,message)=>sent.push({peer,message}),
     downstream:()=>[...state.peers.values()].filter(p=>p.direction==='down'&&!p.closed),
@@ -51,6 +52,7 @@ function harness(overrides = {}) {
   const hashLine=engine.split('\n').find(line=>line.startsWith('const hash='));
   for (const line of [b64Line,un64Line,canonicalLine,identityLine,hashLine]) assert.ok(line);
   vm.runInContext([
+    engine.split('\n').find(line=>line.startsWith('function isHlsConfig(')),
     b64Line.replace('const b64=','globalThis.b64='),
     un64Line.replace('const un64=','globalThis.un64='),
     canonicalLine.replace('const canonical=','globalThis.canonical='),
@@ -70,7 +72,7 @@ function harness(overrides = {}) {
 
 async function signedPiece(ctx,{seq=1,start=nowValue,duration=2000,bytes=new Uint8Array([1,2,3,4])}={}) {
   const buf=bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength);
-  const meta={v:2,cast:'cast-1',sourceId:'source-1',sourceEpoch:0,programId:'match-1',programStartTime:start-ctx.state.config.epoch,alignmentVersion:1,seq,start,duration,size:buf.byteLength,mime:'video/webm',hash:await ctx.hash(buf)};
+  const meta={v:2,cast:'cast-1',sourceId:'source-1',sourceEpoch:0,programId:'match-1',programStartTime:start-ctx.state.config.epoch,alignmentVersion:1,seq,start,duration,size:buf.byteLength,mime:ctx.state.config.mime,hash:await ctx.hash(buf)};
   meta.sig=ctx.b64(new Uint8Array(await webcrypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},keyPair.privateKey,enc.encode(ctx.canonical(meta)))));
   return {meta,buf};
 }
@@ -198,4 +200,20 @@ test('viewer can change only its local player without replacing the cast, clock 
  const ctx={state,Error,stageWindow:()=>calls.push('stage'),syncPlayback:()=>calls.push('sync'),status:()=>{},update:()=>{}};vm.createContext(ctx);vm.runInContext(sliceBetween('function useAlternativePlayer(){','function download('),ctx);ctx.useAlternativePlayer();
  assert.deepEqual(calls,['manual-compatibility','stage','sync']);assert.equal(state.config,config);assert.equal(state.offset,40);assert.equal(state.peers,peers);assert.equal(state.clockReady,true);
  state.player.mode='mse';state.role='source';assert.throws(()=>ctx.useAlternativePlayer());assert.equal(state.player.mode,'mse');
+});
+
+test('HLS transport preserves short final intervals and rejects signed envelope timeline mismatch before accounting',async()=>{
+ const {ctx,state,sent}=harness();Object.assign(state.config,{mime:'application/vnd.apple.mpegurl',mediaProfile:'hls-cmaf-v1'});
+ const buf=encodeBundle({start:60,duration:.042667,playlistStart:60,files:[{path:'master.m3u8',mime:'application/vnd.apple.mpegurl',bytes:enc.encode('#EXTM3U\n')}]});
+ const piece=await signedPiece(ctx,{bytes:new Uint8Array(buf),duration:42.667});
+ const mismatch={...piece,meta:{...piece.meta,programStartTime:61000,start:nowValue+1000}};
+ mismatch.meta.sig=ctx.b64(new Uint8Array(await webcrypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},keyPair.privateKey,enc.encode(ctx.canonical(mismatch.meta)))));
+ await assert.rejects(()=>ctx.acceptSegment(mismatch.meta,piece.buf,{deliveryVersion:1}),/signed programme interval/);
+ assert.equal(state.received,0);assert.equal(state.seen.size,0);assert.equal(state.cacheBytes,0);assert.equal(sent.length,0);
+ await ctx.acceptSegment(piece.meta,piece.buf,{deliveryVersion:1,highestSeq:-1});assert.equal(state.received,1);assert.equal(state.cache.length,1);assert.equal(sent.length,1);
+});
+
+
+test('authenticated first hello reveals chat once and duplicate hellos do not repeat lifecycle',async()=>{
+ const {ctx:h}=harness();vm.runInContext(sliceBetween('async function handleControl(', 'function dropPeer('),h);const p={direction:'up',ready:false,lastControlAt:0};await h.handleControl(p,{type:'hello',cast:'cast-1',label:'Generated peer'});assert.equal(p.ready,true);assert.equal(h.lifecycleCount,1);await h.handleControl(p,{type:'hello',cast:'cast-1'});assert.equal(h.lifecycleCount,1);
 });

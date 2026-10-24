@@ -44,7 +44,7 @@ On every device, open **Room settings & help → Your test report**. Local loggi
 
 The static app and fixture list are public. A small cloud control service stores encrypted club details, chat and the current live invitation, plus the timing and browser subscription metadata needed for reminders. It does not carry or store the video, subscription-service credentials or club decryption keys.
 
-The captured video travels between peers over WebRTC. WebTorrent introduces peers using a tiny encrypted descriptor and a custom extension carrying source-signed video pieces. Each laptop supplies at most two downstream viewers. An ordinary torrent player cannot play this custom live format.
+The captured video travels between peers over WebRTC. WebTorrent introduces peers using a tiny encrypted descriptor and a custom extension carrying source-signed video pieces. Each laptop supplies at most two downstream viewers. New rooms carry standard HLS playlists and CMAF H.264/AAC segments in authenticated transport envelopes. An ordinary torrent client cannot join this live transport. See [the standards-based playback architecture](docs/standard-hls.md).
 
 A lost supplier triggers a bounded search for another authenticated supplier of the same cast. The app preserves its shared clock, verified cache and downstream peers. A relay leaving does not impersonate a whole-source shutdown; an explicit source-signed end propagates. If the original capture disappears, saved pieces cannot supply future video. Independent-capture backup switching is a protocol foundation only; see [backup protocol](docs/backup-protocol.md).
 
@@ -56,17 +56,18 @@ Web Push is optional and best effort. Its generic notification opens a club alre
 
 A four-context installed-Chrome rehearsal on one Mac used the actual public tracker and decoded synthetic video/audio. Losing a relay's upstream preserved its downstream viewer, clock and cache while it reparented. Closing the relay browser led its child to reattach after about 17.7 seconds, with one measured stall in the ten-second quick-test delay. An explicit signed source end stopped the surviving viewers. A separate actual-source-loss check preserved the viewer session and played only the remaining cached window before pausing.
 
-Those checks do not establish different-home delivery, physical phone support, long-event stability or seamless independent-source switching. Source sharing is intended for computer browsers. Phones and tablets join as viewers; phone screen capture is not an established workflow. Public tracker discovery can fail or take time. There is no TURN media-relay fallback, so some routers, VPNs and firewalls prevent direct connections. Recovery cannot guarantee uninterrupted playback, and clip boundaries can be visible or audible. The delay is cooperative synchronisation, not copy protection.
+Those checks do not establish different-home delivery, physical phone support, long-event stability or seamless independent-source switching. Source sharing is intended for computer browsers. Phones and tablets join as viewers; phone screen capture is not an established workflow. Public tracker discovery can fail or take time. There is no TURN media-relay fallback, so some routers, VPNs and firewalls prevent direct connections. Recovery cannot guarantee uninterrupted playback. New rooms use continuous HLS/CMAF; old invitations retain the legacy clip player and its limitations. The delay is cooperative synchronisation, not copy protection.
 
 The control backend has focused local tests for permissions, encrypted-envelope limits, retention, concurrency and reminder scheduling. Local tests, AWS deployment, public browser checks, push-provider acceptance and visible device notification are separate evidence states. Deployment resources and pilot limits are described in [the control-service review](backend/REVIEW.html).
 
 ## Run and build
 
-The static app requires Node.js 20 or newer and has no install-time dependencies:
+The static app requires Node.js 20 or newer. Install the pinned build and media libraries before building:
 
 ```sh
 git clone https://github.com/ezzye/same-end.git
 cd same-end
+npm ci
 npm run build
 npm start
 ```
@@ -91,7 +92,7 @@ Club records expire 400 days after their last organiser update; server chat expi
 
 Use material you are entitled to capture and share. Same End does not bypass DRM, subscription controls or geographic restrictions. Providers can prohibit or block capture. Recipients can retain material they receive.
 
-Original code: MIT. WebTorrent: MIT; attribution in [THIRD_PARTY.md](THIRD_PARTY.md) and `vendor/WEBTORRENT-LICENSE.txt`.
+Original code: MIT. WebTorrent: MIT; hls.js: Apache-2.0; Mediabunny: MPL-2.0. Versioned source links and full notices are in [THIRD_PARTY.md](THIRD_PARTY.md), `vendor/` and the delivered app.
 
 Fresh app entry: `/watch.html` avoids the older app-shell cache. Current service workers fetch page navigations from the network and fall back to the fixed cached shell offline; active viewing is never reloaded by this navigation policy.
 
