@@ -365,51 +365,85 @@ window.WebTorrent=SameEndTorrentModule.default;
 (() => {
   'use strict';
   // 720p at25fps needs H.264 level3.1; level3.0 underspecifies capture.
-  const MP4_AUDIO='video/mp4;codecs=avc1.42001f,mp4a.40.2';
-  const MP4_VIDEO='video/mp4;codecs=avc1.42001f';
-  const MIMES=[MP4_AUDIO,MP4_VIDEO,'video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4;codecs=avc1.42E01E','video/mp4','video/webm;codecs=vp8,opus','video/webm;codecs=vp8'];
+  // Tab capture may change size while recording (including fullscreen changes).
+  // avc3 carries updated H.264 parameter sets in-band; avc1 only writes the
+  // initial configuration and can fail Mac hardware decoding after a resize.
+  const MP4_AUDIO='video/mp4;codecs=avc3.42001f,mp4a.40.2';
+  const MP4_VIDEO='video/mp4;codecs=avc3.42001f';
+  const MP4_AUDIO_LEGACY='video/mp4;codecs=avc1.42001f,mp4a.40.2';
+  const MP4_VIDEO_LEGACY='video/mp4;codecs=avc1.42001f';
+  const MIMES=[MP4_AUDIO,MP4_VIDEO,MP4_AUDIO_LEGACY,MP4_VIDEO_LEGACY,'video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4;codecs=avc1.42E01E','video/mp4','video/webm;codecs=vp8,opus','video/webm;codecs=vp8'];
   const allowedMime=m=>MIMES.includes(m);
+  function nativeMime(mime,video){
+    if(video.canPlayType(mime))return mime;
+    const legacy=mime.replace('codecs=avc3.','codecs=avc1.');
+    return legacy!==mime&&video.canPlayType(legacy)?legacy:null;
+  }
+  // Some native Apple players accept H.264 but reject the avc3 sample-entry
+  // label. Relabel only MP4 headers on a playback copy, retaining all encoded
+  // parameter sets, audio, timing and the original signed/forwarded bytes.
+  function nativeMP4(buffer){
+    const bytes=ArrayBuffer.isView(buffer)?new Uint8Array(buffer.buffer,buffer.byteOffset,buffer.byteLength):new Uint8Array(buffer);
+    const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength),edits=[];
+    const text=p=>String.fromCharCode(...bytes.subarray(p,p+4));
+    function walk(start,end,depth){
+      if(depth>8)return false;
+      for(let p=start;p<end;){
+        if(p+8>end)return false;const size=view.getUint32(p),type=text(p+4);
+        if(size<8||p+size>end)return false;
+        if(type==='ftyp'){for(let q=p+8;q+4<=p+size;q+=4)if(q!==p+12&&text(q)==='avc3')edits.push(q);}
+        else if(['moov','trak','mdia','minf','stbl'].includes(type)){if(!walk(p+8,p+size,depth+1))return false;}
+        else if(type==='stsd'){
+          if(size<16)return false;let q=p+16;const count=view.getUint32(p+12);if(count>32)return false;
+          for(let n=0;n<count;n++){if(q+8>p+size)return false;const length=view.getUint32(q);if(length<8||q+length>p+size)return false;if(text(q+4)==='avc3')edits.push(q+4);q+=length;}
+        }
+        p+=size;
+      }return true;
+    }
+    if(!walk(0,bytes.length,0)||!edits.length)return buffer;
+    const copy=bytes.slice();for(const offset of edits)copy[offset+3]=49;return copy;
+  }
   function recordingMime(audio){
     if(!window.MediaRecorder)return null;
-    const choices=audio?[MP4_AUDIO,'video/mp4','video/webm;codecs=vp8,opus']:[MP4_VIDEO,'video/mp4','video/webm;codecs=vp8'];
-    return choices.find(m=>MediaRecorder.isTypeSupported(m))||null;
+    const choices=audio?[MP4_AUDIO,MP4_AUDIO_LEGACY,'video/mp4','video/webm;codecs=vp8,opus']:[MP4_VIDEO,MP4_VIDEO_LEGACY,'video/mp4','video/webm;codecs=vp8'];
+    return choices.find(m=>MediaRecorder.isTypeSupported(m)&&(sourceConstructor(m)||document.createElement('video').canPlayType(m)))||null;
   }
   function sourceConstructor(mime){
     return [window.MediaSource,window.ManagedMediaSource].find(C=>C&&typeof C.isTypeSupported==='function'&&C.isTypeSupported(mime));
   }
   function canPlay(mime,video=document.createElement('video')){
-    return allowedMime(mime)&&!!(sourceConstructor(mime)||video.canPlayType(mime));
+    return allowedMime(mime)&&!!(sourceConstructor(mime)||nativeMime(mime,video));
   }
   class Player {
     constructor(video,mime,{onError=()=>{},onMode=()=>{}}={}){
       if(!canPlay(mime,video))throw Error('This browser cannot play this cast. Ask the host to start a fresh room in updated Chrome, Edge or Safari so it uses iPhone-compatible MP4.');
-      this.video=video;this.mime=mime;this.onError=onError;this.onMode=onMode;
-      this.queue=[];this.queueBytes=0;this.pieces=[];this.pieceBytes=0;this.urls=new Map();this.mode='clips';this.closed=false;this.blocked=false;this.current=null;this.loading=false;this.duration=0;this.demand=true;this.lastRepair=0;
+      this.video=video;this.mime=mime;this.nativeMime=nativeMime(mime,video);this.onError=onError;this.onMode=onMode;
+      this.queue=[];this.queueBytes=0;this.pieces=[];this.pieceBytes=0;this.urls=new Map();this.mode='clips';this.fallbackReason='unsupported-mse';this.mediaErrorCode=null;this.closed=false;this.blocked=false;this.current=null;this.loading=false;this.duration=0;this.demand=true;this.lastRepair=0;
       video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');
       // Required for iPhone ManagedMediaSource without a separate AirPlay URL.
       video.disableRemotePlayback=true;video.preload='auto';video.autoplay=true;
-      this.onVideoError=()=>{if(this.closed)return;if(this.mode==='mse')this.fallback('Streaming buffer unavailable; using compatibility playback.');else this.onError('This device could not decode the picture. Ask the host to start a new room using MP4 in updated Chrome, Edge or Safari.');};
+      this.onVideoError=()=>{if(this.closed)return;const code=video.error?.code;this.mediaErrorCode=Number.isInteger(code)&&code>=1&&code<=4?code:null;if(this.mode==='mse')this.fallback('Streaming buffer unavailable; using compatibility playback.','decode-error');else this.onError('This device could not decode the picture. Ask the host to start a new room using MP4 in updated Chrome, Edge or Safari.');};
       video.addEventListener('error',this.onVideoError);
       const C=sourceConstructor(mime);
       if(C){
-        this.mode='mse';this.source=new C();this.sourceURL=URL.createObjectURL(this.source);
+        this.mode='mse';this.fallbackReason=null;this.source=new C();this.sourceURL=URL.createObjectURL(this.source);
         this.source.addEventListener('sourceopen',()=>{if(this.closed||this.mode!=='mse')return;clearTimeout(this.openTimer);try{
           this.sb=this.source.addSourceBuffer(mime);this.sb.mode='segments';
           this.sb.addEventListener('updateend',()=>this.pump());
-          this.sb.addEventListener('error',()=>this.fallback('Using compatibility playback after a buffer error.'));
+          this.sb.addEventListener('error',()=>this.fallback('Using compatibility playback after a buffer error.','buffer-error'));
           this.pump();
-        }catch(e){this.fallback('Using compatibility playback for this browser.');}},{once:true});
+        }catch(e){this.fallback('Using compatibility playback for this browser.','buffer-open');}},{once:true});
         this.source.addEventListener('startstreaming',()=>{this.demand=true;this.pump();});
         this.source.addEventListener('endstreaming',()=>{this.demand=false;});
         video.src=this.sourceURL;
-        this.openTimer=setTimeout(()=>{if(!this.sb)this.fallback('Using compatibility playback for this browser.');},5000);
+        this.openTimer=setTimeout(()=>{if(!this.sb)this.fallback('Using compatibility playback for this browser.','open-timeout');},5000);
       }
       this.onMode(this.mode);
     }
-    fallback(message){
+    fallback(message,reason='unknown'){
       if(this.closed||this.mode==='clips')return;
-      if(!this.video.canPlayType(this.mime)){this.onError('This browser cannot play this cast format. Ask the host to start a fresh MP4 room in updated Chrome, Edge or Safari.');return;}
-      clearTimeout(this.openTimer);this.mode='clips';this.sb=null;this.queue=[];this.queueBytes=0;
+      if(!this.nativeMime){this.onError('This browser cannot play this cast format. Ask the host to start a fresh MP4 room in updated Chrome, Edge or Safari.');return;}
+      clearTimeout(this.openTimer);this.mode='clips';this.fallbackReason=reason;this.sb=null;this.queue=[];this.queueBytes=0;
       this.video.pause();this.video.removeAttribute('src');this.video.load();
       if(this.sourceURL)URL.revokeObjectURL(this.sourceURL);this.sourceURL=null;this.source=null;
       this.onMode(this.mode,message);
@@ -426,10 +460,10 @@ window.WebTorrent=SameEndTorrentModule.default;
         const t=this.video.currentTime;
         if(t>18&&sb.buffered.length&&sb.buffered.start(0)<t-14){sb.remove(0,t-12);return;}
         const piece=this.queue.shift();this.queueBytes-=piece.buf.byteLength;sb.timestampOffset=(piece.meta.start-this.epoch)/1000;sb.appendBuffer(piece.buf);
-      }catch(e){this.fallback('Using compatibility playback after a buffer error.');}
+      }catch(e){this.fallback('Using compatibility playback after a buffer error.','buffer-append');}
     }
     urlFor(piece){
-      if(!this.urls.has(piece.meta.seq))this.urls.set(piece.meta.seq,URL.createObjectURL(new Blob([piece.buf],{type:this.mime})));
+      if(!this.urls.has(piece.meta.seq))this.urls.set(piece.meta.seq,URL.createObjectURL(new Blob([this.nativeMime!==this.mime?nativeMP4(piece.buf):piece.buf],{type:this.nativeMime||this.mime})));
       for(const [seq,url] of this.urls)if(seq!==piece.meta.seq&&!this.pieces.some(p=>p.meta.seq===seq)){URL.revokeObjectURL(url);this.urls.delete(seq);}
       return this.urls.get(piece.meta.seq);
     }
@@ -440,7 +474,17 @@ window.WebTorrent=SameEndTorrentModule.default;
       let localTarget=target,inRange=false;
       if(this.mode==='mse'){
         if(!this.sb)return {waiting:true,drift:null};
-        for(let i=0;i<v.buffered.length;i++)if(target>=v.buffered.start(i)&&target<v.buffered.end(i)-.04)inRange=true;
+        for(let i=0;i<v.buffered.length;i++){
+          const start=v.buffered.start(i),end=v.buffered.end(i);
+          if(target>=start&&target<end)inRange=true;
+          // Independently recorded AAC/video can leave a few unencoded samples
+          // between pieces. Do not deliberately pause or repeatedly seek back
+          // into that hole. Skip only a bounded, already-buffered capture gap;
+          // actual programme position still reports the decoded media clock.
+          if(i>0&&target>=v.buffered.end(i-1)&&target<start&&start-v.buffered.end(i-1)<=.15){
+            try{v.currentTime=start+.001;inRange=true;}catch{}
+          }
+        }
         // Managed buffers may evict data independently. Repair from our verified
         // bounded piece cache without changing the shared playback clock.
         if(!inRange&&!this.sb.updating&&Date.now()-this.lastRepair>1200){const absolute=this.epoch+target*1000,piece=this.pieces.find(p=>absolute>=p.meta.start&&absolute<p.meta.start+p.meta.duration);if(piece&&!this.queue.some(p=>p.meta.seq===piece.meta.seq)){this.lastRepair=Date.now();this.queue.unshift(piece);this.queueBytes+=piece.buf.byteLength;while(this.queue.length>20||this.queueBytes>20*1024*1024)this.queueBytes-=this.queue.pop().buf.byteLength;this.pump();}}
@@ -485,7 +529,7 @@ window.WebTorrent=SameEndTorrentModule.default;
       this.urls.clear();this.queue=[];this.queueBytes=0;this.pieces=[];this.pieceBytes=0;this.sb=null;this.source=null;
     }
   }
-  window.SameEndMedia={allowedMime,recordingMime,canPlay,Player};
+  window.SameEndMedia={allowedMime,recordingMime,canPlay,nativeMP4,Player};
 })();
 </script>
 <style id="invite-check-style">.invite-check,.invite-check *{box-sizing:border-box;min-width:0}
@@ -1011,8 +1055,8 @@ window.SameEndInviteSample="AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAbAbW9v
 <script id="diagnostics-core">(function(root) {
   "use strict";
   const KEY = "same-end-diagnostics-v1", SAMPLE_MS = 5e3, MAX_SAMPLES = 1440, MAX_EVENTS = 200, MAX_BYTES = 2 * 1024 * 1024;
-  const enums = { role: ["source", "viewer"], recovery: ["idle", "searching", "connected", "exhausted", "manual-rejoin", "stopped"], reason: ["none", "timeout", "network", "source-ended", "no-supplier", "manual", "unknown", "media-stalled", "supplier-failed", "supplier-disconnected", "automatic-retry", "supplier-unresponsive", "source-path-stalled", "source-progress-stalled"], audio: ["checking", "sound", "quiet", "no-track", "unavailable"], health: ["healthy", "supplier-unresponsive", "source-path-stalled", "source-progress-stalled", "upstream-recovering"], mark: ["sound-heard", "picture-ok", "chat-ok", "no-sound", "picture-frozen", "out-of-sync", "chat-problem", "connection-lost", "relay-leaving", "network-change"], finish: ["ended", "left", "closed", "interrupted", "recording-stopped", "unknown"] };
-  const fields = ["delay", "programTime", "targetProgramTime", "drift", "reserveSeconds", "bufferedSeconds", "received", "sentBytes", "stalls", "recoveryCount", "attempts", "aggregateMbps", "queue", "peerCount", "ready", "paused", "muted", "volume", "decodedFrames", "playbackBlocked", "visible", "online", "sourceReachable", "sourceEnded", "clockReady", "clockOffsetMs", "pendingBytes", "oldestPendingMs", "congestedChildren", "measuredChildren", "relayLimit", "forwardingCount", "controlFailures", "chatMessageCount"];
+  const enums = { role: ["source", "viewer"], recovery: ["idle", "searching", "connected", "exhausted", "manual-rejoin", "stopped"], reason: ["none", "timeout", "network", "source-ended", "no-supplier", "manual", "unknown", "media-stalled", "supplier-failed", "supplier-disconnected", "automatic-retry", "supplier-unresponsive", "source-path-stalled", "source-progress-stalled"], audio: ["checking", "sound", "quiet", "no-track", "unavailable"], health: ["healthy", "supplier-unresponsive", "source-path-stalled", "source-progress-stalled", "upstream-recovering"], playbackMode: ["mse", "clips"], playbackFallbackReason: ["unsupported-mse", "decode-error", "buffer-open", "buffer-error", "buffer-append", "open-timeout", "unknown"], mark: ["sound-heard", "picture-ok", "chat-ok", "no-sound", "picture-frozen", "out-of-sync", "chat-problem", "connection-lost", "relay-leaving", "network-change"], finish: ["ended", "left", "closed", "interrupted", "recording-stopped", "unknown"] };
+  const fields = ["delay", "programTime", "targetProgramTime", "drift", "reserveSeconds", "bufferedSeconds", "received", "sentBytes", "stalls", "recoveryCount", "attempts", "aggregateMbps", "queue", "peerCount", "ready", "paused", "muted", "volume", "decodedFrames", "droppedFrames", "mediaErrorCode", "playbackBlocked", "visible", "online", "sourceReachable", "sourceEnded", "clockReady", "clockOffsetMs", "pendingBytes", "oldestPendingMs", "congestedChildren", "measuredChildren", "relayLimit", "forwardingCount", "controlFailures", "chatMessageCount"];
   function num(v) {
     return typeof v === "number" && Number.isFinite(v) ? Math.max(-1e12, Math.min(1e12, v)) : null;
   }
@@ -1037,13 +1081,15 @@ window.SameEndInviteSample="AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAbAbW9v
     const o = {};
     for (const k of fields) {
       let v = x[k];
-      o[k] = k === "ready" ? typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(4, v)) : null : ["paused", "muted", "playbackBlocked", "visible", "online", "sourceReachable", "sourceEnded", "clockReady"].includes(k) ? bool(v) : k === "drift" || k === "programTime" || k === "targetProgramTime" || k === "clockOffsetMs" ? num(v) : count(v);
+      o[k] = k === "ready" ? typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(4, v)) : null : k === "mediaErrorCode" ? Number.isInteger(v) && v >= 1 && v <= 4 ? v : null : ["paused", "muted", "playbackBlocked", "visible", "online", "sourceReachable", "sourceEnded", "clockReady"].includes(k) ? bool(v) : k === "drift" || k === "programTime" || k === "targetProgramTime" || k === "clockOffsetMs" ? num(v) : count(v);
     }
     o.role = pick(x.role, enums.role);
     o.recovery = pick(x.recovery, enums.recovery);
     o.reason = pick(x.reason, enums.reason);
     o.supplierHealth = pick(x.supplierHealth, enums.health);
     o.sourceAudio = pick(x.sourceAudio, enums.audio);
+    o.playbackMode = pick(x.playbackMode, enums.playbackMode);
+    o.playbackFallbackReason = x.playbackFallbackReason === null ? null : pick(x.playbackFallbackReason, enums.playbackFallbackReason);
     return o;
   }
   function safeEventValue(e) {
@@ -1166,7 +1212,7 @@ window.SameEndInviteSample="AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAbAbW9v
     else if (!cfg && this.session && !this.session.endedAt) this.finish("ended");
     if (!this.session || this.session.endedAt) return this.summary();
     const d = snapshot.delivery || {}, r = snapshot.recovery || {}, p = playerFacts || {}, env = environment || {};
-    const state = safeState({ role: snapshot.role, delay: cfg?.delay, programTime: snapshot.programTime, targetProgramTime: snapshot.targetProgramTime, drift: snapshot.drift, reserveSeconds: snapshot.reserveSeconds, bufferedSeconds: snapshot.bufferedSeconds, received: snapshot.received, sentBytes: snapshot.sentBytes, stalls: snapshot.stalls, recovery: r.state, recoveryCount: r.recoveries, attempts: r.attempts, reason: r.reason, sourceReachable: snapshot.sourceReachable, sourceEnded: snapshot.sourceEnded, supplierHealth: snapshot.supplierHealth, sourceAudio: snapshot.sourceAudio?.status, clockReady: snapshot.clockReady, clockOffsetMs: snapshot.offset, aggregateMbps: d.measured === true ? d.deliveredMbps : null, pendingBytes: Array.isArray(d.peers) ? d.peers.reduce((a, p2) => a + (count(p2?.pendingBytes) || 0), 0) : null, oldestPendingMs: Array.isArray(d.peers) ? d.peers.reduce((a, p2) => Math.max(a, count(p2?.oldestPendingMs) || 0), 0) : null, congestedChildren: Array.isArray(d.peers) ? d.peers.filter((p2) => p2?.health === "congested").length : null, measuredChildren: Array.isArray(d.peers) ? d.peers.filter((p2) => p2?.measured === true).length : null, relayLimit: d.relayLimit, forwardingCount: Array.isArray(d.peers) ? d.peers.length : null, controlFailures: env.controlFailures, chatMessageCount: env.chatMessageCount, queue: Array.isArray(snapshot.peers) ? snapshot.peers.reduce((a, q) => a + (Number.isFinite(q?.queued) ? q.queued : Number.isFinite(q?.queuedBytes) ? q.queuedBytes : 0), 0) : null, peerCount: Array.isArray(snapshot.peers) ? snapshot.peers.length : null, ready: p.ready, paused: p.paused, muted: p.muted, volume: p.volume, decodedFrames: p.decodedFrames, playbackBlocked: p.playbackBlocked, visible: env.visible, online: env.online });
+    const state = safeState({ role: snapshot.role, delay: cfg?.delay, programTime: snapshot.programTime, targetProgramTime: snapshot.targetProgramTime, drift: snapshot.drift, reserveSeconds: snapshot.reserveSeconds, bufferedSeconds: snapshot.bufferedSeconds, received: snapshot.received, sentBytes: snapshot.sentBytes, stalls: snapshot.stalls, recovery: r.state, recoveryCount: r.recoveries, attempts: r.attempts, reason: r.reason, sourceReachable: snapshot.sourceReachable, sourceEnded: snapshot.sourceEnded, supplierHealth: snapshot.supplierHealth, sourceAudio: snapshot.sourceAudio?.status, clockReady: snapshot.clockReady, clockOffsetMs: snapshot.offset, playbackMode: snapshot.playbackMode, playbackFallbackReason: snapshot.playbackFallbackReason, mediaErrorCode: snapshot.mediaErrorCode, aggregateMbps: d.measured === true ? d.deliveredMbps : null, pendingBytes: Array.isArray(d.peers) ? d.peers.reduce((a, p2) => a + (count(p2?.pendingBytes) || 0), 0) : null, oldestPendingMs: Array.isArray(d.peers) ? d.peers.reduce((a, p2) => Math.max(a, count(p2?.oldestPendingMs) || 0), 0) : null, congestedChildren: Array.isArray(d.peers) ? d.peers.filter((p2) => p2?.health === "congested").length : null, measuredChildren: Array.isArray(d.peers) ? d.peers.filter((p2) => p2?.measured === true).length : null, relayLimit: d.relayLimit, forwardingCount: Array.isArray(d.peers) ? d.peers.length : null, controlFailures: env.controlFailures, chatMessageCount: env.chatMessageCount, queue: Array.isArray(snapshot.peers) ? snapshot.peers.reduce((a, q) => a + (Number.isFinite(q?.queued) ? q.queued : Number.isFinite(q?.queuedBytes) ? q.queuedBytes : 0), 0) : null, peerCount: Array.isArray(snapshot.peers) ? snapshot.peers.length : null, ready: p.ready, paused: p.paused, muted: p.muted, volume: p.volume, decodedFrames: p.decodedFrames, droppedFrames: p.droppedFrames, playbackBlocked: p.playbackBlocked, visible: env.visible, online: env.online });
     this.session.counts.observations++;
     const prev = this.lastState;
     if (prev) {
@@ -1491,7 +1537,7 @@ state.nodeId=crypto.randomUUID();window.PrivateCast={joinMagnet,canRetryJoin,ret
   stallOutgoing:({enabled,peerId}={})=>{stallOutgoing=enabled?(peerId||true):null;return !!stallOutgoing;},
   stallIncoming:({enabled}={})=>{const p=[...state.peers.values()].find(p=>p.direction==='up'&&!p.closed);stallIncoming=enabled?p?.id||null:null;return !!stallIncoming;},
   disconnectUpstream:()=>{if(!state.config||state.role!=='viewer')return false;const p=[...state.peers.values()].find(p=>p.direction==='up');if(!p)return false;dropPeer(p,'Rehearsal: this viewer disconnected its own supplying connection.');return true;}
-},snapshot:()=>({joiningBusy:magnetBusy,network:magnetTransport?.snapshot()?.network||lastNetworkCheck,playbackBlocked:state.player?.blocked===true,programTime:state.player?.programTime()??null,targetProgramTime:state.config&&state.clockReady?(now()+state.offset-state.config.epoch)/1000-state.config.delay:null,reserveSeconds:verifiedReserve(),delivery:deliverySnapshot(),supplierHealth:state.supplierHealth||null,sourceAudio:sourceAudioState?{...sourceAudioState}:null,nodeId:state.nodeId,trail:[...(state.trail||[])],supplier:state.supplier,recovery:{...state.recovery},stalls:state.stalls,sourceReachable:state.sourceReachable,sourceEnded:state.sourceEnded,lastReceivedAt:state.lastReceivedAt,transport:magnetTransport?.snapshot()||null,role:state.role,active:state.active,playbackMode:state.player?.mode||null,mime:state.config?.mime||null,config:state.config?{id:state.config.id,delay:state.config.delay,epoch:state.config.epoch,audio:state.config.audio,sourceId:state.config.sourceId,sourceEpoch:state.config.sourceEpoch,programId:state.config.programId,segmentVersion:state.config.segmentVersion}:null,received:state.received,sentBytes:state.sent,cacheBytes:state.cacheBytes,cacheSegments:state.cache.length,cacheOldest:state.cache[0]?.meta.start??null,paused:$('player').paused,bufferedSeconds:Array.from({length:$('player').buffered.length},(_,i)=>$('player').buffered.end(i)-$('player').buffered.start(i)).reduce((a,b)=>a+b,0),offset:state.offset,clockReady:state.clockReady,drift:state.drift,playTime:$('player').currentTime,ready:$('player').readyState,tracks:state.stream?.getTracks().map(t=>({kind:t.kind,state:t.readyState,...(t.kind==='audio'?{localPlaybackSuppressed:t.getSettings().suppressLocalAudioPlayback===true}:{})}))||[],peers:[...state.peers.values()].map(p=>({id:p.nodeId||p.id,label:p.label,direction:p.direction,state:p.pc.connectionState,ready:p.ready,queued:p.queued}))})};
+},snapshot:()=>({joiningBusy:magnetBusy,network:magnetTransport?.snapshot()?.network||lastNetworkCheck,playbackBlocked:state.player?.blocked===true,programTime:state.player?.programTime()??null,targetProgramTime:state.config&&state.clockReady?(now()+state.offset-state.config.epoch)/1000-state.config.delay:null,reserveSeconds:verifiedReserve(),delivery:deliverySnapshot(),supplierHealth:state.supplierHealth||null,sourceAudio:sourceAudioState?{...sourceAudioState}:null,nodeId:state.nodeId,trail:[...(state.trail||[])],supplier:state.supplier,recovery:{...state.recovery},stalls:state.stalls,sourceReachable:state.sourceReachable,sourceEnded:state.sourceEnded,lastReceivedAt:state.lastReceivedAt,transport:magnetTransport?.snapshot()||null,role:state.role,active:state.active,playbackMode:state.player?.mode||null,playbackFallbackReason:state.player?.fallbackReason||null,mediaErrorCode:state.player?.mediaErrorCode??null,mime:state.config?.mime||null,config:state.config?{id:state.config.id,delay:state.config.delay,epoch:state.config.epoch,audio:state.config.audio,sourceId:state.config.sourceId,sourceEpoch:state.config.sourceEpoch,programId:state.config.programId,segmentVersion:state.config.segmentVersion}:null,received:state.received,sentBytes:state.sent,cacheBytes:state.cacheBytes,cacheSegments:state.cache.length,cacheOldest:state.cache[0]?.meta.start??null,paused:$('player').paused,bufferedSeconds:Array.from({length:$('player').buffered.length},(_,i)=>$('player').buffered.end(i)-$('player').buffered.start(i)).reduce((a,b)=>a+b,0),offset:state.offset,clockReady:state.clockReady,drift:state.drift,playTime:$('player').currentTime,ready:$('player').readyState,tracks:state.stream?.getTracks().map(t=>({kind:t.kind,state:t.readyState,...(t.kind==='audio'?{localPlaybackSuppressed:t.getSettings().suppressLocalAudioPlayback===true}:{})}))||[],peers:[...state.peers.values()].map(p=>({id:p.nodeId||p.id,label:p.label,direction:p.direction,state:p.pc.connectionState,ready:p.ready,queued:p.queued}))})};
 if(window.PrivateCastDesktop){$('native-setup').classList.remove('hidden');window.PrivateCastDesktop.onMagnet(link=>{joinMagnet(link).catch(e=>status(e.message));});}
 let screenLock=null,screenLockPending=false;
 async function keepAwake(){if(screenLockPending||(screenLock&&!screenLock.released)||!state.config||document.visibilityState!=='visible'||!navigator.wakeLock?.request)return;screenLockPending=true;try{const lock=await navigator.wakeLock.request('screen');if(!state.config||document.visibilityState!=='visible')await lock.release();else screenLock=lock;}catch(e){log('Keep this screen awake while watching.');}finally{screenLockPending=false;}}
@@ -1522,7 +1568,8 @@ setInterval(refresh,400);refresh();})();
     if (!collector || !enabled) return render();
     try {
       const snap = window.PrivateCast?.snapshot() || {}, v = $("player");
-      collector.observe(snap, { ready: v?.readyState, paused: v?.paused, muted: v?.muted, volume: v?.volume, decodedFrames: v?.getVideoPlaybackQuality?.().totalVideoFrames ?? v?.webkitDecodedFrameCount, playbackBlocked: snap.playbackBlocked }, { visible: document.visibilityState === "visible", online: navigator.onLine !== false, controlFailures: window.SameEndSocial?.snapshot()?.failures, chatMessageCount: window.SameEndSocial?.snapshot()?.chatCount });
+      const quality = v?.getVideoPlaybackQuality?.();
+      collector.observe(snap, { ready: v?.readyState, paused: v?.paused, muted: v?.muted, volume: v?.volume, decodedFrames: quality?.totalVideoFrames ?? v?.webkitDecodedFrameCount, droppedFrames: quality?.droppedVideoFrames, playbackBlocked: snap.playbackBlocked }, { visible: document.visibilityState === "visible", online: navigator.onLine !== false, controlFailures: window.SameEndSocial?.snapshot()?.failures, chatMessageCount: window.SameEndSocial?.snapshot()?.chatCount });
       if (snap.config?.id && snap.config.id !== lastCast) {
         lastCast = snap.config.id;
         hashedCast = null;
@@ -1595,7 +1642,7 @@ setInterval(refresh,400);refresh();})();
     const report = collector.report();
     if (!report) throw Error("Open a room first.");
     const s = report.status || {}, events = report.events || [], device = window.SameEndInviteCheck?.report()?.device || {};
-    const summary = [["Test code", report.castTag || "Not available"], ["Device report", report.reportId], ["Build", report.build || "Unknown"], ["Browser / OS", [device.browser, device.browserVersion, device.os, device.version].filter(Boolean).join(" ")], ["Recorded session length", Math.round(report.durationSeconds || 0) + " seconds (includes waiting and pauses)"], ["End state", report.finish || "Still recording"], ["Latest verified picture ahead", (s.reserveSeconds ?? "Unknown") + " seconds"], ["Latest recovery count", s.recoveryCount ?? "Unknown"], ["Latest playback stall count", s.stalls ?? "Unknown"], ["Supplier changes observed", report.counts?.supplierChanges ?? 0], ["App errors observed", report.counts?.errors ?? 0], ["History retained", report.samples.length + " samples; " + (report.samplesDropped || 0) + " earlier samples and " + (report.eventsDropped || 0) + " earlier events dropped by the limits"], ["Saved on device", report.persisted === true ? "Yes" : "Not confirmed; keep this downloaded file"]];
+    const summary = [["Test code", report.castTag || "Not available"], ["Device report", report.reportId], ["Build", report.build || "Unknown"], ["Browser / OS", [device.browser, device.browserVersion, device.os, device.version].filter(Boolean).join(" ")], ["Recorded session length", Math.round(report.durationSeconds || 0) + " seconds (includes waiting and pauses)"], ["End state", report.finish || "Still recording"], ["Latest verified picture ahead", (s.reserveSeconds ?? "Unknown") + " seconds"], ["Latest recovery count", s.recoveryCount ?? "Unknown"], ["Latest playback mode", s.playbackMode ?? "Unknown"], ["Latest playback fallback reason", s.playbackFallbackReason ?? "None reported"], ["Latest media error code", s.mediaErrorCode ?? "None"], ["Latest dropped frames", s.droppedFrames ?? "Unknown"], ["Waiting transitions observed", s.stalls ?? "Unknown"], ["Supplier changes observed", report.counts?.supplierChanges ?? 0], ["App errors observed", report.counts?.errors ?? 0], ["History retained", report.samples.length + " samples; " + (report.samplesDropped || 0) + " earlier samples and " + (report.eventsDropped || 0) + " earlier events dropped by the limits"], ["Saved on device", report.persisted === true ? "Yes" : "Not confirmed; keep this downloaded file"]];
     const rows = summary.map(([a, b]) => "<tr><th>" + escape(a) + "</th><td>" + escape(b) + "</td></tr>").join("");
     const timeline = events.map((e) => "<tr><td>" + escape(e.atSeconds ?? "?") + " s</td><td>" + escape(e.type) + "</td><td>" + escape(labels[e.value] || e.value) + "</td></tr>").join("");
     const observations = ["picture-ok", "sound-heard", "chat-ok"].map((code) => "<li>" + escape(labels[code]) + ": <strong>" + (events.some((e) => e.type === "mark" && e.value === code) ? "marked by this tester" : "not recorded in the retained timeline") + "</strong></li>").join("");

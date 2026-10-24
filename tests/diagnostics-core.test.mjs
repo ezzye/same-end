@@ -30,6 +30,20 @@ test('maps real delivery, peer queue, player ready state, and epoch timestamps s
   const s=c.report();assert.equal(s.startedAt,1792796400000);assert.equal(s.samples[0].aggregateMbps,1.5);assert.equal(s.samples[0].queue,130);assert.equal(s.samples[0].peerCount,2);assert.equal(s.samples[0].clockOffsetMs,-20);assert.equal(s.samples[0].congestedChildren,1);assert.equal(s.samples[0].pendingBytes,14);assert.equal(s.samples[0].ready,4);assert.equal(JSON.stringify(s).includes('PRIVATE-'),false);
 });
 
+test('allows only coded playback diagnostics and round-trips them through restore',()=>{
+  const storage=memoryStorage(),first=setup({storage});
+  first.observe({playbackMode:'clips',playbackFallbackReason:'decode-error',mediaErrorCode:3},{droppedFrames:7});
+  const status=first.c.report().status;
+  assert.deepEqual([status.playbackMode,status.playbackFallbackReason,status.mediaErrorCode,status.droppedFrames],['clips','decode-error',3,7]);
+  const restored=setup({storage}).c.report().status;
+  assert.deepEqual([restored.playbackMode,restored.playbackFallbackReason,restored.mediaErrorCode,restored.droppedFrames],['clips','decode-error',3,7]);
+  first.observe({playbackMode:'SECRET_MODE',playbackFallbackReason:'raw decoder error: TOKEN',mediaErrorCode:5,rawError:'RAW_SECRET'},{droppedFrames:-1});
+  const serialized=JSON.stringify(first.c.report());
+  for(const secret of ['SECRET_MODE','TOKEN','RAW_SECRET'])assert.equal(serialized.includes(secret),false);
+  const latest=first.c.report().status;
+  assert.deepEqual([latest.playbackMode,latest.playbackFallbackReason,latest.mediaErrorCode,latest.droppedFrames],[null,null,null,0]);
+});
+
 test('samples every five seconds, exposes gaps, and caps the two-hour history',()=>{
   const {c,observe,advance}=setup();observe();advance(5000);observe();advance(16000);observe();assert.equal(c.report().samples.length,3);assert.equal(c.report().samples[2].gapSeconds,11);
   for(let i=0;i<1500;i++){advance(5000);observe();}assert.equal(c.report().samples.length,1440);
@@ -50,8 +64,8 @@ test('tag validation, compact summary sanitizer, and summary byte limit',()=>{
   const {c,observe}=setup();observe();c.setCastTag('aabbccddeeff');assert.equal(c.summary().castTag,'aabbccddeeff');
   const clean=globalThis; // sanitizer is evaluated in the same isolated browser global below
   const w={};vm.runInNewContext(source,{window:w,globalThis:w,Uint8Array,Math,Date,JSON});
-  const sanitize=w.SameEndDiagnosticsCore.cleanSummary(JSON.stringify({...c.summary(),extra:'AUTH',lastStatus:{url:'https://x',drift:3},events:[{type:'mark',value:'chat-ok'},{type:'mark',value:'private-name'}]}));
-  assert.equal(sanitize.events.length,1);assert.equal(sanitize.lastStatus.drift,3);assert.equal('url' in sanitize.lastStatus,false);assert.ok(JSON.stringify(sanitize).length<=4096);assert.equal(clean,globalThis);
+  const sanitize=w.SameEndDiagnosticsCore.cleanSummary(JSON.stringify({...c.summary(),extra:'AUTH',lastStatus:{url:'https://x',drift:3,playbackMode:'mse',playbackFallbackReason:'buffer-append',mediaErrorCode:4,droppedFrames:11,rawError:'RAW_SECRET'},events:[{type:'mark',value:'chat-ok'},{type:'mark',value:'private-name'}]}));
+  assert.equal(sanitize.events.length,1);assert.equal(sanitize.lastStatus.drift,3);assert.equal('url' in sanitize.lastStatus,false);assert.deepEqual([sanitize.lastStatus.playbackMode,sanitize.lastStatus.playbackFallbackReason,sanitize.lastStatus.mediaErrorCode,sanitize.lastStatus.droppedFrames],['mse','buffer-append',4,11]);assert.equal('rawError' in sanitize.lastStatus,false);assert.ok(JSON.stringify(sanitize).length<=4096);assert.equal(clean,globalThis);
 });
 
 test('storage failures and quota exhaustion remain in memory and report failure',()=>{

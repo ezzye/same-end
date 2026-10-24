@@ -6,6 +6,36 @@ import {createContext,runInContext} from 'node:vm';
 const source=await readFile(new URL('../media-player.js',import.meta.url),'utf8');
 const MiB=1024*1024, epoch=1700000000000;
 
+function selection(supported,playable=supported){
+  const recorder={isTypeSupported:m=>supported.includes(m)};
+  const context=createContext({window:{MediaRecorder:recorder},MediaRecorder:recorder,document:{createElement:()=>({canPlayType:m=>playable.includes(m)?'probably':''})}});
+  runInContext(source,context);return context.window.SameEndMedia;
+}
+test('recording prefers resize-safe in-band H264 with AAC and keeps older-host alternatives',()=>{
+  const modern='video/mp4;codecs=avc3.42001f,mp4a.40.2',legacy='video/mp4;codecs=avc1.42001f,mp4a.40.2';
+  assert.equal(selection([legacy,modern]).recordingMime(true),modern);
+  assert.equal(selection([legacy]).recordingMime(true),legacy);
+  assert.equal(selection([legacy,modern],[legacy]).recordingMime(true),legacy,'encoding support alone must not select an unplayable format');
+  assert.equal(selection(['video/webm;codecs=vp8,opus']).recordingMime(true),'video/webm;codecs=vp8,opus');
+  assert.equal(selection([]).recordingMime(true),null);
+  assert.equal(selection([]).allowedMime(legacy),true,'old room invitations remain accepted');
+});
+test('video-only source selects in-band H264 without inventing an audio track',()=>{
+  const modern='video/mp4;codecs=avc3.42001f',legacy='video/mp4;codecs=avc1.42001f';
+  assert.equal(selection([modern,legacy]).recordingMime(false),modern);
+  assert.equal(selection([legacy]).recordingMime(false),legacy);
+});
+test('native Apple compatibility changes only declared MP4 labels on a copy, never signed media payloads',()=>{
+  const media=selection([]),box=(type,payload)=>{const b=Buffer.alloc(8+payload.length);b.writeUInt32BE(b.length);b.write(type,4);payload.copy(b,8);return b;};
+  const header=Buffer.alloc(8);header.writeUInt32BE(1,4);
+  const sample=box('avc3',Buffer.from('configuration'));
+  let moov=box('stsd',Buffer.concat([header,sample]));for(const type of ['stbl','minf','mdia','trak','moov'])moov=box(type,moov);
+  const original=Buffer.concat([box('ftyp',Buffer.from('isom0000avc3')),moov,box('mdat',Buffer.from('avc3 encoded media unchanged'))]),saved=Buffer.from(original);
+  const converted=Buffer.from(media.nativeMP4(original));assert(original.equals(saved));
+  assert(converted.includes(Buffer.from('avc1')));assert(converted.includes(Buffer.from('avc3 encoded media unchanged')));assert.equal(converted.length,original.length);
+  const truncated=original.subarray(0,original.length-1);assert.equal(media.nativeMP4(truncated),truncated,'malformed containers must remain untouched');
+});
+
 function harness(){
   class Events{
     constructor(){this.handlers=new Map();}
@@ -66,6 +96,29 @@ test('decoded programme position maps compatibility clip time and never reports 
   video.currentTime=.25;assert.equal(player.programTime(),18.25);
   video.readyState=0;assert.equal(player.programTime(),null);
   player.close();assert.equal(player.programTime(),null);
+});
+
+test('fallback preserves a coded decoder cause without retaining raw browser errors',()=>{
+  const {player,video}=harness();
+  assert.equal(player.fallbackReason,null);
+  video.error={code:3,message:'private browser error details'};video.emit('error');
+  assert.equal(player.mode,'clips');assert.equal(player.fallbackReason,'decode-error');assert.equal(player.mediaErrorCode,3);
+  assert.equal(Object.values(player).includes(video.error.message),false);
+  player.close();
+});
+
+test('MSE bridges a short captured-media gap without pausing, while a real missing range still waits',()=>{
+  const {player,video}=harness();
+  const ranges=[[0,1.94],[2.05,4]];
+  video.buffered={length:ranges.length,start:i=>ranges[i][0],end:i=>ranges[i][1]};
+  video.currentTime=1.94;video.paused=false;
+  assert.equal(player.sync(2).waiting,false);assert.equal(video.paused,false);
+  assert(Math.abs(video.currentTime-2.051)<.001);assert.equal(player.programTime(),video.currentTime);
+  assert(Math.abs(player.programTime()-2)<.15,'gap handling must retain bounded programme-clock drift');
+  assert.equal(player.sync(3.99).waiting,false,'do not pause forty milliseconds before a buffered piece ends');
+  ranges[1][0]=2.4;video.currentTime=1.94;
+  assert.equal(player.sync(2).waiting,true);assert.equal(video.paused,true,'network/media gaps cannot be hidden');
+  player.close();
 });
 
 test('suspended streaming stays bounded through 1000 pieces and resumes at the current clock window',()=>{
