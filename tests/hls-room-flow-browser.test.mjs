@@ -188,7 +188,9 @@ async function run() {
     await measureWindow([label], 3);
     await participant.screenshot({ path: fileURLToPath(new URL(label + '-picture-only.png', output)) });
     await participant.evaluate(() => document.exitFullscreen());
-    report.views.push({ label, fullRoom, pictureOnlyNativeFullscreen: true });
+    const afterView = await snapshot(participant);
+    assert.equal(afterView.playback.srcChanges, baseline[label].playback.srcChanges, label + ' view changes must not replace the continuous media source');
+    report.views.push({ label, fullRoom, pictureOnlyNativeFullscreen: true, mediaSourceChanges: afterView.playback.srcChanges });
   }
   await sibling.evaluate(() => PrivateCast.testing.setRelayLimit(1));
   const stallBefore = await record('before connected relay stalls media'), stallAt = Date.now();

@@ -95,7 +95,7 @@ export async function createCapture(stream, { epoch, bitrate = VIDEO.bitrate, on
     if (newFiles.length) { lastFiles = newFiles; lastInterval = { start, duration: end - start }; }
     stats.batches++; stats.segments += newFiles.length; stats.end = Math.max(stats.end, end);
     refreshCount();
-    
+
   }
   function timePlaylist(text, info) {
     // Only standard EXTINF + URI lines from the maintained writer are read.

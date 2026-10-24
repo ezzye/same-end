@@ -35,7 +35,7 @@
     "test:hls-player": "node tests/hls-player-browser.test.mjs",
     "test:hls-native": "node tests/hls-native-browser.test.mjs",
     "test:hls-room": "node tests/hls-engine-browser.test.mjs",
-    "test:hls-five-minute": "DELAY=300 DURATION=35 node tests/hls-engine-browser.test.mjs",
+    "test:hls-five-minute": "node tests/hls-engine-browser.test.mjs --five-minute",
     "test:hls-flow": "node tests/hls-room-flow-browser.test.mjs",
     "test:hls-produced": "node tests/hls-capture-browser.test.mjs && node tests/hls-produced-browser.test.mjs"
   },

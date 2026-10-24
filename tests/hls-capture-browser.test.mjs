@@ -8,7 +8,13 @@ import { createHash } from 'node:crypto';
 import { build } from 'esbuild';
 const require = createRequire(import.meta.url);
 let playwright; try { playwright = require('playwright'); } catch { playwright = await import(process.env.SAMEEND_PLAYWRIGHT || process.env.HOME + '/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs'); }
-const root = new URL('../', import.meta.url), out = new URL('privatework/hls-capture/', root);
+const captureSeconds = Number(process.env.CAPTURE_SECONDS || 32);
+assert(Number.isFinite(captureSeconds) && captureSeconds >= 32 && captureSeconds <= 240, 'CAPTURE_SECONDS must be between 32 and 240.');
+const root = new URL('../', import.meta.url);
+const out = new URL((process.env.HLS_CAPTURE_DIR || 'privatework/hls-capture/').replace(/\/?$/, '/'), root);
+assert.equal(out.protocol, 'file:', 'HLS_CAPTURE_DIR must be a local output directory.');
+const minimumVideoFrames = Math.max(750, Math.floor(captureSeconds * 25 * .94));
+const minimumAudioFrames = Math.max(1400, Math.floor(captureSeconds * 48000 / 1024 * .93));
 await mkdir(out, { recursive: true });
 const bundle = await build({ stdin: { contents: "import * as capture from './hls-capture.js'; import {encodeBundle} from './hls-protocol.js'; import {generatedSource} from './tests/helpers/hls-generated-source.js'; window.HLSCapture=capture; window.HLSEncodeBundle=encodeBundle; window.generatedSource=generatedSource;", resolveDir: root.pathname }, bundle: true, write: false, format: 'iife', platform: 'browser' });
 const server = createServer((req, res) => { res.setHeader('Content-Type', req.url === '/capture.js' ? 'text/javascript' : 'text/html'); res.end(req.url === '/capture.js' ? bundle.outputFiles[0].text : '<!doctype html><meta charset="utf-8"><script src="/capture.js"></script>'); });
@@ -33,7 +39,7 @@ try {
     batches.push({ ...metadata, files, transport });
   });
   await page.goto(`http://127.0.0.1:${server.address().port}`);
-  const capture = await page.evaluate(async () => {
+  const capture = await page.evaluate(async captureSeconds => {
     const fixture = await generatedSource(), problems = [];
     const supported = await HLSCapture.canCapture(fixture.stream);
     const AudioEncoderSaved = window.AudioEncoder; window.AudioEncoder = undefined;
@@ -47,21 +53,21 @@ try {
       finally { inFlight--; }
     } });
     await producer.ready; const readyMs = performance.now() - start;
-    await new Promise(resolve => setTimeout(resolve, 32000));
+    await new Promise(resolve => setTimeout(resolve, captureSeconds * 1000));
     await producer.close(); const after = producer.stats.batches;
     await producer.close(); await new Promise(resolve => setTimeout(resolve, 200));
     const result = { supported, unsupported, readyMs, problems, peakInFlight, noBatchesAfterClose: after === producer.stats.batches, frames: fixture.frames, stats: { ...producer.stats }, inputsStillLive: fixture.stream.getTracks().every(track => track.readyState === 'live'), audioIdentity: fixture.stream.getAudioTracks()[0] === fixture.audioTrack };
     await fixture.close(); return result;
-  });
+  }, captureSeconds);
   assert.equal(capture.supported, true); assert.equal(capture.unsupported, false);
   assert(capture.readyMs < 1500, 'ready waited for a segment');
   assert.deepEqual(capture.problems, []); assert.equal(capture.peakInFlight, 1); assert.equal(capture.noBatchesAfterClose, true);
-  assert(capture.frames > 750); assert.equal(capture.inputsStillLive, true); assert.equal(capture.audioIdentity, true);
+  assert(capture.frames > minimumVideoFrames); assert.equal(capture.inputsStillLive, true); assert.equal(capture.audioIdentity, true);
   assert.equal(capture.stats.status, 'closed'); assert.equal(capture.stats.retainedFiles, 0);
   assert.equal(capture.stats.videoEncoderConfigurations, 1, 'video encoder restarted');
   assert.equal(capture.stats.audioEncoderConfigurations, 1, 'audio encoder restarted');
   assert(capture.stats.peakPendingBytes < 16 * 1024 * 1024);
-  assert(batches.length >= 15); assert.equal(batches.at(-1).final, true);
+  assert(batches.length >= Math.floor(captureSeconds / 2) - 1); assert.equal(batches.at(-1).final, true);
   for (const batch of batches) {
     assert(batch.duration > 0 && batch.duration < 2.2, `segment batch duration ${batch.duration}`);
     assert(batch.files.some(file => file.path === 'master.m3u8'));
@@ -99,16 +105,18 @@ try {
   const decoded = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-allowed_extensions', 'ALL', '-count_frames', '-show_streams', '-of', 'json', master], { encoding: 'utf8' }));
   const video = decoded.streams.find(stream => stream.codec_type === 'video'), audio = decoded.streams.find(stream => stream.codec_type === 'audio');
   assert.equal(video.width, 1280); assert.equal(video.height, 720);
-  assert(Number(video.nb_read_frames) > 750); assert(Number(audio.nb_read_frames) > 1400);
+  assert.equal(video.profile, 'High');
+  assert(Number(video.nb_read_frames) > minimumVideoFrames); assert(Number(audio.nb_read_frames) > minimumAudioFrames);
   // Independent full decoding verifies changing pictures and a sustained audible tone.
   const hashes = execFileSync('ffmpeg', ['-v', 'error', '-allowed_extensions', 'ALL', '-i', master, '-map', '0:v:0', '-f', 'framemd5', '-'], { encoding: 'utf8', maxBuffer: 2 * 1024 * 1024 });
   const distinctPictures = new Set(hashes.split('\n').filter(line => line && !line.startsWith('#')).map(line => line.split(',').at(-1).trim())).size;
-  assert(distinctPictures > 700, 'moving picture was not preserved');
+  assert(distinctPictures > Math.max(700, Math.floor(captureSeconds * 25 * .87)), 'moving picture was not preserved');
   // execFileSync returns stdout; use PCM samples for an explicit, independent signal measurement.
-  const pcm = execFileSync('ffmpeg', ['-v', 'error', '-allowed_extensions', 'ALL', '-i', master, '-map', '0:a:0', '-ac', '1', '-ar', '8000', '-f', 'f32le', '-'], { maxBuffer: 2 * 1024 * 1024 });
+  const pcm = execFileSync('ffmpeg', ['-v', 'error', '-allowed_extensions', 'ALL', '-i', master, '-map', '0:a:0', '-ac', '1', '-ar', '8000', '-f', 'f32le', '-'], { maxBuffer: Math.ceil(captureSeconds * 8000 * 4 + 65536) });
+  assert(pcm.length / 4 / 8000 >= captureSeconds - .5, 'decoded audio did not cover the requested duration');
   let sum = 0; for (let i = 0; i < pcm.length; i += 4) sum += pcm.readFloatLE(i) ** 2;
   const rms = Math.sqrt(sum / (pcm.length / 4)); assert(rms > 0.03, 'audio is silent');
-  const summary = { capture, checks, batchCount: batches.length, firstBatch: batches[0], finalBatch: batches.at(-1), decoded: { videoFrames: video.nb_read_frames, audioFrames: audio.nb_read_frames, distinctPictures, audioSeconds: pcm.length / 4 / 8000, audioRms: rms }, pageErrors: errors };
+  const summary = { captureSeconds, capture, checks, batchCount: batches.length, firstBatch: batches[0], finalBatch: batches.at(-1), decoded: { videoFrames: video.nb_read_frames, audioFrames: audio.nb_read_frames, distinctPictures, audioSeconds: pcm.length / 4 / 8000, audioRms: rms }, pageErrors: errors };
   await writeFile(new URL('evidence.json', out), JSON.stringify(summary, null, 2));
   await writeFile(new URL('batches.json', out), JSON.stringify(batches, null, 2));
   console.log(JSON.stringify(summary));

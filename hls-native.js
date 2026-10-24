@@ -8,9 +8,32 @@ export function canPlayNative(video) {
   const element = video || document.createElement('video');
   return !!(element.canPlayType('application/vnd.apple.mpegurl') || element.canPlayType('application/x-mpegURL'));
 }
-export function cacheResponse(cache, path, range = null, method = 'GET') {
+function playlistWindow(cache, path, source) {
+  const list = cache.playlists.get(path); if (!list?.segments.length) return null;
+  const uris = new Set(source.split('\n').filter(line => line && !line.startsWith('#'))), prefixLength = path.lastIndexOf('/') + 1;
+  const selected = list.segments.filter(segment => uris.has(segment.path.slice(prefixLength)));
+  if (!selected.length) return null;
+  const first = cache.timeline.get(selected[0].path), last = cache.timeline.get(selected[selected.length - 1].path);
+  return first && last ? { start: first.start, end: last.end } : null;
+}
+export function cacheResponse(cache, path, range = null, method = 'GET', startHint = null) {
   if (!validResource(path) || !['GET', 'HEAD'].includes(method)) return { status: 404 };
-  const bytes = cache.read(HLS_BASE + path, true); if (!bytes) return null;
+  let bytes = cache.read(HLS_BASE + path, true); if (!bytes) return null;
+  if (path.endsWith('.m3u8') && Number.isFinite(startHint) && startHint >= 0) {
+    const source = new TextDecoder().decode(bytes), window = playlistWindow(cache, path, source);
+    if (window) {
+      const targetDuration = Number(source.split('\n').find(line => line.startsWith('#EXT-X-TARGETDURATION:'))?.slice(22));
+      const offset = Math.max(0, startHint - window.start);
+      // RFC8216 4.3.5.2: start precisely at the group target, with the
+      // recommended three target durations of live media still ahead. A
+      // tiny initial timestamp gap clamps to the first available sample.
+      if (offset < window.end - window.start && window.end - Math.max(startHint, window.start) >= 3 * targetDuration) {
+        const lines = source.split('\n').filter(line => !line.startsWith('#EXT-X-START:'));
+        lines.splice(1, 0, '#EXT-X-START:TIME-OFFSET=' + offset.toFixed(6) + ',PRECISE=YES');
+        bytes = new TextEncoder().encode(lines.join('\n')).buffer;
+      }
+    }
+  }
   const total = bytes.byteLength; if (!total || total > MAX_RESPONSE_BYTES) return { status: 503 };
   const file = cache.files.get(path), mime = path.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : file.mime;
   let selected; try { selected = byteRange(range, total); } catch { return { status: 416, total, mime, bytes: new ArrayBuffer(0) }; }
@@ -49,14 +72,11 @@ export class NativePlayer {
       let done = false, timer;
       const deliver = () => {
         if (done) return;
-        let result; try { result = this.closed ? { status: 410 } : cacheResponse(this.cache, data.path, data.range, data.method); } catch { result = { status: 503 }; }
+        let result; try { result = this.closed ? { status: 410 } : cacheResponse(this.cache, data.path, data.range, data.method, this.target); } catch { result = { status: 503 }; }
         if (!result) return;
         if ((result.status === 200 || result.status === 206) && data.path.endsWith('.m3u8') && this.initialProgrammeStart === null) {
-          const source = this.cache.manifest(data.path), list = this.cache.playlists.get(data.path);
-          if (list?.segments.length && source) {
-            const selected = list.segments.find(s => source.split('\n').includes(s.path.slice(data.path.lastIndexOf('/') + 1)));
-            if (selected) this.initialProgrammeStart = this.cache.timeline.get(selected.path)?.start ?? null;
-          }
+          const source = this.cache.manifest(data.path);
+          if (source) this.initialProgrammeStart = playlistWindow(this.cache, data.path, source)?.start ?? null;
         }
         done = true; clearTimeout(timer); this.cache.listeners.delete(deliver); this.pending.delete(cancel);
         try { port.postMessage(result, result.bytes ? [result.bytes] : []); } finally { port.close(); }
@@ -124,11 +144,15 @@ export class NativePlayer {
   sync(target) {
     this.setPlaybackWindow(target, false); this.mapTimeline(); const v = this.video;
     if (target < 0 || this.origin === null) { v.pause(); return { waiting: true, drift: null }; }
-    const local = target - this.origin; let inRange = false;
+    const local = target - this.origin, drift = local - this.mediaTime(), now = performance.now(); let inRange = false, seekable = false;
     for (let i = 0; i < v.buffered.length; i++) if (local >= v.buffered.start(i) && local < v.buffered.end(i)) inRange = true;
+    for (let i = 0; i < v.seekable.length; i++) if (local >= v.seekable.start(i) && local < v.seekable.end(i)) seekable = true;
+    // Native HLS initially chooses its own live edge. A valid group target can
+    // be seekable before it is buffered; seeking asks the ordinary HLS stack
+    // to load those verified earlier files instead of waiting for the group
+    // clock to catch the browser's independently selected live edge.
+    if (seekable && v.readyState >= 1 && Math.abs(drift) > .8 && !v.seeking && now - this.lastSeek > 2500) { this.lastSeek = now; this.syncSeekRequests++; this.presented = null; v.currentTime = local; }
     if (!inRange || v.readyState < 2) { v.pause(); return { waiting: true, drift: null }; }
-    const drift = local - this.mediaTime(), now = performance.now();
-    if (Math.abs(drift) > .8 && !v.seeking && now - this.lastSeek > 2500) { this.lastSeek = now; this.syncSeekRequests++; this.presented = null; v.currentTime = local; }
     // Native Apple audio stalls under fractional rate correction. Keep the
     // ordinary media clock and reserve seeking for material clock errors.
     if (v.playbackRate !== 1) v.playbackRate = 1;
@@ -137,11 +161,11 @@ export class NativePlayer {
   programTime() { this.mapTimeline(); return this.closed || this.origin === null || this.video.readyState < 2 ? null : this.origin + this.mediaTime(); }
   requestSound() { this.soundRequested = true; this.video.muted = false; return this.play(); }
   muteSound() { this.soundRequested = true; this.soundBlocked = false; this.video.muted = true; }
-  play() { if (this.closed || this.suspended || this.target === null || this.target < 0) return Promise.resolve(); const audible = !this.video.muted; if (!this.video.paused) return Promise.resolve(); return Promise.resolve(this.video.play()).then(() => { this.blocked = false; this.lastPlayError = null; if (audible && !this.video.muted) this.soundBlocked = false; }, error => { this.lastPlayError = error.name; if (error.name === 'NotAllowedError') { this.blocked = true; if (audible) { this.soundBlocked = true; this.video.muted = true; Promise.resolve(this.video.play()).catch(() => {}); } } throw error; }); }
+  play() { if (this.closed || this.suspended || this.target === null || this.target < 0) return Promise.resolve(); const audible = !this.video.muted; if (!this.video.paused) { if (audible) { this.blocked = false; this.soundBlocked = false; this.lastPlayError = null; } return Promise.resolve(); } return Promise.resolve(this.video.play()).then(() => { this.blocked = false; this.lastPlayError = null; if (audible && !this.video.muted) this.soundBlocked = false; }, error => { this.lastPlayError = error.name; if (error.name === 'NotAllowedError') { this.blocked = true; if (audible) { this.soundBlocked = true; this.video.muted = true; Promise.resolve(this.video.play()).catch(() => {}); } } throw error; }); }
   facts() {
     const v = this.video, quality = v.getVideoPlaybackQuality?.(); let ahead = 0, buffered = 0;
     for (let i = 0; i < v.buffered.length; i++) { buffered += v.buffered.end(i) - v.buffered.start(i); if (v.currentTime >= v.buffered.start(i) && v.currentTime < v.buffered.end(i)) ahead = v.buffered.end(i) - v.currentTime; }
-    return { mode: this.mode, nativeProgramOriginSeconds: this.origin, initialProgrammeStart: this.initialProgrammeStart, mediaElementTime: v.currentTime, presentedFrameTime: this.presented?.time ?? null, srcChanges: this.srcChanges, seekCount: this.seekCount, syncSeekRequests: this.syncSeekRequests, decodedFrames: quality?.totalVideoFrames ?? v.webkitDecodedFrameCount ?? null, droppedFrames: quality?.droppedVideoFrames ?? v.webkitDroppedFrameCount ?? null, decoderBufferedSeconds: buffered, playableAheadSeconds: ahead, cacheBytes: this.cache.bytes, cacheFiles: this.cache.files.size, muted: v.muted, soundBlocked: this.soundBlocked, soundRequested: this.soundRequested, playError: this.lastPlayError, width: v.videoWidth, height: v.videoHeight, errorCount: this.errors };
+    return { mode: this.mode, nativeProgramOriginSeconds: this.origin, nativeSeekableStartSeconds: v.seekable.length ? v.seekable.start(0) : null, nativeSeekableEndSeconds: v.seekable.length ? v.seekable.end(v.seekable.length - 1) : null, initialProgrammeStart: this.initialProgrammeStart, mediaElementTime: v.currentTime, presentedFrameTime: this.presented?.time ?? null, srcChanges: this.srcChanges, seekCount: this.seekCount, syncSeekRequests: this.syncSeekRequests, decodedFrames: quality?.totalVideoFrames ?? v.webkitDecodedFrameCount ?? null, droppedFrames: quality?.droppedVideoFrames ?? v.webkitDroppedFrameCount ?? null, decoderBufferedSeconds: buffered, playableAheadSeconds: ahead, cacheBytes: this.cache.bytes, cacheFiles: this.cache.files.size, muted: v.muted, soundBlocked: this.soundBlocked, soundRequested: this.soundRequested, playError: this.lastPlayError, width: v.videoWidth, height: v.videoHeight, errorCount: this.errors };
   }
   close() { if (this.closed) return; this.closed = true; clearTimeout(this.readyTimer); clearInterval(this.keepAlive); if (this.frameRequest !== null) this.video.cancelVideoFrameCallback?.(this.frameRequest); navigator.serviceWorker.removeEventListener('message', this.onMessage); this.worker?.postMessage({ type: 'sameend:hls:close', token: this.token, seed: this.seed }); for (const cancel of this.pending) cancel(); for (const [type, fn] of [['seeking', this.onSeeking], ['loadedmetadata', this.onMetadata], ['progress', this.onMetadata], ['error', this.onMediaError]]) this.video.removeEventListener(type, fn); this.cache.clear(); this.video.pause(); this.video.removeAttribute('src'); this.video.load(); }
 }

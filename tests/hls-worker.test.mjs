@@ -120,3 +120,30 @@ test('first native join activates a waiting bridge over a legacy controller with
  try{const errors=[];player=new NativePlayer(video,{}, {onError:e=>errors.push(e)});await player.ready;assert.deepEqual(errors,[]);assert.equal(player.worker,next);assert.equal(player.bridgeReady,true);assert.equal(player.started,undefined);assert.equal(player.srcChanges,0);assert.equal(video.autoplay,false);assert(messages.includes('new:ACTIVATE_UPDATE'));assert.equal(player.token,await boundCapability('upgrade-client',player.seed));}
  finally{player?.close();for(const [name,descriptor]of Object.entries(saved)){if(descriptor)Object.defineProperty(globalThis,name,descriptor);else delete globalThis[name];}}
 });
+
+test('native sync seeks a valid unbuffered group target before waiting for its files', async () => {
+ let plays=0;const range=(a,b)=>({length:1,start:()=>a,end:()=>b}), video={currentTime:10,readyState:4,seeking:false,paused:false,playbackRate:1,buffered:range(10,11),seekable:range(0,16),pause(){this.paused=true}};
+ const player={video,origin:0,lastSeek:-Infinity,syncSeekRequests:0,setPlaybackWindow(){},mapTimeline(){},mediaTime(){return video.currentTime},play(){plays++;video.paused=false;return Promise.resolve()}};
+ const initial=NativePlayer.prototype.sync.call(player,4);assert.equal(initial.waiting,true);assert.equal(video.currentTime,4);assert.equal(player.syncSeekRequests,1);assert.equal(video.paused,true);
+ NativePlayer.prototype.sync.call(player,4.1);assert.equal(player.syncSeekRequests,1,'waiting for bytes must not trigger repeated seeks');
+ video.buffered=range(4,8);const resumed=NativePlayer.prototype.sync.call(player,4.2);assert.equal(resumed.waiting,false);assert.equal(plays,1);assert.equal(video.paused,false);assert.equal(player.syncSeekRequests,1);
+ const unavailable=NativePlayer.prototype.sync.call(player,20);assert.equal(unavailable.waiting,true);assert.equal(player.syncSeekRequests,1,'target outside the declared native seekable range must wait');
+});
+
+test('native media playlist hints exact group start without changing shared playlists or media bytes', () => {
+ const cache=new VerifiedHlsCache(),encoder=new TextEncoder(),decoder=new TextDecoder(),master='#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1000\nvideo.m3u8\n';
+ const files=[{path:'master.m3u8',mime:'application/vnd.apple.mpegurl',bytes:encoder.encode(master)},{path:'video.m3u8',mime:'application/vnd.apple.mpegurl',start:10,bytes:encoder.encode('#EXTM3U\n#EXT-X-TARGETDURATION:2\n#EXT-X-START:TIME-OFFSET=-6,PRECISE=NO\n'+Array.from({length:8},(_,i)=>'#EXTINF:2,\nseg'+i+'.m4s\n').join(''))},...Array.from({length:8},(_,i)=>({path:'seg'+i+'.m4s',mime:'video/iso.segment',bytes:new Uint8Array([i+1])}))];
+ cache.add({start:10,duration:16,files});cache.target=14;
+ const shared=cache.read('https://sameend.invalid/hls/video.m3u8'),hinted=cacheResponse(cache,'video.m3u8',null,'GET',14),source=decoder.decode(hinted.bytes);
+ assert(source.includes('#EXT-X-START:TIME-OFFSET=4.000000,PRECISE=YES'));assert.equal((source.match(/#EXT-X-START:/g)||[]).length,1);assert.equal(cache.read('https://sameend.invalid/hls/video.m3u8'),shared);assert.equal(decoder.decode(cacheResponse(cache,'master.m3u8',null,'GET',14).bytes),master);assert.deepEqual([...new Uint8Array(cacheResponse(cache,'seg0.m4s',null,'GET',14).bytes)],[1]);
+ assert(decoder.decode(cacheResponse(cache,'video.m3u8',null,'GET',0).bytes).includes('TIME-OFFSET=0.000000,PRECISE=YES'));
+ const partial=cacheResponse(cache,'video.m3u8','bytes=0-6','GET',14);assert.equal(partial.total,hinted.total);assert.equal(decoder.decode(partial.bytes),'#EXTM3U');
+ assert.equal(cacheResponse(cache,'video.m3u8',null,'HEAD',14).total,hinted.total);assert.equal(cacheResponse(cache,'video.m3u8',null,'HEAD',14).bytes.byteLength,0);
+});
+
+test('trusted sound enable clears rejection flags after muted fallback without replaying an already playing element', async () => {
+ let calls=0;const denied=Object.assign(new Error('Gesture needed'),{name:'NotAllowedError'}),video={muted:false,paused:true,play(){calls++;if(!this.muted)return Promise.reject(denied);this.paused=false;return Promise.resolve()}};
+ const player={video,target:4,closed:false,suspended:false,blocked:false,soundBlocked:false,lastPlayError:null,play:NativePlayer.prototype.play};
+ await assert.rejects(player.play(),{name:'NotAllowedError'});await Promise.resolve();assert.equal(video.paused,false);assert.equal(video.muted,true);assert.equal(player.blocked,true);assert.equal(player.soundBlocked,true);assert.equal(player.lastPlayError,'NotAllowedError');assert.equal(calls,2);
+ await NativePlayer.prototype.requestSound.call(player);assert.equal(video.muted,false);assert.equal(player.soundRequested,true);assert.equal(player.blocked,false);assert.equal(player.soundBlocked,false);assert.equal(player.lastPlayError,null);assert.equal(calls,2,'trusted unmute must not restart an already playing video');
+});
