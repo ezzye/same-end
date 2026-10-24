@@ -56,18 +56,28 @@
   class Player {
     constructor(video,mime,{onError=()=>{},onMode=()=>{}}={}){
       if(!canPlay(mime,video))throw Error('This browser cannot play this cast. Ask the host to start a fresh room in updated Chrome, Edge or Safari so it uses iPhone-compatible MP4.');
-      this.video=video;this.mime=mime;this.nativeWindow=null;this.playbackMetrics={srcChanges:0,lastLoadMs:null,firstFrameMs:null};this.nativeMime=nativeMime(mime,video);this.nativeBlobType=mime.startsWith('video/mp4')?'video/mp4':(this.nativeMime||mime);this.onError=onError;this.onMode=onMode;
+      this.video=video;this.mime=mime;this.nativeWindow=null;this.nativeLoading=false;this.currentNativeURL=null;this.playbackMetrics={srcChanges:0,lastLoadMs:null,firstFrameMs:null};this.nativeMime=nativeMime(mime,video);this.nativeBlobType=mime.startsWith('video/mp4')?'video/mp4':(this.nativeMime||mime);this.onError=onError;this.onMode=onMode;
       this.queue=[];this.queueBytes=0;this.pieces=[];this.pieceBytes=0;this.urls=new Map();this.mode='clips';this.fallbackReason='unsupported-mse';this.mediaErrorCode=null;this.closed=false;this.blocked=false;this.soundBlocked=false;this.soundRequested=false;this.lastPlayError=null;this.current=null;this.loading=false;this.duration=0;this.demand=true;this.lastRepair=0;
       this.playbackTarget=null;this.suspended=false;this.mseErrorPhase=null;this.mseErrorName=null;this.mseEvictions=0;this.mseQuotaRecoveries=0;this.quotaRetrySeq=null;
       this.seekCount=0;this.seekStarted=null;this.longestSeekMs=0;
-      this.onSeeking=()=>{this.seekCount++;if(this.seekStarted===null)this.seekStarted=Date.now();};
+      this.lastSeekRequest=null;this.syncSeekRequests=0;this.gapSeekRequests=0;this.presented=null;this.frameRequest=null;
+      this.onSeeking=()=>{this.seekCount++;this.presented=null;if(this.seekStarted===null)this.seekStarted=Date.now();};
       this.onSeeked=()=>{if(this.seekStarted!==null)this.longestSeekMs=Math.max(this.longestSeekMs,Date.now()-this.seekStarted);this.seekStarted=null;};
       video.addEventListener('seeking',this.onSeeking);video.addEventListener('seeked',this.onSeeked);
+      if(typeof video.requestVideoFrameCallback==='function'){
+        const frame=(_now,meta)=>{if(this.closed)return;if((this.mode==='mse'||!this.nativeLoading&&(typeof video.currentSrc!=='string'||video.currentSrc===this.currentNativeURL))&&Number.isFinite(meta.mediaTime))this.presented={time:meta.mediaTime,at:Date.now()};this.frameRequest=video.requestVideoFrameCallback(frame);};
+        this.frameRequest=video.requestVideoFrameCallback(frame);
+      }
       video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');
       // Required for iPhone ManagedMediaSource without a separate AirPlay URL.
       video.disableRemotePlayback=true;video.preload='auto';video.autoplay=true;
       this.onVideoError=()=>{if(this.closed)return;const code=video.error?.code;this.mediaErrorCode=Number.isInteger(code)&&code>=1&&code<=4?code:null;if(this.nativeWindow){this.nativeJoinDisabled=true;this.packagingReason='decode';URL.revokeObjectURL(this.nativeWindow.url);this.nativeWindow=null;this.current=null;this.video.pause();this.video.removeAttribute('src');this.video.load();this.onMode('clips','Using individual pieces after a compatibility-window decode error.');return;}if(this.mode==='mse')this.fallback('Streaming buffer unavailable; using compatibility playback.','decode-error');else this.onError('This device could not decode the picture. Ask the host to start a new room using MP4 in updated Chrome, Edge or Safari.');};
-      video.addEventListener('error',this.onVideoError);this.onFirstFrame=()=>{if(this.loadStartedAt!==undefined&&this.playbackMetrics.firstFrameMs===null&&video.readyState>=2)this.playbackMetrics.firstFrameMs=Math.max(0,Date.now()-this.loadStartedAt);};video.addEventListener('loadeddata',this.onFirstFrame);
+      video.addEventListener('error',this.onVideoError);this.onFirstFrame=()=>{if(video.readyState>=2&&(this.mode==='mse'||typeof video.currentSrc!=='string'||video.currentSrc===this.currentNativeURL)){this.presented=null;this.nativeLoading=false;if(this.loadStartedAt!==undefined&&this.playbackMetrics.firstFrameMs===null)this.playbackMetrics.firstFrameMs=Math.max(0,Date.now()-this.loadStartedAt);}};video.addEventListener('loadeddata',this.onFirstFrame);
+      this.onMetadata=()=>{if(this.mode==='clips'&&this.nativeLoading&&(typeof video.currentSrc!=='string'||video.currentSrc===this.currentNativeURL)&&Number.isFinite(this.nativeStartTime)){
+        // Align a new local file before its first frame, rather than playing
+        // from zero and correcting the visible jump on a later clock tick.
+        try{this.seek(this.nativeStartTime,'clock',true);}catch{}
+      }};video.addEventListener('loadedmetadata',this.onMetadata);
       const C=sourceConstructor(mime);
       if(C){
         this.mode='mse';this.fallbackReason=null;this.source=new C();this.sourceURL=URL.createObjectURL(this.source);
@@ -87,7 +97,7 @@
     fallback(message,reason='unknown'){
       if(this.closed||this.mode==='clips')return;
       if(!this.nativeMime){this.onError('This browser cannot play this cast format. Ask the host to start a fresh MP4 room in updated Chrome, Edge or Safari.');return;}
-      clearTimeout(this.openTimer);this.mode='clips';this.fallbackReason=reason;this.sb=null;this.queue=[];this.queueBytes=0;
+      clearTimeout(this.openTimer);this.presented=null;this.mode='clips';this.fallbackReason=reason;this.sb=null;this.queue=[];this.queueBytes=0;
       this.video.pause();this.video.removeAttribute('src');this.video.load();
       if(this.sourceURL)URL.revokeObjectURL(this.sourceURL);this.sourceURL=null;this.source=null;
       this.onMode(this.mode,message);
@@ -140,7 +150,7 @@
     lookAheadSeconds(){return this.mode==='clips'&&!this.nativeJoinDisabled&&window.SameEndNativeMP4&&this.mime.startsWith('video/mp4')?22:4;}
     // Make a complete local presentation from matching verified pieces. One
     // video element retains its sound permission; no duplicate audio players.
-    loadNative(piece){
+    loadNative(piece,absolute){
       let joined=null;
       if(!this.nativeJoinDisabled&&window.SameEndNativeMP4&&this.mime.startsWith('video/mp4')){
         const candidates=this.pieces.filter(p=>p.meta.seq>=piece.meta.seq).sort((a,b)=>a.meta.seq-b.meta.seq).slice(0,12);
@@ -155,15 +165,30 @@
         url=URL.createObjectURL(new Blob(parts,{type:this.nativeBlobType}));
         this.nativeWindow={url,start:joined.start,end:joined.end,pieceCount:joined.pieceCount,mediaSeconds:joined.mediaSeconds};
       }else url=this.urlFor(piece);
-      this.current=piece.meta.seq;this.duration=piece.meta.duration/1000;
+      this.presented=null;this.nativeLoading=true;this.current=piece.meta.seq;this.duration=piece.meta.duration/1000;
       this.playbackMetrics.srcChanges++;this.playbackMetrics.firstFrameMs=null;this.loadStartedAt=Date.now();
-      this.video.src=url;this.video.load();this.playbackMetrics.lastLoadMs=Math.max(0,Date.now()-this.loadStartedAt);
+      this.nativeStartTime=Number.isFinite(absolute)?Math.max(0,(absolute-(this.nativeWindow?.start??piece.meta.start))/1000):0;
+      this.currentNativeURL=url;this.video.src=url;this.video.load();this.playbackMetrics.lastLoadMs=Math.max(0,Date.now()-this.loadStartedAt);
       this.play().catch(()=>{});
+    }
+    // A recently presented frame is stronger evidence of decoded playout than
+    // a coarse media-element getter. Never predict through a stale frame.
+    mediaTime(){
+      const v=this.video,p=this.presented;
+      return p&&!v.paused&&v.readyState>=2&&Date.now()-p.at<=250?p.time:v.currentTime;
+    }
+    seek(time,reason,newFile=false){
+      const now=Date.now(),v=this.video;
+      if(!newFile&&this.lastSeekRequest!==null&&now-this.lastSeekRequest<1500)return false;
+      if(!newFile&&v.seeking&&(!this.seekStarted||now-this.seekStarted<3000))return false;
+      this.lastSeekRequest=now;this.presented=null;
+      if(reason==='gap')this.gapSeekRequests++;else this.syncSeekRequests++;
+      v.currentTime=time;return true;
     }
     facts(){
       const v=this.video;let ahead=0;for(let i=0;i<v.buffered.length;i++)if(v.currentTime>=v.buffered.start(i)&&v.currentTime<v.buffered.end(i))ahead=v.buffered.end(i)-v.currentTime;
       let bufferedSeconds=0;for(let i=0;i<v.buffered.length;i++)bufferedSeconds+=v.buffered.end(i)-v.buffered.start(i);
-      const q=v.getVideoPlaybackQuality?.();return{muted:v.muted===true,soundBlocked:this.soundBlocked,soundRequested:this.soundRequested,playError:this.lastPlayError,mode:this.nativeWindow?'native-window':this.mode,fallbackReason:this.fallbackReason,packagingReason:this.packagingReason||null,errorCode:this.mediaErrorCode,width:v.videoWidth||0,height:v.videoHeight||0,playableAheadSeconds:ahead,windowSeconds:this.nativeWindow?(this.nativeWindow.end-this.nativeWindow.start)/1000:null,srcChanges:this.playbackMetrics.srcChanges,lastLoadMs:this.playbackMetrics.lastLoadMs,firstFrameMs:this.playbackMetrics.firstFrameMs,decodedFrames:q?.totalVideoFrames??v.webkitDecodedFrameCount??null,droppedFrames:q?.droppedVideoFrames??v.webkitDroppedFrameCount??null,mseErrorPhase:this.mseErrorPhase,mseErrorName:this.mseErrorName,mseEvictions:this.mseEvictions,mseQuotaRecoveries:this.mseQuotaRecoveries,decoderBufferedSeconds:bufferedSeconds,appendQueuePieces:this.queue.length,seekCount:this.seekCount,seekPendingMs:this.seekStarted===null?0:Math.max(0,Date.now()-this.seekStarted),longestSeekMs:this.longestSeekMs};
+      const q=v.getVideoPlaybackQuality?.();return{presentedFrameTime:this.presented?.time??null,presentedFrameAgeMs:this.presented?Math.max(0,Date.now()-this.presented.at):null,mediaElementTime:v.currentTime,syncSeekRequests:this.syncSeekRequests,gapSeekRequests:this.gapSeekRequests,muted:v.muted===true,soundBlocked:this.soundBlocked,soundRequested:this.soundRequested,playError:this.lastPlayError,mode:this.nativeWindow?'native-window':this.mode,fallbackReason:this.fallbackReason,packagingReason:this.packagingReason||null,errorCode:this.mediaErrorCode,width:v.videoWidth||0,height:v.videoHeight||0,playableAheadSeconds:ahead,windowSeconds:this.nativeWindow?(this.nativeWindow.end-this.nativeWindow.start)/1000:null,srcChanges:this.playbackMetrics.srcChanges,lastLoadMs:this.playbackMetrics.lastLoadMs,firstFrameMs:this.playbackMetrics.firstFrameMs,decodedFrames:q?.totalVideoFrames??v.webkitDecodedFrameCount??null,droppedFrames:q?.droppedVideoFrames??v.webkitDroppedFrameCount??null,mseErrorPhase:this.mseErrorPhase,mseErrorName:this.mseErrorName,mseEvictions:this.mseEvictions,mseQuotaRecoveries:this.mseQuotaRecoveries,decoderBufferedSeconds:bufferedSeconds,appendQueuePieces:this.queue.length,seekCount:this.seekCount,seekPendingMs:this.seekStarted===null?0:Math.max(0,Date.now()-this.seekStarted),longestSeekMs:this.longestSeekMs};
     }
     sync(target){
       const v=this.video;
@@ -181,8 +206,14 @@
           // into that hole. Skip only a bounded, already-buffered capture gap;
           // actual programme position still reports the decoded media clock.
           if(i>0&&target>=v.buffered.end(i-1)&&target<start&&start-v.buffered.end(i-1)<=.15){
-            try{v.currentTime=start+.001;inRange=true;}catch{}
+            try{this.seek(start+.001,'gap');inRange=true;}catch{}
           }
+        }
+        // A buffered Apple seek can fail to complete even though its target is
+        // present. Do not keep seeking through that failure: use the existing
+        // native player and the same verified pieces and group target.
+        if(inRange&&v.seeking&&this.seekStarted!==null&&Date.now()-this.seekStarted>1500&&(!this.presented||Date.now()-this.presented.at>500||Math.abs(target-this.presented.time)>.75)&&this.nativeMime){
+          this.fallback('Trying another player after playback stopped.','seek-stalled');return this.sync(target);
         }
         // Managed buffers may evict data independently. Repair from our verified
         // bounded piece cache without changing the shared playback clock.
@@ -193,29 +224,32 @@
         if(!withinWindow){
           const piece=this.pieces.find(p=>absolute>=p.meta.start&&absolute<p.meta.start+p.meta.duration);
           if(!piece){v.pause();return {waiting:true,drift:null};}
-          if(this.current!==piece.meta.seq||this.nativeWindow)this.loadNative(piece);
+          if(this.current!==piece.meta.seq||this.nativeWindow)this.loadNative(piece,absolute);
         }
         if(this.nativeWindow)localTarget=(absolute-this.nativeWindow.start)/1000;
         else{const piece=this.pieces.find(p=>p.meta.seq===this.current);if(!piece){v.pause();return{waiting:true,drift:null};}localTarget=(absolute-piece.meta.start)/1000;}
-        inRange=v.readyState>=2&&!this.nativeWindow&&localTarget<this.duration-.025;
-        if(this.nativeWindow&&v.readyState>=2){for(let i=0;i<v.buffered.length;i++){const start=v.buffered.start(i),end=v.buffered.end(i);if(localTarget>=start&&localTarget<end)inRange=true;else if(i>0&&localTarget>=v.buffered.end(i-1)&&localTarget<start&&start-v.buffered.end(i-1)<=.15){try{v.currentTime=start+.001;inRange=true;}catch{}}}}
+        inRange=!this.nativeLoading&&v.readyState>=2&&!this.nativeWindow&&localTarget<this.duration-.025;
+        if(!this.nativeLoading&&this.nativeWindow&&v.readyState>=2){for(let i=0;i<v.buffered.length;i++){const start=v.buffered.start(i),end=v.buffered.end(i);if(localTarget>=start&&localTarget<end)inRange=true;else if(i>0&&localTarget>=v.buffered.end(i-1)&&localTarget<start&&start-v.buffered.end(i-1)<=.15){try{this.seek(start+.001,'gap');inRange=true;}catch{}}}}
       }
       if(!inRange){v.pause();return {waiting:true,drift:null};}
+      // Keep subsecond decode/startup latency inside a 750ms correction deadband.
+      // Seeking at 300ms can spend longer restarting Apple playback than it
+      // corrects. The shared target never changes; substantial drift still seeks.
       // Repeated fractional rate writes can silence/stall native Apple file playback.
       // Keep that path at normal speed; bounded seeks still enforce the group clock.
-      const drift=localTarget-v.currentTime;
-      try{if(Math.abs(drift)>.3)v.currentTime=localTarget;else if(this.mode==='mse')v.playbackRate=1+Math.max(-.025,Math.min(.025,drift*.08));else if(v.playbackRate!==1)v.playbackRate=1;}catch(e){return {waiting:true,drift:null};}
+      const drift=localTarget-this.mediaTime();
+      try{if(Math.abs(drift)>.75)this.seek(localTarget,'clock');else if(!v.seeking){const rate=1;if(v.playbackRate!==rate)v.playbackRate=rate;}}catch(e){return {waiting:true,drift:null};}
       this.play().catch(()=>{});
       return {waiting:false,drift,playing:!v.paused};
     }
     // Decoded programme position, including the source-relative offset in clip mode.
     // This deliberately differs from a desired clock target: tests need actual playout.
     programTime(){
-      if(this.closed||this.video.readyState<2)return null;
-      if(this.mode==='mse')return this.video.currentTime;
-      if(this.nativeWindow)return (this.nativeWindow.start-this.epoch)/1000+this.video.currentTime;
+      if(this.closed||this.nativeLoading||this.video.readyState<2)return null;
+      if(this.mode==='mse')return this.mediaTime();
+      if(this.nativeWindow)return (this.nativeWindow.start-this.epoch)/1000+this.mediaTime();
       const piece=this.pieces.find(p=>p.meta.seq===this.current);
-      return piece?(piece.meta.start-this.epoch)/1000+this.video.currentTime:null;
+      return piece?(piece.meta.start-this.epoch)/1000+this.mediaTime():null;
     }
     // Call synchronously from a click: iOS sound permission cannot be acquired
     // later from a timer or loadedmetadata callback.
@@ -235,7 +269,7 @@
       });
     }
     close(){
-      this.closed=true;clearTimeout(this.openTimer);this.video.removeEventListener('error',this.onVideoError);this.video.removeEventListener('loadeddata',this.onFirstFrame);this.video.removeEventListener('seeking',this.onSeeking);this.video.removeEventListener('seeked',this.onSeeked);if(this.nativeWindow)URL.revokeObjectURL(this.nativeWindow.url);this.nativeWindow=null;
+      this.closed=true;if(this.frameRequest!==null)this.video.cancelVideoFrameCallback?.(this.frameRequest);this.presented=null;clearTimeout(this.openTimer);this.video.removeEventListener('error',this.onVideoError);this.video.removeEventListener('loadeddata',this.onFirstFrame);this.video.removeEventListener('loadedmetadata',this.onMetadata);this.video.removeEventListener('seeking',this.onSeeking);this.video.removeEventListener('seeked',this.onSeeked);if(this.nativeWindow)URL.revokeObjectURL(this.nativeWindow.url);this.nativeWindow=null;
       this.video.pause();this.video.removeAttribute('src');this.video.load();
       if(this.sourceURL)URL.revokeObjectURL(this.sourceURL);
       for(const url of this.urls.values())URL.revokeObjectURL(url);
