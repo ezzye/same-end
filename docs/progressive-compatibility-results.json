@@ -41,5 +41,28 @@
     "unitTestsPassed": 32,
     "localWebRTCQualification": "Capacity route and repair cases passed; max decoded frame gaps 67ms/84ms, tone present, max clock drift below40ms, no TURN",
     "longComparison": "Incomplete for weak-supplier fix; deployment decision remains held"
+  },
+  "soundInvestigation": {
+    "physicalOfflineAACDecodeRms": 0.02107088414485825,
+    "speakerOutputVerified": false,
+    "webkitNativeBefore": {
+      "toneSamples": 0,
+      "frameCallbacks": 47,
+      "maxFrameGapMs": 2691
+    },
+    "webkitNativeNormalRate": {
+      "toneSamples": 417,
+      "samples": 446,
+      "frameCallbacks": 245,
+      "maxFrameGapMs": 450,
+      "maxDriftSeconds": 0.3190134166814378
+    },
+    "changes": [
+      "Normal native playback rate; bounded drift correction retained",
+      "Explicit on-picture sound activation",
+      "Muted picture survives audible autoplay refusal",
+      "Sanitised sound permission diagnostics"
+    ],
+    "rannieExactCause": "Unproven; no device report"
   }
 }

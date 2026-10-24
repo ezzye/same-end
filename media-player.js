@@ -57,7 +57,7 @@
     constructor(video,mime,{onError=()=>{},onMode=()=>{}}={}){
       if(!canPlay(mime,video))throw Error('This browser cannot play this cast. Ask the host to start a fresh room in updated Chrome, Edge or Safari so it uses iPhone-compatible MP4.');
       this.video=video;this.mime=mime;this.nativeWindow=null;this.playbackMetrics={srcChanges:0,lastLoadMs:null,firstFrameMs:null};this.nativeMime=nativeMime(mime,video);this.nativeBlobType=mime.startsWith('video/mp4')?'video/mp4':(this.nativeMime||mime);this.onError=onError;this.onMode=onMode;
-      this.queue=[];this.queueBytes=0;this.pieces=[];this.pieceBytes=0;this.urls=new Map();this.mode='clips';this.fallbackReason='unsupported-mse';this.mediaErrorCode=null;this.closed=false;this.blocked=false;this.current=null;this.loading=false;this.duration=0;this.demand=true;this.lastRepair=0;
+      this.queue=[];this.queueBytes=0;this.pieces=[];this.pieceBytes=0;this.urls=new Map();this.mode='clips';this.fallbackReason='unsupported-mse';this.mediaErrorCode=null;this.closed=false;this.blocked=false;this.soundBlocked=false;this.soundRequested=false;this.lastPlayError=null;this.current=null;this.loading=false;this.duration=0;this.demand=true;this.lastRepair=0;
       video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');
       // Required for iPhone ManagedMediaSource without a separate AirPlay URL.
       video.disableRemotePlayback=true;video.preload='auto';video.autoplay=true;
@@ -131,7 +131,7 @@
     }
     facts(){
       const v=this.video;let ahead=0;for(let i=0;i<v.buffered.length;i++)if(v.currentTime>=v.buffered.start(i)&&v.currentTime<v.buffered.end(i))ahead=v.buffered.end(i)-v.currentTime;
-      const q=v.getVideoPlaybackQuality?.();return{mode:this.nativeWindow?'native-window':this.mode,fallbackReason:this.fallbackReason,packagingReason:this.packagingReason||null,errorCode:this.mediaErrorCode,width:v.videoWidth||0,height:v.videoHeight||0,playableAheadSeconds:ahead,windowSeconds:this.nativeWindow?(this.nativeWindow.end-this.nativeWindow.start)/1000:null,srcChanges:this.playbackMetrics.srcChanges,lastLoadMs:this.playbackMetrics.lastLoadMs,firstFrameMs:this.playbackMetrics.firstFrameMs,decodedFrames:q?.totalVideoFrames??v.webkitDecodedFrameCount??null,droppedFrames:q?.droppedVideoFrames??v.webkitDroppedFrameCount??null};
+      const q=v.getVideoPlaybackQuality?.();return{muted:v.muted===true,soundBlocked:this.soundBlocked,soundRequested:this.soundRequested,playError:this.lastPlayError,mode:this.nativeWindow?'native-window':this.mode,fallbackReason:this.fallbackReason,packagingReason:this.packagingReason||null,errorCode:this.mediaErrorCode,width:v.videoWidth||0,height:v.videoHeight||0,playableAheadSeconds:ahead,windowSeconds:this.nativeWindow?(this.nativeWindow.end-this.nativeWindow.start)/1000:null,srcChanges:this.playbackMetrics.srcChanges,lastLoadMs:this.playbackMetrics.lastLoadMs,firstFrameMs:this.playbackMetrics.firstFrameMs,decodedFrames:q?.totalVideoFrames??v.webkitDecodedFrameCount??null,droppedFrames:q?.droppedVideoFrames??v.webkitDroppedFrameCount??null};
     }
     sync(target){
       const v=this.video;
@@ -168,8 +168,10 @@
         if(this.nativeWindow&&v.readyState>=2){for(let i=0;i<v.buffered.length;i++){const start=v.buffered.start(i),end=v.buffered.end(i);if(localTarget>=start&&localTarget<end)inRange=true;else if(i>0&&localTarget>=v.buffered.end(i-1)&&localTarget<start&&start-v.buffered.end(i-1)<=.15){try{v.currentTime=start+.001;inRange=true;}catch{}}}}
       }
       if(!inRange){v.pause();return {waiting:true,drift:null};}
+      // Repeated fractional rate writes can silence/stall native Apple file playback.
+      // Keep that path at normal speed; bounded seeks still enforce the group clock.
       const drift=localTarget-v.currentTime;
-      try{if(Math.abs(drift)>.3)v.currentTime=localTarget;else v.playbackRate=1+Math.max(-.025,Math.min(.025,drift*.08));}catch(e){return {waiting:true,drift:null};}
+      try{if(Math.abs(drift)>.3)v.currentTime=localTarget;else if(this.mode==='mse')v.playbackRate=1+Math.max(-.025,Math.min(.025,drift*.08));else if(v.playbackRate!==1)v.playbackRate=1;}catch(e){return {waiting:true,drift:null};}
       this.play().catch(()=>{});
       return {waiting:false,drift,playing:!v.paused};
     }
@@ -184,7 +186,21 @@
     }
     // Call synchronously from a click: iOS sound permission cannot be acquired
     // later from a timer or loadedmetadata callback.
-    play(){const result=this.video.play();return Promise.resolve(result).then(()=>{this.blocked=false;},error=>{if(error.name==='NotAllowedError')this.blocked=true;throw error;});}
+    requestSound(){this.soundRequested=true;this.video.muted=false;return this.play();}
+    muteSound(){this.soundRequested=true;this.soundBlocked=false;this.video.muted=true;}
+    play(){
+      const audible=!this.video.muted,result=this.video.play();
+      return Promise.resolve(result).then(()=>{this.blocked=false;this.lastPlayError=null;if(audible&&!this.video.muted)this.soundBlocked=false;},error=>{
+        this.lastPlayError=['NotAllowedError','NotSupportedError','AbortError'].includes(error.name)?error.name:'Other';
+        if(error.name==='NotAllowedError'){
+          this.blocked=true;
+          // Preserve the picture when an Apple browser refuses audible autoplay.
+          // Remember the refusal until a direct sound-button tap really succeeds.
+          if(audible){this.soundBlocked=true;this.video.muted=true;Promise.resolve(this.video.play()).then(()=>{this.blocked=false;},()=>{});}
+        }
+        throw error;
+      });
+    }
     close(){
       this.closed=true;clearTimeout(this.openTimer);this.video.removeEventListener('error',this.onVideoError);this.video.removeEventListener('loadeddata',this.onFirstFrame);if(this.nativeWindow)URL.revokeObjectURL(this.nativeWindow.url);this.nativeWindow=null;
       this.video.pause();this.video.removeAttribute('src');this.video.load();
