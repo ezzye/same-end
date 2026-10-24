@@ -16,3 +16,5 @@ New rooms bundle hls.js **1.7.3** (Apache-2.0) and Mediabunny **1.62.1** (MPL-2.
 - Mediabunny: https://github.com/Vanilagy/mediabunny/tree/v1.62.1 — full licence in `vendor/MEDIABUNNY-LICENSE.txt`. Exact package source is available at https://www.npmjs.com/package/mediabunny/v/1.62.1 (and its versioned npm source archive).
 
 The libraries are bundled without upstream source modifications. Same End's transport, player adapters and capture adapter are separate MIT-licensed modules. Library notices remain in the generated scripts; the full notices and source links are also included in the delivered HTML and `third-party.html`. esbuild only bundles and lowers syntax. MPL-covered Mediabunny source remains available from its upstream version; building with `npm ci && npm run build` reproduces the integration.
+
+The build additionally uses pinned **fflate 0.8.3** (MIT) to create the fixtures-extension ZIP on Mac, Windows and Linux without a system `zip` executable. It is a build-only dependency and is not bundled into the delivered app. Source and licence: https://github.com/101arrowz/fflate/tree/v0.8.3 .

@@ -1,8 +1,8 @@
-import {readFile,writeFile,mkdir,rm} from 'node:fs/promises';
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
-import {execFileSync} from 'node:child_process';
+import {zipSync} from 'fflate';
 import {transform,build} from 'esbuild';
 const dir=path.dirname(fileURLToPath(import.meta.url)), out=path.join(dir,'dist');
 const browserTargets=['es2017','safari12.1','ios12.2','chrome80','edge80','firefox78'];
@@ -148,11 +148,8 @@ await writeFile(path.join(out,'device-check.html'),await readFile(path.join(dir,
 // Ship only the reviewed extension files. No dependencies, profiles or local data.
 await mkdir(path.join(dir,'extension/icons'),{recursive:true});
 await writeFile(path.join(dir,'extension/icons/icon-128.png'),await png(128));
-const packageDir=path.join(out,'.reader-package'), extensionDir=path.join(packageDir,'Same-End-Local-Fixtures');
-await rm(packageDir,{recursive:true,force:true});await mkdir(path.join(extensionDir,'icons'),{recursive:true});
 const extensionFiles=['manifest.json','reader-core.js','bbc-follow.js','capture-page.js','worker.js','popup.html','popup.js','popup.css','bridge.js','icons/icon-128.png'];
-for(const file of extensionFiles)await writeFile(path.join(extensionDir,file),await readFile(path.join(dir,'extension',file)));
-await rm(path.join(out,'same-end-local-fixtures.zip'),{force:true});
-execFileSync('zip',['-q','-r',path.join(out,'same-end-local-fixtures.zip'),'Same-End-Local-Fixtures'],{cwd:packageDir});
-await rm(packageDir,{recursive:true,force:true});
+const archive={};
+for(const file of extensionFiles)archive['Same-End-Local-Fixtures/'+file]=new Uint8Array(await readFile(path.join(dir,'extension',file)));
+await writeFile(path.join(out,'same-end-local-fixtures.zip'),zipSync(archive,{level:6}));
 await writeFile(path.join(out,'reader-setup.html'),await readFile(path.join(dir,'reader-setup.html')));
