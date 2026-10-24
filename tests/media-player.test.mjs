@@ -179,3 +179,31 @@ test('fully cached native windows survive internal boundaries and piece pruning;
 });
 
 test('audible autoplay refusal preserves muted picture and remembers sound permission until a direct retry succeeds',async()=>{const {player,video}=harness();let permitted=false;video.muted=true;video.play=function(){if(!this.muted&&!permitted)return Promise.reject(Object.assign(new Error('private permission details'),{name:'NotAllowedError'}));this.paused=false;return Promise.resolve()};await assert.rejects(player.requestSound(),{name:'NotAllowedError'});await Promise.resolve();assert.equal(video.muted,true);assert.equal(video.paused,false);assert.equal(player.soundBlocked,true);await player.play();assert.equal(player.soundBlocked,true,'muted success cannot claim audible permission');assert.equal(player.facts().playError,null);permitted=true;await player.requestSound();assert.equal(video.muted,false);assert.equal(player.soundBlocked,false);assert.equal(player.soundRequested,true);player.muteSound();assert.equal(video.muted,true);assert.equal(player.soundBlocked,false);player.close();});
+
+test('hidden playback stops decoder growth while verified pieces remain available, then rejoins the current window',()=>{
+ const h=harness(),{player,managed}=h;player.enqueue(piece(0),epoch);h.drain();
+ for(let seq=1;seq<1000;seq++){player.setPlaybackWindow(seq*2,true);player.enqueue(piece(seq),epoch);assertBounded(player);}
+ assert.equal(managed.buffer.appended.length,1,'paused video must not retain a whole hidden session in SourceBuffer');
+ player.setPlaybackWindow(1998.2,false);h.drain();
+ assert(managed.buffer.appended.includes(999));assert(managed.buffer.appended.slice(1).every(seq=>seq>=997));
+ assert.equal(player.playbackTarget,1998.2,'resumption must retain the shared target');player.close();
+});
+
+test('quota refusal preserves the exact piece and retries once after safe eviction, without moving the clock',()=>{
+ const h=harness(),{player,managed,video}=h,sb=managed.buffer;video.currentTime=20;
+ sb.buffered={length:1,start:()=>10,end:()=>24};const append=sb.appendBuffer;let attempts=0;
+ sb.appendBuffer=function(bytes){if(++attempts===1)throw Object.assign(Error('PRIVATE_RAW_ERROR'),{name:'QuotaExceededError'});append.call(this,bytes)};
+ sb.remove=function(start,end){assert.equal(start,0);assert.equal(end,18);this.buffered={length:1,start:()=>18,end:()=>24};this.updating=true};
+ player.enqueue(piece(10),epoch);h.drain();
+ assert.equal(player.mode,'mse');assert.equal(attempts,2);assert.deepEqual(sb.appended,[10]);assert.equal(player.queueBytes,0);
+ assert.equal(player.facts().mseQuotaRecoveries,1);assert.equal(player.facts().mseErrorPhase,'append');assert.equal(player.facts().mseErrorName,'QuotaExceededError');assert.equal(video.currentTime,20);
+ assert(!JSON.stringify(player.facts()).includes('PRIVATE_RAW_ERROR'));player.close();
+});
+
+test('persistent quota failure makes one retry then falls back instead of an eviction loop',()=>{
+ const h=harness(),{player,managed,video}=h,sb=managed.buffer;video.currentTime=20;
+ sb.buffered={length:1,start:()=>10,end:()=>24};let attempts=0;
+ sb.appendBuffer=()=>{attempts++;throw Object.assign(Error('private'),{name:'QuotaExceededError'})};
+ sb.remove=function(){this.buffered={length:1,start:()=>18,end:()=>24};this.updating=true};
+ player.enqueue(piece(10),epoch);h.drain();assert.equal(attempts,2);assert.equal(player.mode,'clips');assert.equal(player.fallbackReason,'buffer-quota');assert.equal(player.facts().mseQuotaRecoveries,0);player.close();
+});
