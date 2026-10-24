@@ -192,3 +192,10 @@ test('a buffered downstream gives its responsive parent bounded recovery priorit
   parent.pathLostAt=nowValue;parent.lastControlAt=nowValue-13000;ctx.maintainDelivery();assert.equal(calls,3,'unresponsive control bypasses repair grace');
   state.sourceReachable=true;parent.lastControlAt=nowValue;parent.lastProgressAt=nowValue-13000;ctx.verifiedReserve=()=>5;ctx.maintainDelivery();assert.equal(calls,4,'a shallow reserve cannot defer recovery');
 });
+
+test('viewer can change only its local player without replacing the cast, clock or peer connections',()=>{
+ const calls=[],config={id:'room',epoch:1,delay:300},peers=new Map(),state={role:'viewer',config,offset:40,clockReady:true,peers,player:{mode:'mse',nativeMime:'video/mp4',fallback(message,reason){calls.push(reason);this.mode='clips'}}};
+ const ctx={state,Error,stageWindow:()=>calls.push('stage'),syncPlayback:()=>calls.push('sync'),status:()=>{},update:()=>{}};vm.createContext(ctx);vm.runInContext(sliceBetween('function useAlternativePlayer(){','function download('),ctx);ctx.useAlternativePlayer();
+ assert.deepEqual(calls,['manual-compatibility','stage','sync']);assert.equal(state.config,config);assert.equal(state.offset,40);assert.equal(state.peers,peers);assert.equal(state.clockReady,true);
+ state.player.mode='mse';state.role='source';assert.throws(()=>ctx.useAlternativePlayer());assert.equal(state.player.mode,'mse');
+});
