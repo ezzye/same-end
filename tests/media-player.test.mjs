@@ -36,7 +36,7 @@ test('native Apple compatibility changes only declared MP4 labels on a copy, nev
   const truncated=original.subarray(0,original.length-1);assert.equal(media.nativeMP4(truncated),truncated,'malformed containers must remain untouched');
 });
 
-function harness(){
+function harness({stream=false,apple=stream,fullscreenOnly=false}={}){
   class Events{
     constructor(){this.handlers=new Map();}
     addEventListener(name,fn){const handlers=this.handlers.get(name)||[];handlers.push(fn);this.handlers.set(name,handlers);}
@@ -53,19 +53,19 @@ function harness(){
     addSourceBuffer(){this.buffer=new Buffer();return this.buffer;}
   }
   const video=Object.assign(new Events(),{
-    currentTime:0,readyState:4,paused:true,buffered:{length:0},
+    currentTime:0,readyState:4,paused:true,buffered:{length:0},...(apple?(fullscreenOnly?{webkitEnterFullscreen:()=>{}}:{webkitSupportsPresentationMode:()=>true}):{}),
     canPlayType:()=> 'probably',setAttribute(){},removeAttribute(){this.src=null;},load(){},
     pause(){this.paused=true;},play(){this.paused=false;return Promise.resolve();}
   });
   let clock=10000,nextURL=0;
-  const liveURLs=new Set();
-  const context=createContext({window:{ManagedMediaSource:ManagedSource},document:{createElement:()=>video},
+  const liveURLs=new Set(),streamEpochs=[];
+  const context=createContext({window:{ManagedMediaSource:ManagedSource,...(stream?{SameEndNativeMP4:{createStream(epoch){streamEpochs.push(epoch);return{append:p=>({ok:true,bytes:p.buf})}}}}:{})},document:{createElement:()=>video},
     Blob,Date:{now:()=>clock},setTimeout:()=>1,clearTimeout(){},
     URL:{createObjectURL(){const url='blob:test/'+(++nextURL);liveURLs.add(url);return url;},revokeObjectURL(url){liveURLs.delete(url);}}});
   runInContext(source,context);
   const player=new context.window.SameEndMedia.Player(video,'video/mp4');
   const managed=player.source;managed.emit('sourceopen');managed.emit('endstreaming');
-  return {player,video,managed,liveURLs,tick(){clock+=1300;},drain(){
+  return {player,video,managed,liveURLs,streamEpochs,tick(){clock+=1300;},drain(){
     managed.emit('startstreaming');let remaining=30;
     while(player.sb?.updating&&remaining-->0)player.sb.complete();
     assert(remaining>0,'resuming demand must drain a bounded queue');
@@ -249,3 +249,16 @@ test('a new native file is aligned at metadata before its first displayed frame'
  player.sync(7.4);assert.equal(player.programTime(),null);video.currentSrc=video.src;video.emit('loadedmetadata');assert(Math.abs(video.currentTime-1.4)<.00001,'initial alignment must not inherit the previous file seek throttle');
  video.emit('loadeddata');assert(Math.abs(player.programTime()-7.4)<.00001);player.close();
 });
+
+
+test('late MSE joins rebase only decoder time, retain signed cache and evict in local coordinates',()=>{
+ const h=harness({stream:true}),{player,video,managed}=h;player.setPlaybackWindow(30.8);for(const seq of [13,14,15])player.enqueue(piece(seq),epoch);assert.equal(player.pieces.length,3);h.drain();assert.deepEqual(managed.buffer.appended,[15]);assert.deepEqual(h.streamEpochs,[epoch+30000]);assert.equal(managed.buffer.timestampOffset,0);
+ video.currentTime=.8;video.buffered=managed.buffer.buffered={length:1,start:()=>0,end:()=>10};player.enqueue(piece(16),epoch);h.drain();assert.equal(player.mode,'mse','a late programme clock must not evict its new decoder buffer');assert.equal(player.sync(30.8).waiting,false);assert.equal(player.programTime(),30.8);assert.equal(player.facts().mseProgramOriginSeconds,30);player.close();assert.equal(player.fragmentStream,null);
+});
+
+
+test('non Apple decoders retain their established MP4 append path',()=>{
+ const h=harness({stream:true,apple:false}),{player,video,managed}=h;player.setPlaybackWindow(30.8);player.enqueue(piece(15),epoch);h.drain();assert.equal(player.normalizeMP4,false);assert.deepEqual(h.streamEpochs,[]);assert.equal(managed.buffer.timestampOffset,30);video.currentTime=30.8;assert.equal(player.programTime(),30.8);player.close();
+});
+
+test('Apple fullscreen-only APIs select the same normalized stream without a brand check',()=>{const h=harness({stream:true,fullscreenOnly:true});h.player.enqueue(piece(0),epoch);h.drain();assert.equal(h.player.normalizeMP4,true);assert.equal(h.player.facts().mseImplementation,'managed');assert.equal(h.player.facts().mseNormalized,true);assert.deepEqual(h.streamEpochs,[epoch]);h.player.close();});

@@ -148,7 +148,9 @@ try {
   report.pieces=await Promise.all(pieces.map(async path=>{const b=await readFile(path);return {file:path.split('/').at(-1),bytes:b.length,sha256:createHash('sha256').update(b).digest('hex')}}));
   report.browserErrors={pageErrors,consoleErrors};
   const views=Object.values(report.views),allSamples=[...normal,...fullRoom,...pictureOnly];
-  report.acceptance={selectedAVC3:/codecs=avc3\./i.test(final.source.mime||''),selectedCodecSupported:report.selectedMimeSupport.record===true&&report.selectedMimeSupport.mse===true&&report.selectedMimeSupport.nativePlay===true,sameStream:final.records.length>=12&&new Set(final.records.map(r=>r.streamId)).size===1,segmentsAtLeast12:final.records.length>=12,recorderTarget:final.records.every(r=>r.videoBitsPerSecond===1500000&&r.tracks.some(t=>t.kind==='video'&&t.width===1280&&t.height===720&&t.frameRate===25)&&r.tracks.some(t=>t.kind==='audio')),normalAdvances:report.views.normal.framesAdvanced,fullRoomAdvances:report.views.fullRoom.framesAdvanced,pictureOnlyAdvances:report.views.pictureOnly.framesAdvanced,audioToneEveryView:views.every(v=>v.audioThroughout),modeStayedMSE:allSamples.every(s=>s.mode==='mse'&&!s.error)&&final.errors.length===0,maxAbsoluteDriftSeconds:Math.max(...views.map(v=>v.maxAbsoluteDriftSeconds))};
+  // Generator settings can be absent before Chromium's first consumer pull.
+  // Validate optional settings honestly, and check actual decoded dimensions.
+  report.acceptance={decoded720p:allSamples.every(s=>s.videoWidth===1280&&s.videoHeight===720),pixelNormalizationActive:final.source.mediaDiagnostics?.capture?.pixelNormalization==='active'&&final.source.mediaDiagnostics.capture.normalizedFrames>200&&final.source.mediaDiagnostics.capture.normalizationTargetFrameRate===25,selectedAVC3:/codecs=avc3\./i.test(final.source.mime||''),selectedCodecSupported:report.selectedMimeSupport.record===true&&report.selectedMimeSupport.mse===true&&report.selectedMimeSupport.nativePlay===true,sameStream:final.records.length>=12&&new Set(final.records.map(r=>r.streamId)).size===1,segmentsAtLeast12:final.records.length>=12,recorderTarget:final.records.every(r=>r.videoBitsPerSecond===1500000&&r.tracks.some(t=>t.kind==='video'&&(t.width===undefined||t.width===1280)&&(t.height===undefined||t.height===720)&&(t.frameRate===undefined||t.frameRate>0&&t.frameRate<=30))&&r.tracks.some(t=>t.kind==='audio')),normalAdvances:report.views.normal.framesAdvanced,fullRoomAdvances:report.views.fullRoom.framesAdvanced,pictureOnlyAdvances:report.views.pictureOnly.framesAdvanced,audioToneEveryView:views.every(v=>v.audioThroughout),modeStayedMSE:allSamples.every(s=>s.mode==='mse'&&!s.error)&&final.errors.length===0,maxAbsoluteDriftSeconds:Math.max(...views.map(v=>v.maxAbsoluteDriftSeconds))};
   report.result='captured';
   stage='acceptance checks';
   await writeFile(reportURL,JSON.stringify(report,null,2));
@@ -156,7 +158,9 @@ try {
   assert(report.acceptance.selectedCodecSupported,'Selected AVC3 must be supported by MediaRecorder, MSE, and native playback.');
   assert(report.acceptance.sameStream,'All repeated recorders must use the same MediaStream.');
   assert(report.acceptance.segmentsAtLeast12,'Expected at least twelve sequential segments.');
-  assert(report.acceptance.recorderTarget,'Expected 720p25 H.264/AAC 1.5 Mbps capture settings.');
+  assert(report.acceptance.recorderTarget,'Expected 720p H.264/AAC 1.5 Mbps, with reported track frame rate at most30.');
+  assert(report.acceptance.decoded720p,'Actual decoded host picture must be1280x720 in every view.');
+  assert(report.acceptance.pixelNormalizationActive,'Actual source frames must pass the colour converter with25fps target, not just be relabelled.');
   assert(views.every(v=>v.framesAdvanced&&v.audioThroughout&&v.modeStayedMSE),'Each actual view must advance frames, carry the generated tone, and remain in MSE.');
   assert(report.acceptance.maxAbsoluteDriftSeconds<.5,'Programme drift must remain below 500 ms.');
   report.result='passed';await writeFile(reportURL,JSON.stringify(report,null,2));
