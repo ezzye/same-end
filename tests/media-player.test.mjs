@@ -207,3 +207,9 @@ test('persistent quota failure makes one retry then falls back instead of an evi
  sb.remove=function(){this.buffered={length:1,start:()=>18,end:()=>24};this.updating=true};
  player.enqueue(piece(10),epoch);h.drain();assert.equal(attempts,2);assert.equal(player.mode,'clips');assert.equal(player.fallbackReason,'buffer-quota');assert.equal(player.facts().mseQuotaRecoveries,0);player.close();
 });
+
+test('manual compatibility switching retains verified media, source timing and listener sound preference',()=>{
+ const {player,video}=harness();const inputs=Array.from({length:8},(_,seq)=>piece(seq));for(const p of inputs)player.enqueue(p,epoch);video.muted=false;
+ player.fallback('test','manual-compatibility');assert.equal(player.mode,'clips');assert.equal(player.fallbackReason,'manual-compatibility');assert.equal(video.muted,false);assert.equal(player.epoch,epoch);assert.equal(player.pieces.length,8);
+ player.sync(4.2);video.currentTime=.2;assert.equal(player.programTime(),4.2);assert.equal(player.pieces.find(p=>p.meta.seq===2).buf,inputs[2].buf);player.close();
+});

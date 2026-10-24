@@ -27,7 +27,8 @@
     "test:diagnostics": "node tests/diagnostics-browser.test.mjs",
     "test:startup-social": "node tests/startup-social-browser.test.mjs",
     "test:native-window": "node tests/native-window-browser.test.mjs",
-    "test:media-background": "node tests/media-background-browser.test.mjs"
+    "test:media-background": "node tests/media-background-browser.test.mjs",
+    "test:alternate-player": "node tests/alternate-player-browser.test.mjs"
   },
   "engines": {
     "node": ">=20"
