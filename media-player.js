@@ -58,6 +58,11 @@
       if(!canPlay(mime,video))throw Error('This browser cannot play this cast. Ask the host to start a fresh room in updated Chrome, Edge or Safari so it uses iPhone-compatible MP4.');
       this.video=video;this.mime=mime;this.nativeWindow=null;this.playbackMetrics={srcChanges:0,lastLoadMs:null,firstFrameMs:null};this.nativeMime=nativeMime(mime,video);this.nativeBlobType=mime.startsWith('video/mp4')?'video/mp4':(this.nativeMime||mime);this.onError=onError;this.onMode=onMode;
       this.queue=[];this.queueBytes=0;this.pieces=[];this.pieceBytes=0;this.urls=new Map();this.mode='clips';this.fallbackReason='unsupported-mse';this.mediaErrorCode=null;this.closed=false;this.blocked=false;this.soundBlocked=false;this.soundRequested=false;this.lastPlayError=null;this.current=null;this.loading=false;this.duration=0;this.demand=true;this.lastRepair=0;
+      this.playbackTarget=null;this.suspended=false;this.mseErrorPhase=null;this.mseErrorName=null;this.mseEvictions=0;this.mseQuotaRecoveries=0;this.quotaRetrySeq=null;
+      this.seekCount=0;this.seekStarted=null;this.longestSeekMs=0;
+      this.onSeeking=()=>{this.seekCount++;if(this.seekStarted===null)this.seekStarted=Date.now();};
+      this.onSeeked=()=>{if(this.seekStarted!==null)this.longestSeekMs=Math.max(this.longestSeekMs,Date.now()-this.seekStarted);this.seekStarted=null;};
+      video.addEventListener('seeking',this.onSeeking);video.addEventListener('seeked',this.onSeeked);
       video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');
       // Required for iPhone ManagedMediaSource without a separate AirPlay URL.
       video.disableRemotePlayback=true;video.preload='auto';video.autoplay=true;
@@ -93,13 +98,39 @@
       while(this.pieces.length>24||this.pieceBytes>20*1024*1024)this.pieceBytes-=this.pieces.shift().buf.byteLength;
       if(this.mode==='mse'){this.queue.push(piece);this.queueBytes+=piece.buf.byteLength;while(this.queue.length>20||this.queueBytes>20*1024*1024)this.queueBytes-=this.queue.shift().buf.byteLength;this.pump();}
     }
+    // The group clock keeps advancing when a hidden page pauses its video.
+    // Retain verified pieces for forwarding, but stop filling the decoder while
+    // hidden. On return, discard old append work and prune at the shared moment.
+    setPlaybackWindow(target,suspended=false){
+      if(!Number.isFinite(target))return;
+      this.playbackTarget=target;this.suspended=suspended===true;
+      if(target>=0&&Number.isFinite(this.epoch)){
+        const cutoff=this.epoch+target*1000-4000;
+        this.queue=this.queue.filter(p=>p.meta.start+p.meta.duration>=cutoff);
+        this.queueBytes=this.queue.reduce((n,p)=>n+p.buf.byteLength,0);
+      }
+      this.pump();
+    }
     pump(){
-      const sb=this.sb;if(this.closed||this.mode!=='mse'||!sb||sb.updating||!this.demand||!this.queue.length)return;
+      const sb=this.sb;if(this.closed||this.mode!=='mse'||!sb||sb.updating||this.suspended||!this.demand||!this.queue.length)return;
+      const piece=this.queue[0],t=Math.max(this.video.currentTime,this.playbackTarget??0);let phase='remove';
       try{
-        const t=this.video.currentTime;
-        if(t>18&&sb.buffered.length&&sb.buffered.start(0)<t-14){sb.remove(0,t-12);return;}
-        const piece=this.queue.shift();this.queueBytes-=piece.buf.byteLength;sb.timestampOffset=(piece.meta.start-this.epoch)/1000;sb.appendBuffer(piece.buf);
-      }catch(e){this.fallback('Using compatibility playback after a buffer error.','buffer-append');}
+        if(t>18&&sb.buffered.length&&sb.buffered.start(0)<t-14){sb.remove(0,t-12);this.mseEvictions++;return;}
+        phase='timestamp-offset';sb.timestampOffset=(piece.meta.start-this.epoch)/1000;
+        phase='append';sb.appendBuffer(piece.buf);
+        this.queue.shift();this.queueBytes-=piece.buf.byteLength;
+        if(this.quotaRetrySeq===piece.meta.seq){this.mseQuotaRecoveries++;this.quotaRetrySeq=null;}
+      }catch(e){
+        this.mseErrorPhase=phase;this.mseErrorName=['QuotaExceededError','InvalidStateError','NotSupportedError','TypeError'].includes(e.name)?e.name:'Other';
+        // A synchronous quota refusal has not consumed this piece. Free only
+        // obsolete media, then retry that exact verified piece once. Parse or
+        // decoder errors still use the existing compatibility fallback.
+        if(phase==='append'&&e.name==='QuotaExceededError'&&this.quotaRetrySeq!==piece.meta.seq&&t>3&&sb.buffered.length&&sb.buffered.start(0)<t-2){
+          this.quotaRetrySeq=piece.meta.seq;
+          try{sb.remove(0,t-2);this.mseEvictions++;return;}catch(error){this.mseErrorPhase='remove';this.mseErrorName=['QuotaExceededError','InvalidStateError','NotSupportedError','TypeError'].includes(error.name)?error.name:'Other';}
+        }
+        this.fallback('Using compatibility playback after a buffer error.',e.name==='QuotaExceededError'?'buffer-quota':'buffer-append');
+      }
     }
     urlFor(piece){
       if(!this.urls.has(piece.meta.seq))this.urls.set(piece.meta.seq,URL.createObjectURL(new Blob([this.nativeMime!==this.mime?nativeMP4(piece.buf):piece.buf],{type:this.nativeBlobType})));
@@ -131,10 +162,12 @@
     }
     facts(){
       const v=this.video;let ahead=0;for(let i=0;i<v.buffered.length;i++)if(v.currentTime>=v.buffered.start(i)&&v.currentTime<v.buffered.end(i))ahead=v.buffered.end(i)-v.currentTime;
-      const q=v.getVideoPlaybackQuality?.();return{muted:v.muted===true,soundBlocked:this.soundBlocked,soundRequested:this.soundRequested,playError:this.lastPlayError,mode:this.nativeWindow?'native-window':this.mode,fallbackReason:this.fallbackReason,packagingReason:this.packagingReason||null,errorCode:this.mediaErrorCode,width:v.videoWidth||0,height:v.videoHeight||0,playableAheadSeconds:ahead,windowSeconds:this.nativeWindow?(this.nativeWindow.end-this.nativeWindow.start)/1000:null,srcChanges:this.playbackMetrics.srcChanges,lastLoadMs:this.playbackMetrics.lastLoadMs,firstFrameMs:this.playbackMetrics.firstFrameMs,decodedFrames:q?.totalVideoFrames??v.webkitDecodedFrameCount??null,droppedFrames:q?.droppedVideoFrames??v.webkitDroppedFrameCount??null};
+      let bufferedSeconds=0;for(let i=0;i<v.buffered.length;i++)bufferedSeconds+=v.buffered.end(i)-v.buffered.start(i);
+      const q=v.getVideoPlaybackQuality?.();return{muted:v.muted===true,soundBlocked:this.soundBlocked,soundRequested:this.soundRequested,playError:this.lastPlayError,mode:this.nativeWindow?'native-window':this.mode,fallbackReason:this.fallbackReason,packagingReason:this.packagingReason||null,errorCode:this.mediaErrorCode,width:v.videoWidth||0,height:v.videoHeight||0,playableAheadSeconds:ahead,windowSeconds:this.nativeWindow?(this.nativeWindow.end-this.nativeWindow.start)/1000:null,srcChanges:this.playbackMetrics.srcChanges,lastLoadMs:this.playbackMetrics.lastLoadMs,firstFrameMs:this.playbackMetrics.firstFrameMs,decodedFrames:q?.totalVideoFrames??v.webkitDecodedFrameCount??null,droppedFrames:q?.droppedVideoFrames??v.webkitDroppedFrameCount??null,mseErrorPhase:this.mseErrorPhase,mseErrorName:this.mseErrorName,mseEvictions:this.mseEvictions,mseQuotaRecoveries:this.mseQuotaRecoveries,decoderBufferedSeconds:bufferedSeconds,appendQueuePieces:this.queue.length,seekCount:this.seekCount,seekPendingMs:this.seekStarted===null?0:Math.max(0,Date.now()-this.seekStarted),longestSeekMs:this.longestSeekMs};
     }
     sync(target){
       const v=this.video;
+      this.setPlaybackWindow(target,false);
       if(target>=0){const cutoff=this.epoch+target*1000-4000;this.pieces=this.pieces.filter(p=>p.meta.start+p.meta.duration>=cutoff);this.pieceBytes=this.pieces.reduce((n,p)=>n+p.buf.byteLength,0);this.queue=this.queue.filter(p=>p.meta.start+p.meta.duration>=cutoff);this.queueBytes=this.queue.reduce((n,p)=>n+p.buf.byteLength,0);}
       if(target<0){v.pause();return {waiting:true,drift:null};}
       let localTarget=target,inRange=false;
@@ -202,7 +235,7 @@
       });
     }
     close(){
-      this.closed=true;clearTimeout(this.openTimer);this.video.removeEventListener('error',this.onVideoError);this.video.removeEventListener('loadeddata',this.onFirstFrame);if(this.nativeWindow)URL.revokeObjectURL(this.nativeWindow.url);this.nativeWindow=null;
+      this.closed=true;clearTimeout(this.openTimer);this.video.removeEventListener('error',this.onVideoError);this.video.removeEventListener('loadeddata',this.onFirstFrame);this.video.removeEventListener('seeking',this.onSeeking);this.video.removeEventListener('seeked',this.onSeeked);if(this.nativeWindow)URL.revokeObjectURL(this.nativeWindow.url);this.nativeWindow=null;
       this.video.pause();this.video.removeAttribute('src');this.video.load();
       if(this.sourceURL)URL.revokeObjectURL(this.sourceURL);
       for(const url of this.urls.values())URL.revokeObjectURL(url);

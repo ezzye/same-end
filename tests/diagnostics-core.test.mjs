@@ -131,3 +131,10 @@ test('assesses delivery, decoder, warmup, autoplay, stalled playback, source cap
  assert.equal(result({role:'viewer'},[prior,{...current,at:2500}]).findings.some(f=>f.code==='no-frame-growth'),false);
  assert.equal(result({role:'viewer',mediaDiagnostics:{capture:{width:320,frameRate:5,targetVideoMbps:0.2,actualMediaMbps:0.1}}}).state,'unknown');
 });
+
+test('buffer pressure and seek diagnostics survive export without raw errors or invented device facts',()=>{
+ const storage=memoryStorage(),s=setup({storage});s.observe({playbackFallbackReason:'buffer-quota',mediaDiagnostics:{playback:{mseErrorPhase:'append',mseErrorName:'QuotaExceededError',mseEvictions:3,mseQuotaRecoveries:1,decoderBufferedSeconds:18,appendQueuePieces:2,seekCount:7,seekPendingMs:600,longestSeekMs:900,rawError:'PRIVATE_SECRET'}}});
+ const p=setup({storage}).c.report().status.mediaDiagnostics.playback;
+ assert.deepEqual([p.mseErrorPhase,p.mseErrorName,p.mseQuotaRecoveries,p.seekPendingMs],['append','QuotaExceededError',1,600]);assert.equal(s.c.report().status.playbackFallbackReason,'buffer-quota');assert(!JSON.stringify(s.c.summary()).includes('PRIVATE_SECRET'));
+ s.observe({mediaDiagnostics:{playback:{mseErrorPhase:'PRIVATE_SECRET',mseErrorName:'PRIVATE_SECRET'}}});assert.equal(s.c.report().status.mediaDiagnostics.playback.mseErrorName,null);
+});
