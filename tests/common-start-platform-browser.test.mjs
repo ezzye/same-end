@@ -164,7 +164,7 @@ const validateBaseline = state => {
     if(state.config.commonStartVersion===2){
       const c=state.commonStart;assert(Number.isFinite(c.programmeTime)&&c.programmeTime>=0,'V2 decision carries a programme position');
       assert(Number.isFinite(c.startsAt)&&Number.isFinite(c.observationStartedAt),'V2 decision carries bounded observation/start times');
-      assert(c.observationStartedAt>=report.firstViewerCreatedAt-1500,'Fresh observation begins after first viewer arrives');
+      assert(c.observationStartedAt>=report.firstViewerSourceClockMs-1500,'Fresh observation begins after first viewer arrives on the source clock');
       assert(c.startsAt>=c.observationStartedAt,'Selected start follows viewer observation');
       const sourceNow=state.config.epoch+state.elapsed*1000;
       assert(Math.abs(state.sharedTarget-(c.programmeTime+(sourceNow-c.startsAt)/1000))<1.5,'V2 shared clock follows its signed position and start');
@@ -211,7 +211,7 @@ try {
         assert.equal(current('viewer'),undefined,'First viewer is absent throughout real wall wait');
         assert(Number.isFinite(host.target)&&Math.abs(host.target-(host.elapsed-300))<1.5,'Host alone retains configured300-second clock');
         if(Number.isFinite(host.signedTarget))assert(Math.abs(host.target-host.signedTarget)<1.5);
-        solo.push({at:host.at,elapsed:host.elapsed,programTime:host.programTime,sourceAge:host.sourceAge,frames:host.probe.frames,lastFrameAt:host.probe.lastFrameAt,paused:host.paused,ready:host.ready,commonStart:host.commonStart});
+        solo.push({at:host.at,performanceTime:host.performanceTime,elapsed:host.elapsed,programTime:host.programTime,sourceAge:host.sourceAge,frames:host.probe.frames,lastFrameAt:host.probe.lastFrameAt,paused:host.paused,ready:host.ready,commonStart:host.commonStart});
       }
       if((Date.now()-began)/1000>=nextUpdate){await progress('source-alone-still-waiting',{waitedSeconds:(Date.now()-began)/1000,decisionAbsent:true});nextUpdate+=30;}
       await sleep(1000);
@@ -220,12 +220,12 @@ try {
     assert(report.solo.actualWallWaitSeconds>=firstJoinSeconds);
     if(firstJoinSeconds>=310){
       const moving=solo.filter(row=>row.elapsed>=305&&row.ready>=2&&!row.paused&&Number.isFinite(row.programTime));assert(moving.length>=5,'Host actually plays solo before late first viewer');
-      const a=moving[0],b=moving.at(-1),wall=(b.at-a.at)/1000,slope=(b.programTime-a.programTime)/wall;
+      const a=moving[0],b=moving.at(-1),wall=(b.performanceTime-a.performanceTime)/1000,slope=(b.programTime-a.programTime)/wall;
       assert(wall>=4&&b.frames-a.frames>wall*8,'Actual host frames advance before first viewer');assert(slope>=.95&&slope<=1.05,'Solo host advances at normal speed');assert(moving.every(row=>row.sourceAge>=297&&row.sourceAge<=303),'Solo host actual age follows300-second baseline');
       Object.assign(report.solo,{advancingPlaybackClaimed:true,measuredSeconds:wall,mediaWallRatio:slope,decodedFrameCallbacks:b.frames-a.frames});
     }
   }
-  report.firstViewerCreatedAt=Date.now();report.hostBeforeFirstViewer=current('source');
+  report.firstViewerCreatedAt=Date.now();report.hostBeforeFirstViewer=current('source');report.firstViewerSourceClockMs=report.hostBeforeFirstViewer.config.epoch+report.hostBeforeFirstViewer.elapsed*1000;
   await progress('source-started', { server:origin, externalViewerURL:`${origin}/viewer?testRole=viewer`, sourceDelay:roomDelay, evidenceDirectory:fileURLToPath(output), testCertificate:fileURLToPath(new URL('owned-test-root-cert.pem',output)) });
   if (device === 'android') {
     remoteBrowser = await chromium.connectOverCDP(process.env.ANDROID_CDP || 'http://127.0.0.1:18967');
