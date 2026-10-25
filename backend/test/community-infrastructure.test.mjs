@@ -24,6 +24,8 @@ test('staff template preserves existing routes/environment and hardens every adm
   const client = r.StaffClient.Properties;
   assert.equal(client.GenerateSecret, false); assert.deepEqual(client.AllowedOAuthFlows, ['code']);
   assert.deepEqual(client.CallbackURLs, [STAFF_REDIRECT_URI]); assert.deepEqual(client.LogoutURLs, [STAFF_REDIRECT_URI]);
+  assert.ok(client.AllowedOAuthScopes.includes('aws.cognito.signin.user.admin'));
+  assert.deepEqual(r.StaffEnrollmentClient.Properties.ExplicitAuthFlows,['ALLOW_USER_PASSWORD_AUTH']);assert.equal(r.StaffEnrollmentClient.Properties.AllowedOAuthFlowsUserPoolClient,false);assert.equal(r.StaffEnrollmentClient.Properties.GenerateSecret,false);
   assert.equal(client.IdTokenValidity, 15); assert.equal(client.TokenValidityUnits.IdToken, 'minutes');
   assert.deepEqual(r.StaffAuthorizer.Properties.IdentitySource, ['$request.header.Authorization']);
   assert.deepEqual(r.StaffAuthorizer.Properties.JwtConfiguration.Audience, [{Ref: 'StaffClient'}]);
@@ -36,7 +38,7 @@ test('staff template preserves existing routes/environment and hardens every adm
   assert.deepEqual(r.Control.Properties.Environment.Variables.TABLE_NAME, template.Resources.Control.Properties.Environment.Variables.TABLE_NAME);
   assert.deepEqual(r.Control.Properties.Environment.Variables.COMMUNITY_ADMIN_CLIENT_ID, {Ref: 'StaffClient'});
   assert.equal(Object.keys(r.Control.Properties.Environment.Variables).some(key => /LOCAL_ADMIN/.test(key)), false);
-  assert.deepEqual(Object.keys(added.Outputs).filter(key => key.startsWith('Staff')).sort(), ['StaffClientId', 'StaffDomain', 'StaffIssuer', 'StaffRedirectUri', 'StaffUserPoolId']);
+  assert.deepEqual(Object.keys(added.Outputs).filter(key => key.startsWith('Staff')).sort(), ['StaffClientId', 'StaffDomain', 'StaffEnrollmentClientId', 'StaffIssuer', 'StaffRedirectUri', 'StaffUserPoolId']);
   assert.throws(() => addCommunityInfrastructure(added), /already installed/);
   assert.throws(() => addCommunityInfrastructure({Resources: {}}), /requires Api/);
 });
@@ -115,6 +117,7 @@ test('browser callback exchanges once, restricts support UI, clears credentials 
   const browser = await chromium.launch({executablePath: process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true});
   const html = (await readFile(new URL('../../manage.html', import.meta.url), 'utf8')).replace('__SAME_END_CONFIG__', JSON.stringify({apiBase: 'https://api.example.com'}));
   const js = await readFile(new URL('../../manage.js', import.meta.url), 'utf8'), css = await readFile(new URL('../../manage.css', import.meta.url), 'utf8');
+  const mfaJs=await readFile(new URL('../../staff-mfa.js',import.meta.url),'utf8'),mfaCss=await readFile(new URL('../../staff-mfa.css',import.meta.url),'utf8');
   const actualNow = Date.now(), tx = {...transaction, createdAt: actualNow}, browserClaims = {...claims, exp: actualNow / 1000 + 900, iat: actualNow / 1000};
   const seen = [], errors = []; let exchanges = 0;
   try {
@@ -123,6 +126,9 @@ test('browser callback exchanges once, restricts support UI, clears credentials 
       const req = route.request(), url = new URL(req.url()); seen.push({url: url.href, authorization: req.headers().authorization});
       if (url.pathname === '/manage.html') return route.fulfill({contentType: 'text/html', body: html});
       if (url.pathname === '/manage.js') return route.fulfill({contentType: 'text/javascript', body: js});
+      if(url.pathname==='/staff-mfa.js')return route.fulfill({contentType:'text/javascript',body:mfaJs});
+      if(url.pathname==='/staff-mfa.css')return route.fulfill({contentType:'text/css',body:mfaCss});
+      if(req.headers()['x-amz-target']==='AWSCognitoIdentityProviderService.GetUser')return route.fulfill({json:{UserMFASettingList:['SOFTWARE_TOKEN_MFA']}});
       if (url.pathname === '/manage.css') return route.fulfill({contentType: 'text/css', body: css});
       if (url.pathname === '/v1/community/config') return route.fulfill({json: {adminAuth: auth}});
       if (url.pathname === '/oauth2/token') { exchanges++; const body = new URLSearchParams(req.postData()); assert.equal(body.get('code_verifier'), tx.verifier); assert.equal(body.get('grant_type'), 'authorization_code'); return route.fulfill({json: {id_token: jwt(browserClaims), access_token: 'discarded', refresh_token: 'discarded'}}); }

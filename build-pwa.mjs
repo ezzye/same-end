@@ -127,6 +127,8 @@ html=html.replace('<script id="same-end-browser-ui">','<script id="same-end-comm
 const management=(await readFile(path.join(dir,'manage.html'),'utf8')).replace('__SAME_END_CONFIG__',JSON.stringify(runtime).replace(/</g,'\\u003c'));
 await writeFile(path.join(out,'manage.html'),management);
 await writeFile(path.join(out,'manage.css'),await readFile(path.join(dir,'manage.css')));
+await writeFile(path.join(out,'staff-mfa.css'),await readFile(path.join(dir,'staff-mfa.css')));
+await writeFile(path.join(out,'staff-mfa.js'),(await transform(await readFile(path.join(dir,'staff-mfa.js'),'utf8'),{loader:'js',target:browserTargets})).code);
 await writeFile(path.join(out,'manage.js'),(await transform(await readFile(path.join(dir,'manage.js'),'utf8'),{loader:'js',target:browserTargets})).code);
 
 // Keep the generated offline runtime executable on the declared legacy syntax floor.

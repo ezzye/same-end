@@ -181,7 +181,7 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
   }
   async function route(method, path, query, body, token, event, ipSlot) {
     if (path === '/config' && method === 'GET') {
-      const s = await settings(); return {forumEnabled: safeSettings(s).forumEnabled, categories: CATEGORIES, adminAuth: {issuer: adminAuth.issuer || '', clientId: adminAuth.clientId || '', domain: adminAuth.domain || '', redirectUri: adminAuth.redirectUri || ''}, retentionDays: 365};
+      const s = await settings(); return {forumEnabled: safeSettings(s).forumEnabled, categories: CATEGORIES, adminAuth: {issuer: adminAuth.issuer || '', clientId: adminAuth.clientId || '', domain: adminAuth.domain || '', redirectUri: adminAuth.redirectUri || '', enrollmentClientId: adminAuth.enrollmentClientId || ''}, retentionDays: 365};
     }
     if (path === '/content' && method === 'GET') {
       const revision = await get('CONTENTREV'), items = (await collection('CONTENT#', COMMUNITY_LIMITS.content)).filter(x => x.published && (x.startsAt === undefined || x.startsAt <= now()) && (x.endsAt === undefined || x.endsAt > now())).map(contentView);
