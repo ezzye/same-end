@@ -250,7 +250,7 @@ try {
     else await until(()=>current('downstream')?.commonStart?.decisionId===decisionId,20,'Deficit late viewer did not inherit common decision');
     validateCommon('downstream',!lateDeficit);
     report.downstream={commonStart:current('downstream').commonStart,firstFrame:current('downstream').probe.firstFrame,config:current('downstream').config,decodingClaimed:!lateDeficit,profile:lateProfile||'unpaced',purpose:lateDeficit?'bounded late deficit observation; no continuous playback claim':lateProfile?'late bounded device; original room decision fixed':'late join; original room decision fixed'};
-    const roles=lateDeficit?['source','viewer']:['source','viewer','downstream'],stableStart=Date.now(),before=Object.fromEntries(roles.map(role=>[role,current(role)])),stable=Object.fromEntries(roles.map(role=>[role,[]]));let maxGroupSeparation=0;
+    const roles=lateDeficit?['source','viewer']:['source','viewer','downstream'],stableStart=Date.now(),before=Object.fromEntries(roles.map(role=>[role,current(role)])),stable=Object.fromEntries(roles.map(role=>[role,[]]));let maxGroupSeparation=0,maxSourceMainSeparation=0;
     await progress('continuous-common-playback',{durationSeconds:playbackSeconds,roles});
     while(Date.now()-stableStart<playbackSeconds*1000){
       for(const role of roles){
@@ -259,13 +259,14 @@ try {
         assert(s.sourceAge>=common-3&&s.sourceAge<=common+61,role+' actual delay stays within common plus bounded extra');
         assert(Date.now()-s.probe.lastFrameAt<2500,role+' has no unexpected decoded-frame gap');
         assert.equal(s.stalls,before[role].stalls,role+' has no post-start rebuffer');
-        const separation=Math.abs(current('source').programTime-s.programTime);maxGroupSeparation=Math.max(maxGroupSeparation,separation);assert(separation<=61,'Actual host/viewer separation remains bounded');
+        const sourceMainSeparation=Math.abs(current('source').programTime-current('viewer').programTime);maxSourceMainSeparation=Math.max(maxSourceMainSeparation,sourceMainSeparation);assert(sourceMainSeparation<=8,'Actual source/main viewer separation stays within8 seconds');
+        const positions=roles.map(r=>current(r).programTime),separation=Math.max(...positions)-Math.min(...positions);maxGroupSeparation=Math.max(maxGroupSeparation,separation);assert(separation<=10,'Actual healthy group separation stays within10 seconds');
       }
-      if(lateDeficit)validateCommon('downstream',false);
+      if(lateDeficit){const late=validateCommon('downstream',false);if(Number.isFinite(late.programTime)&&late.probe.frames>0)assert(Math.abs(current('source').programTime-late.programTime)<=61,'Late deficit decoded position remains within bounded extra');}
       await sleep(500);
     }
     if(lateDeficit){const late=current('downstream');assert(late.probe.verified.length>=8,'Late deficit uses verified media');report.lateAdmission={observedSeconds:(Date.now()-stableStart)/1000,commonStart:late.commonStart,clientDelivery:late.clientDelivery,queuedBytes:late.probe.queuedBytes,verifiedPieces:late.probe.verified.length,continuousPlaybackClaimed:false};}
-    report.continuity={measuredSeconds:(Date.now()-stableStart)/1000,commonDelaySeconds:common,signedFallbackSeconds:300,decisionId,maxGroupSeparationSeconds:maxGroupSeparation,roles:{}};
+    report.continuity={measuredSeconds:(Date.now()-stableStart)/1000,commonDelaySeconds:common,signedFallbackSeconds:300,decisionId,maxGroupSeparationSeconds:maxGroupSeparation,maxSourceMainSeparationSeconds:maxSourceMainSeparation,acceptanceBounds:{sourceMainGapSeconds:8,healthyGroupGapSeconds:10,lateDeficitGapSeconds:61},roles:{}};
     report.audio={};
     for(const role of roles){
       const end=current(role),start=before[role],rows=stable[role],wall=(end.at-start.at)/1000;
@@ -275,9 +276,11 @@ try {
       assert(elementWallRatio>=.95&&elementWallRatio<=1.05,role+' media element advances at normal speed');
       assert(presentedWallRatio>=.95&&presentedWallRatio<=1.05,role+' actual presented frames advance at normal speed');
       const addedSeeks=end.probe.seeks.filter(e=>e.at>stableStart+2000);
+      const stableEnd=Date.now(),gaps=rows.flatMap(row=>row.probe.recentFrameGaps||[]).filter(gap=>gap.fromAt>=stableStart&&gap.at<=stableEnd),stableMaxFrameGapMs=gaps.length?Math.max(...gaps.map(gap=>gap.ms)):null;
+      assert(stableMaxFrameGapMs!==null&&stableMaxFrameGapMs<2500,role+' actual stable cadence has no gap over2.5 seconds');
       assert(end.probe.frames-start.probe.frames>playbackSeconds*8,role+' real moving frames advance throughout interval');
       assert(addedSeeks.length<=2,role+' has no repeated post-start seeking');
-      report.continuity.roles[role]={mediaWallRatio,elementWallRatio,presentedWallRatio,decodedFrameCallbacks:end.probe.frames-start.probe.frames,maxFrameGapMs:end.probe.maxFrameGapMs,addedSeeks:addedSeeks.length,stallsBefore:start.stalls,stallsAfter:end.stalls,finalSourceAgeSeconds:end.sourceAge};
+      report.continuity.roles[role]={mediaWallRatio,elementWallRatio,presentedWallRatio,decodedFrameCallbacks:end.probe.frames-start.probe.frames,maxFrameGapMs:stableMaxFrameGapMs,stableMaxFrameGapMs,lifetimeMaxFrameGapMs:end.probe.maxFrameGapMs,frameGapScope:'Only callbacks with both ends inside measured continuity interval',addedSeeks:addedSeeks.length,stallsBefore:start.stalls,stallsAfter:end.stalls,finalSourceAgeSeconds:end.sourceAge};
       if(role==='viewer'&&device==='ios')report.audio[role]={route:'unchanged native output',result:'requires separate owned-process capture by operator',analyserUsed:false};
       else{
         const audio=rows.filter(s=>s.rms>.001&&!s.muted&&s.audioContextState==='running');

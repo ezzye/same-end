@@ -70,6 +70,38 @@ test('unsupported early peers and sustained observed deficits latch conservative
   assert.equal(noisy.blocking, false); assert.equal(noisy.eligible, true);
 });
 
+test('a young near-stream backlog waits for the later historical deficit veto instead of irreversibly accelerating', () => {
+  const p = new Policy({ epoch });
+  // Scalar samples from android-group-below95-v3; no private cast identity.
+  for (const sample of [
+    { elapsed: 26.30180029296875, span: 22.06, ratio: .9178002408472764, trend: .05390495809802681, std: .0037483624166242077 },
+    { elapsed: 34.30169995117188, span: 30.059800048828127, ratio: .939976320286583, trend: .053656060530040565, std: .003710604208291401 }
+  ]) {
+    const at = epoch + sample.elapsed * 1000;
+    const r = report({ observationSeconds: sample.span, routeAgeSeconds: sample.elapsed, deliveryToStreamRatio: sample.ratio,
+      sourceAgeTrendSecondsPerSecond: sample.trend, gapStddevSeconds: sample.std }, at);
+    assert.equal(r.eligible, false); assert.equal(r.blocking, false, 'uncertainty is not a sustained-deficit diagnosis');
+    assert.equal(p.update(input({ sourceNowMs: at, hostReport: report({}, at), reports: [r] })), null);
+  }
+  const at = epoch + 42302;
+  const r = report({ observationSeconds: 38.06, routeAgeSeconds: 42.302, deliveryToStreamRatio: .95,
+    sourceAgeTrendSecondsPerSecond: 2.049 / 38.06, gapStddevSeconds: .004 }, at);
+  assert.equal(r.blocking, true);
+  assert.equal(p.update(input({ sourceNowMs: at, hostReport: report({}, at), reports: [r] })).delaySeconds, 300);
+  assert.equal(p.snapshot().reason, 'sustained-delivery-deficit');
+});
+
+test('flat-age near-stream quantization and sustainable noisy bursts remain eligible for a common start', () => {
+  for (const changes of [
+    { deliveryToStreamRatio: .95, sourceAgeTrendSecondsPerSecond: 0 },
+    { observationSeconds: 59.747, routeAgeSeconds: 60, deliveryToStreamRatio: .97335,
+      sourceAgeTrendSecondsPerSecond: .02717, gapStddevSeconds: 1.897, gapP95Seconds: 4.644 }
+  ]) {
+    const r = report(changes); assert.equal(r.eligible, true); assert.equal(r.blocking, false);
+    assert.equal(new Policy({ epoch }).update(input({ reports: [r] })).delaySeconds, 30);
+  }
+});
+
 test('catchup, route resets, unhealthy, stale and insufficient evidence wait for fallback', () => {
   for (const changes of [{ classification: 'catchup' }, { routeAgeSeconds: 3 }, { recordCount: 5 }, { observationSeconds: 19.99 },
     { state: 'offline' }, { state: 'clock-unknown' }, { state: 'path-absent' }, { lastProgressAgeSeconds: 4 },

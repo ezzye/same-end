@@ -241,3 +241,27 @@ test('the host prepares the actual first signed timestamp without rewriting the 
   assert.equal(h.ctx.nominalProgramTime(), -8);
   assert.equal(h.state.config.epoch, epoch); assert.equal(h.state.cache[0].meta.start, epoch + 196);
 });
+
+test('a late common decision waits for the source clock before silently pinning the current target once', async () => {
+  const h = harness(), parent = h.peer('parent'), previousPlayer = h.state.player;
+  h.state.clockReady = false;
+  await h.ctx.handleCommonHello(parent, hello(h, await decision(h)));
+  assert.equal(h.state.commonStart.joinCheckPending, true);
+  assert.equal(h.state.initialDelayPolicy.state, 'observing');
+  assert.equal(h.state.initialDelayPolicy.targetProgramTime, null);
+  assert.strictEqual(h.state.player, previousPlayer);
+  assert.equal(h.trace.some(row => row[0] === 'close'), false);
+  h.tick(48000); h.state.clockReady = true; h.ctx.advanceCommonStart();
+  assert.equal(h.state.commonStart.joinCheckPending, false);
+  assert.equal(h.state.initialDelayPolicy.state, 'preparing');
+  assert.equal(h.state.initialDelayPolicy._commonJoin, true);
+  assert.equal(h.state.initialDelayPolicy.targetProgramTime, 40);
+  assert.equal(h.state.initialDelayPolicy.selectedDelaySeconds, 30);
+  assert.notStrictEqual(h.state.player, previousPlayer);
+  assert.equal(h.state.player.startupHold, true);
+  assert.deepEqual(h.trace.filter(row => row[0] === 'prepare'), [['prepare', 40, 6]]);
+  h.tick(1000); h.ctx.advanceCommonStart();
+  assert.equal(h.trace.filter(row => row[0] === 'close').length, 1);
+  assert.equal(h.trace.filter(row => row[0] === 'prepare').length, 1);
+  assert.equal(h.state.initialDelayPolicy.targetProgramTime, 40);
+});

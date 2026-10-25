@@ -49,8 +49,13 @@
     var noise = r.gapStddevSeconds === null ? null : 2 + 2 * r.gapStddevSeconds;
     var blocking = evidence && (r.recommendationStatus === 'insufficient-throughput' ||
       r.deliveryToStreamRatio !== null && r.deliveryToStreamRatio < .99 && ageGrowth !== null && noise !== null && ageGrowth > noise);
+    // A modest growing backlog may be too young to diagnose a sustained
+    // deficit, but already too uncertain to authorize a one-time acceleration.
+    var uncertainShortfall = r.deliveryToStreamRatio !== null && r.deliveryToStreamRatio < .99 &&
+      r.sourceAgeTrendSecondsPerSecond !== null && r.sourceAgeTrendSecondsPerSecond > 0 &&
+      ageGrowth !== null && r.gapStddevSeconds !== null && ageGrowth > .25 + 2 * r.gapStddevSeconds;
     var supported = r.candidateDelaySeconds !== null && r.reserveSeconds !== null && r.reserveSeconds <= MAX_RESERVE;
-    var eligible = evidence && !blocking && includes(['observing', 'risk'], r.state) &&
+    var eligible = evidence && !blocking && !uncertainShortfall && includes(['observing', 'risk'], r.state) &&
       r.recommendationStatus === 'unvalidated-candidate' && r.sourceAgeTrendSecondsPerSecond !== null &&
       r.deliveryToStreamRatio !== null && r.gapStddevSeconds !== null && supported;
     return { eligible: eligible, blocking: blocking,

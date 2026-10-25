@@ -115,12 +115,33 @@ export function initialDelayPageProbe(options) {
   addEventListener('error', event => telemetry.errors.push(String(event.message).slice(0, 400)));
   addEventListener('unhandledrejection', event => telemetry.errors.push(String(event.reason).slice(0, 400)));
   let analyser, audioContext, meterSource, peakFrequency = null, lastFrame = null, frameRequest = null, commandId = 0;
+  let teeStream=null,teeGeneration=0,teeResourceGeneration=0;
+  const teeStates=()=>teeStream?.getAudioTracks().map(track=>({kind:track.kind,readyState:track.readyState,enabled:track.enabled,muted:track.muted}))||[];
+  const resetTee=reason=>{
+    if(!options.audioTee)return;
+    const old=teeStream,states=teeStates();teeStream=null;
+    meterSource?.disconnect();meterSource=null;
+    for(const track of old?.getTracks()||[])track.stop();
+    teeResourceGeneration++;
+    telemetry.audioTeeResets??=[];telemetry.audioTeeResets.push({reason,generation:teeGeneration,resourceGeneration:teeResourceGeneration,trackStates:states});
+    if(telemetry.audioTeeResets.length>20)telemetry.audioTeeResets.shift();
+  };
   const snapshot = () => {
     const s = window.PrivateCast?.snapshot(), video = document.querySelector('#player');
     if (!s || !video) return null;
+    if(options.audioTee&&teeStream&&!teeStream.getAudioTracks().some(track=>track.readyState==='live'))resetTee('no-live-audio-track');
     if(options.audioTee&&audioContext&&analyser&&!meterSource&&video.readyState>=2){
-      try{const capture=video.captureStream(),audio=new MediaStream(capture.getAudioTracks());for(const track of capture.getVideoTracks())track.stop();if(audio.getAudioTracks().length){meterSource=audioContext.createMediaStreamSource(audio);meterSource.connect(analyser)}}catch(error){telemetry.errors.push('Audio tee: '+error.message)}
+      let capture;
+      try{
+        capture=video.captureStream();for(const track of capture.getVideoTracks())track.stop();
+        const tracks=capture.getAudioTracks().filter(track=>track.readyState==='live');
+        if(tracks.length){
+          teeStream=capture;meterSource=audioContext.createMediaStreamSource(new MediaStream(tracks));meterSource.connect(analyser);teeGeneration++;
+          for(const track of tracks)track.addEventListener('ended',()=>{if(teeStream===capture)resetTee('audio-track-ended');},{once:true});
+        }else for(const track of capture.getTracks())track.stop();
+      }catch(error){for(const track of capture?.getTracks()||[])track.stop();telemetry.errors.push('Audio tee: '+error.message)}
     }
+    if(options.audioTee)telemetry.audioTee={generation:teeGeneration,resourceGeneration:teeResourceGeneration,attached:!!meterSource,trackStates:teeStates()};
     let rms = null;
     if (analyser) {
       const wave = new Float32Array(analyser.fftSize); analyser.getFloatTimeDomainData(wave);
@@ -161,9 +182,10 @@ export function initialDelayPageProbe(options) {
       telemetry.events.push({ name, at: Date.now(), currentTime: video.currentTime });
       if (telemetry.events.length > 200) telemetry.events.shift();
     });
+    if(options.audioTee)for(const event of ['emptied','loadstart'])video.addEventListener(event,()=>resetTee(event));
     video.addEventListener('seeking', () => telemetry.seeks.push({ at: Date.now(), time: video.currentTime }));
     const frame = (now, metadata) => {
-      frameRequest = null; const wall = Date.now(); telemetry.frames++; if(options.commonStart)telemetry.presentedFrameTime=metadata.mediaTime; telemetry.lastFrameAt = wall;
+      frameRequest = null; const wall = Date.now(); telemetry.frames++; if(options.commonStart){telemetry.presentedFrameTime=metadata.mediaTime;if(lastFrame!==null){telemetry.recentFrameGaps??=[];telemetry.recentFrameGaps.push({fromAt:telemetry.lastFrameAt,at:wall,ms:now-lastFrame});if(telemetry.recentFrameGaps.length>128)telemetry.recentFrameGaps.shift();}} telemetry.lastFrameAt = wall;
       if (lastFrame !== null) telemetry.maxFrameGapMs = Math.max(telemetry.maxFrameGapMs, now - lastFrame);
       lastFrame = now;
       if (!telemetry.firstFrame && !video.paused && video.readyState >= 2) {
@@ -207,7 +229,7 @@ export function initialDelayPageProbe(options) {
           if (c.type === 'chat') { const input = document.querySelector('#club-chat-input'); input.value = c.text; input.dispatchEvent(new Event('input', { bubbles: true })); document.querySelector('#club-send-chat').click(); }
           if(c.type==='audio-mute'){document.querySelector('#player').muted=c.muted;telemetry.audioCuts??=[];telemetry.audioCuts.push({at:Date.now(),muted:c.muted});}
           if (c.type === 'relay') window.PrivateCast?.testing.setRelayLimit(c.limit);
-          if(c.type==='end-test'){audioContext?.close().catch(()=>{});delete document.hidden;delete document.visibilityState;await window.PrivateCast?.stop?.();document.querySelector('#player')?.pause();document.querySelector('#player').muted=true;}
+          if(c.type==='end-test'){resetTee('end-test');audioContext?.close().catch(()=>{});delete document.hidden;delete document.visibilityState;await window.PrivateCast?.stop?.();document.querySelector('#player')?.pause();document.querySelector('#player').muted=true;}
           if(c.type==='visibility-restore'){delete document.hidden;delete document.visibilityState;document.dispatchEvent(new Event('visibilitychange'));}
           if (c.type === 'visibility') {
             // Supplemental owned-document lifecycle stimulus; explicitly not

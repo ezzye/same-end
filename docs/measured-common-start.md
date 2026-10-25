@@ -188,3 +188,19 @@ documentation checkpoint. Do not treat a passing unit suite, a test harness or a
 individual local run as Android, iPhone, iPad, Windows, separate-network,
 background-recovery, sound-output or full-match acceptance. Keep the public flag
 off until the required platform evidence is reviewed.
+
+### Late join and early uncertainty corrections
+
+A source-verified selected clock is already authoritative for a later joiner.
+Historical catch-up cannot establish spare bandwidth, but verified current HLS
+resources can prepare that existing timeline. After the source clock is known,
+an unplayed decoder is recreated and silently primed at the current common target.
+Fresh verified-media progress, actual aligned decoder headroom, the eight-second
+preparation limit and total60-second extra bound remain mandatory. This avoids
+waiting for historical catch-up to fall out of the measurement window and then
+starting stale programme-zero media.
+
+A small growing delivery backlog also withholds permission to accelerate before
+the stronger sustained-deficit threshold is crossed. This is uncertainty, not a
+claim that a twenty-second observation proves maximum link capacity. Healthy
+flat-age and noisy sustainable-burst observations retain separate regression checks.

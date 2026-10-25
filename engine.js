@@ -106,7 +106,20 @@ function adoptCommonDecision(cs,decision,decisionId){
  const enable=state.role==='viewer'&&window.SameEndConfig?.automaticInitialDelay===true;
  state.initialDelayPolicy=new window.SameEndInitialDelay.Policy({enabled:enable,roomDelaySeconds:decision.delaySeconds});
  state.player.startupHold=enable;
+ cs.joinCheckPending=enable&&decision.delaySeconds<state.config.delay;
+ prepareLateCommonJoin(cs);
  broadcastCommonHello();lifecycle();return true;
+}
+function prepareLateCommonJoin(cs){
+ if(!cs.joinCheckPending||!state.clockReady||state.commonStart!==cs)return;
+ cs.joinCheckPending=false;
+ const sourceNow=now()+state.offset,target=(sourceNow-state.config.epoch)/1000-cs.decision.delaySeconds;
+ if(target<=1)return;
+ // Catch-up is not a bandwidth measurement. The source has already selected
+ // this timeline; only verified cache and aligned decoder headroom release it.
+ discardPreparedPlayer();state.player.startupHold=true;
+ state.initialDelayPolicy.prepareCommonJoin({sourceNowMs:sourceNow,nowMs:now(),epoch:state.config.epoch,reserveSeconds:cs.decision.reserveSeconds,targetProgramTime:target});
+ if(state.initialDelayPolicy.state==='preparing')state.player.prepareStartup(target,cs.decision.reserveSeconds);
 }
 async function handleCommonHello(p,m){
  const cs=state.commonStart,config=state.config,module=window.SameEndCommonStart;if(!cs)return;
@@ -138,7 +151,8 @@ function advanceCommonStart(){
  const cs=state.commonStart;if(!cs)return;
  const t=now(),module=window.SameEndCommonStart;
  if(t-cs.lastHelloAt>=2000){cs.lastHelloAt=t;broadcastCommonHello();}
- if(cs.decision||state.role!=='source'||cs.signing)return;
+ if(cs.decision){prepareLateCommonJoin(cs);return;}
+ if(state.role!=='source'||cs.signing)return;
  const own=module.reportFromMeasurement(sampleClientDelivery(),t),children=downstream().filter(p=>p.ready),rows=commonFeedback().filter(r=>r.id!==(state.nodeId||'source-'+state.config.id));
  let reserve=own?.eligible?own.reserveSeconds:6;for(const row of rows)if(row.report?.eligible)reserve=Math.max(reserve,row.report.reserveSeconds);
  let hostReady=false,minimum=4;
@@ -173,7 +187,7 @@ function advanceInitialDelay(){
  const policy=state.initialDelayPolicy;if(!policy||['disabled','committed'].includes(policy.state))return;
  if(policy.state==='fallback'){if(state.player?.startupPreparation)discardPreparedPlayer();if(state.player)state.player.startupHold=false;return;}
  const preparing=policy.state==='preparing',t=now(),measurement=sampleClientDelivery();
- policy.update({nowMs:t,sourceNowMs:state.clockReady?t+state.offset:null,epoch:state.config.epoch,measurement,everPlayed:state.player?.adaptive?.everPlayed||state.playbackStarted,healthy:state.clockReady&&state.sourceReachable&&(state.role==='source'||!!state.supplier)&&document.visibilityState!=='hidden'&&navigator.onLine!==false});
+ policy.update({nowMs:t,sourceNowMs:state.clockReady?t+state.offset:null,epoch:state.config.epoch,measurement,verifiedProgressAgeSeconds:state.lastReceivedAt==null?null:Math.max(0,(t-state.lastReceivedAt)/1000),everPlayed:state.player?.adaptive?.everPlayed||state.playbackStarted,healthy:state.clockReady&&state.sourceReachable&&(state.role==='source'||!!state.supplier)&&document.visibilityState!=='hidden'&&navigator.onLine!==false});
  if(policy.state==='preparing'){
   if(!state.player?.prepareStartup||!state.player?.commitStartup)policy.fallback('player-preparation-unavailable');
   else{
