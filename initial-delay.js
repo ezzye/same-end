@@ -16,10 +16,29 @@
     this.observationStartedAtMs = null;
     this.sharedStartDueAtMs = null;
     this.committedAtSourceMs = null; this.committedAtMs = null; this.committedProgramTime = null;
-    this.commitCount = 0;
+    this.commitCount = 0; this._commonJoin = false;
   }
   Policy.prototype.fallback = function (reason) {
     if (this.state !== 'committed') { this.state = 'fallback'; this.reason = reason; }
+  };
+  // A source-verified common decision has already selected the room baseline.
+  // Admit a late viewer at that current target; historical delivery never gets
+  // credited as evidence for selecting a new, shorter delay.
+  Policy.prototype.prepareCommonJoin = function (input) {
+    input = input || {};
+    if (!this.enabled || this.state !== 'observing' || !finite(this.roomDelaySeconds) || this.roomDelaySeconds <= 0 ||
+        !finite(input.sourceNowMs) || input.sourceNowMs < 0 || !finite(input.nowMs) || input.nowMs < 0 ||
+        !finite(input.epoch) || input.epoch < 0 || input.sourceNowMs < input.epoch ||
+        !finite(input.reserveSeconds) || input.reserveSeconds < 4 || input.reserveSeconds > MAX_RESERVE ||
+        !finite(input.targetProgramTime) || input.targetProgramTime < 0) return false;
+    var nominal = (input.sourceNowMs - input.epoch) / 1000 - this.roomDelaySeconds;
+    if (Math.abs(input.targetProgramTime - nominal) > .001) return false;
+    this._commonJoin = true; this._epoch = input.epoch; this._preparedRouteAge = null;
+    this.candidateDelaySeconds = this.roomDelaySeconds; this.reserveGoalSeconds = input.reserveSeconds;
+    this.targetProgramTime = input.targetProgramTime; this.preparedAtMs = input.nowMs;
+    this.observationStartedAtMs = input.nowMs; this.sharedStartDueAtMs = input.nowMs;
+    this.state = 'preparing'; this.reason = 'checking-verified-decoder-headroom';
+    return true;
   };
   Policy.prototype.update = function (input) {
     input = input || {};
@@ -27,6 +46,7 @@
     var preparing = this.state === 'preparing', m = input.measurement, r = m && m.recommendation;
     if (input.everPlayed) { this.fallback('playback-already-started'); return; }
     if (!finite(input.nowMs) || !finite(input.sourceNowMs) || !finite(input.epoch)) { if (preparing) this.fallback('preparation-clock-unknown'); return; }
+    if (preparing && this._commonJoin && input.epoch !== this._epoch) { this.fallback('preparation-clock-unknown'); return; }
     if (this.observationStartedAtMs === null) this.observationStartedAtMs = input.nowMs;
     var elapsed = (input.sourceNowMs - input.epoch) / 1000;
     if (preparing && (elapsed < this.candidateDelaySeconds || elapsed - this.targetProgramTime - this.roomDelaySeconds > 60)) { this.fallback('preparation-outside-group-bound'); return; }
@@ -48,7 +68,8 @@
       // The decision is pinned. Arrival-phase movement may withdraw the
       // optional new-decision hint while this decoder loads real samples.
       // Keep route/clock health and bounded fresh progress as hard gates.
-      var validProgress = m && (m.state === 'observing' || m.state === 'risk') && (m.classification === 'live' || m.classification === 'catchup') &&
+      var validProgress = this._commonJoin ? finite(input.verifiedProgressAgeSeconds) && input.verifiedProgressAgeSeconds >= 0 && input.verifiedProgressAgeSeconds <= 12 :
+        m && (m.state === 'observing' || m.state === 'risk') && (m.classification === 'live' || m.classification === 'catchup') &&
         m.recordCount >= 6 && m.observationSeconds >= 20 && finite(m.sourceAgeTrendSecondsPerSecond) &&
         finite(m.lastProgressAgeSeconds) && m.lastProgressAgeSeconds <= 12;
       var routeReset = finite(this._preparedRouteAge) && finite(m && m.routeAgeSeconds) && m.routeAgeSeconds < this._preparedRouteAge;
@@ -75,12 +96,16 @@
     if (this.state !== 'preparing' || !facts || !finite(facts.minimumReserveSeconds)) return false;
     if (facts.minimumReserveSeconds > MAX_RESERVE) { this.fallback('unsupported-native-reserve'); return false; }
     var goal = Math.max(this.reserveGoalSeconds, facts.minimumReserveSeconds);
-    return facts.ready === true && facts.aligned === true && finite(facts.programTime) && facts.cacheAheadSeconds + .001 >= goal && facts.decoderAheadSeconds + .08 >= goal;
+    return facts.ready === true && facts.aligned === true && finite(facts.programTime) &&
+      (!this._commonJoin || Math.abs(facts.programTime - this.targetProgramTime) <= .3) &&
+      facts.cacheAheadSeconds + .001 >= goal && facts.decoderAheadSeconds + .08 >= goal;
   };
   Policy.prototype.commit = function (facts, sourceNowMs, nowMs) {
     if (!finite(sourceNowMs) || !this.canCommit(facts)) return false;
+    if (this._commonJoin && (!finite(nowMs) || nowMs < this.preparedAtMs || nowMs - this.preparedAtMs > MAX_PREPARATION_MS)) { this.fallback('decoder-preparation-timeout'); return false; }
     var elapsed = (sourceNowMs - this._epoch) / 1000;
-    if (elapsed < this.candidateDelaySeconds || elapsed - this.targetProgramTime - this.roomDelaySeconds > 60) { this.fallback('preparation-outside-group-bound'); return false; }
+    if (elapsed < this.candidateDelaySeconds || elapsed - this.targetProgramTime - this.roomDelaySeconds > 60 ||
+        this._commonJoin && (elapsed - this.targetProgramTime - this.roomDelaySeconds < -.001 || elapsed - facts.programTime - this.roomDelaySeconds > 60)) { this.fallback('preparation-outside-group-bound'); return false; }
     this.state = 'committed'; this.reason = 'verified-decoder-headroom';
     this.selectedDelaySeconds = this.candidateDelaySeconds;
     this.reserveGoalSeconds = Math.max(this.reserveGoalSeconds, facts.minimumReserveSeconds);

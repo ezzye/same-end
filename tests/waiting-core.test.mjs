@@ -38,3 +38,11 @@ test('quiz answer structure and campaign schedule are bounded',()=>{
  assert.equal(core.cleanPack({items:[quiz]},100).items.length,1);
  for(const patch of [{answerIndex:8},{choices:['A']},{endsAt:100},{startsAt:200}])assert.equal(core.cleanPack({items:[{...quiz,...patch}]},100).items.length,0);
 });
+
+
+test('pending common selection avoids a misleading five-minute countdown',()=>{
+ const base={config:{delay:300},clockReady:true,sourceReachable:true,targetProgramTime:-280,effectiveTargetProgramTime:-280,commonStart:{enabled:true,state:'pending'}};
+ const pending=core.explain(base,{},{});assert.equal(pending.title,'Checking group delay');assert.equal(pending.seconds,null);assert.equal(pending.allowSponsor,false);
+ const chosen=core.explain({...base,commonStart:{enabled:true,state:'selected',delaySeconds:30},targetProgramTime:-10,effectiveTargetProgramTime:-10},{},{});
+ assert.equal(chosen.seconds,10);assert.match(chosen.detail,/0:10/);
+});

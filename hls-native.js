@@ -138,7 +138,17 @@ export class NativePlayer {
   }
   touch() { if (this.closed || !this.token) return; this.worker = navigator.serviceWorker.controller || this.worker; this.worker?.postMessage({ type: 'sameend:hls:touch', token: this.token, seed: this.seed }); }
   enqueue(piece, epoch) { if (this.closed) return; try { this.cache.add(decodeBundle(piece.buf), { epoch, start: (piece.meta.start - epoch) / 1000, duration: piece.meta.duration / 1000 }); this.start(); } catch (error) { this.onError('The verified HLS media was invalid: ' + error.message); } }
-  start() { if (this.closed || this.started || !this.bridgeReady || this.target === null || this.target < 0 || this.suspended || !this.cache.files.has('master.m3u8')) return; this.started = true; this.srcChanges++; this.video.src = this.sourceBase + 'master.m3u8'; this.video.load(); }
+  start() {
+    if (this.closed || this.started || !this.bridgeReady || this.target === null || this.target < 0 || this.suspended || !this.cache.files.has('master.m3u8')) return;
+    // The first native playlist must already carry its precise start hint.
+    // Attaching after only one fragment lets AVPlayer retain a default live
+    // edge and jump there later when a long-paused warm-up is released.
+    const durations = [...this.cache.playlists.values()].filter(list => list.segments.length).map(list => Number(list.lines.find(line => line.startsWith('#EXT-X-TARGETDURATION:'))?.slice(22)));
+    if (!durations.length || !durations.every(value => Number.isFinite(value) && value > 0)) return;
+    const needed = Math.max(4, ...durations.map(value => 3 * value), this.startupPreparation?.reserve || 0);
+    if (this.cache.contiguousAhead(this.target) < needed) return;
+    this.started = true; this.srcChanges++; this.video.src = this.sourceBase + 'master.m3u8'; this.video.load();
+  }
   mapTimeline() { if (this.origin === null && this.initialProgrammeStart !== null && this.video.seekable.length) this.origin = this.initialProgrammeStart - this.video.seekable.start(0); }
   getPlaybackTarget(nominalTarget) { return this.startupPreparation?.target ?? this.adaptive.target(nominalTarget, this.playheadTime()); }
   startupFacts(target) {

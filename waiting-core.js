@@ -44,7 +44,9 @@
     var title=classification&&classification.title||'Finding your shared picture';
     var detail=classification&&classification.detail||'Your room stays open while we find the picture.';
     var seconds=null;
-    if(cfg&&s.clockReady&&hasTarget&&target<0&&code!=='source-stopped'&&code!=='source-unreachable'){
+    if(cfg&&s.commonStart&&s.commonStart.enabled===true&&s.commonStart.state==='pending'){
+      code='warming-up';title='Checking group delay';detail='You can chat while we prepare the picture.';
+    }else if(cfg&&s.clockReady&&hasTarget&&target<0&&code!=='source-stopped'&&code!=='source-unreachable'){
       code='warming-up';title='Building your match buffer';seconds=Math.ceil(-target);
       detail='Group start in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+'. We’ll show the picture as soon as it’s ready.';
     }else if(cfg&&s.sourceReachable&&hasTarget&&target>=0&&code==='finding-route'){

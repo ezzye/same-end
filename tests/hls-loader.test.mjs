@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { VerifiedHlsCache, createVerifiedLoader, HLS_BASE, cachePath, Player } from '../hls-player.js';
+import { NativePlayer, cacheResponse } from '../hls-native.js';
 const bytes = text => new TextEncoder().encode(text).buffer;
 const media = (seq=0) => '#EXTM3U\n#EXT-X-TARGETDURATION:2\n#EXT-X-MEDIA-SEQUENCE:'+seq+'\n#EXT-X-MAP:URI="init.mp4"\n'+Array.from({length:6},(_,i)=>'#EXTINF:2,\ns'+(i+seq)+'.m4s\n').join('');
 function bundle(seq=0,start=0) { return {start:start+10,duration:2,playlistStart:start,files:[{path:'master.m3u8',bytes:bytes('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=100000\nvideo.m3u8\n')},{path:'video.m3u8',bytes:bytes(media(seq))},{path:'init.mp4',bytes:bytes('init')},...Array.from({length:6},(_,i)=>({path:'s'+(i+seq)+'.m4s',bytes:bytes('segment'+(i+seq))}))]}; }
@@ -57,4 +58,49 @@ test('a long player-local cache soak retains a minute rather than another relay 
  const c=new VerifiedHlsCache({maxBytes:32*1024*1024,retainSeconds:60});
  for(let i=0;i<1500;i++){c.target=i*2;c.add(bundle(i,i*2));assert(c.bytes<=32*1024*1024);assert(c.files.size<45);assert(c.timeline.size<45);}
  assert(!c.files.has('s0.m4s'));assert(c.files.has('s1504.m4s'));assert(c.files.has('init.mp4'));
+});
+
+function nativeStartFixture({targetDuration=2,fragmentDuration=targetDuration,reserve=0}={}) {
+ const cache=new VerifiedHlsCache(),origin=10,loads=[],sources=[],p=Object.create(NativePlayer.prototype);
+ const video={set src(value){sources.push(value)},load(){loads.push(new TextDecoder().decode(cacheResponse(cache,'video.m3u8',null,'GET',p.target).bytes))}};
+ Object.assign(p,{cache,video,target:origin,closed:false,started:false,bridgeReady:true,suspended:false,srcChanges:0,
+  sourceBase:'https://sameend.test/__sameend_hls/private-capability/',startupPreparation:reserve?{reserve}:null});cache.target=origin;
+ function add(count,{init=true,gap=null}={}){
+  const list='#EXTM3U\n#EXT-X-TARGETDURATION:'+targetDuration+'\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-MAP:URI="init.mp4"\n#EXT-X-PROGRAM-DATE-TIME:2026-10-25T12:00:10.000Z\n'+Array.from({length:count},(_,i)=>'#EXTINF:'+fragmentDuration+',\nnative'+i+'.m4s\n').join('');
+  cache.add({start:origin+(count-1)*fragmentDuration,duration:fragmentDuration,playlistStart:origin,files:[
+   {path:'master.m3u8',bytes:bytes('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=100000\nvideo.m3u8\n')},
+   {path:'video.m3u8',bytes:bytes(list)},...(init?[{path:'init.mp4',bytes:bytes('verified-init')}]:[]),
+   ...Array.from({length:count},(_,i)=>i===gap?null:{path:'native'+i+'.m4s',bytes:bytes('verified-fragment-'+i)}).filter(Boolean)]});
+ }
+ return {p,cache,add,loads,sources,origin};
+}
+
+for(const targetDuration of [2,3])test('native first attach waits for three '+targetDuration+'-second target durations and serves a precise programme hint immediately',()=>{
+ const h=nativeStartFixture({targetDuration});
+ for(const count of [1,2]){h.add(count);h.p.start();assert.equal(h.loads.length,0);assert.equal(h.sources.length,0);assert.equal(h.p.started,false);}
+ h.add(3);h.p.start();
+ assert.equal(h.loads.length,1);assert.equal(h.sources.length,1);assert.equal(h.p.srcChanges,1);
+ assert.match(h.loads[0],/#EXT-X-START:TIME-OFFSET=0\.000000,PRECISE=YES/);
+ assert.match(h.loads[0],/#EXT-X-PROGRAM-DATE-TIME:2026-10-25T12:00:10\.000Z/);
+ assert.equal(h.cache.timeline.get('native0.m4s').start,h.origin);
+ h.p.start();h.add(4);h.p.start();assert.equal(h.loads.length,1);assert.equal(h.sources.length,1);
+});
+
+test('native initial attach honors a larger startup reserve without loading a premature unhinted playlist',()=>{
+ const h=nativeStartFixture({reserve:8});h.add(3);h.p.start();assert.equal(h.loads.length,0);
+ h.add(4);h.p.start();assert.equal(h.loads.length,1);assert.match(h.loads[0],/PRECISE=YES/);
+});
+
+test('native attachment waits for verified init and contiguous fragments rather than media metadata alone',()=>{
+ for(const missing of ['init','gap']){
+  const h=nativeStartFixture();h.add(3,{init:missing!=='init',gap:missing==='gap'?1:null});h.p.start();
+  assert.equal(h.loads.length,0);assert.equal(h.sources.length,0);
+  h.add(3);h.p.start();assert.equal(h.loads.length,1);assert.match(h.loads[0],/PRECISE=YES/);
+ }
+});
+
+test('native first attach cannot use timing tolerance to outrun the precise-hint headroom requirement',()=>{
+ const h=nativeStartFixture({fragmentDuration:1.9999});h.add(3);
+ assert(h.cache.contiguousAhead(h.origin)<6);h.p.start();assert.equal(h.loads.length,0,'5.9997 seconds cannot produce the required six-second precise hint');
+ h.add(4);h.p.start();assert.equal(h.loads.length,1);assert.match(h.loads[0],/PRECISE=YES/);
 });

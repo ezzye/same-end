@@ -2,9 +2,10 @@
 // app boot. It changes only the owned test's media receive callback scheduling.
 export function initialDelayPageProbe(options) {
   const role = new URL(location.href).searchParams.get('testRole') || 'viewer';
-  const isSource = role === 'source', isNative = options.device === 'ios';
+  const isSource = role === 'source', isNative = options.device === 'ios' && (!options.commonStart || role === 'viewer');
+  const deliveryProfile=options.commonStart&&role==='downstream'&&options.lateProfile?options.lateProfile:options.profile;
   const telemetry = window.initialAcceptance = {
-    role, profile: options.profile, startedAt: Date.now(), errors: [],
+    role, profile: deliveryProfile, startedAt: Date.now(), errors: [],
     frames: 0, lastFrameAt: null, maxFrameGapMs: 0, firstFrame: null,
     events: [], seeks: [], controls: 0, wireBytes: 0, deliveredBytes: 0,
     wirePieces: 0, deliveredPieces: 0, queuedBytes: 0, verified: [],
@@ -12,7 +13,7 @@ export function initialDelayPageProbe(options) {
   };
   let config;
   Object.defineProperty(window, 'SameEndConfig', { configurable: true,
-    get: () => config, set: value => { config = { ...value, automaticInitialDelay: !isSource && role !== 'downstream' }; },
+    get: () => config, set: value => { config = { ...value, automaticInitialDelay: !isSource && (options.commonStart || role !== 'downstream'), ...(options.commonStart ? { automaticCommonStart: true } : {}) }; },
   });
   const NativePC = window.RTCPeerConnection;
   if (NativePC) window.RTCPeerConnection = class extends NativePC {
@@ -38,7 +39,7 @@ export function initialDelayPageProbe(options) {
       }
     };
   }
-  if(!isSource&&options.forceNative){let hls;Object.defineProperty(window,'SameEndHLS',{configurable:true,get:()=>hls,set:module=>{hls={...module,canPlay:()=>false}}});}
+  if(!isSource&&options.forceNative&&(!options.commonStart||role==='viewer')){let hls;Object.defineProperty(window,'SameEndHLS',{configurable:true,get:()=>hls,set:module=>{hls={...module,canPlay:()=>false}}});}
   let deliveryModule;
   Object.defineProperty(window, 'SameEndClientDelivery', { configurable: true,
     get: () => deliveryModule, set: module => {
@@ -52,7 +53,7 @@ export function initialDelayPageProbe(options) {
       };
     },
   });
-  const ratio = { steady: 2.2, slow: 1.25, bursty: 6, below95: .95, below65: .65 }[options.profile];
+  const ratio = { steady: 2.2, slow: 1.25, bursty: 6, below95: .95, below65: .65 }[deliveryProfile];
   let transport;
   Object.defineProperty(window, 'CastMagnetTransport', { configurable: true,
     get: () => transport, set: Class => {
@@ -61,14 +62,22 @@ export function initialDelayPageProbe(options) {
       proto.initialAcceptanceWrapped = true; const open = proto._open;
       proto._open = function(...args) {
         const result = open.apply(this, args), adapter = args[0]?.adapter;
-        if (isSource || role === 'downstream' || !adapter || adapter.initialAcceptanceWrapped) return result;
+        if(!adapter||adapter.initialAcceptanceWrapped)return result;
+        if(options.commonStart&&options.forceFallback&&role==='viewer'){
+          const send=adapter.send;
+          adapter.send=function(data){
+            if(typeof data==='string'){try{const message=JSON.parse(data);if(message.type==='hello'){message.commonStartFeedback=[];data=JSON.stringify(message);telemetry.withheldFeedbackHellos=(telemetry.withheldFeedbackHellos||0)+1;}}catch{}}
+            return send.call(this,data);
+          };
+        }
+        if (isSource || role === 'downstream' && !(options.commonStart&&options.lateProfile)) return result;
         adapter.initialAcceptanceWrapped = true;
         const receive = adapter.onmessage, close = adapter.onclose, items = [];
         let active = false, closed = false, bitrate = null, burstEpoch = performance.now();
         const pump = () => {
           if (active || closed || !items.length) return;
           active = true; const item = items[0]; let delay = 0;
-          if (options.profile === 'bursty') {
+          if (deliveryProfile === 'bursty') {
             const phase = (performance.now() - burstEpoch) % 5000;
             if (phase < 3000) delay = 3000 - phase;
           }
@@ -106,12 +115,33 @@ export function initialDelayPageProbe(options) {
   addEventListener('error', event => telemetry.errors.push(String(event.message).slice(0, 400)));
   addEventListener('unhandledrejection', event => telemetry.errors.push(String(event.reason).slice(0, 400)));
   let analyser, audioContext, meterSource, peakFrequency = null, lastFrame = null, frameRequest = null, commandId = 0;
+  let teeStream=null,teeGeneration=0,teeResourceGeneration=0;
+  const teeStates=()=>teeStream?.getAudioTracks().map(track=>({kind:track.kind,readyState:track.readyState,enabled:track.enabled,muted:track.muted}))||[];
+  const resetTee=reason=>{
+    if(!options.audioTee)return;
+    const old=teeStream,states=teeStates();teeStream=null;
+    meterSource?.disconnect();meterSource=null;
+    for(const track of old?.getTracks()||[])track.stop();
+    teeResourceGeneration++;
+    telemetry.audioTeeResets??=[];telemetry.audioTeeResets.push({reason,generation:teeGeneration,resourceGeneration:teeResourceGeneration,trackStates:states});
+    if(telemetry.audioTeeResets.length>20)telemetry.audioTeeResets.shift();
+  };
   const snapshot = () => {
     const s = window.PrivateCast?.snapshot(), video = document.querySelector('#player');
     if (!s || !video) return null;
+    if(options.audioTee&&teeStream&&!teeStream.getAudioTracks().some(track=>track.readyState==='live'))resetTee('no-live-audio-track');
     if(options.audioTee&&audioContext&&analyser&&!meterSource&&video.readyState>=2){
-      try{const capture=video.captureStream(),audio=new MediaStream(capture.getAudioTracks());for(const track of capture.getVideoTracks())track.stop();if(audio.getAudioTracks().length){meterSource=audioContext.createMediaStreamSource(audio);meterSource.connect(analyser)}}catch(error){telemetry.errors.push('Audio tee: '+error.message)}
+      let capture;
+      try{
+        capture=video.captureStream();for(const track of capture.getVideoTracks())track.stop();
+        const tracks=capture.getAudioTracks().filter(track=>track.readyState==='live');
+        if(tracks.length){
+          teeStream=capture;meterSource=audioContext.createMediaStreamSource(new MediaStream(tracks));meterSource.connect(analyser);teeGeneration++;
+          for(const track of tracks)track.addEventListener('ended',()=>{if(teeStream===capture)resetTee('audio-track-ended');},{once:true});
+        }else for(const track of capture.getTracks())track.stop();
+      }catch(error){for(const track of capture?.getTracks()||[])track.stop();telemetry.errors.push('Audio tee: '+error.message)}
     }
+    if(options.audioTee)telemetry.audioTee={generation:teeGeneration,resourceGeneration:teeResourceGeneration,attached:!!meterSource,trackStates:teeStates()};
     let rms = null;
     if (analyser) {
       const wave = new Float32Array(analyser.fftSize); analyser.getFloatTimeDomainData(wave);
@@ -129,7 +159,8 @@ export function initialDelayPageProbe(options) {
     const chats = [...document.querySelectorAll('.club-message p')].map(p => p.textContent).filter(t => /^initial-delay-chat-/.test(t));
     for (const text of chats) if (!telemetry.chatReceipts.some(row => row.text === text)) telemetry.chatReceipts.push({ text, at: Date.now() });
     return { at: Date.now(), elapsed, sourceAge, initialDelay: s.initialDelay ?? null,
-      config: s.config && Object.fromEntries(['id','epoch','delay','sourceId','sourceEpoch','programId','mediaProfile'].map(k => [k, s.config[k]])),
+      ...(options.commonStart ? { commonStart:s.commonStart ?? null, sharedTarget:s.sharedTargetProgramTime, signedTarget:s.signedTargetProgramTime } : {}),
+      config: s.config && Object.fromEntries(['id','epoch','delay','sourceId','sourceEpoch','programId','mediaProfile',...(options.commonStart ? ['commonStartVersion'] : [])].map(k => [k, s.config[k]])),
       programTime: s.programTime, target: s.targetProgramTime, viewerTarget: s.viewerTargetProgramTime, effectiveTarget: s.effectiveTargetProgramTime,
       clientDelivery: s.clientDelivery, reserveSeconds: s.reserveSeconds, playback: s.mediaDiagnostics?.playback,
       received: s.received, clockReady: s.clockReady, supplier: !!s.supplier, stalls: s.stalls,
@@ -151,13 +182,14 @@ export function initialDelayPageProbe(options) {
       telemetry.events.push({ name, at: Date.now(), currentTime: video.currentTime });
       if (telemetry.events.length > 200) telemetry.events.shift();
     });
+    if(options.audioTee)for(const event of ['emptied','loadstart'])video.addEventListener(event,()=>resetTee(event));
     video.addEventListener('seeking', () => telemetry.seeks.push({ at: Date.now(), time: video.currentTime }));
     const frame = (now, metadata) => {
-      frameRequest = null; const wall = Date.now(); telemetry.frames++; telemetry.lastFrameAt = wall;
+      frameRequest = null; const wall = Date.now(); telemetry.frames++; if(options.commonStart){telemetry.presentedFrameTime=metadata.mediaTime;if(lastFrame!==null){telemetry.recentFrameGaps??=[];telemetry.recentFrameGaps.push({fromAt:telemetry.lastFrameAt,at:wall,ms:now-lastFrame});if(telemetry.recentFrameGaps.length>128)telemetry.recentFrameGaps.shift();}} telemetry.lastFrameAt = wall;
       if (lastFrame !== null) telemetry.maxFrameGapMs = Math.max(telemetry.maxFrameGapMs, now - lastFrame);
       lastFrame = now;
       if (!telemetry.firstFrame && !video.paused && video.readyState >= 2) {
-        const s = snapshot(); if (Number.isFinite(s?.programTime)) telemetry.firstFrame = { at: wall, mediaTime: metadata.mediaTime, programTime: s.programTime, sourceAge: s.sourceAge, initialDelay: s.initialDelay, paused: video.paused };
+        const s = snapshot(); if (Number.isFinite(s?.programTime)) telemetry.firstFrame = { at: wall, mediaTime: metadata.mediaTime, programTime: s.programTime, sourceAge: s.sourceAge, initialDelay: s.initialDelay, ...(options.commonStart ? {commonStart:s.commonStart} : {}), paused: video.paused };
       }
       frameRequest = video.requestVideoFrameCallback(frame);
     };
@@ -169,7 +201,7 @@ export function initialDelayPageProbe(options) {
     };
     video.addEventListener('loadeddata', armFrames); video.addEventListener('playing', armFrames);
     armFrames();
-    if (!isSource) {
+    if (!isSource || options.commonStart) {
       const button = document.createElement('button'); button.id = 'initial-join'; button.textContent = 'Start test with sound';
       Object.assign(button.style, { position: 'fixed', top: '8px', left: '8px', zIndex: '2147483647' });
       button.onclick = () => {
@@ -189,7 +221,7 @@ export function initialDelayPageProbe(options) {
       const state = snapshot(); if (!state) return;
       try { await fetch('/metrics?role=' + role+'&run='+options.runNonce, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(state), cache: 'no-store' }); } catch {}
     }, 500);
-    if (!isSource) setInterval(async () => {
+    if (!isSource || options.commonStart) setInterval(async () => {
       try {
         const commands = await (await fetch('/commands?after=' + commandId + '&role=' + role+'&run='+options.runNonce, { cache: 'no-store' })).json();
         for (const c of commands) {
@@ -197,7 +229,7 @@ export function initialDelayPageProbe(options) {
           if (c.type === 'chat') { const input = document.querySelector('#club-chat-input'); input.value = c.text; input.dispatchEvent(new Event('input', { bubbles: true })); document.querySelector('#club-send-chat').click(); }
           if(c.type==='audio-mute'){document.querySelector('#player').muted=c.muted;telemetry.audioCuts??=[];telemetry.audioCuts.push({at:Date.now(),muted:c.muted});}
           if (c.type === 'relay') window.PrivateCast?.testing.setRelayLimit(c.limit);
-          if(c.type==='end-test'){audioContext?.close().catch(()=>{});delete document.hidden;delete document.visibilityState;await window.PrivateCast?.stop?.();document.querySelector('#player')?.pause();document.querySelector('#player').muted=true;}
+          if(c.type==='end-test'){resetTee('end-test');audioContext?.close().catch(()=>{});delete document.hidden;delete document.visibilityState;await window.PrivateCast?.stop?.();document.querySelector('#player')?.pause();document.querySelector('#player').muted=true;}
           if(c.type==='visibility-restore'){delete document.hidden;delete document.visibilityState;document.dispatchEvent(new Event('visibilitychange'));}
           if (c.type === 'visibility') {
             // Supplemental owned-document lifecycle stimulus; explicitly not

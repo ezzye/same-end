@@ -179,3 +179,82 @@ test('a pinned common-baseline target survives a late-join catch-up classificati
  p.update(input({nowMs:100500,sourceNowMs:1300500,measurement:catchup}));assert.equal(p.state,'preparing');assert.equal(p.targetProgramTime,0);assert.equal(p.selectedDelaySeconds,300);assert.equal(p.commit(facts({decoderAheadSeconds:3}),1300500,100500),false);assert(p.commit(facts(),1300500,100500));
  const fresh=policy();fresh.update(input({measurement:catchup}));assert.equal(fresh.state,'observing','historical catch-up still cannot initiate a new decision');
 });
+
+const commonJoin = (p, changes = {}) => p.prepareCommonJoin({ sourceNowMs: 1450000, nowMs: 100000, epoch: 1000000,
+  reserveSeconds: 6, targetProgramTime: 150, ...changes });
+const commonJoinInput = changes => input({ sourceNowMs: 1451000, nowMs: 101000, measurement: null,
+  verifiedProgressAgeSeconds: 0, ...changes });
+
+test('a source-decided late common join prepares the current target without selecting a new delay or crediting catch-up bandwidth', () => {
+  const p = policy(); assert.equal(commonJoin(p), true);
+  assert.equal(p.state, 'preparing'); assert.equal(p.targetProgramTime, 150);
+  assert.equal(p.candidateDelaySeconds, 300); assert.equal(p.selectedDelaySeconds, 300); assert.equal(p._commonJoin, true);
+  p.update(commonJoinInput({ measurement: { state: 'insufficient-data', classification: 'catchup', recordCount: 2, observationSeconds: 1 } }));
+  assert.equal(p.state, 'preparing', 'fresh verified pieces can support decoder admission without a twenty-second live-rate estimate');
+  assert.equal(p.commit(facts({ programTime: 0 }), 1451000, 101000), false, 'an unplayed programme-zero decoder is not the prepared current target');
+  for (const change of [{ cacheAheadSeconds: 5.9 }, { decoderAheadSeconds: 5.8 }, { ready: false }, { aligned: false }])
+    assert.equal(p.commit(facts({ programTime: 150, ...change }), 1451000, 101000), false);
+  assert.equal(p.commit(facts({ programTime: 150 }), 1451000, 101000), true);
+  assert.equal(p.commitCount, 1); assert.equal(p.selectedDelaySeconds, 300);
+  assert.equal(p.snapshot(1451000, 1000000, 150).actualDelaySeconds, 301);
+  assert.equal(commonJoin(p, { targetProgramTime: 160, sourceNowMs: 1460000 }), false);
+  assert.equal(p.commit(facts({ programTime: 150 }), 1452000, 102000), false);
+});
+
+test('common join validates its current shared target and cannot override disabled or already pinned admission', () => {
+  for (const changes of [{ nowMs: NaN }, { nowMs: -1 }, { sourceNowMs: Infinity }, { sourceNowMs: 999999 },
+    { epoch: null }, { epoch: -1 }, { reserveSeconds: 3 }, { reserveSeconds: 12.01 }, { targetProgramTime: -1 },
+    { targetProgramTime: 0 }, { targetProgramTime: 149 }, { targetProgramTime: '150' }]) {
+    const p = policy(); assert.equal(commonJoin(p, changes), false); assert.equal(p.state, 'observing');
+  }
+  assert.equal(commonJoin(new Policy({ roomDelaySeconds: 300 })), false);
+  const p = policy(); assert(commonJoin(p)); assert.equal(commonJoin(p), false); assert.equal(p.targetProgramTime, 150);
+});
+
+test('common preparation rejects stale verified progress, unhealthy routes and changed or missing clocks', () => {
+  for (const changes of [{ verifiedProgressAgeSeconds: 12.01 }, { verifiedProgressAgeSeconds: undefined },
+    { verifiedProgressAgeSeconds: NaN }, { verifiedProgressAgeSeconds: -1 }, { healthy: false },
+    { sourceNowMs: null }, { epoch: 1000001 }, { everPlayed: true }]) {
+    const p = policy(); assert(commonJoin(p)); p.update(commonJoinInput(changes));
+    assert.equal(p.state, 'fallback'); assert.equal(p.commit(facts({ programTime: 150 }), 1451000, 101000), false);
+  }
+  const boundary = policy(); assert(commonJoin(boundary)); boundary.update(commonJoinInput({ verifiedProgressAgeSeconds: 12 }));
+  assert.equal(boundary.state, 'preparing');
+});
+
+test('common preparation still honors the eight-second limit, native reserve and total sixty-second local lag bound', () => {
+  const timeout = policy(); assert(commonJoin(timeout)); timeout.update(commonJoinInput({ nowMs: 108001, sourceNowMs: 1458001 }));
+  assert.equal(timeout.reason, 'decoder-preparation-timeout');
+  const directTimeout = policy(); assert(commonJoin(directTimeout));
+  assert.equal(directTimeout.commit(facts({ programTime: 150 }), 1458001, 108001), false);
+  const expired = policy(); assert(commonJoin(expired));
+  assert.equal(expired.commit(facts({ programTime: 150 }), 1510001, 101000), false); assert.equal(expired.reason, 'preparation-outside-group-bound');
+  const actualExpired = policy(); assert(commonJoin(actualExpired));
+  assert.equal(actualExpired.commit(facts({ programTime: 149.8 }), 1510000, 101000), false, 'actual decoded time also fits the lag bound');
+  const native = policy(); assert(commonJoin(native));
+  assert.equal(native.commit(facts({ programTime: 150, minimumReserveSeconds: 12, cacheAheadSeconds: 12, decoderAheadSeconds: 11 }), 1451000, 101000), false);
+  assert.equal(native.commit(facts({ programTime: 150, minimumReserveSeconds: 12, cacheAheadSeconds: 12, decoderAheadSeconds: 12 }), 1451000, 101000), true);
+  assert.equal(native.reserveGoalSeconds, 12);
+});
+
+test('common join does not bypass an already observed sustained delivery deficit', () => {
+  const p = policy(); assert(commonJoin(p));
+  p.update(commonJoinInput({ measurement: measurement({ observationSeconds: 50, deliveryToStreamRatio: .95,
+    sourceAgeTrendSecondsPerSecond: .05, gapStddevSeconds: .03 }) }));
+  assert.equal(p.state, 'fallback'); assert.equal(p.reason, 'sustained-delivery-deficit');
+});
+
+for (const C of [Player, NativePlayer]) test(C.name + ' common join admits real verified-cache and decoder facts at the current shared target', () => {
+  const p = new Policy({ enabled: true, roomDelaySeconds: 30 }), { p: player, v } = decoder(C);
+  assert(p.prepareCommonJoin({ sourceNowMs: 1034000, nowMs: 100000, epoch: 1000000, targetProgramTime: 4, reserveSeconds: 6 }));
+  p.update(input({ sourceNowMs: 1034500, nowMs: 100500, measurement: null, verifiedProgressAgeSeconds: 0 }));
+  v.buffered = { length: 1, start: () => 0, end: () => 8 };
+  const short = player.prepareStartup(4, 6);
+  assert.equal(p.canCommit(short), false); assert.equal(player.commitStartup(4, 6), false);
+  v.buffered = { length: 1, start: () => 0, end: () => 16 };
+  const ready = player.prepareStartup(4, 6);
+  assert.equal(p.canCommit(ready), true); assert.equal(player.commitStartup(4, 6), true);
+  assert.equal(p.commit(ready, 1034500, 100500), true);
+  assert.equal(player.adaptive.position, 4); assert.equal(p.selectedDelaySeconds, 30);
+  assert.equal(p.snapshot(1034500, 1000000, player.adaptive.position).actualDelaySeconds, 30.5);
+});
