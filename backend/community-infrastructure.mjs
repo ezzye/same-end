@@ -28,12 +28,13 @@ export function addCommunityInfrastructure(baseTemplate) {
     }},
     StaffClient: {Type: 'AWS::Cognito::UserPoolClient', Properties: {
       UserPoolId: ref('StaffUserPool'), ClientName: 'Same End staff browser', GenerateSecret: false,
-      AllowedOAuthFlowsUserPoolClient: true, AllowedOAuthFlows: ['code'], AllowedOAuthScopes: ['openid', 'email'],
+      AllowedOAuthFlowsUserPoolClient: true, AllowedOAuthFlows: ['code'], AllowedOAuthScopes: ['openid', 'email', 'aws.cognito.signin.user.admin'],
       SupportedIdentityProviders: ['COGNITO'], CallbackURLs: [STAFF_REDIRECT_URI], LogoutURLs: [STAFF_REDIRECT_URI],
       DefaultRedirectURI: STAFF_REDIRECT_URI, EnableTokenRevocation: true, PreventUserExistenceErrors: 'ENABLED',
-      ExplicitAuthFlows: ['ALLOW_REFRESH_TOKEN_AUTH'], IdTokenValidity: 15, AccessTokenValidity: 15, RefreshTokenValidity: 1,
+      ExplicitAuthFlows: ['ALLOW_REFRESH_TOKEN_AUTH'], AuthSessionValidity:15, IdTokenValidity: 15, AccessTokenValidity: 15, RefreshTokenValidity: 1,
       TokenValidityUnits: {IdToken: 'minutes', AccessToken: 'minutes', RefreshToken: 'days'}
     }},
+    StaffEnrollmentClient: {Type:'AWS::Cognito::UserPoolClient',Properties:{UserPoolId:ref('StaffUserPool'),ClientName:'Same End authenticator enrollment only',GenerateSecret:false,AllowedOAuthFlowsUserPoolClient:false,ExplicitAuthFlows:['ALLOW_USER_PASSWORD_AUTH'],AuthSessionValidity:15,PreventUserExistenceErrors:'ENABLED',EnableTokenRevocation:true,IdTokenValidity:5,AccessTokenValidity:5,RefreshTokenValidity:1,TokenValidityUnits:{IdToken:'minutes',AccessToken:'minutes',RefreshToken:'days'}}},
     StaffDomain: {Type: 'AWS::Cognito::UserPoolDomain', Properties: {UserPoolId: ref('StaffUserPool'), Domain: domainPrefix, ManagedLoginVersion: 1}},
     StaffAuthorizer: {Type: 'AWS::ApiGatewayV2::Authorizer', Properties: {
       ApiId: ref('Api'), Name: 'SameEndStaff', AuthorizerType: 'JWT', IdentitySource: ['$request.header.Authorization'],
@@ -54,11 +55,11 @@ export function addCommunityInfrastructure(baseTemplate) {
   control.Environment.Variables ??= {};
   Object.assign(control.Environment.Variables, {
     COMMUNITY_ADMIN_ISSUER: issuer, COMMUNITY_ADMIN_CLIENT_ID: ref('StaffClient'),
-    COMMUNITY_ADMIN_DOMAIN: domain, COMMUNITY_ADMIN_REDIRECT_URI: STAFF_REDIRECT_URI
+    COMMUNITY_ADMIN_DOMAIN: domain, COMMUNITY_ADMIN_REDIRECT_URI: STAFF_REDIRECT_URI,COMMUNITY_ENROLLMENT_CLIENT_ID:ref('StaffEnrollmentClient')
   });
   template.Outputs = {...template.Outputs,
     StaffUserPoolId: {Value: ref('StaffUserPool')}, StaffIssuer: {Value: issuer}, StaffClientId: {Value: ref('StaffClient')},
-    StaffDomain: {Value: domain}, StaffRedirectUri: {Value: STAFF_REDIRECT_URI}
+    StaffDomain: {Value: domain}, StaffRedirectUri: {Value: STAFF_REDIRECT_URI},StaffEnrollmentClientId:{Value:ref('StaffEnrollmentClient')}
   };
   return template;
 }

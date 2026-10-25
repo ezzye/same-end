@@ -5,6 +5,7 @@
 <meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow">
 <title>Same End · Staff desk</title>
 <link rel="stylesheet" href="manage.css">
+<link rel="stylesheet" href="staff-mfa.css">
 <script>window.SameEndConfig = __SAME_END_CONFIG__;</script>
 <script type="module" src="manage.js"></script>
 </head>
@@ -12,9 +13,11 @@
 <header class="topbar"><a class="brand" href="/">Same End<span>Staff desk</span></a><div id="session" aria-live="polite">Checking sign-in settings…</div><button id="signout" hidden>Sign out</button></header>
 <main>
 <section id="signin" class="welcome"><p class="eyebrow">Fans’ corner</p><h1>A welcoming place, well looked after.</h1><p>Reply to feedback, look after the forum and prepare something worth reading while fans wait.</p><button id="hosted-signin" disabled>Sign in securely</button><p id="signin-help" class="muted">Staff accounts use a password and an authenticator app.</p>
+<button id="finish-mfa" class="secondary" type="button" hidden>Finish authenticator setup</button><p class="muted">Use this if your first sign-in stopped after choosing a password and before adding an authenticator.</p>
 <form id="review-signin" hidden><h2>Local review only</h2><p>This isolated review uses an explicitly configured test credential. It does not prove production sign-in or MFA.</p><label>Review credential<input id="review-token" type="password" autocomplete="off" required maxlength="256"></label><button>Enter local review</button></form>
 </section>
 <p id="notice" role="status" aria-live="polite"></p>
+<section id="staff-mfa" hidden aria-label="Authenticator setup"></section>
 <div id="desk" hidden><nav id="sections" aria-label="Staff sections"></nav><div class="workspace"><div class="section-heading"><h1 id="section-title"></h1><button id="refresh">Refresh</button></div><div id="panel"></div></div></div>
 <noscript>This staff desk needs JavaScript to sign in and manage the community.</noscript>
 </main>

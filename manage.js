@@ -1,5 +1,6 @@
 /* Staff credentials stay in this module's memory. Browser JWT decoding controls presentation only;
    API Gateway verifies signatures, and the API enforces roles and token_use independently. */
+import {checkStaffMfa,createStaffMfa} from './staff-mfa.js';
 export const PKCE_KEY = 'sameend.staff.pkce.v1';
 export const STAFF_ROLES = ['sameend-admin', 'sameend-support', 'sameend-moderator', 'sameend-editor'];
 const PANELS = {feedback: ['Feedback', 'sameend-support'], forum: ['Forum', 'sameend-moderator'], reports: ['Reports', 'sameend-moderator'], members: ['Members', 'sameend-moderator'], content: ['Waiting content', 'sameend-editor'], settings: ['Settings', 'sameend-admin'], audit: ['Audit trail', 'sameend-admin']};
@@ -82,11 +83,12 @@ async function boot() {
     apiBase = api.href.replace(/\/$/, '') + '/v1/community';
   } catch { $('session').textContent = 'Staff API is not configured'; $('signin-help').textContent = 'An administrator needs to configure this staff desk.'; return; }
   let requestedThread = '';
-  let auth, token = '', expiry = 0, expiryTimer, groups = [], localReview = false, section = '', epoch = 0;
+  let auth, token = '', expiry = 0, expiryTimer, groups = [], localReview = false, section = '', epoch = 0, authRedirectInProgress = false, mfaSetup = null;
   function message(value = '', error = false) { $('notice').textContent = value; $('notice').dataset.error = String(error); }
-  function resetSession(note = 'Signed out') {
+  function resetSession(note = 'Signed out', {preservePkce = false} = {}) {
     token = ''; expiry = 0; groups = []; localReview = false; epoch++; clearTimeout(expiryTimer);
-    sessionStorage.removeItem(PKCE_KEY); $('desk').hidden = true; $('panel').replaceChildren(); $('sections').replaceChildren(); $('signin').hidden = false; $('signout').hidden = true; $('session').textContent = note;
+    if(!preservePkce)sessionStorage.removeItem(PKCE_KEY);
+    mfaSetup?.cancel(); $('desk').hidden = true; $('panel').replaceChildren(); $('sections').replaceChildren(); $('signin').hidden = false; $('signout').hidden = true; $('session').textContent = note;
   }
   async function request(path, {method = 'GET', body, publicRequest = false} = {}) {
     if (!publicRequest && (!token || expiry <= Date.now())) { resetSession('Session ended'); throw new Error('Your session ended. Sign in again.'); }
@@ -259,8 +261,15 @@ async function boot() {
   }
   $('hosted-signin').addEventListener('click', () => run($('hosted-signin'), async () => {
     if (!auth) throw new Error('Secure staff sign-in is not configured for this address.');
+    mfaSetup?.cancel();
     const transaction = await makePkce(); sessionStorage.setItem(PKCE_KEY, JSON.stringify({...transaction, createdAt: Date.now(), redirectUri: auth.redirectUri}));
-    const url = new URL('/oauth2/authorize', auth.domain); url.search = new URLSearchParams({response_type: 'code', client_id: auth.clientId, redirect_uri: auth.redirectUri, scope: 'openid email', state: transaction.state, nonce: transaction.nonce, code_challenge: transaction.challenge, code_challenge_method: 'S256'}); location.assign(url.href);
+    const url = new URL('/oauth2/authorize', auth.domain); url.search = new URLSearchParams({response_type: 'code', client_id: auth.clientId, redirect_uri: auth.redirectUri, scope: 'openid email aws.cognito.signin.user.admin', state: transaction.state, nonce: transaction.nonce, code_challenge: transaction.challenge, code_challenge_method: 'S256'});
+    authRedirectInProgress=true;
+    try{location.assign(url.href);}catch(error){authRedirectInProgress=false;sessionStorage.removeItem(PKCE_KEY);throw error;}
+  }));
+  $('finish-mfa').addEventListener('click',()=>run($('finish-mfa'),async()=>{
+    if(!mfaSetup)throw new Error('Authenticator setup is not configured yet. Reload and try again.');
+    resetSession('Finish authenticator setup');await mfaSetup.begin();
   }));
   $('review-signin').hidden = !local;
   $('review-signin').addEventListener('submit', event => { event.preventDefault(); const control = $('review-signin').querySelector('button'); run(control, async () => {
@@ -269,7 +278,10 @@ async function boot() {
   }); });
   try {
     const config = await request('/config', {publicRequest: true});
-    try { auth = validateAuthConfiguration(config.adminAuth, location.href); $('hosted-signin').disabled = false; $('session').textContent = 'Signed out'; }
+    try { auth = validateAuthConfiguration(config.adminAuth, location.href); $('hosted-signin').disabled = false; $('session').textContent = 'Signed out';
+      mfaSetup=createStaffMfa({auth,container:$('staff-mfa'),onComplete:()=>{message('Your authenticator is ready. Choose “Sign in securely”, then use a fresh code from your app.');$('session').textContent='Authenticator ready';$('hosted-signin').disabled=false;$('hosted-signin').focus();},onCancel:()=>{$('hosted-signin').disabled=!auth;}});
+      $('finish-mfa').hidden=!auth.enrollmentClientId;
+    }
     catch (error) { $('session').textContent = local ? 'Local review' : 'Sign-in unavailable'; $('signin-help').textContent = local ? 'Use the configured test credential below for local review. Production requires secure sign-in and MFA.' : error.message; }
     if (callback.error) { sessionStorage.removeItem(PKCE_KEY); throw new Error('Secure sign-in was cancelled or failed. Start again.'); }
     if (callback.code) {
@@ -278,9 +290,22 @@ async function boot() {
       const transaction = validatePkceTransaction(raw, callback.state, auth.redirectUri);
       const response = await fetch(`${auth.domain}/oauth2/token`, {method: 'POST', credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: new URLSearchParams({grant_type: 'authorization_code', client_id: auth.clientId, redirect_uri: auth.redirectUri, code: callback.code, code_verifier: transaction.verifier})});
       if (!response.ok) throw new Error('Sign-in could not be completed. Start again.'); const result = await response.json();
-      const metadata = inspectIdToken(result.id_token, auth, transaction.nonce); await activateSession(result.id_token, metadata);
+      const metadata=result.id_token?inspectIdToken(result.id_token,auth,transaction.nonce):null;
+      if(typeof result.access_token!=='string')throw new Error('Sign-in did not return the information needed to check your authenticator. Start again.');
+      const registered=await checkStaffMfa(auth,result.access_token);
+      if(!registered){
+        const setupToken=result.access_token;delete result.access_token;delete result.id_token;delete result.refresh_token;
+        message('Finish setting up your authenticator before opening management.');$('session').textContent='Authenticator setup required';await mfaSetup.begin(setupToken);
+      }else{
+        delete result.access_token;delete result.refresh_token;
+        if(!metadata)throw new Error('Your authenticator is ready. Choose “Sign in securely” again to finish.');
+        await activateSession(result.id_token,metadata);
+      }
     }
   } catch (error) { message(error.message || 'Staff sign-in could not be loaded. Reload to try again.', true); }
   // Unloading clears credentials naturally. A back/forward-cache restoration must sign in again.
-  window.addEventListener('pagehide', () => resetSession());
+  window.addEventListener('pagehide', () => {
+    resetSession('Signed out',{preservePkce:authRedirectInProgress});
+    authRedirectInProgress=false;
+  });
 }

@@ -7,7 +7,7 @@ import { createCommunityApi } from './community-api.mjs';
 const store = new DynamoDBStore(process.env.TABLE_NAME);
 const push = createPushTransport({publicKey: process.env.VAPID_PUBLIC_KEY, privateKey: process.env.VAPID_PRIVATE_KEY, subject: 'https://www.sameend.com'});
 const api = createApi({store, push});
-const community = createCommunityApi({store,adminAuth:{issuer:process.env.COMMUNITY_ADMIN_ISSUER||'',clientId:process.env.COMMUNITY_ADMIN_CLIENT_ID||'',domain:process.env.COMMUNITY_ADMIN_DOMAIN||'',redirectUri:process.env.COMMUNITY_ADMIN_REDIRECT_URI||''}});
+const community = createCommunityApi({store,adminAuth:{issuer:process.env.COMMUNITY_ADMIN_ISSUER||'',clientId:process.env.COMMUNITY_ADMIN_CLIENT_ID||'',domain:process.env.COMMUNITY_ADMIN_DOMAIN||'',redirectUri:process.env.COMMUNITY_ADMIN_REDIRECT_URI||'',enrollmentClientId:process.env.COMMUNITY_ENROLLMENT_CLIENT_ID||''}});
 export async function handler(event) {
   // EventBridge invokes this directly. No HTTP route can invoke the scheduler branch.
   if (event.source === 'aws.events' && event['detail-type'] === 'Scheduled Event' && !event.requestContext) {
