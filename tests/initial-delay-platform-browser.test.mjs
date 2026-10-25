@@ -22,7 +22,7 @@ import { initialDelayPageProbe } from './helpers/initial-delay-page.mjs';
 import { createLocalTestTLS } from './helpers/local-test-tls.mjs';
 
 const root = new URL('../', import.meta.url), rootPath = fileURLToPath(root);
-const forceNative=process.env.INITIAL_NATIVE==='1';
+const forceNative=process.env.INITIAL_NATIVE==='1',audioTee=process.env.INITIAL_AUDIO_TEE==='1';
 const device = process.env.INITIAL_DEVICE || 'chromium', profile = process.env.INITIAL_PROFILE || 'steady';
 const label = process.env.INITIAL_LABEL || `${device}-${profile}-${Date.now()}`;
 assert(['chromium','android','ios'].includes(device)); assert(['steady','slow','bursty','below95','below65'].includes(profile)); assert(/^[\w-]+$/.test(label));
@@ -89,7 +89,7 @@ const server = https.createServer(localTLS, async (req, res) => {
       report.mediaHTTPAttempts.push({ path: url.pathname, at: Date.now() }); return res.writeHead(403).end('Media must arrive from authenticated peers and the local native bridge.');
     }
     if (['/','/watch.html','/viewer'].includes(url.pathname)) {
-      const options = JSON.stringify({ device, profile, forceNative, runNonce }).replace(/</g,'\\u003c');
+      const options = JSON.stringify({ device, profile, forceNative, runNonce, audioTee }).replace(/</g,'\\u003c');
       const redirect = url.pathname === '/viewer' && invitation ? `if(!location.hash)location.hash=${JSON.stringify(new URL(invitation).hash)};` : '';
       const probe = `<script>${redirect}(${initialDelayPageProbe.toString()})(${options});</script>`;
       const html = originalHTML.replaceAll(publicBase, '/api').replace(/wss:\/\/tracker\.[A-Za-z0-9.-]+(?:\/[A-Za-z0-9_/-]*)?/g, origin.replace('https:','wss:') + '/tracker').replace('<head>','<head>' + probe);

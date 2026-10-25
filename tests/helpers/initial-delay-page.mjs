@@ -105,10 +105,13 @@ export function initialDelayPageProbe(options) {
   });
   addEventListener('error', event => telemetry.errors.push(String(event.message).slice(0, 400)));
   addEventListener('unhandledrejection', event => telemetry.errors.push(String(event.reason).slice(0, 400)));
-  let analyser, audioContext, peakFrequency = null, lastFrame = null, commandId = 0;
+  let analyser, audioContext, meterSource, peakFrequency = null, lastFrame = null, commandId = 0;
   const snapshot = () => {
     const s = window.PrivateCast?.snapshot(), video = document.querySelector('#player');
     if (!s || !video) return null;
+    if(options.audioTee&&audioContext&&analyser&&!meterSource&&video.readyState>=2){
+      try{const capture=video.captureStream(),audio=new MediaStream(capture.getAudioTracks());for(const track of capture.getVideoTracks())track.stop();if(audio.getAudioTracks().length){meterSource=audioContext.createMediaStreamSource(audio);meterSource.connect(analyser)}}catch(error){telemetry.errors.push('Audio tee: '+error.message)}
+    }
     let rms = null;
     if (analyser) {
       const wave = new Float32Array(analyser.fftSize); analyser.getFloatTimeDomainData(wave);
@@ -133,7 +136,7 @@ export function initialDelayPageProbe(options) {
       mode: s.playbackMode, width: video.videoWidth, height: video.videoHeight, paused: video.paused,
       ready: video.readyState, seeking: video.seeking, muted: video.muted, currentTime: video.currentTime,rawBuffered:Array.from({length:video.buffered.length},(_,i)=>[video.buffered.start(i),video.buffered.end(i)]),rawSeekable:Array.from({length:video.seekable.length},(_,i)=>[video.seekable.start(i),video.seekable.end(i)]),
       decodedFrames: video.getVideoPlaybackQuality?.().totalVideoFrames ?? video.webkitDecodedFrameCount ?? null,
-      audioContextState: audioContext?.state ?? null, rms, peakFrequency,
+      audioContextState: audioContext?.state ?? null,audioContextTime:audioContext?.currentTime??null,performanceTime:performance.now(),audioRoute:options.audioTee?'capture-stream-tee':'media-element-source', rms, peakFrequency,
       chatConnected: !!social?.connected, chatCount: social?.chatCount, cacheBytes: s.cacheBytes,
       secureContext: window.isSecureContext, serviceWorkerControlled: !!navigator.serviceWorker?.controller,
       waitingOverlayHidden: !document.querySelector('#sameend-wait') || document.querySelector('#sameend-wait').hidden || getComputedStyle(document.querySelector('#sameend-wait')).display === 'none',
@@ -166,7 +169,7 @@ export function initialDelayPageProbe(options) {
         telemetry.gestureCount++;
         if (!isNative && !analyser) {
           try { audioContext = new AudioContext(); analyser = audioContext.createAnalyser(); analyser.fftSize = 2048;
-            audioContext.createMediaElementSource(video).connect(analyser);
+            if(!options.audioTee){meterSource=audioContext.createMediaElementSource(video);meterSource.connect(analyser);}
             const silentOutput = audioContext.createGain(); silentOutput.gain.value = 0; analyser.connect(silentOutput); silentOutput.connect(audioContext.destination);
           } catch (error) { telemetry.errors.push('Audio probe: ' + error.message); }
         }
@@ -187,7 +190,7 @@ export function initialDelayPageProbe(options) {
           if (c.type === 'chat') { const input = document.querySelector('#club-chat-input'); input.value = c.text; input.dispatchEvent(new Event('input', { bubbles: true })); document.querySelector('#club-send-chat').click(); }
           if(c.type==='audio-mute'){document.querySelector('#player').muted=c.muted;telemetry.audioCuts??=[];telemetry.audioCuts.push({at:Date.now(),muted:c.muted});}
           if (c.type === 'relay') window.PrivateCast?.testing.setRelayLimit(c.limit);
-          if(c.type==='end-test'){delete document.hidden;delete document.visibilityState;await window.PrivateCast?.stop?.();document.querySelector('#player')?.pause();document.querySelector('#player').muted=true;}
+          if(c.type==='end-test'){audioContext?.close().catch(()=>{});delete document.hidden;delete document.visibilityState;await window.PrivateCast?.stop?.();document.querySelector('#player')?.pause();document.querySelector('#player').muted=true;}
           if(c.type==='visibility-restore'){delete document.hidden;delete document.visibilityState;document.dispatchEvent(new Event('visibilitychange'));}
           if (c.type === 'visibility') {
             // Supplemental owned-document lifecycle stimulus; explicitly not

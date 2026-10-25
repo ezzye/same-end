@@ -172,3 +172,10 @@ test('a pinned trial still aborts stale or unknown progress, reset routes and un
   {recordCount:0,observationSeconds:0,state:'insufficient-data'}, {routeAgeSeconds:1}
  ]){const p=policy();p.update(input({measurement:measurement({routeAgeSeconds:60})}));p.update(input({nowMs:101000,sourceNowMs:1301000,measurement:measurement(change)}));assert.equal(p.state,'fallback');assert.equal(p.commit(facts(),1301000,101000),false);}
 });
+
+test('a pinned common-baseline target survives a late-join catch-up classification boundary',()=>{
+ const p=policy();p.update(input({measurement:measurement({routeAgeSeconds:62.226,recordCount:36,observationSeconds:60,sourceAgeTrendSecondsPerSecond:-.210})}));
+ const catchup=measurement({classification:'catchup',routeAgeSeconds:62.726,recordCount:37,observationSeconds:60,sourceAgeTrendSecondsPerSecond:-.203,recommendation:{status:'catchup',candidateInitialDelaySeconds:null,candidateReserveSeconds:null}});
+ p.update(input({nowMs:100500,sourceNowMs:1300500,measurement:catchup}));assert.equal(p.state,'preparing');assert.equal(p.targetProgramTime,0);assert.equal(p.selectedDelaySeconds,300);assert.equal(p.commit(facts({decoderAheadSeconds:3}),1300500,100500),false);assert(p.commit(facts(),1300500,100500));
+ const fresh=policy();fresh.update(input({measurement:catchup}));assert.equal(fresh.state,'observing','historical catch-up still cannot initiate a new decision');
+});

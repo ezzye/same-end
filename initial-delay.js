@@ -48,7 +48,7 @@
       // The decision is pinned. Arrival-phase movement may withdraw the
       // optional new-decision hint while this decoder loads real samples.
       // Keep route/clock health and bounded fresh progress as hard gates.
-      var validProgress = m && (m.state === 'observing' || m.state === 'risk') && m.classification === 'live' &&
+      var validProgress = m && (m.state === 'observing' || m.state === 'risk') && (m.classification === 'live' || m.classification === 'catchup') &&
         m.recordCount >= 6 && m.observationSeconds >= 20 && finite(m.sourceAgeTrendSecondsPerSecond) &&
         finite(m.lastProgressAgeSeconds) && m.lastProgressAgeSeconds <= 12;
       var routeReset = finite(this._preparedRouteAge) && finite(m && m.routeAgeSeconds) && m.routeAgeSeconds < this._preparedRouteAge;
