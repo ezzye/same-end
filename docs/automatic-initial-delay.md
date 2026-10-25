@@ -1,7 +1,8 @@
 # Viewer-local initial delay acceptance
 
-The automatic-start implementation is behind `SameEndConfig.automaticInitialDelay`.
-The production switch remains off until required platform playback evidence passes.
+Automatic startup is enabled by default through `SameEndConfig.automaticInitialDelay`
+after the controlled platform acceptance matrix. Build with
+`SAMEEND_AUTOMATIC_INITIAL_DELAY=0` to disable it without changing room settings.
 It complements the observed-delivery estimator; it does not measure maximum ISP speed.
 
 ## Two timelines
@@ -55,9 +56,9 @@ signalling and encrypted chat. Application receive queues pace actual received
 media for steady, sustainable slow, bursty and sustained-deficit profiles. This
 is controlled delivery simulation, not a physical Wi-Fi/5G capacity measurement.
 Positive cases require at least 120 seconds of real decoded moving frames and
-changing audio chirps (native iOS output needs a separate scoped capture). Deficit
-cases stop before the real five-minute fallback; they establish admission refusal,
-not endless playback. No family stream, VPN or commercial source is used.
+changing audio chirps (native iOS output needs a separate scoped capture). The 95-second deficit cases use the one-minute test room and establish
+admission refusal; some conservative fallback playback is observed separately,
+without claiming endless playback. No family stream, VPN or commercial source is used.
 
 The iOS external mode prints its own ephemeral simulator certificate and viewer
 URL. Trust only that test certificate in the selected test simulator before opening
@@ -86,3 +87,27 @@ The automatic policy applies to HLS rooms with a configured baseline of at least
 60 seconds. The hidden ten-second developer rehearsal retains its existing startup.
 The generic Apple gesture project is in `tests/ios-lab`; device identifiers, output
 paths, certificates, private room links and captured audio are not committed.
+
+## Acceptance result and boundaries
+
+Controlled Android16/Chrome133 emulator, iOS27 iPhone16 and iPad A16 simulators
+(default MSE and forced native HLS), and real MSI Windows11 Chrome155/Edge156
+runs exercised actual moving picture, changing audio and encrypted chat. Positive
+traces ran at least120 seconds after starting; Android and native iPad also used
+actual five-minute warm-ups. Steady,1.25x sustainable slow, bursty and0.95x/0.65x
+sustained-deficit delivery are distinct scenarios. Stable-window media/wall speed
+is checked, not just decoded-frame counts. The fully prefetched WebKit185-second
+regression passes with no stalls or repeated seeking when run without concurrent
+encoders. Its MSE analyser limitation is not audio-output proof; Apple sound is
+instead verified with scoped simulator-process captures and intentional quiet cuts.
+
+On the MSI test browser, routing media output through the test WebAudio analyser
+slowed the media clock. A separate capture-stream tee preserves the element output
+and measured near-normal media speed while that analyser's clock remained slow.
+Use `INITIAL_AUDIO_TEE=1` for Windows acceptance; `=0` retains the old probe for
+comparison. This changes test instrumentation, not the production audio route.
+
+Native long-warm-up frame measurement is armed at loaded/playing boundaries.
+Failed and superseded tests remain separate from accepted runs. No simulation
+establishes physical iPad/iPhone speakers, older iPadOS versions, separate mobile
+networks, background OS suspension or a full match. Those remain device acceptance.
