@@ -356,3 +356,17 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .invite-actions .copy-ready:hover{background:#0b563b!important}
 
 @media(max-width:600px){.invitation-copy-row{grid-template-columns:repeat(2,minmax(0,1fr))}.invitation-copy-row #browser-invitation{grid-column:1/-1}}
+
+/* A saved watch room keeps its place between sharing sessions. */
+body.watch-intent .hero.football-hero,body.host-lobby .hero.football-hero{display:none!important}
+body.host-lobby main,body.watch-intent:not(.room-active) main{display:flex;flex-direction:column}
+body.host-lobby .topbar,body.watch-intent:not(.room-active) .topbar{order:0;min-height:64px;margin-bottom:12px}
+body.host-lobby #watch-room,body.watch-intent:not(.room-active) #watch-room{display:block;order:1;margin-bottom:12px}
+body.host-lobby #quick-room{order:2}
+body.host-lobby .start-card{display:none}
+body.host-lobby .flow{display:block}
+body.host-lobby #club-social,body.watch-intent:not(.room-active) #club-social,body.host-lobby #match-extras,body.host-lobby #club-extras,body.watch-intent:not(.room-active) #match-extras,body.watch-intent:not(.room-active) #club-extras{order:3}
+body.host-lobby .footer,body.watch-intent:not(.room-active) .footer{order:4}
+body.host-lobby .stage-empty,body.watch-intent:not(.room-active) .stage-empty{justify-content:center;text-align:center}
+#room-lobby-invite{margin:12px 0;gap:8px}
+@media(max-width:760px){#room-share-again{display:none!important}}
