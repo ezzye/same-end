@@ -12,8 +12,12 @@ The source requires at least 20 seconds of fresh live delivery observations,
 eligible reports from every observed supporting participant, and actual prepared
 host decoder reserve. Pending updated peers receive recent verified media to
 measure live delivery, rather than a five-minute historical download. Historical
-catch-up is never credited as spare bandwidth. Once a common decision is signed,
-forwarding replays its actual retained range, without changing media signatures.
+catch-up is never credited as spare bandwidth. A shortened decision preserves
+the live send cursor: replaying bootstrap pieces the viewer already has can
+starve fresh progress and trigger a supplier watchdog. Only a genuine 300-second
+fallback rewinds retained history, with a matching one-time supplier progress
+watermark reset. Pending peers ignore lag hints until there is a real selected
+programme clock. After selection, bounded recovery lag can expand normally.
 
 The chosen delay remains 30–120 seconds, determined from the measured candidates
 rather than the age of the capture. A bounded preview pins a real programme
@@ -61,6 +65,51 @@ public telemetry or new provider is added.
 The remainder records the previous version-1 implementation and its original
 acceptance evidence. Its capture-minute rule does not describe new v2 captures.
 New late-first acceptance is recorded separately for this change.
+
+## Version-2 acceptance result
+
+The final controlled cases use real signed HLS/WebRTC and encrypted chat, with
+at least 120 seconds of overlapping host, main-viewer and later-viewer playback.
+The current media engine is unchanged by the subsequent pilot-account rebase;
+the final iPhone case and built-app guest/inbox/account regressions use that
+integrated build. The full integrated automated suite passes **475 tests**.
+
+| Case | Actual preparation wait | Selected common delay | Maximum measured three-role gap |
+| --- | --- | --- | --- |
+| Android 16 / Chrome 133 emulator, slow main and bursty late viewer | 90 seconds | 30 seconds | 6.36 seconds |
+| iPhone 16 / iOS 27 simulator, default MSE, slow main and bursty late viewer | 90 seconds | 30 seconds | 5.60 seconds |
+| iPad A16 / iPadOS 27 simulator, native HLS, bursty main and late viewer | 320 seconds | 30 seconds | 7.60 seconds |
+| Physical MSI Windows 11 / Edge 156, bursty main and late viewer | 90 seconds | 30 seconds | 2.32 seconds |
+
+The 320-second case also proves 14.5 seconds of advancing solo host playback
+before the first viewer arrives, followed by one source catch-up. No stable-window
+stalls or repeated seeks occurred in the accepted cases. Scoped generated-audio
+captures passed for 127.23 seconds on iPhone and 127.29 seconds on native iPad,
+with changing signal and deliberate current-page mute cuts. Windows and Android
+use decoded-signal measurements; physical loudspeakers were not independently
+heard. These are controlled receive-queue profiles, not physical bandwidth tests.
+
+A separate 95-second 0.95x deficit case starts its measurement only after a real
+90-second first-viewer wait, rejects acceleration, retains its signed 300-second
+fallback and preserves chat. Its observed queue peak is retained even if the
+bounded test route subsequently closes; it is admission-only evidence, not proof
+of continuous fallback playback on an insufficient path.
+
+Preserved earlier attempts exposed a paused MSE origin change and duplicate
+bootstrap replay starvation. Both have targeted regressions and successful real
+playback repeats. The MSE mapping now follows aligned parsed/buffered verified
+fragment timing rather than a raw sliding playlist origin. A separate test-clock
+mismatch was corrected by measuring against the actual monotonic source clock;
+raw wall-clock adjustments cannot be treated as a changed programme delay.
+An Apple simulator attempt with advancing decoded video but no presentation
+callbacks remains inconclusive, not accepted; a freshly booted native iPad test
+then passed the full presentation and sound checks.
+
+Older physical Apple hardware/OS versions, separate mobile networks, OS-level
+background suspension and full-match reliability remain separate device acceptance.
+The media remains direct P2P with no TURN/cloud media relay. Existing captures do
+not retime after an application update: refresh participants and start a new share,
+using the same saved club/combined invitation.
 
 ## Version-1 implementation and earlier evidence
 
