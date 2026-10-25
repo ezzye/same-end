@@ -81,3 +81,8 @@ common room baseline. Initial selection plus later adaptive lag must fit a total
 explicitly use the existing one-minute room setting. A complete real five-minute
 warm-up is tested separately. Initial decoder reserve can vary with delivery
 without letting fast viewers jump ahead of the host.
+
+The automatic policy applies to HLS rooms with a configured baseline of at least
+60 seconds. The hidden ten-second developer rehearsal retains its existing startup.
+The generic Apple gesture project is in `tests/ios-lab`; device identifiers, output
+paths, certificates, private room links and captured audio are not committed.

@@ -267,8 +267,8 @@ try {
   process.exitCode = 1;
 } finally {
   clearInterval(heartbeat);
-  command('viewer','end-test');await sleep(800);
-  report.finalStates = Object.fromEntries(latest); report.finishedAt = new Date().toISOString();
+  report.finalStates=Object.fromEntries(latest);
+  command('viewer','end-test');await sleep(800); report.finishedAt = new Date().toISOString();
   for (const page of ownedPages) await page.close().catch(() => {});
   for (const context of contexts) await context.close().catch(() => {});
   await browser?.close().catch(() => {});

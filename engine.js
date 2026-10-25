@@ -51,7 +51,7 @@ function mediaDiagnostics(){
 function resetClientDelivery(){
  state.clientDelivery=state.role==='viewer'&&typeof window.SameEndClientDelivery?.Estimator==='function'?new window.SameEndClientDelivery.Estimator(now):null;
  state.clientDeliveryRoute=null;state.clientDeliverySourceEndMs=null;
- state.initialDelayPolicy=typeof window.SameEndInitialDelay?.Policy==='function'?new window.SameEndInitialDelay.Policy({enabled:window.SameEndConfig?.automaticInitialDelay===true&&state.role==='viewer'&&isHlsConfig(state.config),roomDelaySeconds:state.config?.delay}):null;
+ state.initialDelayPolicy=typeof window.SameEndInitialDelay?.Policy==='function'?new window.SameEndInitialDelay.Policy({enabled:window.SameEndConfig?.automaticInitialDelay===true&&state.role==='viewer'&&isHlsConfig(state.config)&&state.config.delay>=60,roomDelaySeconds:state.config?.delay}):null;
 }
 function sampleClientDelivery(){
  const meter=state.clientDelivery;
