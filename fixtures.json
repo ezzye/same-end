@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-10-24",
-  "fetchedAt": "2026-10-24T08:51:26.814Z",
-  "dataHash": "a476ab8fdfae198a826dad1e866b11ce0b9ac2c403ef1d648ea4499a23a7ff52",
+  "checkedAt": "2026-10-25",
+  "fetchedAt": "2026-10-25T09:07:51.346Z",
+  "dataHash": "23ebbf96f208e8be267cc83c17be54e57f84b54067ab846edf83680b5828983f",
   "timezone": "UTC",
   "provider": "TheSportsDB",
   "providerApi": "v1",
@@ -9,96 +9,6 @@
   "coverage": "partial",
   "note": "Automatically refreshed starter suggestions; not comprehensive. TV channel data can be missing or stale and does not confirm rights, package requirements, or household availability. Verify with the linked source or broadcaster. Add matches manually when absent.",
   "fixtures": [
-    {
-      "id": "thesportsdb-2494077",
-      "provider": "TheSportsDB",
-      "providerEventId": "2494077",
-      "providerTeamIds": [
-        "133601",
-        "133613"
-      ],
-      "home": "Aston Villa",
-      "away": "Manchester City",
-      "title": "Aston Villa v Manchester City",
-      "competition": "English Premier League",
-      "startsAt": 1792841400000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2494077",
-      "checkedAt": "2026-10-24",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "Iceland",
-          "channel": "Stöð 2 Sport IS",
-          "providerChannelId": "7941"
-        },
-        {
-          "country": "India",
-          "channel": "Disney+ Hotstar",
-          "providerChannelId": "582"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
-      "id": "thesportsdb-2494072",
-      "provider": "TheSportsDB",
-      "providerEventId": "2494072",
-      "providerTeamIds": [
-        "133604",
-        "133615"
-      ],
-      "home": "Arsenal",
-      "away": "Everton",
-      "title": "Arsenal v Everton",
-      "competition": "English Premier League",
-      "startsAt": 1792850400000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2494072",
-      "checkedAt": "2026-10-24",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "India",
-          "channel": "Disney+ Hotstar",
-          "providerChannelId": "582"
-        },
-        {
-          "country": "Iceland",
-          "channel": "Stöð 2 Sport IS",
-          "providerChannelId": "7941"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
-      "id": "thesportsdb-2494079",
-      "provider": "TheSportsDB",
-      "providerEventId": "2494079",
-      "providerTeamIds": [
-        "133625",
-        "133600"
-      ],
-      "home": "Coventry City",
-      "away": "Fulham",
-      "title": "Coventry City v Fulham",
-      "competition": "English Premier League",
-      "startsAt": 1792850400000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2494079",
-      "checkedAt": "2026-10-24",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "Iceland",
-          "channel": "Stöð 2 Sport 2 IS",
-          "providerChannelId": "7942"
-        },
-        {
-          "country": "India",
-          "channel": "Disney+ Hotstar",
-          "providerChannelId": "582"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
     {
       "id": "fixture-4",
       "home": "Chelsea",
@@ -109,36 +19,6 @@
       "sourceUrl": "https://www.premierleague.com/en/news/4688862/fixture-amendments-for-premier-league-matches-in-october-and-november",
       "checkedAt": "2026-10-21",
       "status": "scheduled"
-    },
-    {
-      "id": "thesportsdb-2494073",
-      "provider": "TheSportsDB",
-      "providerEventId": "2494073",
-      "providerTeamIds": [
-        "133610",
-        "133616"
-      ],
-      "home": "Chelsea",
-      "away": "Tottenham Hotspur",
-      "title": "Chelsea v Tottenham Hotspur",
-      "competition": "English Premier League",
-      "startsAt": 1792859400000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2494073",
-      "checkedAt": "2026-10-24",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "United Kingdom",
-          "channel": "Sky Sports Premier League",
-          "providerChannelId": "8647"
-        },
-        {
-          "country": "India",
-          "channel": "Disney+ Hotstar",
-          "providerChannelId": "582"
-        }
-      ],
-      "tvCoverage": "partial"
     },
     {
       "id": "fixture-5",
@@ -165,7 +45,7 @@
       "competition": "English Premier League",
       "startsAt": 1792936800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494076",
-      "checkedAt": "2026-10-24",
+      "checkedAt": "2026-10-25",
       "status": "scheduled",
       "tv": [
         {
@@ -195,7 +75,7 @@
       "competition": "English Premier League",
       "startsAt": 1792936800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494070",
-      "checkedAt": "2026-10-24",
+      "checkedAt": "2026-10-25",
       "status": "scheduled",
       "tv": [
         {
@@ -225,7 +105,7 @@
       "competition": "English Premier League",
       "startsAt": 1792936800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494074",
-      "checkedAt": "2026-10-24",
+      "checkedAt": "2026-10-25",
       "status": "scheduled",
       "tv": [
         {
@@ -255,7 +135,7 @@
       "competition": "English Premier League",
       "startsAt": 1792936800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494071",
-      "checkedAt": "2026-10-24",
+      "checkedAt": "2026-10-25",
       "status": "scheduled",
       "tv": [
         {
@@ -296,7 +176,7 @@
       "competition": "English Premier League",
       "startsAt": 1792945800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494078",
-      "checkedAt": "2026-10-24",
+      "checkedAt": "2026-10-25",
       "status": "scheduled",
       "tv": [
         {
@@ -313,6 +193,181 @@
       "tvCoverage": "partial"
     },
     {
+      "id": "thesportsdb-2606325",
+      "provider": "TheSportsDB",
+      "providerEventId": "2606325",
+      "providerTeamIds": [
+        "134374",
+        "133604"
+      ],
+      "home": "Fleetwood Town",
+      "away": "Arsenal",
+      "title": "Fleetwood Town v Arsenal",
+      "competition": "EFL Cup",
+      "startsAt": 1793131200000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2606325",
+      "checkedAt": "2026-10-25",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "United Kingdom",
+          "channel": "Sky Sports Football",
+          "providerChannelId": "8648"
+        },
+        {
+          "country": "France",
+          "channel": "BeIn Sports HD 2 France",
+          "providerChannelId": "30"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2607177",
+      "provider": "TheSportsDB",
+      "providerEventId": "2607177",
+      "providerTeamIds": [
+        "133613",
+        "133619"
+      ],
+      "home": "Manchester City",
+      "away": "Brighton and Hove Albion",
+      "title": "Manchester City v Brighton and Hove Albion",
+      "competition": "EFL Cup",
+      "startsAt": 1793215800000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2607177",
+      "checkedAt": "2026-10-25",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "France",
+          "channel": "BeIn Sports Max 6",
+          "providerChannelId": "3186"
+        },
+        {
+          "country": "Slovenia",
+          "channel": "Arena Sport 2 SI",
+          "providerChannelId": "2406"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2606320",
+      "provider": "TheSportsDB",
+      "providerEventId": "2606320",
+      "providerTeamIds": [
+        "134301",
+        "133601"
+      ],
+      "home": "Bournemouth",
+      "away": "Aston Villa",
+      "title": "Bournemouth v Aston Villa",
+      "competition": "EFL Cup",
+      "startsAt": 1793216700000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2606320",
+      "checkedAt": "2026-10-25",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "Slovenia",
+          "channel": "Arena Sport 4 SI",
+          "providerChannelId": "2408"
+        },
+        {
+          "country": "Finland",
+          "channel": "Viaplay 3 Urheilu",
+          "providerChannelId": "8106"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2606321",
+      "provider": "TheSportsDB",
+      "providerEventId": "2606321",
+      "providerTeamIds": [
+        "133600",
+        "133632"
+      ],
+      "home": "Fulham",
+      "away": "Crystal Palace",
+      "title": "Fulham v Crystal Palace",
+      "competition": "EFL Cup",
+      "startsAt": 1793216700000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2606321",
+      "checkedAt": "2026-10-25",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "Serbia",
+          "channel": "Arena Sport 5 RS",
+          "providerChannelId": "2385"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2606322",
+      "provider": "TheSportsDB",
+      "providerEventId": "2606322",
+      "providerTeamIds": [
+        "133602",
+        "133610"
+      ],
+      "home": "Liverpool",
+      "away": "Chelsea",
+      "title": "Liverpool v Chelsea",
+      "competition": "EFL Cup",
+      "startsAt": 1793217600000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2606322",
+      "checkedAt": "2026-10-25",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "United Kingdom",
+          "channel": "ITV",
+          "providerChannelId": "6330"
+        },
+        {
+          "country": "United Kingdom",
+          "channel": "ITVX",
+          "providerChannelId": "6339"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2606323",
+      "provider": "TheSportsDB",
+      "providerEventId": "2606323",
+      "providerTeamIds": [
+        "133615",
+        "134777"
+      ],
+      "home": "Everton",
+      "away": "Newcastle United",
+      "title": "Everton v Newcastle United",
+      "competition": "EFL Cup",
+      "startsAt": 1793303100000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2606323",
+      "checkedAt": "2026-10-25",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "Slovenia",
+          "channel": "Arena Sport 1 SI",
+          "providerChannelId": "2405"
+        },
+        {
+          "country": "France",
+          "channel": "BeIn Sports HD 1 France",
+          "providerChannelId": "29"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
       "id": "fixture-7",
       "home": "Chelsea",
       "away": "Manchester United",
@@ -322,6 +377,36 @@
       "sourceUrl": "https://www.premierleague.com/en/news/4688862/fixture-amendments-for-premier-league-matches-in-october-and-november",
       "checkedAt": "2026-10-21",
       "status": "scheduled"
+    },
+    {
+      "id": "thesportsdb-2494089",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494089",
+      "providerTeamIds": [
+        "133625",
+        "133603"
+      ],
+      "home": "Coventry City",
+      "away": "Sunderland",
+      "title": "Coventry City v Sunderland",
+      "competition": "English Premier League",
+      "startsAt": 1793458800000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494089",
+      "checkedAt": "2026-10-25",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        },
+        {
+          "country": "South Africa",
+          "channel": "SuperSport Football",
+          "providerChannelId": "1167"
+        }
+      ],
+      "tvCoverage": "partial"
     },
     {
       "id": "thesportsdb-2494087",
@@ -337,13 +422,18 @@
       "competition": "English Premier League",
       "startsAt": 1793458800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494087",
-      "checkedAt": "2026-10-24",
+      "checkedAt": "2026-10-25",
       "status": "scheduled",
       "tv": [
         {
           "country": "India",
           "channel": "Disney+ Hotstar",
           "providerChannelId": "582"
+        },
+        {
+          "country": "Greece",
+          "channel": "Novasports 2",
+          "providerChannelId": "3494"
         }
       ],
       "tvCoverage": "partial"
@@ -362,7 +452,7 @@
       "competition": "English Premier League",
       "startsAt": 1793458800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494086",
-      "checkedAt": "2026-10-24",
+      "checkedAt": "2026-10-25",
       "status": "scheduled",
       "tv": [
         {
@@ -374,6 +464,36 @@
           "country": "India",
           "channel": "Disney+ Hotstar",
           "providerChannelId": "582"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2494083",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494083",
+      "providerTeamIds": [
+        "133616",
+        "133632"
+      ],
+      "home": "Tottenham Hotspur",
+      "away": "Crystal Palace",
+      "title": "Tottenham Hotspur v Crystal Palace",
+      "competition": "English Premier League",
+      "startsAt": 1793467800000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494083",
+      "checkedAt": "2026-10-25",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "Iceland",
+          "channel": "Stöð 2 Sport IS",
+          "providerChannelId": "7941"
+        },
+        {
+          "country": "United Kingdom",
+          "channel": "Sky Sports Premier League",
+          "providerChannelId": "8647"
         }
       ],
       "tvCoverage": "partial"
