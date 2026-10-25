@@ -267,6 +267,7 @@ async function runRoom(){
  await chatEverywhere(viewer2,[viewer1],'The source is unreachable and our private chat still works');
  const late=await page('late',invitation);
  await late.waitForFunction(()=>SameEndSocial.snapshot().connected&&SameEndSocial.snapshot().watching);
+ await late.waitForFunction(()=>document.body.dataset.roomState==='source-unreachable',null,{timeout:5000});
  healthyRoom(await snapshot(late),'unreachable','late',true);assert.equal(await late.locator('#club-chat-input').isVisible(),true,'Late viewer can see chat while source is away');
  await chatEverywhere(late,[viewer1,viewer2],'I joined the original invitation while the source was away');
  report.room.lateJoinsWithoutSource=true;await record('late original invitation opens waiting room and chat after real source lease expires');
