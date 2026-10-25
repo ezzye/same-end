@@ -32,7 +32,7 @@ import WebTorrent from './vendor/webtorrent.min.js';
       this.config=null; this.closed=false; this.wires=new Map(); this.links=new Map(); this.timer=null; this.trail=[]; this.parent=null; this.parentRequest=null; this.down=0; this.clockReady=false;
       this.bootstrapGeneration=0;this.bootstrapRetries=0;this.bootstrapTimer=null;this.cancelBootstrapWait=null;this.resumeBootstrapWait=null;this.resetTimer=null;this.resetPromise=null;this.discoveryGeneration=0;this.nextResetAt=0;this.resetFailures=0;this.lastDiscoveryReset=0;this.lastTrackerReply=0;this.lastStatusTick=0;this.watchedTorrents=new WeakSet();this.boundedTrackers=new WeakSet();
       this.joinGeneration=0;this.pendingJoin=null;this.network=null;this.lastReannounce=0;this.observedDiscovery=null;this.observedPeers=new WeakSet();
-      this.sessionReady=false; this.recovery=null; this.recoveries=0; this.everParent=false; this.failedSuppliers=new Map(); this.failures=0;
+      this.sessionReady=false; this.recovery=null; this.recoveries=0; this.everParent=false; this.failedSuppliers=new Map(); this.failures=0; this.lastReject=null;
     }
     _rooted(remote){ return remote?.role==='source'||(remote?.rooted===true&&remote?.hasParent===true); }
     getStatus(){
@@ -66,7 +66,24 @@ import WebTorrent from './vendor/webtorrent.min.js';
       this.failedSuppliers.set(nodeId,now+20000);this.failures++;
       if(this.recovery){this.recovery.reason=String(reason||'supplier-failed').slice(0,80);this.recovery.failures=this.failures;}
     }
-    snapshot(){return {parent:this.parent?.remote?.nodeId||null,trail:[...this.trail],sourceReachable:this.getStatus().rooted,recovery:this.recovery?{...this.recovery,recoveries:this.recoveries,failures:this.failures}:null,authenticatedPeers:[...this.wires.values()].filter(s=>s.auth).length,network:this.network?{...this.network,elapsedSeconds:Math.max(0,Math.min(86400,Math.floor((Date.now()-this.networkStarted)/1000)))}:null};}
+    _availability(){
+      const now=Date.now();if(this.lastReject&&now-this.lastReject.at>15000)this.lastReject=null;
+      const peers=[...this.wires.values()].filter(s=>s.auth&&!s.wire?.destroyed&&s.lastSeen&&now-s.lastSeen<=25000&&this._validStatus(s.remote));
+      let rootedSuppliers=0,fullSuppliers=0,eligibleSuppliers=0,unrootedPeers=0;
+      for(const s of peers){
+        const remote=s.remote,rooted=this._rooted(remote);
+        if(!rooted){unrootedPeers++;continue;}
+        rootedSuppliers++;
+        const relayLimit=Number.isInteger(remote.relayLimit)?Math.min(2,Math.max(0,remote.relayLimit)):2;
+        const downCount=Number.isSafeInteger(remote.downCount)&&remote.downCount>=0?remote.downCount:null;
+        const full=downCount!==null&&downCount>=relayLimit;
+        if(full)fullSuppliers++;
+        const cooled=(this.failedSuppliers.get(remote.nodeId)||0)>now;
+        if(remote.clockReady===true&&!full&&downCount!==null&&!cooled&&!remote.trail.includes(this.node)&&remote.trail.length<12)eligibleSuppliers++;
+      }
+      return {authenticatedPeers:Math.min(12,peers.length),rootedSuppliers:Math.min(12,rootedSuppliers),fullSuppliers:Math.min(12,fullSuppliers),eligibleSuppliers:Math.min(12,eligibleSuppliers),unrootedPeers:Math.min(12,unrootedPeers),lastReject:this.lastReject&&now-this.lastReject.at<=15000?this.lastReject.reason:null};
+    }
+    snapshot(){return {parent:this.parent?.remote?.nodeId||null,trail:[...this.trail],sourceReachable:this.getStatus().rooted,recovery:this.recovery?{...this.recovery,recoveries:this.recoveries,failures:this.failures}:null,authenticatedPeers:[...this.wires.values()].filter(s=>s.auth).length,availability:this._availability(),network:this.network?{...this.network,elapsedSeconds:Math.max(0,Math.min(86400,Math.floor((Date.now()-this.networkStarted)/1000)))}:null};}
     _progress(name){try{this.onProgress(name);}catch{}}
     _status(){ return this.getStatus(); }
     async _cryptoKey(key){ return crypto.subtle.importKey('raw',key,{name:'HMAC',hash:'SHA-256'},false,['sign','verify']); }
@@ -270,7 +287,8 @@ import WebTorrent from './vendor/webtorrent.min.js';
         const mine=this._status();
         const reserved=[...this.wires.values()].filter(p=>p.pendingNonce&&p.pendingUntil>Date.now()&&!p.opened).length;
         if(!this._validStatus(m)||m.nodeId!==s.remote?.nodeId||s.opened||!mine.rooted||!mine.clockReady||mine.downCount+reserved>=mine.relayLimit||mine.trail.length>=12||mine.trail.includes(s.remote.nodeId)){
-          this._send(s,{type:'_pc_reject',nonce:m.nonce});return;
+          const reason=!this._validStatus(m)||m.nodeId!==s.remote?.nodeId||s.opened?'invalid-status':!mine.rooted?'source-unavailable':!mine.clockReady?'not-ready':mine.trail.length>=12||mine.trail.includes(s.remote.nodeId)?'loop':'capacity-full';
+          this._send(s,{type:'_pc_reject',nonce:m.nonce,reason});return;
         }
         s.remote={...s.remote,...m}; s.pendingNonce=m.nonce; s.pendingUntil=Date.now()+5000;
         this._send(s,{type:'_pc_accept',nonce:s.pendingNonce,...mine});
@@ -280,9 +298,14 @@ import WebTorrent from './vendor/webtorrent.min.js';
         s.remote=accepted; s.direction='up'; this._open(s); this._send(s,{type:'_pc_confirm',nonce:m.nonce});
       } else if(m.type==='_pc_confirm'&&s.pendingNonce===m.nonce&&s.pendingUntil>Date.now()){
         const mine=this._status(),reserved=[...this.wires.values()].filter(p=>p!==s&&p.pendingNonce&&p.pendingUntil>Date.now()&&!p.opened).length;s.pendingNonce=null;
-        if(!mine.rooted||mine.trail.includes(s.remote.nodeId)||mine.downCount+reserved>=mine.relayLimit){this._send(s,{type:'_pc_reject',nonce:m.nonce});return;}
+        if(!mine.rooted||mine.trail.includes(s.remote.nodeId)||mine.downCount+reserved>=mine.relayLimit){const reason=!mine.rooted?'source-unavailable':mine.trail.includes(s.remote.nodeId)?'loop':'capacity-full';this._send(s,{type:'_pc_reject',nonce:m.nonce,reason});return;}
         s.direction='down'; this._open(s);
-      } else if(m.type==='_pc_reject'&&m.nonce===s.requestNonce){if(this.parent===s)s.wire.destroy();else if(this.parentRequest===s)this._releaseRequest(s);}
+      } else if(m.type==='_pc_reject'&&m.nonce===s.requestNonce){
+        if(s.request&&this.parentRequest===s&&s.requestUntil>Date.now()){
+          if(['capacity-full','source-unavailable','not-ready','loop','invalid-status'].includes(m.reason))this.lastReject={reason:m.reason,at:Date.now()};
+          this._releaseRequest(s);
+        }else if(this.parent===s)s.wire.destroy();
+      }
     }
     _validStatus(m){return typeof m.nodeId==='string'&&m.nodeId.length<100&&m.nodeId!==this.node&&Array.isArray(m.trail)&&m.trail.length<=12&&m.trail.every(x=>typeof x==='string'&&x.length<100)&&new Set(m.trail).size===m.trail.length&&!m.trail.includes(m.nodeId)&&(m.relayLimit===undefined||(Number.isInteger(m.relayLimit)&&m.relayLimit>=0&&m.relayLimit<=2));}
     _releaseRequest(s){s.request=false;s.retryAfter=Date.now()+5000;if(this.parentRequest===s)this.parentRequest=null;}
@@ -299,7 +322,7 @@ import WebTorrent from './vendor/webtorrent.min.js';
     _open(s){ if(s.opened)return;
       if(s.direction==='up'){if(this.role==='source'||this.parent){s.wire.destroy();return;}this.parent=s;this.parentRequest=null;s.request=false;this.clockReady=true;if(this.everParent)this.recoveries++;this.everParent=true;this.recovery={...this.recovery,state:'connected',lastRecoveredAt:Date.now()};this._topology();this.onRecovery({...this.recovery,recoveries:this.recoveries});}
       else {if(this.down>=this._status().relayLimit){s.wire.destroy();return;}this.down++;}
-      s.opened=true;
+      this.lastReject=null;s.opened=true;
       const owner=this,adapter={readyState:'open',get bufferedAmount(){const p=[...(owner.torrent?._peers?.values?.()||[])].find(x=>x.wire===s.wire);return Number(s.wire.readableLength||s.wire._readableState?.length||p?.conn?.channel?.bufferedAmount||p?.conn?._channel?.bufferedAmount||0);},onopen:null,onmessage:null,onclose:null,onerror:null,send:data=>{if(!s.auth||s.wire.destroyed)throw Error('Peer connection is closed.'); const kind=typeof data==='string'?1:2,raw=kind===1?encoder.encode(data):new Uint8Array(data);if(raw.length>65536)throw Error('Peer packet exceeds 64 KB.');const frame=new Uint8Array(raw.length+1);frame[0]=kind;frame.set(raw,1);s.wire.extended(EXT,frame);},close:()=>{s.wire.destroy();}};
       if(this.network)this.network.phase='connected';s.adapter=adapter; this.links.set(s,adapter); this.onPeer({id:s.remote.nodeId,label:String(s.remote.label||'Friend').slice(0,40),direction:s.direction,trail:(s.remote.trail||[]).concat(s.remote.nodeId).slice(-12),channel:adapter});
       queueMicrotask(()=>adapter.onopen?.()); this._broadcast();

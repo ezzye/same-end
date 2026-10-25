@@ -26,7 +26,7 @@ test('failed old publication cannot close or clear a newer transport',async()=>{
 test('an unchanged source publishes exactly one descriptor',async()=>{
  const h=publication(),task=h.context.publish();await h.entered;
  await assert.rejects(h.context.publish(),/already being prepared/);h.resolve('current-private-descriptor');await task;
- assert.equal(h.fields['magnet-link'].value,'current-private-descriptor');assert.equal(h.counts().events,1);assert.equal(h.counts().closes,0);
+ assert.equal(h.state.invitationConfigId,'old');assert.equal(h.fields['magnet-link'].value,'current-private-descriptor');assert.equal(h.counts().events,1);assert.equal(h.counts().closes,0);
 });
 
 const joinSource=source.slice(source.indexOf('async function joinMagnet('),source.indexOf('\nfunction canRetryJoin()'));

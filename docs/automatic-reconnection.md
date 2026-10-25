@@ -2,6 +2,14 @@
 
 The normal video-and-chat invitation identifies a private room, not one recording. Keep that same invitation when the host restarts sharing. Old combined club-and-magnet invitations resolve the current room after unlocking it. An advanced video-only magnet identifies one capture and cannot discover a replacement source.
 
+## Rooms without a source
+
+**Invite your mates** creates or restores the saved organiser room before capture. Its member invitation opens chat immediately; it does not depend on a currently published video magnet. A source can join later from that saved organiser browser, and waiting members automatically follow it. The room has no global video capacity limit: each visible supplying peer has its own bounded downstream capacity. Source takeover by arbitrary members is not added by this change.
+
+Optional source presence is carried inside the existing encrypted schema-1 club state. A current source renews a 60-second lease at most once per 15 seconds, bound to its exact published capture configuration and publication session. Successful renewal extends the descriptor lifetime. A clean owner stop is distinct from an expired lease. A viewer that receives an authenticated source-end remembers that exact ended descriptor, so delayed club updates cannot make it rediscover the old capture; a new descriptor still joins automatically. An expired lease means **unreachable**, not proof that the owner left; timer throttling or loss of the club connection can also expire it. A source-free room remains open for chat. Late arrivals wait for a fresh owner update; already-playing authenticated media is not stopped merely because presence is stale. Legacy records without presence remain **unknown**.
+
+The waiting picture explains source-not-started, positively stopped sharing, unreachable source, reported device offline, locally observed supplier capacity, and an unresolved direct route separately. Capacity evidence is authenticated, current and bounded to the peers this device can see; no-peer timeouts never become “room full.” This is room/chat resilience using the existing encrypted control service. Video remains peer-to-peer and still requires a source and a usable direct route.
+
 ## Source restart and network change are different
 
 When sharing restarts, the organiser publishes its new encrypted descriptor into the same club state. Existing viewers discard only their old owned media session and follow the new source. Chat, membership and local sound preference remain. A new capture has a new epoch and the ordinary group warm-up. Starting a different manually chosen room or selecting Leave prevents the previous follower from taking it over.
@@ -28,7 +36,7 @@ If the outage exceeds the group's reserve, material can be missed. Recovery rejo
 
 ## Diagnostics and validation
 
-Connection reports include allowlisted discovery-renewal state, reset count, bootstrap retry count and retry countdown. The local test timeline retains the same coded evidence. Reports exclude raw tracker/socket objects, addresses, invitation keys and chat.
+Connection reports include allowlisted room/source classifications, fresh authenticated supplier counts and typed admission rejections, as well as discovery-renewal state, reset count, bootstrap retry count and retry countdown. The local test timeline retains the same coded evidence. Reports exclude raw tracker/socket objects, addresses, invitation keys and chat.
 
 Build before running browser acceptance:
 
@@ -39,6 +47,7 @@ npm run test:persistent-room
 npm run test:reconnection-webkit
 npm run test:invite-feedback
 npm run test:automatic-reconnection
+HLS_RECONNECT_SCENARIO=room npm run test:automatic-reconnection
 ```
 
 The automatic-reconnection harness uses generated HLS/CMAF video and sound, real signed WebRTC media, a local secure WebSocket tracker and an ephemeral encrypted club API. It closes actual test peer connections and blocks test tracker sockets; merely setting the browser offline is insufficient. It tests a loss longer than the short test buffer, automatic recovery, source replacement, unchanged invitations, chat, sound preference, decoded frame growth and distance from the group clock. It rejects HTTP video delivery and external media requests.
