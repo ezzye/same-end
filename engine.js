@@ -102,8 +102,13 @@ function adoptCommonDecision(cs,decision,decisionId){
  if(state.commonStart!==cs||cs.decision)return false;
  cs.decision=decision;cs.decisionId=decisionId;
  // Pending v2 viewers receive fresh measurement media, not five minutes of backlog.
- // Once the clock is signed, replay its actual retained starting range.
- if(cs.version===2)for(const peer of downstream())if(peer.ready&&peer.commonStartVersion===2){peer.lastSentSeq=-1;peer.replayPending=false;}
+ // A short start uses that same fresh range: keep its live send watermark.
+ // Only the conservative fallback needs older history. Reset its progress
+ // watermark too, so new verified historical pieces count as forward progress.
+ if(cs.version===2&&decision.delaySeconds===state.config.delay){
+  for(const peer of downstream())if(peer.ready&&peer.commonStartVersion===2){peer.lastSentSeq=-1;peer.replayPending=false;}
+  for(const peer of state.peers.values())if(peer.direction==='up'&&!peer.closed){peer.highestSeq=-1;peer.lastProgressAt=now();}
+ }
  if(state.player?.startupPreparation){
   if(state.role==='source'&&decision.delaySeconds<state.config.delay){
    if(!state.player.commitStartup(cs.preparationTarget,decision.reserveSeconds))discardPreparedPlayer();
@@ -458,7 +463,7 @@ function stageWindow(){
    if(lag>(p.announcedPlaybackLag||0)+1&&now()-(p.lastLagHintAt||0)>3000){send(p,{type:'hello',label:label(),cast:state.config.id,deliveryVersion:1,resumeAfter:resumeAfter(),playbackLagSeconds:lag});p.announcedPlaybackLag=lag;p.lastLagHintAt=now();}
   }
   if(p.direction!=='down'||!p.ready||p.closed||stallOutgoing&&(stallOutgoing===true||stallOutgoing===p.nodeId||stallOutgoing===p.id))continue;
-  const childNominal=state.commonStart?.version===2&&!state.commonStart.decision&&p.commonStartVersion===2?(now()+state.offset-state.config.epoch)/1000:p.commonStartVersion===state.commonStart?.version?nominal:(now()+state.offset-state.config.epoch)/1000-state.config.delay;
+  const childNominal=state.commonStart?.version===2&&p.commonStartVersion===2?(!state.commonStart.decision?(now()+state.offset-state.config.epoch)/1000:scheduledCommonStart()?state.commonStart.decision.programmeTime:nominal):p.commonStartVersion===state.commonStart?.version?nominal:(now()+state.offset-state.config.epoch)/1000-state.config.delay;
   const cutoff=state.config.epoch+(childNominal-boundedPlaybackLag(p.playbackLagSeconds))*1000-4000;
   let count=0;for(const s of state.cache){const replay=p.replayPending&&s.meta.start<p.replayBeforeMs&&s.meta.seq>(p.replayAfterSeq??-1);if(s.meta.start+s.meta.duration>=cutoff&&(s.meta.seq>p.lastSentSeq||replay)&&p.queued<4*1024*1024&&count<2){enqueue(p,s);p.lastSentSeq=Math.max(p.lastSentSeq,s.meta.seq);if(replay)p.replayAfterSeq=s.meta.seq;count++;}}
   if(p.replayPending&&!state.cache.some(s=>s.meta.start+s.meta.duration>=cutoff&&s.meta.start<p.replayBeforeMs&&s.meta.seq>(p.replayAfterSeq??-1)))p.replayPending=false;

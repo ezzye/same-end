@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { webcrypto } from 'node:crypto';
 import { commitStartup } from '../hls-player.js';
 import { contiguousRanges, headroomAt } from '../adaptive-playout.js';
+import { encodeBundle, decodeBundle } from '../hls-protocol.js';
 
 const engine = await readFile(new URL('../engine.js', import.meta.url), 'utf8');
 const commonCode = await readFile(new URL('../common-start.js', import.meta.url), 'utf8');
@@ -431,7 +432,7 @@ test('v2 host and viewer use the signed shared clock but neither starts its new 
   assert.equal(viewer.trace.filter(row => row[0] === 'close').length, 1);
 });
 
-test('v2 pending downstream bootstrap sends fresh media and adoption replays the retained signed range without modifying its metadata', async () => {
+test('v2 short selection preserves the bootstrap live cursor and schedules new children at the signed programme range', async () => {
   const h = harness({ role: 'source', version: 2, cacheHeadroom: true }); h.tick(878000); actualCache(h, 600, 900);
   const child = h.peer('child', 'down'); h.ctx.stageWindow(); h.ctx.stageWindow();
   const bootstrap = h.enqueued.filter(row => row.peer === 'child').map(row => row.seq * 2);
@@ -440,10 +441,50 @@ test('v2 pending downstream bootstrap sends fresh media and adoption replays the
   child.commonReports = [{ id: 'child', report: h.report() }]; child.lastSentSeq = 459;
   const retained = h.state.cache.find(piece => piece.meta.seq === 451), before = JSON.stringify(retained.meta);
   h.ctx.advanceCommonStart(); await h.signingDone();
-  assert.equal(child.lastSentSeq, -1, 'measurement high-water mark does not suppress the selected programme replay');
+  assert.equal(child.lastSentSeq, 459, 'short selection must not resend already verified bootstrap media');
   h.enqueued.length = 0; for (let count = 0; count < 12; count++) h.ctx.stageWindow();
-  assert(h.enqueued.some(row => row.peer === 'child' && row.seq === 451));
+  assert.equal(h.enqueued.filter(row => row.peer === 'child').length, 0, 'no duplicate backlog may starve live source progress');
+  h.state.cache.push({ meta: { seq: 460, start: epoch + 920000, duration: 2000 } });
+  h.ctx.stageWindow(); assert.deepEqual(h.enqueued.filter(row => row.peer === 'child').map(row => row.seq), [460]);
+  h.peer('new-child', 'down'); h.ctx.stageWindow();
+  const fresh = h.enqueued.filter(row => row.peer === 'new-child'); assert(fresh.length > 0);
+  const d = h.state.commonStart.decision;
+  assert(fresh.every(row => row.seq * 2 + 2 >= d.programmeTime - 4), 'scheduled forwarding starts at the signed programme range, not twelve seconds of earlier nominal history');
   assert.equal(JSON.stringify(retained.meta), before); assert.equal(h.state.config.delay, 300); assert.equal(h.state.config.epoch, epoch);
+});
+
+test('v2 conservative fallback rewinds its retained range and renews upstream progress for genuine older unique signed media', async () => {
+  const source = harness({ role: 'source', version: 2, cacheHeadroom: true }); source.tick(878000); actualCache(source, 600, 900);
+  source.ctx.syncPlayback(); const child = source.peer('child', 'down'); child.commonReports = [];
+  source.ctx.advanceCommonStart(); source.tick(60000); actualCache(source, 600, 960); child.lastSentSeq = 479;
+  source.ctx.advanceCommonStart(); await source.signingDone();
+  const d = source.state.commonStart.decision; assert.equal(d.delaySeconds, 300); assert.equal(d.programmeTime, 664);
+  assert.equal(child.lastSentSeq, -1, 'fallback actually needs history preceding the fresh-measurement bootstrap');
+  source.enqueued.length = 0; source.ctx.stageWindow();
+  assert(source.enqueued.some(row => row.seq < 479));
+  assert(source.enqueued.every(row => row.seq * 2 + 2 >= d.programmeTime - 4));
+
+  const viewer = harness({ version: 2 }), parent = viewer.peer('parent'); viewer.tick(938000); actualCache(viewer, 898, 960);
+  Object.assign(parent, { highestSeq: 479, lastProgressAt: epoch + 959000, lastVerifiedAt: epoch + 959000, deliveryVersion: 1 });
+  viewer.state.supplier = { id: parent.id };
+  await viewer.ctx.handleCommonHello(parent, hello(viewer, d));
+  assert.equal(parent.highestSeq, -1); assert.equal(parent.lastProgressAt, epoch + 960000);
+  Object.assign(viewer.state, { seen: new Set(), received: 0 }); viewer.ctx.MAX_CLIP = 4 * 1024 * 1024;
+  viewer.ctx.SameEndHLS = { decodeBundle };
+  for (const prefix of ['const canonical=', 'const segmentKey=']) vm.runInContext(engine.split('\n').find(line => line.startsWith(prefix)), viewer.ctx);
+  vm.runInContext(slice('function receipt(', 'function resumeAfter()'), viewer.ctx);
+  vm.runInContext(slice('async function acceptSegment(', 'async function waitBuffer('), viewer.ctx);
+  const buf = encodeBundle({ start: 664, duration: 2, playlistStart: 664,
+    files: [{ path: 'master.m3u8', mime: 'application/vnd.apple.mpegurl', bytes: enc.encode('#EXTM3U\n') }] });
+  const meta = { v: 2, cast: 'cast', sourceId: 'source', sourceEpoch: 0, programId: 'programme',
+    alignmentVersion: 1, seq: 332, start: epoch + 664000, programStartTime: 664000, duration: 2000,
+    size: buf.byteLength, mime: viewer.state.config.mime, hash: await viewer.ctx.hash(buf) };
+  const canonical = vm.runInContext('canonical', viewer.ctx);
+  meta.sig = b64(await webcrypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key.privateKey, enc.encode(canonical(meta))));
+  await viewer.ctx.acceptSegment(meta, buf, parent, epoch + 959990);
+  assert.equal(parent.highestSeq, 332, 'retained unique media can establish progress after fallback despite the previous live bootstrap high-water mark');
+  assert.equal(parent.lastProgressAt, epoch + 960000); assert.equal(viewer.state.received, 1);
+  assert(viewer.sent.some(row => row.message.type === 'delivery-receipt' && row.message.seq === 332));
 });
 
 test('v2 rejects forged signatures and post-play viewer retiming while only the source may replace prior solo playback', async () => {
