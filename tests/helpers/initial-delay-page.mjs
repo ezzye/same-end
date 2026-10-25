@@ -131,7 +131,7 @@ export function initialDelayPageProbe(options) {
       clientDelivery: s.clientDelivery, reserveSeconds: s.reserveSeconds, playback: s.mediaDiagnostics?.playback,
       received: s.received, clockReady: s.clockReady, supplier: !!s.supplier, stalls: s.stalls,
       mode: s.playbackMode, width: video.videoWidth, height: video.videoHeight, paused: video.paused,
-      ready: video.readyState, seeking: video.seeking, muted: video.muted, currentTime: video.currentTime,
+      ready: video.readyState, seeking: video.seeking, muted: video.muted, currentTime: video.currentTime,rawBuffered:Array.from({length:video.buffered.length},(_,i)=>[video.buffered.start(i),video.buffered.end(i)]),rawSeekable:Array.from({length:video.seekable.length},(_,i)=>[video.seekable.start(i),video.seekable.end(i)]),
       decodedFrames: video.getVideoPlaybackQuality?.().totalVideoFrames ?? video.webkitDecodedFrameCount ?? null,
       audioContextState: audioContext?.state ?? null, rms, peakFrequency,
       chatConnected: !!social?.connected, chatCount: social?.chatCount, cacheBytes: s.cacheBytes,
@@ -187,6 +187,8 @@ export function initialDelayPageProbe(options) {
           if (c.type === 'chat') { const input = document.querySelector('#club-chat-input'); input.value = c.text; input.dispatchEvent(new Event('input', { bubbles: true })); document.querySelector('#club-send-chat').click(); }
           if(c.type==='audio-mute'){document.querySelector('#player').muted=c.muted;telemetry.audioCuts??=[];telemetry.audioCuts.push({at:Date.now(),muted:c.muted});}
           if (c.type === 'relay') window.PrivateCast?.testing.setRelayLimit(c.limit);
+          if(c.type==='end-test'){delete document.hidden;delete document.visibilityState;await window.PrivateCast?.stop?.();document.querySelector('#player')?.pause();document.querySelector('#player').muted=true;}
+          if(c.type==='visibility-restore'){delete document.hidden;delete document.visibilityState;document.dispatchEvent(new Event('visibilitychange'));}
           if (c.type === 'visibility') {
             // Supplemental owned-document lifecycle stimulus; explicitly not
             // evidence of a real OS background/foreground transition.

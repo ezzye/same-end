@@ -118,6 +118,15 @@ test('native preparation enforces three target durations and rejects unreachable
   const { p } = decoder(NativePlayer, { targetDuration: 5 }); p.prepareStartup(4, 6);
   assert.equal(p.startupFacts(4).minimumReserveSeconds, 15); assert.equal(p.commitStartup(4, 6), false);
 });
+test('native preparation may request missing target samples once, with commitment still waiting for decoding', () => {
+ const {p,v}=decoder(NativePlayer);let current=0;const writes=[];
+ Object.defineProperty(v,'currentTime',{get:()=>current,set:value=>{writes.push(value);current=value;}});
+ v.buffered={length:1,start:()=>2,end:()=>14};v.seekable={length:1,start:()=>0,end:()=>14};
+ const first=p.prepareStartup(.188,6);assert.equal(writes.length,1);assert.equal(writes[0],.188);
+ assert.equal(first.decoderAheadSeconds,0);assert.equal(p.commitStartup(.188,6),false,'verified bytes and a completed seek cannot substitute for decoded samples');
+ p.prepareStartup(.188,6);p.prepareStartup(.188,6);assert.equal(writes.length,1,'preparation cannot repeatedly seek');
+ v.buffered={length:1,start:()=>0,end:()=>14};assert(p.commitStartup(.188,6));
+});
 
 test('late joins still observe once, and observation has a finite conservative deadline', () => {
  const p = policy(); p.update(input({ sourceNowMs: 1600000 })); assert.equal(p.state, 'preparing'); assert.equal(p.targetProgramTime, 300);

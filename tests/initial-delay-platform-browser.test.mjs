@@ -74,9 +74,9 @@ const server = https.createServer(localTLS, async (req, res) => {
     if (url.pathname === '/metrics' && req.method === 'POST') {
       if(url.searchParams.get('run')!==runNonce)return json(res,{expired:true},410);
       const value = JSON.parse(await body(req)); if (!['viewer','source','downstream'].includes(url.searchParams.get('role'))) return json(res, {}, 400);
-      const role=url.searchParams.get('role'),previous=latest.get(role);latest.set(role,value);if(role==='viewer'&&JSON.stringify([previous?.initialDelay?.state,previous?.initialDelay?.reason])!==JSON.stringify([value.initialDelay?.state,value.initialDelay?.reason])){report.initialTransitions??=[];report.initialTransitions.push({at:Date.now(),elapsed:value.elapsed,initialDelay:value.initialDelay,measurement:value.clientDelivery,clockReady:value.clockReady,visibility:value.visibility,received:value.received});}return json(res,{ok:true});
+      const role=url.searchParams.get('role'),previous=latest.get(role);latest.set(role,value);if(role==='viewer'&&value.initialDelay?.state==='preparing'){report.preparationSamples??=[];report.preparationSamples.push({elapsed:value.elapsed,initialDelay:value.initialDelay,playback:value.playback,ready:value.ready,seeking:value.seeking,paused:value.paused,rawBuffered:value.rawBuffered,rawSeekable:value.rawSeekable});if(report.preparationSamples.length>80)report.preparationSamples.shift();}if(role==='viewer'&&JSON.stringify([previous?.initialDelay?.state,previous?.initialDelay?.reason])!==JSON.stringify([value.initialDelay?.state,value.initialDelay?.reason])){report.initialTransitions??=[];report.initialTransitions.push({at:Date.now(),elapsed:value.elapsed,initialDelay:value.initialDelay,measurement:value.clientDelivery,clockReady:value.clockReady,visibility:value.visibility,received:value.received});}return json(res,{ok:true});
     }
-    if (url.pathname === '/commands' && url.searchParams.get('run')!==runNonce)return json(res,{expired:true},410);
+    if (url.pathname === '/commands' && url.searchParams.get('run')!==runNonce)return json(res,[{id:1000000000,type:'visibility',hidden:true}],410);
     if (url.pathname === '/commands') return json(res, commands.filter(c => c.role === (url.searchParams.get('role') || 'viewer') && c.id > Number(url.searchParams.get('after') || 0)));
     if(url.pathname==='/operator'&&req.method==='POST'){const data=JSON.parse(await body(req));if(data.type!=='audio-mute'||typeof data.muted!=='boolean')return json(res,{},400);commands.push({id:commands.length+1,role:'viewer',type:'audio-mute',muted:data.muted});return json(res,{ok:true});}
     if (url.pathname === '/status') return json(res, { device, profile, latest: Object.fromEntries(latest), stages: report.stages, pass: report.pass });
@@ -250,6 +250,7 @@ try {
     report.continuity = { measuredSeconds:(Date.now()-stableStart)/1000, decodedFrameCallbacks:end.probe.frames-before.probe.frames, maxFrameGapMs:end.probe.maxFrameGapMs, addedSeeks:addedSeeks.length, stallsBefore:before.stalls, stallsAfter:end.stalls, finalSourceAgeSeconds:end.sourceAge,maxGroupSeparationSeconds:maxGroupSeparation,commonRoomDelaySeconds:roomDelay };
     command('viewer','visibility',{hidden:true}); await sleep(1500);
     command('viewer','visibility',{hidden:false}); await sleep(2500);
+    command('viewer','visibility-restore');await sleep(600);
     const resumed = current('viewer');
     assert.equal(resumed.waitingOverlayHidden,true,'Returning after first picture keeps startup buffering explanation hidden');
     report.supplementalVisibility = { syntheticOwnedDocumentEvent:true, physicalBackgroundAcceptance:false, waitingOverlayHidden:resumed.waitingOverlayHidden, recoveryState:resumed.playback?.adaptivePhase, lastFrameAt:resumed.probe.lastFrameAt };
@@ -266,6 +267,7 @@ try {
   process.exitCode = 1;
 } finally {
   clearInterval(heartbeat);
+  command('viewer','end-test');await sleep(800);
   report.finalStates = Object.fromEntries(latest); report.finishedAt = new Date().toISOString();
   for (const page of ownedPages) await page.close().catch(() => {});
   for (const context of contexts) await context.close().catch(() => {});

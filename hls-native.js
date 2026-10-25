@@ -149,9 +149,14 @@ export class NativePlayer {
   prepareStartup(target, reserve) {
     if (!beginStartup(this, target, reserve)) return null;
     this.mapTimeline(); const preparation = this.startupPreparation, facts = this.startupFacts(target), local = target - this.origin;
-    if (this.origin !== null && !preparation.seekRequested && !this.video.seeking && Number.isFinite(facts.programTime) && Math.abs(facts.programTime - target) > .3) {
+    const goal = Math.max(reserve, facts.minimumReserveSeconds || reserve);
+    // AVPlayer may preload a later fragment while currentTime still reports
+    // the requested beginning. One seek can request the missing verified
+    // samples; commitment still requires those samples to be decoded.
+    const needsSamples = facts.decoderAheadSeconds + .08 < goal;
+    if (this.origin !== null && !preparation.seekRequested && !this.video.seeking && Number.isFinite(facts.programTime) && (Math.abs(facts.programTime - target) > .3 || needsSamples)) {
       let seekable = false; for (let i = 0; i < this.video.seekable.length; i++) if (local >= this.video.seekable.start(i) && local < this.video.seekable.end(i)) seekable = true;
-      if (seekable && facts.decoderAheadSeconds + .08 >= Math.max(reserve, facts.minimumReserveSeconds || reserve)) { preparation.seekRequested = true; this.presented = null; this.video.currentTime = local; }
+      if (seekable && goal <= 12 && facts.cacheAheadSeconds + .001 >= goal) { preparation.seekRequested = true; this.presented = null; this.video.currentTime = local; }
     }
     return this.startupFacts(target);
   }
