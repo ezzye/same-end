@@ -69,3 +69,12 @@ These checks do not create AWS resources or verify a real hosted sign-in. Before
 - [API Gateway HTTP JWT authorizer](https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-jwt-authorizer.html) — signature/issuer/audience/time checks and trusted claims. This application's contract deliberately uses an ID token; Lambda must enforce `token_use: id` because the gateway does not distinguish token purpose automatically.
 
 Gateway claim-shape reference: the [AWS-owned REST migration sample](https://github.com/aws-solutions-library-samples/accelerated-intelligent-document-processing-on-aws/blob/main/docs/migration-appsync-to-rest.md) documents that gateway group claims can be flattened into a bracketed string such as `[Admin Author]` or a comma-joined form; do not assume the Lambda receives the original JWT JSON array. Normalize only trusted authorizer claims and compare complete role names.
+
+## Starter discussions
+
+`community-starters.json` holds a small, dated pack of team discussions (currently Premier League topics prepared on 25 October 2026, with sources). The build copies it beside the staff desk. In **Forum**, a moderator or admin chooses **Publish starter discussions**: each item is posted as the clearly labelled “Same End team”, with fixed IDs so publishing again never duplicates anything. Match results are spoiler-protected automatically. Topical facts age quickly — review the pack (and its sources) before publishing, and edit or replace it for later weeks rather than presenting old results as new. Team posts are never written in invented fans’ voices.
+
+
+## Waiting introduction
+
+The initial buffering screen includes the previously reviewed 24-second ElevenLabs Jamie introduction, a static SVG and the script as a transcript. The original script is `assets/same-end-intro.txt`; the recording is mono AAC at 24 kbit/s, 76,381 bytes, and the build enforces a 100 KB ceiling. It is a static file outside the eager app-shell cache, requested only after Play. Hiding the guide, hiding/leaving the page, or picture readiness pauses and releases it. The newer keep-the-picture-visible recovery behavior is preserved. Staff-managed text/quiz/sponsor cards remain under optional reading; the editor accepts no arbitrary media URLs or uploads.

@@ -166,7 +166,10 @@ test('reports are private staff work items, resolution persists, suspension bloc
   const before = await f.admin('GET', `/members/${b.id}`, undefined, {role: 'moderator'}); ok(before);
   assert.deepEqual(Object.keys(before.json).sort(), ['id', 'name', 'status', 'version']);
   const suspended = await f.admin('POST', `/members/${b.id}`, {status: 'suspended', expectedVersion: before.json.version}, {role: 'moderator'}); ok(suspended);
-  assert.equal((await f.request('GET', '/threads', undefined, b)).statusCode, 403);
+  // Reading is public; a suspended identity can read like any guest but cannot take part.
+  ok(await f.request('GET', '/threads', undefined, b));
+  assert.equal((await f.request('POST', '/threads', {id: randomUUID(), category: 'general', title: 'Suspended', text: 'Should fail', spoiler: false}, b)).statusCode, 403);
+  assert.equal((await f.request('POST', '/votes', {threadId: t.id, postId: t.id, value: 1}, b)).statusCode, 403);
   ok(await f.request('GET', '/feedback', undefined, b));
   assert.equal((await f.request('POST', '/membership', {code: 'pilot-rules-2026', agree: true}, b)).statusCode, 403);
 });
@@ -295,4 +298,151 @@ test('feedback-first identity chooses its forum name on first opt-in and retains
   const receipts = await f.request('GET', '/feedback', undefined, a); ok(receipts); assert.deepEqual(receipts.json.items, [feedback.json]);
   const post = await f.thread(a); assert.equal(post.authorId, a.id); assert.equal(post.authorName, 'Chosen Fan');
   const repeated = await f.request('POST', '/membership', {code: 'pilot-rules-2026', agree: true, name: 'Rename attempt'}, a); ok(repeated); assert.equal(repeated.json.name, 'Chosen Fan');
+});
+
+test('anyone can read an open forum without an identity; closed forums stay closed', async () => {
+  const f = fixture();
+  assert.equal((await f.request('GET', '/threads')).statusCode, 403);
+  await f.enable(); const a = await f.member('Alice'), t = await f.thread(a, {title: 'Open to readers'});
+  const list = await f.request('GET', '/threads', undefined, {query: {sort: 'new'}}); ok(list);
+  assert.equal(list.json.items[0].title, 'Open to readers'); assert.equal(list.json.items[0].myVote, 0); assert.equal(list.json.total, 1);
+  assert.doesNotMatch(list.body, /tokenHash|blockedMemberIds|contact|diagnostics/);
+  ok(await f.request('GET', `/threads/${t.id}`));
+  const guest = await f.identity('Guest'); ok(await f.request('GET', '/threads', undefined, {...guest, query: {sort: 'hot'}}));
+  // Taking part still needs the pilot code.
+  assert.equal((await f.request('POST', '/threads', {id: randomUUID(), category: 'general', title: 'x', text: 'y', spoiler: false}, guest)).statusCode, 403);
+  assert.equal((await f.request('POST', '/votes', {threadId: t.id, postId: t.id, value: 1}, guest)).statusCode, 403);
+  assert.equal((await f.request('POST', '/threads', {id: randomUUID(), category: 'general', title: 'x', text: 'y', spoiler: false})).statusCode, 401);
+});
+
+test('replies nest to a bounded depth, keep time order and keep placeholders for removed parents', async () => {
+  const f = fixture(); await f.enable(); const a = await f.member('Alice'), b = await f.member('Bob'), t = await f.thread(a);
+  const post = async (who, text, parentId) => { f.advance(1000); const r = await f.request('POST', `/threads/${t.id}/replies`, {id: randomUUID(), text, ...(parentId && {parentId})}, who); ok(r); return r.json; };
+  const top = await post(b, 'Top level');
+  assert.equal(top.parentId, null); assert.equal(top.depth, 1);
+  let parent = top; const chain = [top];
+  for (let i = 2; i <= 4; i++) { parent = await post(i % 2 ? b : a, `Depth ${i}`, parent.id); chain.push(parent); assert.equal(parent.depth, i); assert.equal(parent.parentId, chain[i - 2].id); }
+  const flattened = await post(b, 'Too deep', parent.id);
+  assert.equal(flattened.depth, 4); assert.equal(flattened.parentId, chain[2].id); assert.equal(flattened.replyToName, 'Alice');
+  const second = await post(a, 'Second top level');
+  const read = await f.request('GET', `/threads/${t.id}`, undefined, b); ok(read);
+  assert.deepEqual(read.json.replies.map(x => x.text), ['Top level', 'Depth 2', 'Depth 3', 'Depth 4', 'Too deep', 'Second top level']);
+  assert.equal(read.json.cursor, null);
+  // Removing a comment with replies leaves an anonymous placeholder; a removed leaf disappears.
+  ok(await f.request('POST', '/posts/delete', {threadId: t.id, postId: top.id, expectedVersion: 1}, b));
+  ok(await f.request('POST', '/posts/delete', {threadId: t.id, postId: second.id, expectedVersion: 1}, a));
+  const after = await f.request('GET', `/threads/${t.id}`, undefined, b);
+  const holder = after.json.replies.find(x => x.id === top.id);
+  assert.equal(holder.deleted, true); assert.equal(holder.text, ''); assert.equal(holder.authorName, ''); assert.equal(holder.authorId, null);
+  assert.ok(!after.json.replies.some(x => x.id === second.id));
+  // Replying to a removed comment is refused.
+  assert.equal((await f.request('POST', `/threads/${t.id}/replies`, {id: randomUUID(), text: 'late', parentId: top.id}, a)).statusCode, 404);
+  // A parent must belong to this conversation.
+  const other = await f.thread(a, {title: 'Other'});
+  assert.equal((await f.request('POST', `/threads/${other.id}/replies`, {id: randomUUID(), text: 'cross', parentId: chain[1].id}, a)).statusCode, 404);
+});
+
+test('reply parents respect blocks and moderation races; flattened replies hide unavailable target names', async () => {
+  const f = fixture(); await f.enable();
+  const alice = await f.member('Alice'), bob = await f.member('Bob'), cara = await f.member('Cara');
+  const t = await f.thread(cara);
+  const post = async (who, text, parentId) => {
+    const response = await f.request('POST', `/threads/${t.id}/replies`, {id: randomUUID(), text, ...(parentId && {parentId})}, who);
+    ok(response); return response.json;
+  };
+  const holder = await post(alice, 'Placeholder parent');
+  await post(cara, 'Visible child', holder.id);
+  const holderRow = await f.store.get('COMMUNITY#PILOT', `REPLY#${t.id}#${holder.id}`);
+  await f.store.put({...holderRow, replyToName: 'Private placeholder name', replyToId: randomUUID(), rev: randomUUID()});
+  const target = await post(alice, 'Alice comment');
+  ok(await f.request('POST', '/blocks', {memberId: alice.id, blocked: true}, bob));
+  assert.equal((await f.request('POST', `/threads/${t.id}/replies`, {id: randomUUID(), text: 'blocked reply', parentId: target.id}, bob)).statusCode, 404);
+
+  // Model moderation landing after the reply handler reads its parent but before its transaction.
+  const originalTransact = f.store.transact.bind(f.store); let raced = false;
+  f.store.transact = async ops => {
+    if (!raced && ops.some(op => op.put?.sk.startsWith(`REPLY#${t.id}#`) && op.put.id !== target.id) && ops.some(op => op.put?.sk === `REPLY#${t.id}#${target.id}`)) {
+      raced = true;
+      const current = await f.store.get('COMMUNITY#PILOT', `REPLY#${t.id}#${target.id}`);
+      await originalTransact([{put: {...current, hidden: true, rev: randomUUID()}}]);
+    }
+    return originalTransact(ops);
+  };
+  const raceReply = await f.request('POST', `/threads/${t.id}/replies`, {id: randomUUID(), text: 'raced reply', parentId: target.id}, cara);
+  f.store.transact = originalTransact;
+  assert.equal(raced, true);
+  assert.equal(raceReply.statusCode, 404);
+
+  // Create a separate depth-four chain, flatten one reply, then hide its referenced target.
+  const root = await post(alice, 'Root'); let parent = root; const chain = [root];
+  for (let depth = 2; depth <= 4; depth++) { parent = await post(depth % 2 ? alice : cara, `Depth ${depth}`, parent.id); chain.push(parent); }
+  const flattened = await post(bob, 'Flattened', parent.id);
+  assert.equal(flattened.replyToName, 'Cara');
+  const targetRow = await f.store.get('COMMUNITY#PILOT', `REPLY#${t.id}#${parent.id}`);
+  await f.store.put({...targetRow, replyToName: 'Private target name', replyToId: root.id, rev: randomUUID()});
+  ok(await f.admin('POST', '/moderation', {threadId: t.id, postId: parent.id, action: 'hide', reason: 'Rules', expectedVersion: 1}, {role: 'moderator'}));
+  const read = await f.request('GET', `/threads/${t.id}`); ok(read);
+  const visibleReply = read.json.replies.find(x => x.id === flattened.id);
+  assert.equal(visibleReply.replyToName, undefined);
+  ok(await f.request('POST', '/posts/delete', {threadId: t.id, postId: holder.id, expectedVersion: 1}, alice));
+  const placeholderRead = await f.request('GET', `/threads/${t.id}`); ok(placeholderRead);
+  const placeholder = placeholderRead.json.replies.find(x => x.id === holder.id);
+  assert.equal(placeholder?.deleted, true);
+  assert.equal(placeholder.replyToName, undefined);
+});
+
+test('likes are one per fan, idempotent, reversible and never change post versions', async () => {
+  const f = fixture(); await f.enable(); const a = await f.member('Alice'), b = await f.member('Bob'), c = await f.member('Cara'), t = await f.thread(a);
+  const r = await f.request('POST', `/threads/${t.id}/replies`, {id: randomUUID(), text: 'Like me'}, a); ok(r);
+  const vote = (who, postId, value) => f.request('POST', '/votes', {threadId: t.id, postId, value}, who);
+  assert.equal((await vote(b, t.id, 1)).json.score, 1);
+  assert.equal((await vote(b, t.id, 1)).json.score, 1);
+  assert.equal((await vote(c, t.id, 1)).json.score, 2);
+  assert.equal((await vote(c, t.id, 0)).json.score, 1);
+  assert.equal((await vote(b, r.json.id, 1)).json.myVote, 1);
+  assert.equal((await vote(b, t.id, 2)).statusCode, 400);
+  const read = await f.request('GET', `/threads/${t.id}`, undefined, b);
+  assert.equal(read.json.thread.score, 1); assert.equal(read.json.thread.myVote, 1); assert.equal(read.json.thread.version, 2);
+  assert.equal(read.json.replies[0].score, 1); assert.equal(read.json.replies[0].myVote, 1); assert.equal(read.json.replies[0].version, 1);
+  assert.equal((await f.request('GET', `/threads/${t.id}`, undefined, c)).json.thread.myVote, 0);
+  // Author deletion with the unchanged version still works after likes.
+  ok(await f.request('POST', '/posts/delete', {threadId: t.id, postId: r.json.id, expectedVersion: 1}, a));
+});
+
+test('discussions can be listed across all topics and sorted by new, top and hot with stable paging', async () => {
+  const f = fixture(); await f.enable(); const a = await f.member('Alice'), b = await f.member('Bob');
+  const made = [];
+  for (let i = 0; i < 23; i++) { f.advance(3600000); made.push(await f.thread(a, {title: `T${i}`, category: ['general', 'club', 'ideas'][i % 3]})); }
+  ok(await f.request('POST', '/votes', {threadId: made[3].id, postId: made[3].id, value: 1}, b));
+  const newest = await f.request('GET', '/threads', undefined, {...b, query: {category: 'all', sort: 'new'}});
+  assert.equal(newest.json.items[0].title, 'T22'); assert.equal(newest.json.items.length, 20); assert.equal(newest.json.total, 23);
+  const rest = await f.request('GET', '/threads', undefined, {...b, query: {category: 'all', sort: 'new', cursor: newest.json.cursor}});
+  assert.equal(rest.json.items.length, 3); assert.equal(rest.json.cursor, null);
+  assert.equal(new Set([...newest.json.items, ...rest.json.items].map(x => x.id)).size, 23);
+  assert.equal((await f.request('GET', '/threads', undefined, {...b, query: {category: 'all', sort: 'top', cursor: newest.json.cursor}})).statusCode, 400);
+  const top = await f.request('GET', '/threads', undefined, {...b, query: {sort: 'top'}});
+  assert.equal(top.json.items[0].title, 'T3'); assert.equal(top.json.items[0].score, 1); assert.equal(top.json.items[0].myVote, 1);
+  const clubs = await f.request('GET', '/threads', undefined, {...b, query: {category: 'club', sort: 'hot'}});
+  assert.ok(clubs.json.items.every(x => x.category === 'club'));
+  assert.equal((await f.request('GET', '/threads', undefined, {...b, query: {sort: 'random'}})).statusCode, 400);
+});
+
+test('staff publish labelled team discussions idempotently; fans can read, like and reply but not delete them', async () => {
+  const f = fixture(); await f.enable(); const a = await f.member('Alice');
+  const body = {id: randomUUID(), category: 'general', title: 'Welcome to the Fan forum', text: 'Introduce yourself.', spoiler: false};
+  assert.equal((await f.request('POST', '/admin/threads', body, a)).statusCode, 401);
+  assert.equal((await f.admin('POST', '/threads', body, {role: 'support'})).statusCode, 403);
+  const first = await f.admin('POST', '/threads', body, {role: 'moderator'}); ok(first);
+  assert.equal(first.json.staff, true); assert.equal(first.json.authorName, 'Same End team'); assert.equal(first.json.created, true);
+  const again = await f.admin('POST', '/threads', {...body, title: 'Changed'}, {role: 'moderator'}); ok(again);
+  assert.equal(again.json.created, false); assert.equal(again.json.title, 'Welcome to the Fan forum');
+  const match = await f.admin('POST', '/threads', {...body, id: randomUUID(), category: 'match', title: 'Result', spoiler: false}, {role: 'admin'}); ok(match); assert.equal(match.json.spoiler, true);
+  const list = await f.request('GET', '/threads', undefined, {query: {sort: 'new'}}); ok(list); assert.equal(list.json.items.filter(x => x.staff).length, 2);
+  ok(await f.request('POST', '/votes', {threadId: body.id, postId: body.id, value: 1}, a));
+  ok(await f.request('POST', `/threads/${body.id}/replies`, {id: randomUUID(), text: 'Hello from Alice'}, a));
+  const current = (await f.request('GET', `/threads/${body.id}`, undefined, a)).json.thread; assert.equal(current.staff, true);
+  assert.equal((await f.request('POST', '/posts/delete', {threadId: body.id, postId: body.id, expectedVersion: current.version}, a)).statusCode, 403);
+  const audit = await f.admin('GET', '/audit'); ok(audit); assert.ok(audit.json.items.some(x => x.action === 'thread.publish' && x.target === body.id));
+  // A fan-created thread ID cannot be taken over by staff publishing.
+  const fanThread = await f.thread(a); assert.equal((await f.admin('POST', '/threads', {...body, id: fanThread.id}, {role: 'moderator'})).statusCode, 409);
 });

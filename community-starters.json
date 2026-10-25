@@ -1,0 +1,69 @@
+{
+  "title": "Premier League starter discussions",
+  "asOf": "2026-10-25",
+  "sources": [
+    "https://en.wikipedia.org/wiki/2026%E2%80%9327_Premier_League (table and managerial changes up to 18 October 2026)",
+    "https://www.espn.com/soccer/match/_/gameId/401879256/manchester-city-aston-villa (Aston Villa 2-1 Man City, 24 October 2026)",
+    "https://www.tntsports.co.uk/football/premier-league/2026-2027/live-aston-villa-manchester-city_mtc21883118/live-commentary.shtml (Jackson brace, Maresca's first domestic defeat)",
+    "https://www.skysports.com/football/news/13601416/chelsea-0-2-tottenham-mike-penders-error-and-mathys-tel-earn-spurs-rare-victory-at-stamford-bridge-as-cole-palmer-sent-off (Chelsea 0-2 Tottenham, 24 October 2026)"
+  ],
+  "note": "Published by staff as the clearly labelled 'Same End team'. Fixed IDs make publishing idempotent. Check facts again before publishing if this pack is older than a week.",
+  "items": [
+    {
+      "id": "8908cc22-973f-4f4d-bbfd-c102c95b1bd6",
+      "category": "general",
+      "title": "Welcome to the Fan forum — introduce yourself",
+      "text": "Who do you support, and where in the world are you watching from?\n\nTell us your club, your usual match-day setup, and the one fixture you never miss. Home, away or a time zone that makes kick-off a challenge — everyone is welcome here.",
+      "spoiler": false
+    },
+    {
+      "id": "c646c962-1740-4a91-85dc-8c7e7ad61664",
+      "category": "match",
+      "title": "Aston Villa 2–1 Man City: Jackson's brace ends Maresca's perfect start",
+      "text": "Saturday 24 October at Villa Park. Nicolas Jackson scored both Villa goals as Enzo Maresca's Manchester City lost a league match for the first time since he took over from Pep Guardiola.\n\nWas this Villa's best performance of the season so far? And does it change the title race?",
+      "spoiler": true
+    },
+    {
+      "id": "cbaaf3c7-92a6-4342-8f8e-d266485922d3",
+      "category": "match",
+      "title": "Chelsea 0–2 Spurs: was Palmer's red card the right call?",
+      "text": "Tottenham won at Stamford Bridge on Saturday 24 October. Mike Penders punched a Mateus Fernandes corner into his own net, and Mathys Tel added a solo goal late on. Cole Palmer was sent off for a second yellow card after standing on Conor Gallagher.\n\nRight decision? And is this the result that gets Roberto De Zerbi's Spurs going?",
+      "spoiler": true
+    },
+    {
+      "id": "21569354-37d0-4b3e-86f1-53685ba5d3ef",
+      "category": "general",
+      "title": "Title race: is anyone stopping Manchester City?",
+      "text": "City won their first seven league games under Enzo Maresca, with Arsenal three points behind and Brighton third in the table up to 18 October.\n\nWho are you backing for the title, and who is this season's surprise package?",
+      "spoiler": false
+    },
+    {
+      "id": "796b4a66-393b-4aac-a0f2-c472908b0bc1",
+      "category": "general",
+      "title": "New faces in the dugout: which appointment will look smartest by May?",
+      "text": "A busy summer of managerial change: Enzo Maresca at Manchester City, Xabi Alonso at Chelsea, Andoni Iraola at Liverpool, Matthias Jaissle at Newcastle, Oliver Glasner at Nottingham Forest, Álvaro Arbeloa at Fulham, Pierre Sage at Crystal Palace, Marco Rose at Bournemouth and Gary O'Neil at Ipswich.\n\nWho has made the best start — and who is already under pressure?",
+      "spoiler": false
+    },
+    {
+      "id": "61337eb1-d4b1-402f-a07a-0652db05db01",
+      "category": "general",
+      "title": "Coventry, Ipswich and Hull: can all three promoted clubs stay up?",
+      "text": "Coventry City are back in the top flight after 25 years, Ipswich Town came straight back up, and Hull City return after nine years. Hull's Sergej Jakirović was Manager of the Month for August.\n\nWhich of the three is best placed to survive, and who else is looking over their shoulder?",
+      "spoiler": false
+    },
+    {
+      "id": "8950daee-a3c4-480d-82ee-f84462e1076c",
+      "category": "general",
+      "title": "No gambling logos on shirt fronts: noticed the difference?",
+      "text": "This is the first Premier League season without gambling sponsors on the front of match-day shirts (they can still appear on sleeves).\n\nWhose new shirt is the best of the season — and did your club's front-of-shirt sponsor change?",
+      "spoiler": false
+    },
+    {
+      "id": "f400fc95-869c-48d6-aa15-89f5674da83d",
+      "category": "ideas",
+      "title": "What should Same End add next?",
+      "text": "Score predictions before kick-off? A season leaderboard for your group? Half-time polls?\n\nTell us what would make match day better, and like the ideas you want most. The Same End team reads every one.",
+      "spoiler": false
+    }
+  ]
+}
