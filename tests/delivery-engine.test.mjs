@@ -217,3 +217,62 @@ test('HLS transport preserves short final intervals and rejects signed envelope 
 test('authenticated first hello reveals chat once and duplicate hellos do not repeat lifecycle',async()=>{
  const {ctx:h}=harness();vm.runInContext(sliceBetween('async function handleControl(', 'function dropPeer('),h);const p={direction:'up',ready:false,lastControlAt:0};await h.handleControl(p,{type:'hello',cast:'cast-1',label:'Generated peer'});assert.equal(p.ready,true);assert.equal(h.lifecycleCount,1);await h.handleControl(p,{type:'hello',cast:'cast-1'});assert.equal(h.lifecycleCount,1);
 });
+
+test('adaptive HLS stages, reserves, and resumes the earlier effective window while forwarding per child',()=>{
+ const {ctx,state}=harness({clockReady:true,appendedSeq:new Set(),lastAppendSeq:-1});
+ Object.assign(state.config,{mime:'application/vnd.apple.mpegurl',mediaProfile:'hls-cmaf-v1',epoch:nowValue-180000});
+ const nominal=ctx.nominalProgramTime(),effective=nominal-60,appended=[],forwarded=[];
+ ctx.document={visibilityState:'visible'};ctx.enqueue=(peer,piece)=>forwarded.push([peer.id,piece.meta.seq]);
+ state.player={getPlaybackTarget:()=>effective,setPlaybackWindow:t=>assert.equal(t,nominal),enqueue:piece=>appended.push(piece.meta.seq)};
+ const origin=state.config.epoch+effective*1000;
+ state.cache=[{meta:{seq:1,start:origin-4000,duration:4000},buf:new ArrayBuffer(1)},{meta:{seq:2,start:origin,duration:2000},buf:new ArrayBuffer(1)},{meta:{seq:3,start:origin+2000,duration:2000},buf:new ArrayBuffer(1)},{meta:{seq:30,start:state.config.epoch+nominal*1000,duration:2000},buf:new ArrayBuffer(1)}];
+ state.cacheBytes=4;
+ state.peers.set('lagging',{id:'lagging',direction:'down',ready:true,queued:0,lastSentSeq:-1,playbackLagSeconds:60});
+ state.peers.set('legacy',{id:'legacy',direction:'down',ready:true,queued:0,lastSentSeq:-1});
+ vm.runInContext(sliceBetween('function stageWindow()', 'function syncPlayback()'),ctx);ctx.stageWindow();
+ assert.deepEqual(appended,[1,2,3]);assert.deepEqual(forwarded,[['lagging',1],['lagging',2],['legacy',30]]);
+ assert.equal(ctx.nominalProgramTime(),nominal);assert.equal(ctx.effectiveProgramTime(),effective);
+ assert.equal(ctx.resumeAfter(),3,'resume is contiguous from the effective playback floor');
+ vm.runInContext(sliceBetween('function verifiedReserve()', 'function mediaDiagnostics()'),ctx);
+ assert.equal(ctx.verifiedReserve(),4);
+ ctx.stageWindow();assert.equal(forwarded.filter(([id,seq])=>id==='lagging'&&seq===1).length,1,'old history is queued once');
+ state.player.getPlaybackTarget=()=>nominal-900;assert.equal(ctx.effectiveProgramTime(),nominal-60);
+ assert.equal(ctx.effectiveProgramTime(-4),-4,'negative nominal warmup is preserved');
+ state.config.mime='video/webm';delete state.config.mediaProfile;assert.equal(ctx.effectiveProgramTime(),nominal);
+});
+
+test('child lag hints are HLS-only, bounded, and repeated hello does not rewind sent history',async()=>{
+ const {ctx,state}=harness();Object.assign(state.config,{mime:'application/vnd.apple.mpegurl',mediaProfile:'hls-cmaf-v1'});
+ vm.runInContext(sliceBetween('async function handleControl(', 'function dropPeer('),ctx);
+ const peer={direction:'down',ready:false,lastSentSeq:-1};
+ await ctx.handleControl(peer,{type:'hello',cast:'cast-1',deliveryVersion:1,playbackLagSeconds:1e9,resumeAfter:4});assert.equal(peer.playbackLagSeconds,60);assert.equal(peer.lastSentSeq,4);
+ peer.lastSentSeq=90;await ctx.handleControl(peer,{type:'hello',cast:'cast-1',deliveryVersion:1,playbackLagSeconds:1e9,resumeAfter:-1});assert.equal(peer.lastSentSeq,90);
+ for(const value of [Infinity,NaN,'60',{},-1])assert.equal(ctx.boundedPlaybackLag(value),0);
+ state.config.mime='video/webm';assert.equal(ctx.boundedPlaybackLag(60),0);
+ const legacy={direction:'down',ready:false,lastSentSeq:-1};await ctx.handleControl(legacy,{type:'hello',cast:'cast-1',resumeAfter:7});assert.equal(legacy.playbackLagSeconds,0);assert.equal(legacy.lastSentSeq,-1);
+});
+
+test('HLS signed replay extends only the bounded age floor and preserves source signatures and memory ceiling',async()=>{
+ const {ctx,state}=harness();Object.assign(state.config,{mime:'application/vnd.apple.mpegurl',mediaProfile:'hls-cmaf-v1',epoch:nowValue-180000});
+ const bundle=start=>new Uint8Array(encodeBundle({start,duration:2,playlistStart:start,files:[{path:'master.m3u8',mime:'application/vnd.apple.mpegurl',bytes:enc.encode('#EXTM3U\n')}]}));
+ const valid=await signedPiece(ctx,{seq:1,start:nowValue-80000,bytes:bundle(100)});
+ await ctx.acceptSegment(valid.meta,valid.buf,{deliveryVersion:0,highestSeq:-1});assert.equal(state.cache.length,1);
+ const expired=await signedPiece(ctx,{seq:2,start:nowValue-110000,bytes:bundle(70)});await ctx.acceptSegment(expired.meta,expired.buf,null);assert.equal(state.cache.length,1);
+ const forged=await signedPiece(ctx,{seq:3,start:nowValue-78000,bytes:bundle(102)});forged.meta.sig='forged';await assert.rejects(()=>ctx.acceptSegment(forged.meta,forged.buf,null));assert.equal(state.cache.length,1);
+ state.cacheBytes=ctx.MAX_CACHE+1;ctx.cleanCache();assert.equal(state.cache.length,0,'192 MiB limit still wins over longer replay');
+ state.config.mime='video/webm';delete state.config.mediaProfile;assert.equal(ctx.retentionCutoff(),nowValue+state.offset-40000);
+});
+
+test('expanding child lag replays only newly earlier media and retains the live production watermark',async()=>{
+ const {ctx,state}=harness({clockReady:true,appendedSeq:new Set(),lastAppendSeq:-1});
+ Object.assign(state.config,{mime:'application/vnd.apple.mpegurl',mediaProfile:'hls-cmaf-v1',epoch:nowValue-180000});
+ const nominalMs=state.config.epoch+ctx.nominalProgramTime()*1000,forwarded=[];
+ ctx.document={visibilityState:'visible'};ctx.enqueue=(peer,piece)=>forwarded.push(piece.meta.seq);
+ state.cache=[0,1,2,3].map((seq)=>({meta:{seq,start:nominalMs+[-20000,-10000,-6000,0][seq],duration:2000},buf:new ArrayBuffer(1)}));state.cacheBytes=4;
+ const peer={direction:'down',ready:true,queued:0,lastSentSeq:3,playbackLagSeconds:0};state.peers.set('child',peer);
+ vm.runInContext(sliceBetween('async function handleControl(', 'function dropPeer('),ctx);vm.runInContext(sliceBetween('function stageWindow()', 'function syncPlayback()'),ctx);
+ await ctx.handleControl(peer,{type:'hello',cast:'cast-1',deliveryVersion:1,playbackLagSeconds:10,resumeAfter:-1});ctx.stageWindow();ctx.stageWindow();
+ assert.deepEqual(forwarded,[1,2]);assert.equal(peer.lastSentSeq,3);
+ await ctx.handleControl(peer,{type:'hello',cast:'cast-1',deliveryVersion:1,playbackLagSeconds:20,resumeAfter:-1});ctx.stageWindow();ctx.stageWindow();
+ assert.deepEqual(forwarded,[1,2,0]);assert.equal(peer.lastSentSeq,3,'replay does not masquerade as new source progress');
+});

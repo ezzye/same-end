@@ -169,3 +169,13 @@ test('automatic network recovery evidence survives private reports without socke
  first.observe({network:{discoveryResets:Infinity,bootstrapRetries:-1,resetState:'PRIVATE-STATE',resetProblem:'PRIVATE-ERROR',retryAt:Infinity}});
  assert.deepEqual(values(first.c.report().status.networkRecovery),[null,0,null,null,null]);
 });
+
+test('adaptive playback facts retain actual paused lag, bounds, and privacy through saved reports and summaries',()=>{
+ const storage=memoryStorage(),first=setup({storage});
+ first.observe({targetProgramTime:120,effectiveTargetProgramTime:60,playbackExtraDelaySeconds:125,playbackAdaptivePhase:'suspended',mediaDiagnostics:{playback:{extraDelaySeconds:125,adaptivePhase:'suspended',bufferGoalSeconds:8,rebufferCount:4,adaptiveSeekCount:1,privateKey:'PRIVATE-ADAPTIVE'}}});
+ const restored=setup({storage}).c.report().status;
+ assert.equal(restored.extraDelaySeconds,125);assert.equal(restored.adaptivePhase,'suspended');assert.equal(restored.targetProgramTime,120);assert.equal(restored.effectiveTargetProgramTime,60);assert.equal(restored.mediaDiagnostics.playback.extraDelaySeconds,125);assert.equal(first.c.summary().lastStatus.adaptivePhase,'suspended');
+ first.observe({playbackExtraDelaySeconds:1e9,playbackAdaptivePhase:'PRIVATE-ADAPTIVE',mediaDiagnostics:{playback:{extraDelaySeconds:Infinity,adaptivePhase:'PRIVATE-ADAPTIVE',bufferGoalSeconds:1e9,rebufferCount:1e9,adaptiveSeekCount:-4,raw:'PRIVATE-ADAPTIVE'}}});
+ const hostile=first.c.report().status;assert.equal(hostile.extraDelaySeconds,86400);assert.equal(hostile.adaptivePhase,null);assert.equal(hostile.mediaDiagnostics.playback.extraDelaySeconds,null);assert.equal(hostile.bufferGoalSeconds,30);assert.equal(hostile.rebufferCount,1e6);assert.equal(hostile.adaptiveSeekCount,0);assert(!JSON.stringify(first.c.report()).includes('PRIVATE-ADAPTIVE'));
+ const legacy=setup();legacy.observe();assert.equal(legacy.c.report().status.extraDelaySeconds,null);assert.equal(legacy.c.report().status.adaptivePhase,null);
+});
