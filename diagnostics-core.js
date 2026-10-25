@@ -32,7 +32,7 @@
     if(!x||typeof x!=="object")return null;
     const delay=v=>Number.isInteger(v)&&v>=30&&v<=300?v:null;
     const reserve=v=>typeof v==="number"&&Number.isFinite(v)&&v>=0&&v<=60?v:null;
-    return {enabled:bool(x.enabled),state:pick(x.state,["pending","selected","fallback"]),delaySeconds:delay(x.delaySeconds),reserveSeconds:reserve(x.reserveSeconds),reason:pick(x.reason,["waiting-for-source-decision","need-fresh-live-observations","verified-delivery","observation-timeout","unsupported-peer","sustained-delivery-deficit","candidate-exceeds-limit"]),conflict:bool(x.conflict),fallbackDelaySeconds:x.fallbackDelaySeconds===300?300:null};
+    return {enabled:bool(x.enabled),state:pick(x.state,["pending","selected","fallback"]),delaySeconds:delay(x.delaySeconds),reserveSeconds:reserve(x.reserveSeconds),reason:pick(x.reason,["waiting-for-source-decision","waiting-for-first-viewer","need-fresh-live-observations","verified-delivery","observation-timeout","unsupported-peer","sustained-delivery-deficit","candidate-exceeds-limit"]),conflict:bool(x.conflict),fallbackDelaySeconds:x.fallbackDelaySeconds===300?300:null,...(x.version===2?{version:2,startRemainingSeconds:typeof x.startRemainingSeconds==='number'&&Number.isFinite(x.startRemainingSeconds)?Math.max(0,Math.min(300,x.startRemainingSeconds)):null}:{})};
   }
   function safeInitialDelay(x) {
     if(!x||typeof x!=="object")return null;

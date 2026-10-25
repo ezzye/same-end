@@ -1896,7 +1896,7 @@ function refresh(){
  if(c){
   if($('magnet-progress').textContent==='Share a tab or try the test to get started.')$('magnet-progress').textContent='Room’s ready. Send an invitation to bring everyone in.';
   document.body.classList.remove('joining');$('room-title').textContent=testRun?'The warm-up room':'Your match room';const baseDelay=window.SameEndRoomStatus.groupDelay(s).label;const extra=Number.isFinite(s.playbackExtraDelaySeconds)?Math.max(0,Math.floor(s.playbackExtraDelaySeconds/5)*5):0;$('room-delay').textContent=baseDelay+(moving&&extra>=10?' · +'+extra+'s buffer':'');
-  const groupPending=s.commonStart?.enabled===true&&s.commonStart.state==='pending',remaining=Number.isFinite(s.targetProgramTime)?Math.max(0,Math.ceil(-s.targetProgramTime)):0,warming=!groupPending&&remaining>0&&s.clockReady;
+  const groupPending=s.commonStart?.enabled===true&&s.commonStart.state==='pending',remaining=Number.isFinite(s.commonStart?.startRemainingSeconds)&&s.commonStart.startRemainingSeconds>0?Math.ceil(s.commonStart.startRemainingSeconds):Number.isFinite(s.targetProgramTime)?Math.max(0,Math.ceil(-s.targetProgramTime)):0,warming=!groupPending&&remaining>0&&s.clockReady;
   $('stage-empty').hidden=moving;$('room-countdown').hidden=!warming;
   if(warming){$('room-countdown').textContent=Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0');}
   $('stage-title').textContent=reason?.title||'Getting your screen ready…';

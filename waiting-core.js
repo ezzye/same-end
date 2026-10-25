@@ -45,7 +45,9 @@
     var detail=classification&&classification.detail||'Your room stays open while we find the picture.';
     var seconds=null;
     if(cfg&&s.commonStart&&s.commonStart.enabled===true&&s.commonStart.state==='pending'){
-      code='warming-up';title='Checking group delay';detail='You can chat while we prepare the picture.';
+      code='warming-up';title=s.commonStart.reason==='waiting-for-first-viewer'?'Ready for your mates':'Checking group delay';detail=s.commonStart.reason==='waiting-for-first-viewer'?'Send your invitation whenever you’re ready. We’ll check the group delay when someone joins.':'You can chat while we prepare the picture.';
+    }else if(cfg&&s.commonStart&&Number.isFinite(s.commonStart.startRemainingSeconds)&&s.commonStart.startRemainingSeconds>0){
+      code='warming-up';title='Starting together';seconds=Math.ceil(s.commonStart.startRemainingSeconds);detail='Group start in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+'. Your chat stays open.';
     }else if(cfg&&s.clockReady&&hasTarget&&target<0&&code!=='source-stopped'&&code!=='source-unreachable'){
       code='warming-up';title='Building your match buffer';seconds=Math.ceil(-target);
       detail='Group start in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+'. We’ll show the picture as soon as it’s ready.';

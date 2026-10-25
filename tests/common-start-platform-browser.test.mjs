@@ -32,6 +32,7 @@ const label = process.env.INITIAL_LABEL || `${device}-${profile}-${Date.now()}`;
 assert(['chromium','android','ios'].includes(device)); assert(['steady','slow','bursty','below95','below65'].includes(profile)); assert(/^[\w-]+$/.test(label));
 const playbackSeconds = Number(process.env.INITIAL_PLAYBACK_SECONDS || 120);
 const roomDelay = Number(process.env.INITIAL_ROOM_DELAY || 300); assert.equal(roomDelay,300,'Signed fallback remains 300 seconds');
+const firstJoinSeconds=Number(process.env.INITIAL_FIRST_JOIN_SECONDS||0);assert(Number.isInteger(firstJoinSeconds)&&firstJoinSeconds>=0&&firstJoinSeconds<=600,'First viewer wall wait is bounded at600 seconds');
 const deficitSeconds = Number(process.env.INITIAL_DEFICIT_SECONDS || 95);
 const startupSeconds = Number(process.env.INITIAL_STARTUP_SECONDS || 420);
 const port = Number(process.env.INITIAL_PORT || 19036), deficit = profile.startsWith('below');
@@ -50,12 +51,12 @@ const publicBase = JSON.parse(await readFile(new URL('public-config.json', root)
 const git = (...args) => spawnSync('git', args, { cwd: rootPath, encoding: 'utf8' }).stdout?.trim() || null;
 const report = { schema: 1, startedAt: new Date().toISOString(), pass: false,
   identity: { commit: git('rev-parse','HEAD'), dirtyFiles: git('status','--porcelain'), buildSHA256: createHash('sha256').update(originalHTML).digest('hex') },
-  environment: { hostPlatform: process.platform, device, profile, forceFallback, lateProfile, lateDeficit, browserChannel: process.env.BROWSER_CHANNEL || 'chrome',
+  environment: { hostPlatform: process.platform, device, profile, firstJoinSeconds, forceFallback, lateProfile, lateDeficit, browserChannel: process.env.BROWSER_CHANNEL || 'chrome',
     realWebRTC: true, realSignedHLS: true, generatedChangingChirps: true, applicationReceiveCallbackPacing: true,
     physicalCapacityMeasurement: false, physicalDeviceAcceptance: false, autoplayOverride: false,
     testChromeSpeakerOutputMuted: true, nativeAudioAnalyserUsed: false, stalePageMetricsRejected:true,
     belowStreamScope: deficit ? 'bounded deficit/admission observation; fallback playback recorded separately; no perpetual smoothness claim' : null },
-  bounds: { playbackSeconds, startupSeconds, deficitSeconds }, stages: [], samples: [], errors: [],
+  bounds: { playbackSeconds, startupSeconds, deficitSeconds,firstJoinSeconds,sourceWaitMaxSeconds:600 }, stages: [], samples: [], errors: [],
   tracker: { connections: 0, offers: 0, answers: 0, announces: 0 }, mediaHTTPAttempts: [], apiCleartextMedia: false };
 const latest = new Map(), commands = [], contexts = [], ownedPages = [], swarms = new Map();
 let origin, api, invitation, source, viewer, browser, remoteBrowser, heartbeat;
@@ -148,7 +149,8 @@ async function assertChat(stage) {
 }
 const validateBaseline = state => {
   assert.equal(state.config.delay,300);
-  assert.equal(state.config.commonStartVersion,1);
+  assert([1,2].includes(state.config.commonStartVersion),'Supported signed common-start version');
+  if(firstJoinSeconds>0)assert.equal(state.config.commonStartVersion,2,'Late-first-viewer acceptance requires version2');
   assert.deepEqual(identity(state), identity(current('source')), 'Signed room/source/programme identity is unchanged');
   assert(state.cacheBytes <= 192 * 1024 * 1024, 'Signed cache remains within hard bound');
   if(deficit){assert.equal(state.initialDelay?.applied,false,'Deficit never applies accelerated local startup');assert.equal(state.initialDelay?.commitCount,0,'Deficit never commits accelerated local startup');const host=current('source');if(state.commonStart?.decisionId&&host?.commonStart?.decisionId)assert.equal(state.commonStart.decisionId,host.commonStart.decisionId,'Deficit source and viewer share the signed fallback decision');}
@@ -157,8 +159,16 @@ const validateBaseline = state => {
   if(['selected','fallback'].includes(state.commonStart?.state)){
     const delay=state.commonStart.delaySeconds;
     if(deficit||forceFallback){assert.equal(state.commonStart.state,'fallback');assert.equal(delay,300);if(forceFallback)assert.equal(state.commonStart.reason,'observation-timeout');}
-    else assert(Number.isFinite(delay)&&delay>0&&delay<300,'Actual selected common delay is shorter than fallback');
+    else assert(Number.isFinite(delay)&&delay>=30&&delay<=120,'Actual selected common delay is within30–120 seconds');
     assert(state.commonStart.decisionId,'Common selection has a decision identity');
+    if(state.config.commonStartVersion===2){
+      const c=state.commonStart;assert(Number.isFinite(c.programmeTime)&&c.programmeTime>=0,'V2 decision carries a programme position');
+      assert(Number.isFinite(c.startsAt)&&Number.isFinite(c.observationStartedAt),'V2 decision carries bounded observation/start times');
+      assert(c.observationStartedAt>=report.firstViewerCreatedAt-1500,'Fresh observation begins after first viewer arrives');
+      assert(c.startsAt>=c.observationStartedAt,'Selected start follows viewer observation');
+      const sourceNow=state.config.epoch+state.elapsed*1000;
+      assert(Math.abs(state.sharedTarget-(c.programmeTime+(sourceNow-c.startsAt)/1000))<1.5,'V2 shared clock follows its signed position and start');
+    }
     assert(Math.abs(state.sharedTarget-(state.elapsed-delay))<1.5,'Shared target follows selected common clock');
     assert(Math.abs(state.target-state.sharedTarget)<1.5,'Nominal UI target follows selected common clock');
   }
@@ -175,6 +185,47 @@ try {
   await source.waitForFunction(() => { const value=document.querySelector('#browser-invitation').value; if(!value)return false; const q=new URLSearchParams(new URL(value).hash.slice(1)); return q.has('club')&&q.get('watch')==='1'&&!q.has('owner'); }, null, { timeout:45000 });
   invitation = await source.locator('#browser-invitation').inputValue();
   const invite = new URL(invitation); invite.searchParams.set('testRole','viewer');
+  // Independent real frame observer: the host may already be playing solo at300s.
+  await source.evaluate(()=>{
+    window.commonSourceTransition=null;
+    const video=document.querySelector('#player');let request=null;
+    const observe=(now,metadata)=>{request=null;
+      const s=PrivateCast.snapshot(),c=s.commonStart,age=s.config?(Date.now()+(s.offset||0)-s.config.epoch)/1000-s.programTime:null;
+      if(!window.commonSourceTransition&&c?.state==='selected'&&!video.paused&&video.readyState>=2&&Number.isFinite(age)&&Math.abs(age-c.delaySeconds)<3){
+        window.commonSourceTransition={at:Date.now(),mediaTime:metadata.mediaTime,programTime:s.programTime,sourceAge:age,commonStart:c,frames:window.initialAcceptance?.frames??null};
+      }
+      request=video.requestVideoFrameCallback(observe);
+    };
+    const arm=()=>{if(request!==null)video.cancelVideoFrameCallback(request);request=video.requestVideoFrameCallback(observe)};arm();
+    // Re-arm a single independent observer for replaced resources.
+    for(const event of ['loadeddata','playing'])video.addEventListener(event,arm);
+  });
+  if(firstJoinSeconds>0){
+    await progress('source-alone-wall-wait',{seconds:firstJoinSeconds,maxSeconds:600});
+    const began=Date.now(),solo=[];let nextUpdate=30;
+    while(Date.now()-began<firstJoinSeconds*1000){
+      const host=current('source');
+      if(host?.config){
+        assert.equal(host.config.delay,300);assert.equal(host.config.commonStartVersion,2);
+        assert.equal(host.commonStart?.state,'pending','Host alone cannot decide the shared delay');assert(!host.commonStart?.decisionId,'Host alone has no signed decision');
+        assert.equal(current('viewer'),undefined,'First viewer is absent throughout real wall wait');
+        assert(Number.isFinite(host.target)&&Math.abs(host.target-(host.elapsed-300))<1.5,'Host alone retains configured300-second clock');
+        if(Number.isFinite(host.signedTarget))assert(Math.abs(host.target-host.signedTarget)<1.5);
+        solo.push({at:host.at,elapsed:host.elapsed,programTime:host.programTime,sourceAge:host.sourceAge,frames:host.probe.frames,lastFrameAt:host.probe.lastFrameAt,paused:host.paused,ready:host.ready,commonStart:host.commonStart});
+      }
+      if((Date.now()-began)/1000>=nextUpdate){await progress('source-alone-still-waiting',{waitedSeconds:(Date.now()-began)/1000,decisionAbsent:true});nextUpdate+=30;}
+      await sleep(1000);
+    }
+    report.solo={requestedSeconds:firstJoinSeconds,actualWallWaitSeconds:(Date.now()-began)/1000,samples:solo,originalFirstFrame:current('source')?.probe.firstFrame,advancingPlaybackClaimed:false};
+    assert(report.solo.actualWallWaitSeconds>=firstJoinSeconds);
+    if(firstJoinSeconds>=310){
+      const moving=solo.filter(row=>row.elapsed>=305&&row.ready>=2&&!row.paused&&Number.isFinite(row.programTime));assert(moving.length>=5,'Host actually plays solo before late first viewer');
+      const a=moving[0],b=moving.at(-1),wall=(b.at-a.at)/1000,slope=(b.programTime-a.programTime)/wall;
+      assert(wall>=4&&b.frames-a.frames>wall*8,'Actual host frames advance before first viewer');assert(slope>=.95&&slope<=1.05,'Solo host advances at normal speed');assert(moving.every(row=>row.sourceAge>=297&&row.sourceAge<=303),'Solo host actual age follows300-second baseline');
+      Object.assign(report.solo,{advancingPlaybackClaimed:true,measuredSeconds:wall,mediaWallRatio:slope,decodedFrameCallbacks:b.frames-a.frames});
+    }
+  }
+  report.firstViewerCreatedAt=Date.now();report.hostBeforeFirstViewer=current('source');
   await progress('source-started', { server:origin, externalViewerURL:`${origin}/viewer?testRole=viewer`, sourceDelay:roomDelay, evidenceDirectory:fileURLToPath(output), testCertificate:fileURLToPath(new URL('owned-test-root-cert.pem',output)) });
   if (device === 'android') {
     remoteBrowser = await chromium.connectOverCDP(process.env.ANDROID_CDP || 'http://127.0.0.1:18967');
@@ -212,7 +263,8 @@ try {
     const s = current('viewer');
     assert(s.probe.verified.length >= 8 && s.probe.connectedPeers > 0, 'Deficit uses multiple actually verified P2P media pieces');
     assert(s.probe.queuedBytes > 0, 'Sustained deficit accumulates actual received callback bytes');
-    assert(s.elapsed < roomDelay+deficitSeconds+40,'Deficit observation stays bounded');
+    assert(s.elapsed < firstJoinSeconds+roomDelay+deficitSeconds+40,'Deficit observation stays bounded after actual first join');
+    assert.equal(s.commonStart?.state,'fallback','Completed deficit observation requires fallback');assert.equal(s.commonStart.delaySeconds,300);
     assert(s.clientDelivery?.state === 'constrained' || s.clientDelivery?.recommendation?.status === 'insufficient-throughput' || /throughput|deficit|constrain/i.test(s.commonStart?.reason || s.initialDelay?.reason || ''), 'Actual below-stream observations refuse a throughput-fixing recommendation');
     await assertChat('sustained-deficit');
     report.admission = { observedSeconds:deficitSeconds, commonStart:s.commonStart, initialDelay:s.initialDelay, delivery:s.clientDelivery, verifiedPieces:s.probe.verified.length, queuedBytes:s.probe.queuedBytes, fallbackPlaybackObserved:s.probe.frames>0,continuousFallbackAcceptanceClaimed:false };
@@ -233,12 +285,20 @@ try {
       assert.equal(s.commonStart.state,expectedCommonState,role+' retains selected common start');
       assert.equal(s.commonStart.decisionId,decisionId,role+' shares latched session decision');
       assert.equal(s.commonStart.delaySeconds,common,role+' retains common delay');
-      if(requirePicture){assert(s.probe.firstFrame?.commonStart?.state===expectedCommonState,role+' selection precedes first advancing picture');
+      if(requirePicture&&!(role==='source'&&firstJoinSeconds>0)){assert(s.probe.firstFrame?.commonStart?.state===expectedCommonState,role+' selection precedes first advancing picture');
       assert.equal(s.probe.firstFrame.commonStart.decisionId,decisionId);
       assert(s.probe.firstFrame.sourceAge>=common-3&&s.probe.firstFrame.sourceAge<=common+72,role+' actual first picture is within bounded local extra');}
       return s;
     };
     validateCommon('source');validateCommon('viewer');
+    if(firstJoinSeconds>0&&!forceFallback){
+      await until(async()=>!!(await source.evaluate(()=>window.commonSourceTransition)),20,'Host never presents an actual frame aligned with selected clock');
+      report.hostSelectedClockTransition=await source.evaluate(()=>window.commonSourceTransition);
+      const t=report.hostSelectedClockTransition;assert.equal(t.commonStart.decisionId,decisionId);assert(Math.abs(t.sourceAge-common)<3);
+      assert(t.at>=report.firstViewerCreatedAt,'Host selected transition occurs after real viewer creation');
+      const seeks=current('source').probe.seeks.filter(row=>row.at>=report.firstViewerCreatedAt&&row.at<=t.at+1000);
+      assert(seeks.length<=1,'Host aligns once rather than repeatedly seeking after first viewer arrives');report.hostSelectedClockTransition.alignmentSeeks=seeks;
+    }
     if(device==='ios'&&forceNative){assert.equal(first.mode,'hls-native');assert.equal(first.serviceWorkerControlled,true);}
     else if(device==='ios')assert(['hls','hls-native'].includes(first.mode));else assert.equal(first.mode,'hls');
     report.startup={commonStart:first.commonStart,firstFrame:first.probe.firstFrame,hostFirstFrame:current('source').probe.firstFrame,firstPlaybackMode:first.mode,signedFallbackSeconds:300};

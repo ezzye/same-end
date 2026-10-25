@@ -18,6 +18,9 @@ function relayLimit(){
 }
 // Programme clocks stay nominal; only HLS playback may build extra local reserve.
 function commonDelaySeconds(){return state.commonStart?.decision?.delaySeconds??state.config?.delay;}
+function soloCommonPlayback(){const c=state.commonStart;return state.role==='source'&&c?.version===2&&!c.decision&&!c.transitionPreparing;}
+function scheduledCommonStart(){const c=state.commonStart,d=c?.decision;return c?.version===2&&d&&state.clockReady&&now()+state.offset<d.startsAt;}
+
 function nominalProgramTime(){return state.config&&state.clockReady?(now()+state.offset-state.config.epoch)/1000-commonDelaySeconds():null;}
 function viewerProgramTime(){
  // Every viewer follows the shared baseline. A prepared later position is
@@ -28,7 +31,7 @@ function maxPlaybackLag(){return isHlsConfig(state.config)?Math.min(60,Math.max(
 function boundedPlaybackLag(value){return typeof value==='number'&&Number.isFinite(value)?Math.min(maxPlaybackLag(),Math.max(0,value)):0;}
 function effectiveProgramTime(nominal=viewerProgramTime()){
  if(nominal===null)return null;
- if(state.commonStart&&!state.commonStart.decision)return 0;
+ if(state.commonStart&&!state.commonStart.decision&&!soloCommonPlayback())return state.commonStart.preparationTarget??0;
  if(state.initialDelayPolicy?.state==='preparing')return state.initialDelayPolicy.targetProgramTime;
  if(nominal<0||!isHlsConfig(state.config))return nominal;
  const effective=state.player?.getPlaybackTarget?.(nominal);
@@ -71,16 +74,16 @@ function clientDeliverySnapshot(){return state.config&&!state.stopped&&(state.ro
 function initialDelaySnapshot(){return state.config&&!state.stopped?state.initialDelayPolicy?.snapshot(state.clockReady?now()+state.offset:null,state.config.epoch,state.player?.programTime?.()??null)||null:null;}
 function resetCommonStart(){
  const c=state.config;
- state.commonStart=c?.commonStartVersion===1&&c.delay===300&&isHlsConfig(c)&&window.SameEndCommonStart?{
-  decision:null,decisionId:null,policy:state.role==='source'?new window.SameEndCommonStart.Policy({epoch:c.epoch}):null,
+ state.commonStart=[1,2].includes(c?.commonStartVersion)&&c.delay===300&&isHlsConfig(c)&&window.SameEndCommonStart?{
+  version:c.commonStartVersion,decision:null,decisionId:null,policy:state.role==='source'?new window.SameEndCommonStart.Policy({epoch:c.epoch,version:c.commonStartVersion}):null,
   signing:false,lastHelloAt:0,verifyChain:Promise.resolve(),conflict:false
  }:null;
 }
-function commonStartSnapshot(){const c=state.commonStart;if(!c||!state.config||state.stopped)return null;const d=c.decision;return{enabled:true,state:d?(d.delaySeconds<state.config.delay?'selected':'fallback'):'pending',delaySeconds:d?.delaySeconds??null,reserveSeconds:d?.reserveSeconds??null,decisionId:c.decisionId,reason:d?.reason||c.policy?.reason||'waiting-for-source-decision',conflict:c.conflict,fallbackDelaySeconds:state.config.delay};}
+function commonStartSnapshot(){const c=state.commonStart;if(!c||!state.config||state.stopped)return null;const d=c.decision;return{enabled:true,state:d?(d.delaySeconds<state.config.delay?'selected':'fallback'):'pending',delaySeconds:d?.delaySeconds??null,reserveSeconds:d?.reserveSeconds??null,decisionId:c.decisionId,reason:d?.reason||(c.version===2&&state.role==='source'&&c.policy?.observationStartedAt===null?'waiting-for-first-viewer':c.policy?.reason||'waiting-for-source-decision'),conflict:c.conflict,fallbackDelaySeconds:state.config.delay,...(c.version===2?{version:2,programmeTime:d?.programmeTime??null,startsAt:d?.startsAt??null,observationStartedAt:c.policy?.observationStartedAt??d?.observationStartedAt??null,startRemainingSeconds:d&&state.clockReady?Math.max(0,(d.startsAt-now()-state.offset)/1000):null}:{} )};}
 function commonFeedback(){
  const module=window.SameEndCommonStart,rows=new Map(),own=state.nodeId||'source-'+state.config.id,t=now()+state.offset;
  rows.set(own,module.reportFromMeasurement(clientDeliverySnapshot(),t));
- for(const peer of downstream())if(peer.ready&&peer.commonStartVersion===1){
+ for(const peer of downstream())if(peer.ready&&peer.commonStartVersion===state.commonStart.version){
   const pack=peer.commonReports||[];
   if(!pack.length)rows.set(peer.commonNodeId||peer.id,null);
   for(const row of pack)if(row.id!==own)rows.set(row.id,row.report);
@@ -90,14 +93,17 @@ function commonFeedback(){
 }
 function commonHelloFields(){
  const cs=state.commonStart;if(!cs)return{};
- return{commonStartVersion:1,commonStartNodeId:state.nodeId||'source-'+state.config.id,
-  commonStartFeedback:commonFeedback(),commonStartUnsupported:cs.feedbackOverflow||downstream().some(p=>p.ready&&(p.commonStartVersion!==1||p.commonOverflow||p.commonUnsupported)),
+ return{commonStartVersion:cs.version,commonStartNodeId:state.nodeId||'source-'+state.config.id,
+  commonStartFeedback:commonFeedback(),commonStartUnsupported:cs.feedbackOverflow||downstream().some(p=>p.ready&&(p.commonStartVersion!==cs.version||p.commonOverflow||p.commonUnsupported)),
   ...(cs.decision?{commonStartDecision:cs.decision}:{})};
 }
 function broadcastCommonHello(){for(const p of state.peers.values())if(p.ready&&!p.closed)send(p,{type:'hello',label:label(),cast:state.config.id,deliveryVersion:1,playbackLagSeconds:p.direction==='up'?boundedPlaybackLag((nominalProgramTime()??0)-(effectiveProgramTime()??0)):undefined});}
 function adoptCommonDecision(cs,decision,decisionId){
  if(state.commonStart!==cs||cs.decision)return false;
  cs.decision=decision;cs.decisionId=decisionId;
+ // Pending v2 viewers receive fresh measurement media, not five minutes of backlog.
+ // Once the clock is signed, replay its actual retained starting range.
+ if(cs.version===2)for(const peer of downstream())if(peer.ready&&peer.commonStartVersion===2){peer.lastSentSeq=-1;peer.replayPending=false;}
  if(state.player?.startupPreparation){
   if(state.role==='source'&&decision.delaySeconds<state.config.delay){
    if(!state.player.commitStartup(cs.preparationTarget,decision.reserveSeconds))discardPreparedPlayer();
@@ -111,7 +117,7 @@ function adoptCommonDecision(cs,decision,decisionId){
  broadcastCommonHello();lifecycle();return true;
 }
 function prepareLateCommonJoin(cs){
- if(!cs.joinCheckPending||!state.clockReady||state.commonStart!==cs)return;
+ if(!cs.joinCheckPending||!state.clockReady||state.commonStart!==cs||scheduledCommonStart())return;
  const sourceNow=now()+state.offset,target=(sourceNow-state.config.epoch)/1000-cs.decision.delaySeconds;
  if(target<0){if(sourceNow-cs.decision.issuedAt<=20000)cs.joinCheckPending=false;return;}
  if(!state.cache.length||target<(state.cache[0].meta.start-state.config.epoch)/1000)return;
@@ -124,7 +130,7 @@ function prepareLateCommonJoin(cs){
 }
 async function handleCommonHello(p,m){
  const cs=state.commonStart,config=state.config,module=window.SameEndCommonStart;if(!cs)return;
- p.commonStartVersion=m.commonStartVersion===1?1:0;
+ p.commonStartVersion=m.commonStartVersion===cs.version?cs.version:0;
  p.commonNodeId=typeof m.commonStartNodeId==='string'&&/^[A-Za-z0-9:_-]{1,100}$/.test(m.commonStartNodeId)?m.commonStartNodeId:null;
  if(p.direction==='down'){
   p.commonUnsupported=m.commonStartUnsupported===true;
@@ -154,6 +160,7 @@ function advanceCommonStart(){
  if(t-cs.lastHelloAt>=2000){cs.lastHelloAt=t;broadcastCommonHello();}
  if(cs.decision){prepareLateCommonJoin(cs);return;}
  if(state.role!=='source'||cs.signing)return;
+ if(cs.version===2){advanceLateCommonStart(cs,t,module);return;}
  const own=module.reportFromMeasurement(sampleClientDelivery(),t),children=downstream().filter(p=>p.ready),rows=commonFeedback().filter(r=>r.id!==(state.nodeId||'source-'+state.config.id));
  let reserve=own?.eligible?own.reserveSeconds:6;for(const row of rows)if(row.report?.eligible)reserve=Math.max(reserve,row.report.reserveSeconds);
  let hostReady=false,minimum=4;
@@ -163,14 +170,34 @@ function advanceCommonStart(){
   minimum=facts.minimumReserveSeconds;const goal=Math.max(reserve,minimum);
   hostReady=Number.isFinite(minimum)&&goal<=12&&facts.ready&&facts.aligned&&facts.cacheAheadSeconds>=goal&&facts.decoderAheadSeconds+.08>=goal;
  }
- const proposal=cs.policy.update({sourceNowMs:t,hostReport:own,reports:rows.map(r=>r.report),hasViewers:children.length>0,unsupportedPeer:cs.feedbackOverflow||children.some(p=>p.commonStartVersion!==1||p.commonOverflow||p.commonUnsupported),hostReady,hostMinimumReserveSeconds:minimum});
+ const proposal=cs.policy.update({sourceNowMs:t,hostReport:own,reports:rows.map(r=>r.report),hasViewers:children.length>0,unsupportedPeer:cs.feedbackOverflow||children.some(p=>p.commonStartVersion!==cs.version||p.commonOverflow||p.commonUnsupported),hostReady,hostMinimumReserveSeconds:minimum});
  if(!proposal)return;
+ signCommonDecision(cs,proposal,module);
+}
+function advanceLateCommonStart(cs,t,module){
+ const own=module.reportFromMeasurement(sampleClientDelivery(),t),children=downstream().filter(p=>p.ready),rows=commonFeedback().filter(r=>r.id!==(state.nodeId||'source-'+state.config.id));
+ const input={sourceNowMs:t,hostReport:own,reports:rows.map(r=>r.report),hasViewers:children.length>0,unsupportedPeer:cs.feedbackOverflow||children.some(p=>p.commonStartVersion!==cs.version||p.commonOverflow||p.commonUnsupported),hostReady:false,minimumProgrammeTime:Math.max(0,state.cache.length?(state.cache[0].meta.start-state.config.epoch)/1000:0,(t-state.config.epoch)/1000-20)};
+ let proposal=cs.policy.update(input);
+ const candidate=cs.policy.preview();
+ if(!proposal&&candidate){
+  if(cs.preparationTarget!==candidate.programmeTime||cs.preparationReserve!==candidate.reserveSeconds){
+   cs.transitionPreparing=true;discardPreparedPlayer();state.player.startupHold=true;
+   cs.preparationTarget=candidate.programmeTime;cs.preparationReserve=candidate.reserveSeconds;
+  }
+  state.player.prepareStartup(cs.preparationTarget,candidate.reserveSeconds);stageWindow();
+  const facts=state.player.prepareStartup(cs.preparationTarget,candidate.reserveSeconds),minimum=facts.minimumReserveSeconds,goal=Math.max(candidate.reserveSeconds,minimum);
+  proposal=cs.policy.update({...input,preparedProgrammeTime:cs.preparationTarget,hostMinimumReserveSeconds:minimum,hostReady:Number.isFinite(minimum)&&goal<=12&&facts.ready&&facts.aligned&&facts.cacheAheadSeconds>=goal&&facts.decoderAheadSeconds+.08>=goal});
+ }
+ if(proposal)signCommonDecision(cs,proposal,module);
+}
+function signCommonDecision(cs,proposal,module){
  cs.signing=true;const config=state.config,key=state.key;
  void(async()=>{
   let decision={...proposal,cast:config.id,sourceId:config.sourceId,sourceEpoch:config.sourceEpoch,programId:config.programId};
   decision.sig=b64(new Uint8Array(await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},key.privateKey,enc.encode(module.canonicalDecision(decision)))));
   if(decision.delaySeconds<config.delay&&now()>decision.startsAt-2000){
-   decision={...decision,delaySeconds:config.delay,reserveSeconds:6,issuedAt:now(),startsAt:config.epoch+config.delay*1000,reason:'observation-timeout'};
+   const issuedAt=now(),startsAt=cs.version===2?Math.max(config.epoch+config.delay*1000,issuedAt+4000):config.epoch+config.delay*1000;
+   decision={...decision,delaySeconds:config.delay,reserveSeconds:6,issuedAt,startsAt,reason:'observation-timeout',...(cs.version===2?{programmeTime:(startsAt-config.epoch)/1000-config.delay}:{})};
    decision.sig=b64(new Uint8Array(await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},key.privateKey,enc.encode(module.canonicalDecision(decision)))));
   }
   const id=await hash(enc.encode(module.canonicalDecision(decision)));
@@ -311,7 +338,7 @@ function isHlsConfig(config){return config?.mime==='application/vnd.apple.mpegur
 function canPlayConfig(config){if(config?.mime==='application/vnd.apple.mpegurl')return isHlsConfig(config)&&!!window.SameEndHLS&&(SameEndHLS.canPlay()||SameEndHLS.canPlayNative());return !config?.mediaProfile&&SameEndMedia.canPlay(config?.mime);}
 function createRoomPlayer(video,config,callbacks){if(isHlsConfig(config)){const C=SameEndHLS.canPlay()?SameEndHLS.HlsPlayer:SameEndHLS.NativePlayer;return new C(video,config,callbacks);}return new SameEndMedia.Player(video,config.mime,callbacks);}
 function roomPlayerCallbacks(role){return{onError:message=>{status(message);if(state.initialDelayPolicy?.state==='preparing')state.initialDelayPolicy.fallback('decoder-preparation-error');else if(role==='viewer')window.SameEndInviteCheck?.fail('video-decode');},onMode:(mode,message)=>{if(message)log(message);}};}
-async function init(config,role){checkPlatform();if(!canPlayConfig(config))throw Error('This browser cannot play this room. Update Safari, Chrome or Edge and reopen the invitation.');if(config.segmentVersion!==undefined&&config.segmentVersion!==2)throw Error('Unsupported cast media version.');if(config.segmentVersion===2&&(typeof config.sourceId!=='string'||!config.sourceId||config.sourceId.length>100||!Number.isSafeInteger(config.sourceEpoch)||config.sourceEpoch<0||typeof config.programId!=='string'||!config.programId||config.programId.length>100||config.alignmentVersion!==1))throw Error('Invalid source-bound cast identity.');if(state.config&&state.config.id!==config.id)throw Error('Leave the current cast before joining another.');state.invitationConfigId=null;state.config=config;state.role=role;resetClientDelivery();state.stopped=false;state.sourceEnded=false;state.stalls=0;state.playbackStarted=false;state.waiting=false;state.supplierHealth='healthy';state.appendedSeq=new Set();lastMaintenance=0;state.recovery={state:"idle",attempts:0,recoveries:0};state.pub=await crypto.subtle.importKey('jwk',config.publicKey,{name:'ECDSA',namedCurve:'P-256'},true,['verify']);const fingerprint=(await hash(enc.encode(JSON.stringify(config.publicKey)))).slice(0,16);$('identity').textContent='Cast fingerprint: '+fingerprint+' · compare this privately if needed.';$('audio-state').textContent=config.audio?'Audio track included · player starts muted':'No audio track supplied';state.player=createRoomPlayer($('player'),config,roomPlayerCallbacks(role));state.player.startupHold=!!state.commonStart||state.initialDelayPolicy?.enabled===true;lifecycle();update();}
+async function init(config,role){checkPlatform();if(!canPlayConfig(config))throw Error('This browser cannot play this room. Update Safari, Chrome or Edge and reopen the invitation.');if(config.segmentVersion!==undefined&&config.segmentVersion!==2)throw Error('Unsupported cast media version.');if(config.segmentVersion===2&&(typeof config.sourceId!=='string'||!config.sourceId||config.sourceId.length>100||!Number.isSafeInteger(config.sourceEpoch)||config.sourceEpoch<0||typeof config.programId!=='string'||!config.programId||config.programId.length>100||config.alignmentVersion!==1))throw Error('Invalid source-bound cast identity.');if(state.config&&state.config.id!==config.id)throw Error('Leave the current cast before joining another.');state.invitationConfigId=null;state.config=config;state.role=role;resetClientDelivery();state.stopped=false;state.sourceEnded=false;state.stalls=0;state.playbackStarted=false;state.waiting=false;state.supplierHealth='healthy';state.appendedSeq=new Set();lastMaintenance=0;state.recovery={state:"idle",attempts:0,recoveries:0};state.pub=await crypto.subtle.importKey('jwk',config.publicKey,{name:'ECDSA',namedCurve:'P-256'},true,['verify']);const fingerprint=(await hash(enc.encode(JSON.stringify(config.publicKey)))).slice(0,16);$('identity').textContent='Cast fingerprint: '+fingerprint+' · compare this privately if needed.';$('audio-state').textContent=config.audio?'Audio track included · player starts muted':'No audio track supplied';state.player=createRoomPlayer($('player'),config,roomPlayerCallbacks(role));state.player.startupHold=!!state.commonStart&&!soloCommonPlayback()||state.initialDelayPolicy?.enabled===true;lifecycle();update();}
 function cleanCache(){const cutoff=retentionCutoff();while(state.cache.length&&(state.cacheBytes>MAX_CACHE||state.cache[0].meta.start+state.cache[0].meta.duration<cutoff)){state.cacheBytes-=state.cache.shift().buf.byteLength;}while(state.seen.size>400)state.seen.delete(state.seen.values().next().value);}
 async function acceptSegment(meta,buf,from,receiveStartedAtMs){if(!state.config||state.stopped)return;if(!meta||meta.cast!==state.config.id||!Number.isSafeInteger(meta.seq)||meta.seq<0||!Number.isFinite(meta.start)||meta.start>(now()+state.offset)+45000||!Number.isFinite(meta.duration)||meta.duration<(isHlsConfig(state.config)?1:100)||meta.duration>10000||meta.mime!==state.config.mime||meta.size!==buf.byteLength||buf.byteLength>MAX_CLIP)throw Error('Invalid or out-of-window video piece.');if(meta.start+meta.duration<retentionCutoff())return;if(meta.v!==undefined&&meta.v!==1&&meta.v!==2)throw Error('Unsupported signed media version.');
 if(state.config.segmentVersion===2&&meta.v!==2)throw Error('This cast requires source-bound media signatures.');
@@ -393,7 +420,7 @@ async function startStandard(inputStream,originalCleanup,sourceKind='screen'){
   if(!await capture.canCapture(stream))throw Error('This browser can watch. To share a tab, use updated Chrome or Edge on a computer.');
   state.key=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
   const publicKey=await crypto.subtle.exportKey('jwk',state.key.publicKey),epoch=now();
-  const config={id:crypto.randomUUID(),epoch,delay:Number($('delay').value),mime:SameEndHLS.HLS_MIME,mediaProfile:SameEndHLS.HLS_PROFILE,publicKey,audio:stream.getAudioTracks().length>0,segmentVersion:2,sourceId:crypto.randomUUID(),sourceEpoch:0,programId:crypto.randomUUID(),alignmentVersion:1,...(window.SameEndConfig?.automaticCommonStart===true&&Number($('delay').value)===300?{commonStartVersion:1}:{})};
+  const config={id:crypto.randomUUID(),epoch,delay:Number($('delay').value),mime:SameEndHLS.HLS_MIME,mediaProfile:SameEndHLS.HLS_PROFILE,publicKey,audio:stream.getAudioTracks().length>0,segmentVersion:2,sourceId:crypto.randomUUID(),sourceEpoch:0,programId:crypto.randomUUID(),alignmentVersion:1,...(window.SameEndConfig?.automaticCommonStart===true&&Number($('delay').value)===300?{commonStartVersion:2}:{})};
   state.stream=stream;state.seq=0;state.active=true;state.offset=0;state.clockReady=true;state.trail=[];captureStats=null;captureNormalizer=normalizer;state.sourceChain=Promise.resolve();
   state.demoCleanup=()=>{void producer?.close().catch(()=>{});normalizer?.close();originalCleanup?.();};
   lastNetworkCheck=null;lastJoinLink=null;
@@ -420,7 +447,7 @@ function record(){if(!state.active)return;const started=now();let recorder;try{r
 async function demo({standard=false}={}){checkPlatform(true);const canvas=document.createElement('canvas');canvas.width=960;canvas.height=540;const ctx=canvas.getContext('2d');let frame=0;const timer=setInterval(()=>{const t=now();ctx.fillStyle='#142b3c';ctx.fillRect(0,0,960,540);ctx.fillStyle='#d7e9ef';ctx.font='bold 58px system-ui';ctx.fillText('SAME END',44,100);ctx.font='32px system-ui';ctx.fillText(new Date(t).toISOString().slice(11,23)+' source clock',44,170);ctx.fillStyle='#b04a71';ctx.fillRect((frame++*7)%800,260,150,80);ctx.fillStyle='white';ctx.font='24px system-ui';ctx.fillText('A moving picture generated on this computer',44,445);},40);const stream=canvas.captureStream(25);let ac;try{ac=new AudioContext();await ac.resume();const dest=ac.createMediaStreamDestination(),osc=ac.createOscillator(),gain=ac.createGain();osc.frequency.value=220;gain.gain.value=.025;osc.connect(gain).connect(dest);osc.start();stream.addTrack(dest.stream.getAudioTracks()[0]);}catch(e){log('Demo audio unavailable: '+e.message);}await (standard?startStandard:start)(stream,()=>{clearInterval(timer);ac?.close();},'demo');}
 function stageWindow(){
  if(!state.config||!state.clockReady||state.stopped)return;
- cleanCache();const nominal=nominalProgramTime();state.player?.setPlaybackWindow?.(state.commonStart&&!state.commonStart.decision?(state.role==='source'?0:nominalProgramTime()):viewerProgramTime(),document.visibilityState==='hidden');
+ cleanCache();const nominal=nominalProgramTime();state.player?.setPlaybackWindow?.(state.commonStart&&!state.commonStart.decision?(soloCommonPlayback()?nominal:state.role==='source'?(state.commonStart.preparationTarget??0):Math.min(-1,nominal??-1)):scheduledCommonStart()?(state.role==='source'?(state.commonStart.preparationTarget??nominal):-1):viewerProgramTime(),document.visibilityState==='hidden');
  const target=playbackTargetMs(),useful=state.cache.filter(s=>s.meta.start+s.meta.duration>=target-4000&&s.meta.start<=target+(state.player?.lookAheadSeconds?.()||4)*1000);
  for(const s of useful)if(!state.appendedSeq.has(s.meta.seq)){state.player?.enqueue(s,state.config.epoch);state.appendedSeq.add(s.meta.seq);state.lastAppendSeq=Math.max(state.lastAppendSeq,s.meta.seq);}
  while(state.appendedSeq.size>400)state.appendedSeq.delete(state.appendedSeq.values().next().value);
@@ -431,13 +458,13 @@ function stageWindow(){
    if(lag>(p.announcedPlaybackLag||0)+1&&now()-(p.lastLagHintAt||0)>3000){send(p,{type:'hello',label:label(),cast:state.config.id,deliveryVersion:1,resumeAfter:resumeAfter(),playbackLagSeconds:lag});p.announcedPlaybackLag=lag;p.lastLagHintAt=now();}
   }
   if(p.direction!=='down'||!p.ready||p.closed||stallOutgoing&&(stallOutgoing===true||stallOutgoing===p.nodeId||stallOutgoing===p.id))continue;
-  const childNominal=p.commonStartVersion===1?nominal:(now()+state.offset-state.config.epoch)/1000-state.config.delay;
+  const childNominal=state.commonStart?.version===2&&!state.commonStart.decision&&p.commonStartVersion===2?(now()+state.offset-state.config.epoch)/1000:p.commonStartVersion===state.commonStart?.version?nominal:(now()+state.offset-state.config.epoch)/1000-state.config.delay;
   const cutoff=state.config.epoch+(childNominal-boundedPlaybackLag(p.playbackLagSeconds))*1000-4000;
   let count=0;for(const s of state.cache){const replay=p.replayPending&&s.meta.start<p.replayBeforeMs&&s.meta.seq>(p.replayAfterSeq??-1);if(s.meta.start+s.meta.duration>=cutoff&&(s.meta.seq>p.lastSentSeq||replay)&&p.queued<4*1024*1024&&count<2){enqueue(p,s);p.lastSentSeq=Math.max(p.lastSentSeq,s.meta.seq);if(replay)p.replayAfterSeq=s.meta.seq;count++;}}
   if(p.replayPending&&!state.cache.some(s=>s.meta.start+s.meta.duration>=cutoff&&s.meta.start<p.replayBeforeMs&&s.meta.seq>(p.replayAfterSeq??-1)))p.replayPending=false;
  }
 }
-function syncPlayback(){if(!state.config||!state.clockReady||!state.player||document.visibilityState==='hidden')return;advanceCommonStart();if(state.commonStart&&!state.commonStart.decision){stageWindow();$('play-state').textContent=state.playbackStarted?'':'Checking the room’s connection for a smoother, earlier start…';return;}advanceInitialDelay();stageWindow();const target=viewerProgramTime();const result=state.initialDelayPolicy?.state==='observing'?{waiting:true,drift:null}:state.player.sync(target);if(target<0){const remaining=Math.ceil(-target);$('play-state').textContent=state.playbackStarted?'':state.initialDelayPolicy?.enabled&&['observing','preparing'].includes(state.initialDelayPolicy.state)?'Getting your picture ready. Checking the connection and first buffer.':'The group starts in '+Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0')+' · everyone waits for the same source-clock moment.';return;}if(result.waiting){if(!state.waiting&&state.playbackStarted)state.stalls++;state.waiting=true;state.drift=null;$('play-state').textContent=state.sourceReachable?(state.playbackStarted?'':isHlsConfig(state.config)?'Building a buffer for smoother playback.':'Waiting for the piece at the shared play time. Your view rejoins the group’s current moment when it arrives.'):'The source path is unavailable. Saved video is limited; future picture needs an online source.';update();return;}state.waiting=false;state.playbackStarted=true;state.drift=result.drift;$('play-state').textContent=$('player').paused?'Tap Turn my sound on to start playback.':(isHlsConfig(state.config)?'Playing with a buffer · ':'Following the group clock · ')+(state.initialDelayPolicy?.state==='committed'?state.initialDelayPolicy.selectedDelaySeconds:commonDelaySeconds())+' seconds behind capture'+(state.player.mode==='clips'?' · compatibility playback may pause briefly between pieces.':'.');update();}
+function syncPlayback(){if(!state.config||!state.clockReady||!state.player||document.visibilityState==='hidden')return;advanceCommonStart();if(state.commonStart&&!state.commonStart.decision&&!soloCommonPlayback()){stageWindow();$('play-state').textContent=state.playbackStarted?'':'Checking the room’s connection for a smoother, earlier start…';return;}if(scheduledCommonStart()&&!(state.role==='source'&&state.commonStart.decision.delaySeconds===state.config.delay&&state.playbackStarted)){stageWindow();$('player').pause();$('play-state').textContent='The room starts together in '+Math.ceil((state.commonStart.decision.startsAt-now()-state.offset)/1000)+' seconds.';return;}advanceInitialDelay();stageWindow();const target=viewerProgramTime();const result=state.initialDelayPolicy?.state==='observing'?{waiting:true,drift:null}:state.player.sync(target);if(target<0){const remaining=Math.ceil(-target);$('play-state').textContent=state.playbackStarted?'':state.initialDelayPolicy?.enabled&&['observing','preparing'].includes(state.initialDelayPolicy.state)?'Getting your picture ready. Checking the connection and first buffer.':'The group starts in '+Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0')+' · everyone waits for the same source-clock moment.';return;}if(result.waiting){if(!state.waiting&&state.playbackStarted)state.stalls++;state.waiting=true;state.drift=null;$('play-state').textContent=state.sourceReachable?(state.playbackStarted?'':isHlsConfig(state.config)?'Building a buffer for smoother playback.':'Waiting for the piece at the shared play time. Your view rejoins the group’s current moment when it arrives.'):'The source path is unavailable. Saved video is limited; future picture needs an online source.';update();return;}state.waiting=false;state.playbackStarted=true;state.drift=result.drift;$('play-state').textContent=$('player').paused?'Tap Turn my sound on to start playback.':(isHlsConfig(state.config)?'Playing with a buffer · ':'Following the group clock · ')+(state.initialDelayPolicy?.state==='committed'?state.initialDelayPolicy.selectedDelaySeconds:commonDelaySeconds())+' seconds behind capture'+(state.player.mode==='clips'?' · compatibility playback may pause briefly between pieces.':'.');update();}
 async function end(message='You ended this connection.',sourceEnd=null){
  magnetJoinGeneration++;
  if(state.stopped)return;

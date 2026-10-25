@@ -4,6 +4,7 @@ import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 import { webcrypto } from 'node:crypto';
 import { commitStartup } from '../hls-player.js';
+import { contiguousRanges, headroomAt } from '../adaptive-playout.js';
 
 const engine = await readFile(new URL('../engine.js', import.meta.url), 'utf8');
 const commonCode = await readFile(new URL('../common-start.js', import.meta.url), 'utf8');
@@ -24,20 +25,21 @@ function deferred() {
   let resolve;
   return { promise: new Promise(done => { resolve = done; }), release: value => resolve(value) };
 }
-function harness({ role = 'viewer', subtle = webcrypto.subtle, nativeMinimum = 4, decoderAhead = 12 } = {}) {
+function harness({ role = 'viewer', subtle = webcrypto.subtle, nativeMinimum = 4, decoderAhead = 12, version = 1, cacheHeadroom = false } = {}) {
   let time = epoch + 22000;
   const sent = [], trace = [], elements = {}, enqueued = [];
   const config = { id: 'cast', epoch, delay: 300, mime: 'application/vnd.apple.mpegurl', mediaProfile: 'hls-cmaf-v1',
-    commonStartVersion: 1, segmentVersion: 2, sourceId: 'source', sourceEpoch: 0, programId: 'programme' };
+    commonStartVersion: version, segmentVersion: 2, sourceId: 'source', sourceEpoch: 0, programId: 'programme' };
   const state = { config, role, key, pub: key.publicKey, offset: 0, clockReady: true, stopped: false,
     peers: new Map(), cache: [{ meta: { seq: 0, start: epoch, duration: 2000 } }], cacheBytes: 0, appendedSeq: new Set(), lastAppendSeq: -1,
     nodeId: role === 'source' ? 'root-node' : 'viewer-node', sourceReachable: true, playbackStarted: false,
     stalls: 0, waiting: false, drift: null };
   function player() {
-    const p = { startupHold: true, startupPreparation: null, soundRequested: true,
+    const p = { startupHold: role !== 'source' || version !== 2, startupPreparation: null, soundRequested: true,
       adaptive: { everPlayed: false, reset() { this.everPlayed = false; } },
       startupFacts: target => ({ minimumReserveSeconds: nativeMinimum, programTime: target, ready: true, aligned: true,
-        cacheAheadSeconds: 12, decoderAheadSeconds: p.decoderAhead }), decoderAhead,
+        cacheAheadSeconds: cacheHeadroom ? headroomAt(contiguousRanges(state.cache.map(piece => ({ start: (piece.meta.start - epoch) / 1000, end: (piece.meta.start + piece.meta.duration - epoch) / 1000 }))), target) : 12,
+        decoderAheadSeconds: p.decoderAhead }), decoderAhead,
       prepareStartup(target, reserve) { trace.push(['prepare', target, reserve]); this.startupPreparation ||= { target, reserve }; return this.startupFacts(target); },
       commitStartup(target, reserve) { trace.push(['commit', target, reserve]); return commitStartup(this, target, reserve); },
       close() { trace.push(['close']); }, facts: () => ({}), enqueue() {}, lookAheadSeconds: () => 16,
@@ -50,7 +52,7 @@ function harness({ role = 'viewer', subtle = webcrypto.subtle, nativeMinimum = 4
     Uint8Array, ArrayBuffer, TextEncoder, TextDecoder, Number, Math, Object, JSON, Map, Set, Promise,
     now: () => time, un64: value => new Uint8Array(Buffer.from(value, 'base64url')), b64,
     hash: async value => b64(new Uint8Array(await webcrypto.subtle.digest('SHA-256', value))),
-    $: id => elements[id] ||= { muted: true, paused: true, textContent: '' },
+    $: id => elements[id] ||= { muted: true, paused: true, textContent: '', pause() { trace.push(['element-pause']); this.paused = true; } },
     document: { visibilityState: 'visible' }, navigator: { onLine: true },
     downstream: () => [...state.peers.values()].filter(p => p.direction === 'down' && !p.closed),
     label: () => 'friend', lifecycle: () => trace.push(['lifecycle']), status: value => trace.push(['status', value]), update() {},
@@ -72,7 +74,7 @@ function harness({ role = 'viewer', subtle = webcrypto.subtle, nativeMinimum = 4
   ctx.resetCommonStart();
   return { ctx, state, sent, trace, enqueued, elements, tick: delta => { time += delta; },
     peer(id, direction = 'up') {
-      const p = { id, direction, ready: true, closed: false, commonStartVersion: 1, commonNodeId: id,
+      const p = { id, direction, ready: true, closed: false, commonStartVersion: version, commonNodeId: id,
         queued: 0, lastSentSeq: -1, playbackLagSeconds: 0,
         channel: { readyState: 'open', send: text => sent.push({ peer: id, message: JSON.parse(text) }) } };
       state.peers.set(id, p); return p;
@@ -88,14 +90,15 @@ function harness({ role = 'viewer', subtle = webcrypto.subtle, nativeMinimum = 4
 }
 async function decision(h, changes = {}, signer = key) {
   const c = h.state.config;
-  const d = { type: 'common-start', version: 1, decisionNumber: 1, cast: c.id, sourceId: c.sourceId,
+  const d = { type: 'common-start', version: c.commonStartVersion, decisionNumber: 1, cast: c.id, sourceId: c.sourceId,
     sourceEpoch: c.sourceEpoch, programId: c.programId, delaySeconds: 30, reserveSeconds: 6,
-    issuedAt: epoch + 22000, startsAt: c.epoch + 30000, reason: 'verified-delivery', ...changes };
+    issuedAt: epoch + 22000, startsAt: c.epoch + 30000, reason: 'verified-delivery',
+    ...(c.commonStartVersion === 2 ? { startsAt: c.epoch + 34000, programmeTime: 4, observationStartedAt: epoch + 2000 } : {}), ...changes };
   d.sig = b64(await webcrypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, signer.privateKey,
     enc.encode(h.ctx.window.SameEndCommonStart.canonicalDecision(d))));
   return d;
 }
-const hello = (h, d, fields = {}) => ({ type: 'hello', cast: h.state.config.id, commonStartVersion: 1, commonStartDecision: d, ...fields });
+const hello = (h, d, fields = {}) => ({ type: 'hello', cast: h.state.config.id, commonStartVersion: h.state.config.commonStartVersion, commonStartDecision: d, ...fields });
 
 test('pending common start prepares source programme zero while keeping the viewer playback window negative', () => {
   for (const role of ['source', 'viewer']) {
@@ -358,4 +361,103 @@ test('a fresh fallback decision before programme start retains ordinary initial-
   assert.equal(h.state.initialDelayPolicy._commonJoin, false);
   assert.equal(h.state.initialDelayPolicy.targetProgramTime, null);
   assert.equal(h.trace.some(row => row[0] === 'prepare' || row[0] === 'close'), false);
+});
+
+function actualCache(h, from, end) {
+  h.state.cache = Array.from({ length: Math.ceil((end - from) / 2) }, (_, index) => {
+    const programme = from + index * 2;
+    return { meta: { seq: Math.round(programme / 2), start: epoch + programme * 1000, duration: 2000, sig: 'retained-source-signature-' + programme } };
+  });
+}
+async function selectLateV2Source() {
+  const h = harness({ role: 'source', version: 2, cacheHeadroom: true });
+  h.tick(878000); actualCache(h, 600, 900); h.ctx.syncPlayback();
+  const oldPlayer = h.state.player, child = h.peer('child', 'down');
+  child.commonReports = []; h.ctx.advanceCommonStart();
+  assert.equal(h.state.commonStart.policy.observationStartedAt, epoch + 900000);
+  h.tick(19000); actualCache(h, 600, 920); child.commonReports = [{ id: 'child', report: h.report() }];
+  h.ctx.advanceCommonStart(); assert.equal(h.state.commonStart.policy.preview(), null);
+  h.tick(1000); child.commonReports = [{ id: 'child', report: h.report() }]; h.ctx.advanceCommonStart(); await h.signingDone();
+  return { ...h, child, oldPlayer };
+}
+
+test('v2 source remains undecided beyond 900 seconds without viewers and plays its unchanged solo 300-second timeline', () => {
+  const h = harness({ role: 'source', version: 2, cacheHeadroom: true }); h.tick(879000); actualCache(h, 600, 902);
+  h.ctx.syncPlayback();
+  assert.equal(h.state.commonStart.decision, null); assert.equal(h.state.commonStart.policy.observationStartedAt, null);
+  assert.equal(h.ctx.soloCommonPlayback(), true); assert.equal(h.ctx.nominalProgramTime(), 601);
+  assert.equal(h.ctx.effectiveProgramTime(), 601); assert.equal(h.state.player.startupHold, false);
+  assert.deepEqual(h.trace.filter(row => row[0] === 'sync'), [['sync', 601]]);
+  assert.equal(h.trace.some(row => row[0] === 'close'), false);
+});
+
+test('v2 first late viewer supplies twenty fresh seconds before the already-playing host resets once and signs a real retained target', async () => {
+  const h = await selectLateV2Source(), d = h.state.commonStart.decision;
+  assert(d); assert.equal(d.version, 2); assert.equal(d.delaySeconds, 30); assert.equal(d.programmeTime, 902);
+  assert.equal(d.observationStartedAt, epoch + 900000); assert.equal(d.startsAt, epoch + 932000);
+  assert.equal(h.ctx.window.SameEndCommonStart.validateDecision(d, h.state.config), true);
+  assert.equal(h.state.playbackStarted, true, 'source solo playback before the coordinated catch-up is allowed');
+  assert.notStrictEqual(h.state.player, h.oldPlayer); assert.equal(h.oldPlayer.adaptive.everPlayed, true);
+  assert.equal(h.trace.filter(row => row[0] === 'close').length, 1);
+  assert.deepEqual(h.trace.filter(row => row[0] === 'commit'), [['commit', 902, 6]]);
+  assert.equal(h.state.player.startupFacts(902).cacheAheadSeconds, 18, 'prepared target is actually retained in source cache');
+  const canonical = h.ctx.window.SameEndCommonStart.canonicalDecision(d);
+  assert(await webcrypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, key.publicKey, Buffer.from(d.sig, 'base64url'), enc.encode(canonical)));
+  h.ctx.advanceCommonStart(); assert.equal(h.trace.filter(row => row[0] === 'close').length, 1);
+});
+
+test('v2 host and viewer use the signed shared clock but neither starts its new timeline before startsAt', async () => {
+  const source = await selectLateV2Source(), d = source.state.commonStart.decision;
+  const viewer = harness({ version: 2, cacheHeadroom: true }), parent = viewer.peer('parent');
+  viewer.tick(898000); actualCache(viewer, 898, 920); viewer.state.supplier = { id: parent.id }; viewer.state.lastReceivedAt = epoch + 920000;
+  await viewer.ctx.handleCommonHello(parent, hello(viewer, d));
+  assert.equal(viewer.ctx.nominalProgramTime(), source.ctx.nominalProgramTime());
+  assert.equal(viewer.ctx.scheduledCommonStart(), true);
+  const sourceSyncs = source.trace.filter(row => row[0] === 'sync').length;
+  source.ctx.syncPlayback(); viewer.ctx.syncPlayback();
+  assert.equal(viewer.trace.some(row => row[0] === 'sync'), false);
+  assert.equal(viewer.trace.filter(row => row[0] === 'window').at(-1)[1], -1);
+  assert.equal(source.trace.filter(row => row[0] === 'sync').length, sourceSyncs);
+  source.tick(11999); viewer.tick(11999); source.ctx.syncPlayback(); viewer.ctx.syncPlayback();
+  assert.equal(viewer.trace.some(row => row[0] === 'sync'), false); assert.equal(source.ctx.scheduledCommonStart(), true);
+  source.tick(1); viewer.tick(1); viewer.state.lastReceivedAt = epoch + 932000;
+  vm.runInContext(slice('function advanceInitialDelay()', 'function deliverySnapshot()'), viewer.ctx);
+  source.ctx.syncPlayback(); viewer.ctx.syncPlayback();
+  assert.equal(source.ctx.scheduledCommonStart(), false); assert.equal(viewer.ctx.scheduledCommonStart(), false);
+  assert.equal(source.trace.filter(row => row[0] === 'sync').at(-1)[1], 902);
+  assert.equal(viewer.state.initialDelayPolicy.state, 'committed');
+  assert.equal(viewer.state.initialDelayPolicy.targetProgramTime, 902);
+  assert.equal(viewer.trace.filter(row => row[0] === 'sync').at(-1)[1], 902);
+  assert.equal(viewer.trace.filter(row => row[0] === 'close').length, 1);
+});
+
+test('v2 pending downstream bootstrap sends fresh media and adoption replays the retained signed range without modifying its metadata', async () => {
+  const h = harness({ role: 'source', version: 2, cacheHeadroom: true }); h.tick(878000); actualCache(h, 600, 900);
+  const child = h.peer('child', 'down'); h.ctx.stageWindow(); h.ctx.stageWindow();
+  const bootstrap = h.enqueued.filter(row => row.peer === 'child').map(row => row.seq * 2);
+  assert(bootstrap.length > 0); assert(bootstrap.every(programme => programme >= 894), 'no five-minute historical backlog enters the measurement bootstrap');
+  child.commonReports = []; h.ctx.advanceCommonStart(); h.tick(20000); actualCache(h, 600, 920);
+  child.commonReports = [{ id: 'child', report: h.report() }]; child.lastSentSeq = 459;
+  const retained = h.state.cache.find(piece => piece.meta.seq === 451), before = JSON.stringify(retained.meta);
+  h.ctx.advanceCommonStart(); await h.signingDone();
+  assert.equal(child.lastSentSeq, -1, 'measurement high-water mark does not suppress the selected programme replay');
+  h.enqueued.length = 0; for (let count = 0; count < 12; count++) h.ctx.stageWindow();
+  assert(h.enqueued.some(row => row.peer === 'child' && row.seq === 451));
+  assert.equal(JSON.stringify(retained.meta), before); assert.equal(h.state.config.delay, 300); assert.equal(h.state.config.epoch, epoch);
+});
+
+test('v2 rejects forged signatures and post-play viewer retiming while only the source may replace prior solo playback', async () => {
+  const h = harness({ version: 2 }), parent = h.peer('parent'), d = await decision(h);
+  await assert.rejects(h.ctx.handleCommonHello(parent, hello(h, { ...d, sig: b64(new Uint8Array(64)) })), /Unverified shared starting time/);
+  h.tick(600); h.state.playbackStarted = true;
+  await h.ctx.handleCommonHello(parent, hello(h, d));
+  assert.equal(h.state.commonStart.decision, null); assert.equal(h.state.commonStart.conflict, true);
+});
+
+test('v2 asynchronous old-source verification cannot adopt into a replacement cast', async () => {
+  const entered = deferred(), gate = deferred();
+  const h = harness({ version: 2, subtle: { async verify(...args) { entered.release(); await gate.promise; return webcrypto.subtle.verify(...args); } } });
+  const parent = h.peer('parent'), task = h.ctx.handleCommonHello(parent, hello(h, await decision(h)));
+  await entered.promise; h.state.config = { ...h.state.config, id: 'replacement-v2' }; h.ctx.resetCommonStart(); gate.release(); await task;
+  assert.equal(h.state.commonStart.decision, null); assert.equal(h.state.commonStart.conflict, false);
 });

@@ -196,25 +196,51 @@ class LocalClockHls extends Hls {
 export class Player {
   constructor(video, config = {}, { onError = () => {}, onMode = () => {} } = {}) {
     if (!Hls.isSupported()) throw Error('This browser cannot play this HLS room. Use an updated browser with streaming media support.');
-    this.video = video; this.config = config; this.onError = onError; this.mode = 'hls'; this.closed = false; this.blocked = false; this.soundBlocked = false; this.soundRequested = false; this.lastPlayError = null;
+    this.video = video; this.config = config; this.onError = onError; this.mode = 'hls'; this.closed = false; this.blocked = false; this.soundBlocked = false; this.soundRequested = false; this.lastPlayError = null; this.programmeAnchor = null;
     this.adaptive = new AdaptivePlayout(); this.starved = false; this.cache = new VerifiedHlsCache({maxBytes:32*1024*1024,retainSeconds:60}); this.target = null; this.origin = null; this.seekCount = 0; this.syncSeekRequests = 0; this.lastSeek = -Infinity; this.lastRecoveryAttempt = -Infinity; this.bufferedOnce = false; this.lastFatalType = null; this.srcChanges = 0; this.presented = null; this.frameRequest = null; this.errors = 0; this.started = false;
     video.autoplay=false; video.setAttribute('playsinline', ''); video.disableRemotePlayback = true; video.preload = 'auto';
     const Loader = createVerifiedLoader(this.cache);
     this.hls = new LocalClockHls({ loader: Loader, enableWorker: false, autoStartLoad: false, lowLatencyMode: false, startFragPrefetch: false, maxBufferLength: 24, maxMaxBufferLength: 36, backBufferLength: 24, maxBufferSize: 24 * 1024 * 1024, liveSyncDuration: 12, liveMaxLatencyDuration: Infinity, maxLiveSyncPlaybackRate: 1, capLevelToPlayerSize: false, testBandwidth: false });
     this.hls.on(Hls.Events.MEDIA_ATTACHED, () => { this.srcChanges++; this.attached = true; this.start(); });
     this.hls.on(Hls.Events.MANIFEST_PARSED, () => { this.hls.startLoad(0); });
-    this.hls.on(Hls.Events.LEVEL_LOADED, (_event, { details }) => {
-      const first = details.fragments[0]; if (!first) return;
-      let path; try { path = cachePath(first.url); } catch { return; }
-      const t = this.cache.timeline.get(path); if (t) this.origin = t.start - first.start;
-      if (this.target !== null && this.origin !== null && !this.initialPosition) { this.hls.startLoad(Math.max(0, this.target - this.origin)); this.initialPosition = true; }
-    });
-    this.hls.on(Hls.Events.FRAG_CHANGED, (_event, { frag }) => { let path; try { path = cachePath(frag.url); } catch { return; } const timing = this.cache.timeline.get(path); if (timing) this.origin = timing.start - frag.start; });
+    this.bindProgrammeTimeline();
     this.hls.on(Hls.Events.ERROR, (_event, data) => { if (data.fatal && !this.closed) { this.errors++;this.lastFatalType=data.type;onError('This device could not play the verified HLS picture. ' + data.details + ': ' + (data.response?.text || data.error?.message || '')); } });
     this.onWaiting = () => { this.starved = true; }; this.onPlaying = () => { this.starved = false; }; video.addEventListener('waiting', this.onWaiting); video.addEventListener('playing', this.onPlaying);
     this.onSeeking = () => { this.seekCount++; this.presented = null; }; video.addEventListener('seeking', this.onSeeking);
     if (video.requestVideoFrameCallback) { const frame = (_now, meta) => { if (this.closed) return; this.presented = { time: meta.mediaTime, at: performance.now() }; this.frameRequest = video.requestVideoFrameCallback(frame); }; this.frameRequest = video.requestVideoFrameCallback(frame); }
     this.hls.attachMedia(video); onMode(this.mode);
+  }
+  mapProgrammeFragment(frag, authoritative = false) {
+    if (this.closed || !frag || !Number.isFinite(frag.start)) return false;
+    let path; try { path = cachePath(frag.url); } catch { return false; }
+    const timing = this.cache.timeline.get(path); if (!timing) return false;
+    this.origin = timing.start - frag.start;
+    if (authoritative) this.programmeAnchor = { path, frag };
+    return true;
+  }
+  bindProgrammeTimeline() {
+    this.hls.on(Hls.Events.LEVEL_UPDATED, (_event, { details }) => {
+      // LEVEL_UPDATED follows hls.js playlist alignment. Once media has been
+      // parsed/buffered, only that known fragment's aligned timing may refresh
+      // its origin; a raw sliding first fragment is not an MSE clock anchor.
+      const anchor = this.programmeAnchor;
+      if (anchor) {
+        const known = details.fragments.find(frag => {
+          if (!Number.isFinite(frag.startPTS)) return false;
+          try { return cachePath(frag.url) === anchor.path; } catch { return false; }
+        });
+        if (known) this.mapProgrammeFragment(known, true);
+      } else if (details.fragments[0]) this.mapProgrammeFragment(details.fragments[0]);
+    });
+    // Parsed/buffered timing arrives while paused, before FRAG_CHANGED requires
+    // advancing playback. Later real timing corrections remain authoritative.
+    for (const event of [Hls.Events.LEVEL_PTS_UPDATED, Hls.Events.FRAG_BUFFERED, Hls.Events.FRAG_CHANGED])
+      this.hls.on(event, (_event, { frag }) => this.mapProgrammeFragment(frag, true));
+    this.hls.on(Hls.Events.LEVEL_LOADED, () => {
+      // Keep the existing initial load request ordering without treating this
+      // event's newly parsed playlist-relative starts as media timestamps.
+      if (this.target !== null && this.origin !== null && !this.initialPosition) { this.hls.startLoad(Math.max(0, this.target - this.origin)); this.initialPosition = true; }
+    });
   }
   enqueue(piece, epoch) {
     if (this.closed) return;

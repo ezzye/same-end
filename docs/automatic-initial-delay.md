@@ -39,7 +39,7 @@ preparation/recovery time; reports must show that difference honestly.
 - HLS viewers only; viewer admission cannot choose a different common source clock.
 - Ordinary local selection requires at least 20 seconds of fresh live observations;
   its 60-second analysis deadline starts once the shared start is due. The separate
-  common-start selection deadline is 60 seconds from capture epoch.
+  version-2 common-start selection deadline is 60 seconds from the first picture-peer connection.
 - No fast historical catch-up, stale clock/route, invalid signature, or duplicate credit.
 - Below-stream delivery combined with growing video age vetoes acceleration,
   including a sustained 0.95x path that is not caught by the diagnostic 0.9 threshold.
@@ -155,8 +155,11 @@ Failed and superseded tests remain separate from accepted runs. No simulation
 establishes physical iPad/iPhone speakers, older iPadOS versions, separate mobile
 networks, background OS suspension or a full match. Those remain device acceptance.
 
-The new common-start protocol requires a supporting viewer and enough measured
-feedback before its 60-second capture deadline; a host starting alone retains
-the five-minute fallback. Old sessions never retime in place. Update the app and start a fresh share. Saved club
+The current version-2 common-start protocol begins its bounded measurement window
+when the first picture peer connects. A host can start capture alone without an
+immutable fallback decision. The host can watch on the provisional five-minute
+clock; a successful shared decision performs one catch-up before group playback.
+Genuinely insufficient evidence within the next 60 seconds retains the conservative
+clock. Later peers inherit the established decision. Old sessions never retime in place. Update the app and start a fresh share. Saved club
 and combined room invitations remain reusable across that restart; video-only
 magnets still identify one capture.

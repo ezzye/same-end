@@ -1,5 +1,70 @@
 # Measured common start
 
+## Current behavior: first-viewer measurement (version 2)
+
+New captures advertise `commonStartVersion:2`. Preparing the source early no
+longer starts the measurement deadline. While no picture peer is connected there
+is no signed common-start decision; the host can watch alone on the original
+300-second timeline. The first ready picture-peer connection starts one bounded
+60-second observation window. Disconnecting and reconnecting does not reset it.
+
+The source requires at least 20 seconds of fresh live delivery observations,
+eligible reports from every observed supporting participant, and actual prepared
+host decoder reserve. Pending updated peers receive recent verified media to
+measure live delivery, rather than a five-minute historical download. Historical
+catch-up is never credited as spare bandwidth. Once a common decision is signed,
+forwarding replays its actual retained range, without changing media signatures.
+
+The chosen delay remains 30–120 seconds, determined from the measured candidates
+rather than the age of the capture. A bounded preview pins a real programme
+position and a future starting time. The source prepares that exact decoder
+position silently. The signature binds both `observationStartedAt` and
+`programmeTime`, in addition to the source/programme identity and previous fields:
+
+```text
+startsAt = original capture epoch + (programmeTime + common delay) × 1000
+shared programme now = (source clock now − original epoch) / 1000 − common delay
+```
+
+This permits starting at a later part of the programme after a late first arrival;
+it does not pretend that capture began again. The preview provides 12 seconds for
+preparation and announcement, with at least four seconds remaining at signing.
+At most five previews may be prepared within the original measurement window.
+Withdrawn evidence, an increased delay/reserve requirement or a missed lead
+revokes a preview. Its programme position is otherwise pinned, so decoder
+preparation does not chase a moving target. The original source epoch, programme
+ID, signed segment timestamps and 300-second retention/fallback budget stay intact.
+
+If the host was watching alone, it continues until a measured candidate is ready
+to prepare, then briefly holds and performs one catch-up at the shared start.
+This deliberately skips the host forward from its provisional five-minute view.
+There is no already-started group to move: first viewers remain held until the
+signed start. Native viewers keep their player unattached during that hold and
+prepare the current shared position when the start is due. Supporting late viewers
+then follow the established clock with the existing total 60-second local-lag cap.
+
+Missing/stale measurements, sustained delivery deficit, unsupported application
+versions, unavailable decoder reserve or the first-connection deadline can still
+produce the source-signed 300-second fallback. It is not chosen merely because
+capture started early. No finite delay fixes delivery that stays below source
+bitrate. A fallback leaves an already-playing host on its existing conservative
+clock; viewers join that same clock. There is one immutable decision per capture.
+
+Version-1 signed decisions remain verifiable with their original canonical bytes
+and original capture-minute semantics, for existing rooms. Old applications
+cannot interpret v2: one present before selection forces conservative fallback;
+one arriving after selection retains the original timing and may be out of sync.
+Everyone should refresh before a new share. Saved club/combined invitations remain
+reusable; raw video-only magnets identify one capture. No TURN/cloud media relay,
+public telemetry or new provider is added.
+
+The remainder records the previous version-1 implementation and its original
+acceptance evidence. Its capture-minute rule does not describe new v2 captures.
+New late-first acceptance is recorded separately for this change.
+
+## Version-1 implementation and earlier evidence
+
+
 This implementation can select one shorter **common** initial source delay for a
 new standard HLS room. The source uses that delay too. The authenticated room
 configuration keeps `delay:300`; source epoch, programme identity and signed media
