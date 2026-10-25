@@ -1,0 +1,136 @@
+/* Persistent watch invitations: isolated encrypted backend and mocked media lifecycle. */
+import assert from 'node:assert/strict';
+import http from 'node:http';
+import { readFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import { createApi } from '../backend/api.mjs';
+import { MemoryStore } from '../backend/store.mjs';
+const require = createRequire(import.meta.url);
+let chromium;
+try { ({ chromium } = require('playwright')); } catch { ({ chromium } = await import(process.env.SAMEEND_PLAYWRIGHT || '/Users/errolelliott/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs')); }
+const root = new URL('../', import.meta.url), js = await readFile(new URL('social.js', root), 'utf8'), css = await readFile(new URL('social.css', root), 'utf8');
+
+const engineSource=await readFile(new URL('engine.js',root),'utf8');
+const discoverySource=engineSource.slice(engineSource.indexOf('async function joinMagnet('),engineSource.indexOf('\nfunction canRetryJoin()'));
+const discoveryFixture=`window.useEngineDiscoveryFixture=({holdCleanup=false}={})=>{
+ const state={config:null,active:false,stopped:true,role:'viewer'};let startingCapture=false,magnetBusy=false,magnetTransport=null,magnetJoinGeneration=0,lastJoinLink=null,lastNetworkCheck=null;
+ let releaseCleanup;const magnetCleanup=holdCleanup?new Promise(resolve=>releaseCleanup=resolve):Promise.resolve();
+ const calls=[],created=[],closed=[],$=id=>document.getElementById(id);function update(){}
+ async function end(){magnetJoinGeneration++;state.config=null;state.active=false;}
+ function createMagnetTransport(){let rejectJoin,done=false;const transport={snapshot:()=>({network:null}),async join(m){created.push(m);if(m==='magnet:?xt=urn:btih:dead')await new Promise((resolve,reject)=>{rejectJoin=reject});if(done)throw Error('cancelled transport');state.config={id:m};state.active=true;},async close(){if(done)return;done=true;closed.push(transport);rejectJoin?.(Error('cancelled transport'));}};return transport;}
+ ${discoverySource}
+ window.PrivateCast={calls,created,closed,releaseCleanup:()=>releaseCleanup?.(),get generation(){return magnetJoinGeneration},joinMagnet:async m=>{calls.push(m);return joinMagnet(m)},leaveRoom,cancelPendingJoin,snapshot:()=>({config:state.config,role:state.role,active:state.active,joiningBusy:magnetBusy,peers:[]})};
+};`;
+
+const origin = 'http://127.0.0.1:18894', store = new MemoryStore();
+const api = createApi({ store, push: { enabled: false }, allowedOrigins: [origin] });
+let heldPath = null, heldRequest = null, releaseHeld;
+const held = new Promise(resolve => { heldRequest = resolve; });
+let offline = false, holdPut = false, heldPut, releasePut;
+const server = http.createServer(async (req, res) => {
+  const u = new URL(req.url, origin);
+  if (heldPath === u.pathname && req.method === 'GET') {
+    heldPath = null; heldRequest();
+    await new Promise(resolve => { releaseHeld = resolve; });
+  }
+  if (offline && u.pathname.startsWith('/api/v1/clubs/')) { res.writeHead(503, { 'content-type': 'application/json' }).end('{"error":"offline chat fixture"}'); return; }
+  if(holdPut && req.method==='PUT'){holdPut=false;heldPut?.();await new Promise(resolve=>{releasePut=resolve});}
+  if (u.pathname.startsWith('/api/')) {
+    const chunks = []; for await (const c of req) chunks.push(c);
+    const result = await api.handler({ rawPath: u.pathname.slice(4), headers: req.headers, body: Buffer.concat(chunks).toString(), queryStringParameters: Object.fromEntries(u.searchParams), requestContext: { http: { method: req.method, sourceIp: 'startup-social-test' } } });
+    res.writeHead(result.statusCode, result.headers).end(result.body); return;
+  }
+  if (u.pathname === '/fixtures.json') { res.writeHead(200, { 'content-type': 'application/json' }).end('{"fixtures":[]}'); return; }
+  res.writeHead(200, { 'content-type': 'text/html', 'referrer-policy': 'no-referrer' }).end(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;padding:20px;font:16px system-ui}button,input,textarea,select{font:inherit}input,textarea,select{width:100%}[hidden]{display:none!important}${css}</style><main><section id="club-social"></section><section id="watch-room"><div class="stage"><video id="player"></video></div><button id="stop">Leave</button><input id="magnet-link"><div id="magnet-progress"></div><div id="room-status"></div><div id="room-social-status"></div><div id="room-chat"></div></section></main><script>window.SameEndConfig={apiBase:'/api'};window.SameEndFixtures=[];window.PrivateCast={calls:[],leaves:0,published:0,role:'viewer',active:false,config:null,hold:null,
+joinMagnet:async function(m){this.calls.push(m);if(this.hold)await new Promise(resolve=>{this.release=resolve});this.config={id:m};this.active=true;this.role='viewer';dispatchEvent(new Event('sameend:castchange'));},
+leaveRoom:async function(){this.leaves++;this.config=null;this.active=false;dispatchEvent(new Event('sameend:castchange'));},
+publishInvitation:async function(){this.published++;document.getElementById('magnet-link').value='magnet:?xt=urn:btih:'+this.config.id;dispatchEvent(new Event('sameend:castchange'));},
+source:function(id,magnet=''){this.config=id?{id}:null;this.role='source';this.active=!!id;document.getElementById('magnet-link').value=magnet;dispatchEvent(new Event('sameend:castchange'));},
+snapshot:function(){return {active:this.active,role:this.role,config:this.config,peers:[]}}};</script><script>${discoveryFixture}</script><script>${js}</script>`);
+});
+await new Promise(resolve => server.listen(18894, '127.0.0.1', resolve));
+const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
+const contexts = [], errors = [];
+async function page() { const c = await browser.newContext(); contexts.push(c); const p = await c.newPage(); p.on('pageerror', e => errors.push(e.message)); await p.goto(origin); await p.waitForFunction(() => window.SameEndSocial?.snapshot().ready); return p; }
+try {
+  const old='magnet:?xt=urn:btih:old', fresh='magnet:?xt=urn:btih:new';
+  const owner=await page();
+  await owner.evaluate(()=>SameEndSocial.createClub({name:'Persistent club'}));
+  await owner.evaluate(m=>PrivateCast.source('old',m),old);
+  const invite=await owner.evaluate(m=>SameEndSocial.castInvitation(m),old);
+  assert.match(invite, /&watch=1$/);assert(!invite.includes('owner=')&&!invite.includes('join=')&&!invite.includes('magnet'));
+  const ownerLink=await owner.evaluate(()=>{document.getElementById('club-owner-reveal').click();return document.getElementById('club-owner-url').value});
+  const viewer=await page();await viewer.goto(invite);
+  await viewer.waitForFunction(m=>PrivateCast.config?.id===m,old);
+  assert.equal(await viewer.evaluate(()=>SameEndSocial.snapshot().saved),false,'watch invitation does not save member key');
+  await owner.evaluate(()=>SameEndSocial.sendChat('Chat survives restarts','Host'));
+  await viewer.waitForFunction(()=>SameEndSocial.snapshot().chatCount===1);
+  await owner.evaluate(()=>PrivateCast.source(null));
+  await viewer.waitForFunction(()=>!PrivateCast.config&&SameEndSocial.snapshot().watching);
+  assert.equal(await viewer.locator('#club-chat-shell').isVisible(),true,'waiting room keeps chat');
+  const waiting=await page();await waiting.goto(invite);
+  await waiting.waitForFunction(()=>SameEndSocial.snapshot().connected);
+  assert.equal(await waiting.evaluate(()=>PrivateCast.calls.length),0,'no stale screen in stopped-room invite');
+  assert.equal(await waiting.evaluate(()=>document.body.classList.contains('watch-intent')),true);
+  await owner.evaluate(()=>PrivateCast.source('new'));
+  await viewer.waitForFunction(m=>PrivateCast.config?.id===m,fresh);
+  await waiting.waitForFunction(m=>PrivateCast.config?.id===m,fresh);
+  assert.equal(await owner.evaluate(()=>PrivateCast.published),1,'source restart automatically creates descriptor');
+  assert.equal(await owner.evaluate(()=>SameEndSocial.snapshot().watchInvitation),invite,'same stable invitation after restart');
+  assert.equal(await viewer.evaluate(()=>SameEndSocial.snapshot().chatCount),1,'chat survives media replacement');
+  const late=await page();await late.goto(invite);await late.waitForFunction(m=>PrivateCast.config?.id===m,fresh);
+  assert.deepEqual(await late.evaluate(()=>PrivateCast.calls),[fresh],'stable late join resolves only fresh live');
+  // Legacy combined invitation discovers its embedded picture immediately, then uses latest state.
+  const legacy=await page();await legacy.goto(invite.replace('&watch=1','')+'&join='+encodeURIComponent(old));
+  await legacy.waitForFunction(m=>PrivateCast.config?.id===m,fresh);
+  assert.deepEqual(await legacy.evaluate(()=>PrivateCast.calls),[old,fresh]);
+  assert.equal(await legacy.evaluate(()=>PrivateCast.leaves),1);
+  // Leave during discovery invalidates the old join even when it resolves late.
+  const pending=await page();await pending.evaluate(()=>{PrivateCast.hold=true});
+  const pendingJoin=pending.evaluate(link=>SameEndSocial.joinCastLink(link),invite.replace('&watch=1','')+'&join='+encodeURIComponent(fresh));
+  await pending.waitForFunction(()=>typeof PrivateCast.release==='function');
+  await pending.evaluate(()=>{document.getElementById('stop').click();PrivateCast.hold=false;PrivateCast.release()});
+  await pendingJoin;
+  assert.equal(await pending.evaluate(()=>PrivateCast.config),null,'late cancelled discovery is closed');
+  assert.equal(await pending.evaluate(()=>SameEndSocial.snapshot().watching),false);
+  // Explicit Leave is respected while chat stays open.
+  await viewer.evaluate(()=>{document.getElementById('stop').click();return PrivateCast.leaveRoom()});
+  await owner.evaluate(()=>PrivateCast.source('third'));
+  await waiting.waitForFunction(()=>PrivateCast.config?.id==='magnet:?xt=urn:btih:third');
+  assert.equal(await viewer.evaluate(()=>SameEndSocial.snapshot().watching),false);
+  assert.equal(await viewer.evaluate(()=>PrivateCast.config),null);
+  // A manually opened unrelated cast may never be switched by club polling.
+  await late.evaluate(()=>{PrivateCast.config={id:'manual-unrelated'};PrivateCast.active=true;});
+  await owner.evaluate(()=>PrivateCast.source('fourth'));
+  await waiting.waitForFunction(()=>PrivateCast.config?.id==='magnet:?xt=urn:btih:fourth');
+  assert.equal(await late.evaluate(()=>PrivateCast.config.id),'manual-unrelated');
+  // A queued old clear conflicts with a newer owner publish and must preserve it.
+  const secondOwner=await page();await secondOwner.evaluate(link=>SameEndSocial.joinClub(link,{save:true}),ownerLink);
+  let notifyPut;const putSeen=new Promise(resolve=>{notifyPut=resolve});heldPut=notifyPut;holdPut=true;
+  const clear=owner.evaluate(()=>SameEndSocial.clearLive());await putSeen;
+  await secondOwner.evaluate(()=>{PrivateCast.source('newest','magnet:?xt=urn:btih:newest');return SameEndSocial.castInvitation('magnet:?xt=urn:btih:newest')});
+  releasePut();await clear;
+  const newest=await page();await newest.goto(invite);await newest.waitForFunction(()=>PrivateCast.config?.id==='magnet:?xt=urn:btih:newest');
+  // Resolve fresh live while the real engine is suspended in old discovery/cleanup.
+  for(const holdCleanup of [true,false]){
+    const preempt=await page();await preempt.evaluate(holdCleanup=>useEngineDiscoveryFixture({holdCleanup}),holdCleanup);
+    const started=Date.now();
+    const opening=preempt.evaluate(link=>SameEndSocial.joinCastLink(link),invite.replace('&watch=1','')+'&join='+encodeURIComponent('magnet:?xt=urn:btih:dead'));
+    if(holdCleanup){await preempt.waitForFunction(()=>PrivateCast.generation>=2,null,{timeout:5000});await preempt.evaluate(()=>PrivateCast.releaseCleanup());}
+    await preempt.waitForFunction(()=>PrivateCast.snapshot().config?.id==='magnet:?xt=urn:btih:newest',null,{timeout:5000});
+    await opening;
+    assert.deepEqual(await preempt.evaluate(()=>PrivateCast.calls),['magnet:?xt=urn:btih:dead','magnet:?xt=urn:btih:newest'],'dead old discovery preempted exactly once');
+    assert.deepEqual(await preempt.evaluate(()=>PrivateCast.created),holdCleanup?['magnet:?xt=urn:btih:newest']:['magnet:?xt=urn:btih:dead','magnet:?xt=urn:btih:newest']);
+    assert(Date.now()-started<10000,'no old discovery timeout required');
+  }
+  // Owner refresh restores only the saved club ID and republishes on capture start.
+  await secondOwner.reload();await secondOwner.waitForFunction(()=>SameEndSocial.snapshot().owner);
+  assert.equal(await secondOwner.evaluate(()=>SameEndSocial.snapshot().watchInvitation),invite);
+  await secondOwner.evaluate(()=>PrivateCast.source('reload'));
+  await secondOwner.waitForFunction(()=>PrivateCast.published===1);
+  assert.deepEqual(errors,[]);
+  console.log('PASS: stable private URL, current/late/legacy join, waiting chat, restart publication, no member autosave, explicit Leave, unrelated room guard, stale clear conflict, owner refresh, prompt exact-invitation preemption during cleanup and dead discovery.');
+} finally {
+  releaseHeld?.();releasePut?.();
+  await Promise.all(contexts.map(c => c.close())); await browser.close(); await new Promise(resolve => server.close(resolve));
+}

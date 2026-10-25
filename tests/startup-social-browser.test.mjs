@@ -36,7 +36,8 @@ async function page() { const c = await browser.newContext(); contexts.push(c); 
 try {
   const owner = await page();
   await owner.evaluate(() => SameEndSocial.createClub({ name: 'Startup club', theme: 'red' }));
-  const invite = await owner.evaluate(() => SameEndSocial.castInvitation('magnet:?xt=urn:btih:startup#pc=private-test'));
+  const stableInvite = await owner.evaluate(() => SameEndSocial.castInvitation('magnet:?xt=urn:btih:startup#pc=private-test'));
+  const invite = stableInvite.replace('&watch=1', '') + '&join=' + encodeURIComponent('magnet:?xt=urn:btih:startup#pc=private-test');
   const clubId = new URL(invite).hash.match(/club=([0-9a-f-]{36})\./i)?.[1];
   assert(clubId, 'bundled screen invitation includes private club credentials');
 
