@@ -22,6 +22,7 @@ Production routes `/v1/community/admin/*` require API Gateway verified Cognito J
 
 - `GET /admin/feedback` → `{items,cursor}`; `POST /admin/feedback/:id` `{status,response}` → record. Support/admin only.
 - `GET /admin/threads?category=...&cursor=...` and `GET /admin/threads/:id` → same thread shapes, including hidden content for moderation. Moderator/admin only.
+- `POST /admin/threads` `{id,category,title,text,spoiler}` → thread `{…,staff:true,created}`. Moderator/admin only; audited as `thread.publish`. Publishes a discussion as the labelled “Same End team” (`authorId:'same-end-team'`). Republishing the same ID returns the existing team thread (`created:false`); an ID already used by a fan returns 409. Fans can read, like, reply to and report team threads, but cannot delete or block them.
 - `POST /admin/moderation` `{threadId,postId,action:'hide'|'restore'|'lock'|'unlock',reason}` → `{ok:true}`. Moderator/admin only. No restore of author-deleted text.
 - `GET /admin/reports` → `{items,cursor}`; `POST /admin/reports/:id` `{status:'open'|'resolved',note}` → record. `POST /admin/members/:id` `{status:'active'|'suspended'}`. Moderator/admin only.
 - `GET /admin/content` → `{items,revision}`; `POST /admin/content` complete bounded item `{id,type,title,body,question?,choices?,answerIndex?,explanation?,sponsor?,url?,published:boolean,startsAt?:epochMilliseconds,endsAt?:epochMilliseconds}` → item. `DELETE /admin/content/:id` → `{ok:true}`. Editor/admin only.

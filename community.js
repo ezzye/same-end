@@ -63,7 +63,7 @@
   function tone(name) { let h = 0; for (const ch of String(name || '').trim().toLowerCase()) h = (h * 31 + ch.codePointAt(0)) >>> 0; return String(h % 8); }
   function avatar(name, small) {
     const first = [...String(name || '').trim()][0];
-    return el('span', { className: 'ff-avatar' + (small ? ' ff-avatar-sm' : ''), 'data-tone': name ? tone(name) : 'x', 'aria-hidden': 'true', text: first ? first.toLocaleUpperCase('en-GB') : '·' });
+    return el('span', { className: 'ff-avatar' + (small ? ' ff-avatar-sm' : ''), 'data-tone': name === 'Same End team' ? 'team' : name ? tone(name) : 'x', 'aria-hidden': 'true', text: first ? first.toLocaleUpperCase('en-GB') : '·' });
   }
 
   // ---------- storage, identity and requests ----------
@@ -307,15 +307,18 @@
     return button([icon('up'), el('span', { className: 'ff-score', text: compact && !score && !post.title ? '' : String(score) })], e => { e.stopPropagation(); like(threadId, post); }, 'ff-like' + (liked ? ' ff-liked' : '') + (compact ? ' ff-like-compact' : ''),
       { 'aria-pressed': String(liked), 'aria-label': (liked ? 'Remove your like' : 'Like') + ' (' + plural(score, 'like') + ')', 'data-like': post.id });
   }
+  // The service sends the first 180 characters; end previews on a whole word.
+  function preview(text) { const s = String(text).replace(/\s+/g, ' ').trim(); return s.length < 178 ? s : s.slice(0, s.lastIndexOf(' ', 175) > 120 ? s.lastIndexOf(' ', 175) : 175).replace(/[\s,;:—–-]+$/, '') + '…'; }
+  function teamBadge(p) { return p.staff ? el('span', { className: 'ff-team', title: 'Posted by the Same End team', text: 'Team' }) : null; }
   function spoilerHidden(t) { return t.spoiler && !state.revealed.has(t.id); }
   function card(t) {
     const hidden = spoilerHidden(t), open = () => openThread(t.id);
     return el('article', { className: 'ff-card' + (t.locked ? ' ff-locked' : ''), 'data-category': t.category }, [
       el('div', { className: 'ff-card-vote' }, [likeButton(t.id, t, true)]),
       el('div', { className: 'ff-card-main' }, [
-        el('div', { className: 'ff-meta' }, [el('span', { className: 'ff-tag ff-tag-' + t.category, text: categoryLabel(t.category) }), avatar(t.authorName, true), el('span', { className: 'ff-author', text: t.authorName || 'Fan' }), stamp(t.createdAt), t.locked ? el('span', { className: 'ff-badge', text: 'Locked' }) : null]),
+        el('div', { className: 'ff-meta' }, [el('span', { className: 'ff-tag ff-tag-' + t.category, text: categoryLabel(t.category) }), avatar(t.authorName, true), el('span', { className: 'ff-author', text: t.authorName || 'Fan' }), teamBadge(t), stamp(t.createdAt), t.locked ? el('span', { className: 'ff-badge', text: 'Locked' }) : null]),
         el('h3', { className: 'ff-card-title' }, [button(hidden ? 'Match discussion — spoilers hidden' : t.title || 'Discussion', open, 'ff-card-link fc-thread-card')]),
-        hidden ? el('p', { className: 'ff-excerpt ff-spoiler-note', text: 'Contains match spoilers. Open it when you’re ready.' }) : t.excerpt ? el('p', { className: 'ff-excerpt', text: t.excerpt }) : null,
+        hidden ? el('p', { className: 'ff-excerpt ff-spoiler-note', text: 'Contains match spoilers. Open it when you’re ready.' }) : t.excerpt ? el('p', { className: 'ff-excerpt', text: preview(t.excerpt) }) : null,
         el('div', { className: 'ff-card-foot' }, [button([icon('comment'), plural(t.replyCount || 0, 'comment')], open, 'ff-meta-btn', { tabindex: '-1' })]),
       ]),
     ]);
@@ -352,7 +355,7 @@
     const thread = t.data.thread, replies = t.data.replies || [];
     if (spoilerHidden(thread)) return [back, el('div', { className: 'ff-spoiler-gate' }, [el('strong', { text: 'Match discussion — spoilers hidden' }), el('p', { text: 'Reveal it when you’re ready. The title and comments may give away the score.' }), button('Show the discussion', () => { state.revealed.add(thread.id); render(); }, 'ff-btn ff-primary')])];
     const post = el('article', { className: 'ff-post' }, [
-      el('div', { className: 'ff-meta' }, [el('span', { className: 'ff-tag ff-tag-' + thread.category, text: categoryLabel(thread.category) }), avatar(thread.authorName, true), el('span', { className: 'ff-author', text: thread.authorName }), stamp(thread.createdAt), thread.locked ? el('span', { className: 'ff-badge', text: 'Locked' }) : null]),
+      el('div', { className: 'ff-meta' }, [el('span', { className: 'ff-tag ff-tag-' + thread.category, text: categoryLabel(thread.category) }), avatar(thread.authorName, true), el('span', { className: 'ff-author', text: thread.authorName }), teamBadge(thread), stamp(thread.createdAt), thread.locked ? el('span', { className: 'ff-badge', text: 'Locked' }) : null]),
       el('h3', { className: 'ff-post-title fc-thread-title', text: thread.title }),
       el('p', { className: 'ff-post-text', text: thread.text }),
       el('div', { className: 'ff-c-actions' }, [likeButton(thread.id, thread), el('span', { className: 'ff-count' }, [icon('comment'), plural(visibleCount(replies), 'comment')]), moreMenu(thread, thread.id)]),
@@ -449,7 +452,7 @@
     if (mine) items.push(button('Delete', () => { state.menuFor = null; state.deleteFor = post.id; render(); }, 'ff-menu-item ff-danger'));
     else {
       items.push(button('Report', () => { if (!member()) { needMember('Join the conversation to report posts.'); return; } state.menuFor = null; state.reportFor = post.id; render(); const n = $('ff-report-reason'); if (n) n.focus(); }, 'ff-menu-item'));
-      if (post.authorId && member()) items.push(button('Block ' + (post.authorName || 'this fan'), () => { state.menuFor = null; block(post.authorId); }, 'ff-menu-item'));
+      if (post.authorId && !post.staff && member()) items.push(button('Block ' + (post.authorName || 'this fan'), () => { state.menuFor = null; block(post.authorId); }, 'ff-menu-item'));
     }
     return el('span', { className: 'ff-menu-wrap' }, [more, el('div', { className: 'ff-menu', role: 'menu' }, items.map(i => { i.setAttribute('role', 'menuitem'); return i; }))]);
   }

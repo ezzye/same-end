@@ -377,3 +377,23 @@ test('discussions can be listed across all topics and sorted by new, top and hot
   assert.ok(clubs.json.items.every(x => x.category === 'club'));
   assert.equal((await f.request('GET', '/threads', undefined, {...b, query: {sort: 'random'}})).statusCode, 400);
 });
+
+test('staff publish labelled team discussions idempotently; fans can read, like and reply but not delete them', async () => {
+  const f = fixture(); await f.enable(); const a = await f.member('Alice');
+  const body = {id: randomUUID(), category: 'general', title: 'Welcome to the Fan forum', text: 'Introduce yourself.', spoiler: false};
+  assert.equal((await f.request('POST', '/admin/threads', body, a)).statusCode, 401);
+  assert.equal((await f.admin('POST', '/threads', body, {role: 'support'})).statusCode, 403);
+  const first = await f.admin('POST', '/threads', body, {role: 'moderator'}); ok(first);
+  assert.equal(first.json.staff, true); assert.equal(first.json.authorName, 'Same End team'); assert.equal(first.json.created, true);
+  const again = await f.admin('POST', '/threads', {...body, title: 'Changed'}, {role: 'moderator'}); ok(again);
+  assert.equal(again.json.created, false); assert.equal(again.json.title, 'Welcome to the Fan forum');
+  const match = await f.admin('POST', '/threads', {...body, id: randomUUID(), category: 'match', title: 'Result', spoiler: false}, {role: 'admin'}); ok(match); assert.equal(match.json.spoiler, true);
+  const list = await f.request('GET', '/threads', undefined, {query: {sort: 'new'}}); ok(list); assert.equal(list.json.items.filter(x => x.staff).length, 2);
+  ok(await f.request('POST', '/votes', {threadId: body.id, postId: body.id, value: 1}, a));
+  ok(await f.request('POST', `/threads/${body.id}/replies`, {id: randomUUID(), text: 'Hello from Alice'}, a));
+  const current = (await f.request('GET', `/threads/${body.id}`, undefined, a)).json.thread; assert.equal(current.staff, true);
+  assert.equal((await f.request('POST', '/posts/delete', {threadId: body.id, postId: body.id, expectedVersion: current.version}, a)).statusCode, 403);
+  const audit = await f.admin('GET', '/audit'); ok(audit); assert.ok(audit.json.items.some(x => x.action === 'thread.publish' && x.target === body.id));
+  // A fan-created thread ID cannot be taken over by staff publishing.
+  const fanThread = await f.thread(a); assert.equal((await f.admin('POST', '/threads', {...body, id: fanThread.id}, {role: 'moderator'})).statusCode, 409);
+});

@@ -168,6 +168,7 @@ async function boot() {
     const category = selectField('Category', [['', 'All categories'], ['general', 'General'], ['club', 'Club'], ['match', 'Match · spoilers'], ['ideas', 'Ideas']], '');
     const threadLookup = field('Open a thread by ID', 'input', requestedThread, {maxLength: 36});
     const filters = node('div', undefined, 'filters'); filters.append(category.wrapper, threadLookup.wrapper, button('Open thread', () => openThread(threadLookup.input.value.trim()))); container.append(filters);
+    container.append(await starterCard());
     const list = node('div'); container.append(list); let categoryEpoch = scopeEpoch;
     async function load() { list.replaceChildren(); categoryEpoch = ++epoch; await listing(list, '/admin/threads', item => {
       const el = card(); el.append(button(item.title, () => openThread(item.id), 'record-button'), node('p', `${item.category} · ${item.authorName || item.authorId} · ${item.replyCount || 0} replies · ${item.hidden ? 'Hidden' : 'Visible'}${item.locked ? ' · Locked' : ''}`, 'meta')); return el;
@@ -182,6 +183,22 @@ async function boot() {
       posts.append(post(thread)); (data.replies || []).forEach(item => posts.append(post(item))); let cursor = data.cursor;
       const more = button('Load more replies', async () => { const next = await request(`/admin/threads/${encodeURIComponent(id)}?cursor=${encodeURIComponent(cursor)}`); if (thisEpoch !== epoch) return; (next.replies || []).forEach(item => posts.append(post(item))); cursor = next.cursor; more.hidden = !cursor; }); more.hidden = !cursor; container.append(actions(more));
     }
+  }
+  // Team starter discussions ship with the site and are posted as the labelled "Same End team".
+  async function starterCard() {
+    const el = card(); el.append(node('h2', 'Starter discussions'));
+    let pack;
+    try { const response = await fetch('community-starters.json', {cache: 'no-store', credentials: 'omit', ...(typeof AbortSignal.timeout === 'function' && {signal: AbortSignal.timeout(8000)})}); if (!response.ok) throw new Error(); pack = await response.json(); } catch { el.append(node('p', 'No starter pack is available in this build.', 'muted')); return el; }
+    const items = Array.isArray(pack.items) ? pack.items : [];
+    el.append(node('p', `${items.length} discussions prepared ${pack.asOf ? 'on ' + pack.asOf : ''}. They appear as “Same End team”. Publishing again never duplicates them. Check that they are still current before publishing.`, 'muted'));
+    const list = node('ul', undefined, 'starter-list'); items.forEach(item => list.append(node('li', `${item.category} · ${item.title}`))); el.append(list);
+    el.append(actions(button('Publish starter discussions', async () => {
+      let created = 0, existing = 0;
+      // Publish in reverse so the pack's first item is the newest and leads the forum.
+      for (const item of items.slice().reverse()) { const result = await request('/admin/threads', {method: 'POST', body: {id: item.id, category: item.category, title: item.title, text: item.text, spoiler: !!item.spoiler}}); if (result.created) created++; else existing++; }
+      await show('forum'); message(`Starter discussions: ${created} published, ${existing} already live.`);
+    }, 'primary')));
+    return el;
   }
   async function reports(container, scopeEpoch) {
     container.append(node('p', 'Review the reported thread in Forum before deciding. Resolving a report does not hide a post.', 'muted'));

@@ -7,7 +7,7 @@ export const COMMUNITY_LIMITS = Object.freeze({requestBytes: 16384, identities: 
 const PK = 'COMMUNITY#PILOT', DAY = 86400000, RETENTION = 365 * DAY;
 const HASH = /^[a-f0-9]{64}$/, UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 // Replies nest Reddit-style. Deeper replies attach to the deepest allowed parent and name who they answer.
-const MAX_DEPTH = 4, SORTS = ['hot', 'new', 'top'];
+const MAX_DEPTH = 4, SORTS = ['hot', 'new', 'top'], TEAM_ID = 'same-end-team', TEAM_NAME = 'Same End team';
 const CATEGORIES = [{id: 'general', label: 'General'}, {id: 'club', label: 'Club'}, {id: 'match', label: 'Match'}, {id: 'ideas', label: 'Ideas'}];
 const digest = value => createHash('sha256').update(value).digest('hex');
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -27,7 +27,7 @@ function boolean(value) { if (typeof value !== 'boolean') fail(400, 'invalid_boo
 const cond = row => row ? {attribute: 'rev', equals: row.rev} : {absent: true};
 const profile = row => ({id: row.id, name: row.name, forumMember: row.forumMember, status: row.status, blockedMemberIds: row.blockedMemberIds || [], version: row.version || 1});
 const feedbackView = row => ({id: row.id, ownerId: row.ownerId, version: row.version || 1, kind: row.kind, title: row.title, text: row.text, status: row.status, response: row.response, createdAt: row.createdAt, updatedAt: row.updatedAt, ...(row.contact && {contact: row.contact}), ...(row.diagnostics && {diagnostics: row.diagnostics})});
-const postView = row => ({id: row.id, authorId: row.authorId, authorName: row.authorName, version: row.version || 1, text: row.deleted ? '' : row.text, createdAt: row.createdAt, ...(row.threadId && {threadId: row.threadId, parentId: row.parentId || null, depth: row.depth || 1, ...(row.replyToName && {replyToName: row.replyToName})}), ...(row.hidden && {hidden: true}), ...(row.deleted && {deleted: true})});
+const postView = row => ({id: row.id, authorId: row.authorId, authorName: row.authorName, version: row.version || 1, text: row.deleted ? '' : row.text, createdAt: row.createdAt, ...(row.threadId && {threadId: row.threadId, parentId: row.parentId || null, depth: row.depth || 1, ...(row.replyToName && {replyToName: row.replyToName})}), ...(row.hidden && {hidden: true}), ...(row.deleted && {deleted: true}), ...(row.staff && {staff: true})});
 // A removed reply is kept only as an empty placeholder when other replies hang from it.
 const placeholder = (row, reason) => ({...postView(row), text: '', authorId: null, authorName: '', [reason]: true});
 const threadView = row => ({...postView(row), category: row.category, title: row.deleted ? '[Deleted]' : row.title, spoiler: row.spoiler, locked: row.locked, updatedAt: row.updatedAt, replyCount: row.replyCount});
@@ -402,6 +402,19 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
       });
     }
     if (path === '/admin/threads' && method === 'GET') return listThreads(query, true);
+    // Staff publish clearly labelled team discussions (for example a starter pack). Fixed IDs make republishing idempotent.
+    if (path === '/admin/threads' && method === 'POST') {
+      shape(body, ['id', 'category', 'title', 'text', 'spoiler']); const threadId = id(body.id), category = one(body.category, CATEGORIES.map(x => x.id));
+      const value = {id: threadId, category, title: string(body.title, 120), text: string(body.text, 4000), spoiler: category === 'match' || boolean(body.spoiler)};
+      const existing = await get(`THREAD#${threadId}`);
+      if (active(existing) && existing.staff) return {...threadView(existing), created: false};
+      if (existing) fail(409, 'post_conflict', 'This discussion ID is already used.');
+      return adminWrite(actor, 'thread.publish', threadId, '', async () => {
+        await limited('threads', COMMUNITY_LIMITS.threads);
+        const current = row(`THREAD#${threadId}`, {...value, authorId: TEAM_ID, authorName: TEAM_NAME, staff: true, locked: false, hidden: false, deleted: false, replyCount: 0, createdAt: now(), updatedAt: now()});
+        return {ops: [put(current), cap('threads', COMMUNITY_LIMITS.threads)], result: {...threadView(current), created: true}};
+      });
+    }
     match = path.match(/^\/admin\/threads\/([a-f0-9-]+)$/i);
     if (match && method === 'GET') return readThread(id(match[1]), query, true);
     if (path === '/admin/moderation' && method === 'POST') {
