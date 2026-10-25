@@ -106,15 +106,16 @@ function adoptCommonDecision(cs,decision,decisionId){
  const enable=state.role==='viewer'&&window.SameEndConfig?.automaticInitialDelay===true;
  state.initialDelayPolicy=new window.SameEndInitialDelay.Policy({enabled:enable,roomDelaySeconds:decision.delaySeconds});
  state.player.startupHold=enable;
- cs.joinCheckPending=enable&&decision.delaySeconds<state.config.delay;
+ cs.joinCheckPending=enable;
  prepareLateCommonJoin(cs);
  broadcastCommonHello();lifecycle();return true;
 }
 function prepareLateCommonJoin(cs){
  if(!cs.joinCheckPending||!state.clockReady||state.commonStart!==cs)return;
- cs.joinCheckPending=false;
  const sourceNow=now()+state.offset,target=(sourceNow-state.config.epoch)/1000-cs.decision.delaySeconds;
- if(target<=1)return;
+ if(target<0){if(sourceNow-cs.decision.issuedAt<=20000)cs.joinCheckPending=false;return;}
+ if(!state.cache.length||target<(state.cache[0].meta.start-state.config.epoch)/1000)return;
+ cs.joinCheckPending=false;
  // Catch-up is not a bandwidth measurement. The source has already selected
  // this timeline; only verified cache and aligned decoder headroom release it.
  discardPreparedPlayer();state.player.startupHold=true;
@@ -183,7 +184,7 @@ function discardPreparedPlayer(){
  state.player.soundRequested=soundRequested;$('player').muted=muted;state.appendedSeq=new Set();state.lastAppendSeq=-1;
 }
 function advanceInitialDelay(){
- if(state.commonStart&&!state.commonStart.decision)return;
+ if(state.commonStart&&(!state.commonStart.decision||state.commonStart.joinCheckPending))return;
  const policy=state.initialDelayPolicy;if(!policy||['disabled','committed'].includes(policy.state))return;
  if(policy.state==='fallback'){if(state.player?.startupPreparation)discardPreparedPlayer();if(state.player)state.player.startupHold=false;return;}
  const preparing=policy.state==='preparing',t=now(),measurement=sampleClientDelivery();

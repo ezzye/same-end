@@ -265,3 +265,70 @@ test('a late common decision waits for the source clock before silently pinning 
   assert.equal(h.trace.filter(row => row[0] === 'prepare').length, 1);
   assert.equal(h.state.initialDelayPolicy.targetProgramTime, 40);
 });
+
+const fallbackDecision = h => decision(h, { delaySeconds: 300, startsAt: epoch + 300000,
+  issuedAt: epoch + 60000, reason: 'observation-timeout' });
+
+test('a late 300-second common fallback prepares the current subsecond target instead of an old programme-zero decoder', async () => {
+  const h = harness(), parent = h.peer('parent');
+  h.tick(278400); h.state.cache[0].meta.start = epoch + 200;
+  await h.ctx.handleCommonHello(parent, hello(h, await fallbackDecision(h)));
+  assert.equal(h.state.commonStart.decision.delaySeconds, 300);
+  assert.equal(h.state.commonStart.joinCheckPending, false);
+  assert.equal(h.state.initialDelayPolicy.state, 'preparing');
+  assert.equal(h.state.initialDelayPolicy._commonJoin, true);
+  assert(Math.abs(h.state.initialDelayPolicy.targetProgramTime - .4) < 1e-9);
+  assert.equal(h.state.initialDelayPolicy.selectedDelaySeconds, 300);
+  assert.equal(h.trace.filter(row => row[0] === 'close').length, 1);
+  assert(Math.abs(h.trace.find(row => row[0] === 'prepare')[1] - .4) < 1e-9);
+  h.ctx.advanceCommonStart();
+  assert.equal(h.trace.filter(row => row[0] === 'prepare').length, 1);
+});
+
+test('an old fallback received before its start waits for both the common moment and the first signed timestamp', async () => {
+  const h = harness(), parent = h.peer('parent');
+  h.tick(273000); h.state.cache[0].meta.start = epoch + 200;
+  await h.ctx.handleCommonHello(parent, hello(h, await fallbackDecision(h)));
+  assert.equal(h.state.commonStart.joinCheckPending, true);
+  assert.equal(h.state.initialDelayPolicy.targetProgramTime, null);
+  const policyUpdate = h.state.initialDelayPolicy.update;
+  h.state.initialDelayPolicy.update = () => assert.fail('pending common-join check must not enter ordinary historical-delivery admission');
+  vm.runInContext(slice('function advanceInitialDelay()', 'function deliverySnapshot()'), h.ctx);
+  h.ctx.advanceInitialDelay();
+  h.tick(5000); h.ctx.advanceCommonStart();
+  assert.equal(h.state.commonStart.joinCheckPending, true, 'programme zero precedes the actual first signed sample at .2');
+  h.ctx.advanceInitialDelay();
+  h.state.initialDelayPolicy.update = policyUpdate;
+  h.tick(300); h.ctx.advanceCommonStart();
+  assert.equal(h.state.commonStart.joinCheckPending, false);
+  assert.equal(h.state.initialDelayPolicy._commonJoin, true);
+  assert(Math.abs(h.state.initialDelayPolicy.targetProgramTime - .3) < 1e-9);
+  assert.equal(h.trace.filter(row => row[0] === 'prepare').length, 1);
+  h.tick(1000); h.ctx.advanceCommonStart();
+  assert.equal(h.trace.filter(row => row[0] === 'prepare').length, 1);
+});
+
+test('a late fallback without signed cache cannot pin a decoder until actual media arrives', async () => {
+  const h = harness(), parent = h.peer('parent'); h.state.cache = []; h.tick(278400);
+  await h.ctx.handleCommonHello(parent, hello(h, await fallbackDecision(h)));
+  assert.equal(h.state.commonStart.joinCheckPending, true);
+  assert.equal(h.state.initialDelayPolicy.targetProgramTime, null);
+  assert.equal(h.trace.some(row => row[0] === 'prepare' || row[0] === 'close'), false);
+  h.ctx.advanceCommonStart(); assert.equal(h.state.commonStart.joinCheckPending, true);
+  h.state.cache.push({ meta: { seq: 0, start: epoch + 200, duration: 2000 } });
+  h.ctx.advanceCommonStart();
+  assert.equal(h.state.commonStart.joinCheckPending, false);
+  assert(Math.abs(h.state.initialDelayPolicy.targetProgramTime - .4) < 1e-9);
+  assert.equal(h.trace.filter(row => row[0] === 'close').length, 1);
+  assert.equal(h.trace.filter(row => row[0] === 'prepare').length, 1);
+});
+
+test('a fresh fallback decision before programme start retains ordinary initial-member admission', async () => {
+  const h = harness(), parent = h.peer('parent'); h.tick(39000);
+  await h.ctx.handleCommonHello(parent, hello(h, await fallbackDecision(h)));
+  assert.equal(h.state.commonStart.joinCheckPending, false);
+  assert.equal(h.state.initialDelayPolicy.state, 'observing');
+  assert.equal(h.state.initialDelayPolicy._commonJoin, false);
+  assert.equal(h.state.initialDelayPolicy.targetProgramTime, null);
+  assert.equal(h.trace.some(row => row[0] === 'prepare' || row[0] === 'close'), false);
+});

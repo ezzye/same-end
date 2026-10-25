@@ -15,7 +15,8 @@ separate-network or full-match acceptance.
 `common-start.js` exposes `SameEndCommonStart.Policy`, `reportFromMeasurement`,
 `validReport`, `canonicalDecision` and `validateDecision`. In `engine.js`,
 `resetCommonStart`, `advanceCommonStart`, `handleCommonHello` and
-`adoptCommonDecision` own the cast lifecycle and signature checks.
+`adoptCommonDecision` own the cast lifecycle and signature checks;
+`prepareLateCommonJoin` connects an established decision to viewer admission.
 
 Before first playback, the source collects its own verified source/capture
 observations and bounded reports of viewers' verified incoming delivery. A shorter
@@ -31,6 +32,16 @@ unclocked, absent, stale or recently reset routes cannot authorize shortening.
 Report transport time adds to the reported age of the last verified progress;
 forwarding preserves the original report timestamp. The report envelope expires
 after 12 seconds, with a stricter arrival-cadence freshness gate where applicable.
+
+A young growing backlog can remain too uncertain to permit acceleration before
+there is enough evidence to diagnose a sustained deficit. With an observed
+delivery-to-stream ratio below 0.99 and positive media-age trend, accumulated age
+growth above `0.25 + 2 × gap standard deviation` makes a report ineligible for
+acceleration. It waits for more evidence; it does not immediately declare a
+sustained fault. The stronger existing deficit veto remains unchanged. Flat-age
+near-stream quantization and sufficiently noisy sustainable bursts can remain
+eligible. These thresholds are conservative admission heuristics, not guarantees
+of future throughput.
 
 The policy takes the maximum eligible host/viewer candidate and computes:
 
@@ -125,6 +136,18 @@ viewer cannot delay the host or select a different common baseline. Chat remains
 immediate. Finite reserve cannot guarantee playback on a persistently inadequate
 route.
 
+For a shortened common decision received before first picture, the engine first
+waits for a confirmed source clock. If the current shared target is more than one
+programme second after the start, `prepareLateCommonJoin` discards the unplayed
+decoder and calls `initial-delay.js`'s `Policy.prepareCommonJoin` once, using that
+**current** shared target and the established reserve. It does not reuse an old
+programme-zero decoder or wait for catch-up delivery to become a 20-second live
+measurement. Healthy route state and verified media received within 12 seconds
+keep preparation eligible; actual contiguous verified cache, aligned decoder
+position and decoded headroom still gate playback. An observed sustained deficit,
+the eight-second preparation timeout, native reserve requirements and the total
+60-second extra-lag limit still apply. No new common delay is selected.
+
 ## Measurement, trust and privacy
 
 The delivery estimator compares actual advancing, signature-verified payload
@@ -162,6 +185,13 @@ only newly created standard HLS rooms configured for 300 seconds advertise
 `commonStartVersion:1`. Existing rooms and the 10/60-second rehearsal settings do
 not acquire this protocol in place. There is no ordinary room control that
 silently enables it.
+
+After a reviewed release enables the protocol, update the app and start a fresh
+share; an existing capture never retimes in place. The saved club and combined
+room invitations remain the same across sharing restarts. Raw video-only magnets
+remain specific to the capture they identify. At least one supporting viewer
+must join and contribute enough fresh measured feedback before the new capture's
+60-second deadline; otherwise that capture retains its 300-second fallback.
 
 The local unit-suite snapshot recorded **414 tests passing, zero failing**. This
 covers the broader application and includes the common-start policy and actual
