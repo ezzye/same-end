@@ -7,7 +7,9 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { template, artifactTemplate } from './cloudformation.mjs';
+import { template as baseTemplate, artifactTemplate } from './cloudformation.mjs';
+import {addCommunityInfrastructure} from './community-infrastructure.mjs';
+const template=addCommunityInfrastructure(baseTemplate);
 const exec = promisify(execFile);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const privateDir = process.env.SAME_END_DEPLOY_STATE_DIR ? path.resolve(process.env.SAME_END_DEPLOY_STATE_DIR) : path.resolve(here, '../../work/same-end-social');
@@ -39,7 +41,7 @@ async function main() {
   if (state.stackName !== stackName || state.region !== region) throw new Error('Private deployment state belongs to a different stack or region');
   await writeFile(stateFile, JSON.stringify(state, null, 2), {mode: 0o600}); await chmod(stateFile, 0o600);
   const staging = path.join(privateDir, 'package'); await rm(staging, {recursive: true, force: true}); await mkdir(staging, {mode: 0o700});
-  for (const name of ['index.mjs', 'api.mjs', 'store.mjs', 'push.mjs', 'reminders.mjs', 'package.json', 'package-lock.json']) await copyFile(path.join(here, name), path.join(staging, name));
+  for (const name of ['index.mjs', 'api.mjs', 'community-api.mjs', 'store.mjs', 'push.mjs', 'reminders.mjs', 'package.json', 'package-lock.json']) await copyFile(path.join(here, name), path.join(staging, name));
   await exec('npm', ['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], {cwd: staging, maxBuffer: 1024 * 1024});
   const zip = path.join(privateDir, 'control.zip'); await rm(zip, {force: true});
   await exec('/usr/bin/zip', ['-qr', zip, '.'], {cwd: staging, maxBuffer: 1024 * 1024});
@@ -54,6 +56,7 @@ async function main() {
   const parameters = Object.entries({ArtifactBucket: bucket, ArtifactKey: key, VapidPublicKey: state.vapid.publicKey, VapidPrivateKey: state.vapid.privateKey}).map(([ParameterKey, ParameterValue]) => ({ParameterKey, ParameterValue}));
   const deployed = await applyStack(cf, stackName, template, parameters);
   state.apiBase = deployed.Outputs.find(o => o.OutputKey === 'ApiBase').OutputValue;
+  state.staff=Object.fromEntries(deployed.Outputs.filter(o=>o.OutputKey.startsWith('Staff')).map(o=>[o.OutputKey,o.OutputValue]));
   state.deployedAt = new Date().toISOString(); await writeFile(stateFile, JSON.stringify(state, null, 2), {mode: 0o600});
   await writeFile(path.join(privateDir, 'public-config.json'), JSON.stringify({apiBase: state.apiBase}, null, 2), {mode: 0o600});
   console.log(JSON.stringify({apiBase: state.apiBase, stackStatus: deployed.StackStatus}));

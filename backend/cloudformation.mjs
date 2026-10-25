@@ -9,7 +9,7 @@ export const artifactTemplate = {
   }, Outputs: {Bucket: {Value: ref('Artifacts')}}
 };
 export const template = {
-  AWSTemplateFormatVersion: '2010-09-09', Description: 'Same End private social control: encrypted data only, no video',
+  AWSTemplateFormatVersion: '2010-09-09', Description: 'Same End private room control and separate fan community; no match video',
   Parameters: {
     ArtifactBucket: {Type: 'String'}, ArtifactKey: {Type: 'String'},
     VapidPublicKey: {Type: 'String', AllowedPattern: '[A-Za-z0-9_-]{87}'},
