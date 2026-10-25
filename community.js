@@ -172,6 +172,7 @@
   }
   function setupAccount(claim) {
     const old = state.identity, payload = {};
+    if (claim && !old) { status('This browser history has moved or been cleared. Start with a new profile, or sign out and try again.', true); return; }
     if (claim && old) { payload.legacyToken = old.token; if (old.name) payload.name = old.name; }
     else payload.name = 'Fan';
     const epoch = state.authEpoch;
@@ -350,6 +351,7 @@
       state.authMessage ? button('Finish signing out', () => helper.signOut(), 'ff-btn') : null,
       button('Sign in / Create account', () => helper && helper.signIn().catch(e => status(e.message, true)), 'ff-btn ff-primary')]);
     const accountBar = el('div', {className:'ff-me'}, [el('span', {text:'Signed in to your pilot account'}), button('Sign out', () => helper.signOut(), 'ff-btn ff-ghost')]);
+    if (!state.account) return el('div', {}, [accountBar, emptyState('Your forum profile could not connect.', 'Try loading it again. Your private room stays in place.', button('Retry forum profile', () => memberMe().then(() => { if (state.feedbackOpen) renderFeedback($('fc-body')); }), 'ff-btn ff-primary'))]);
     if (state.me && state.me.status === 'suspended') return el('div', {}, [accountBar, emptyState('Your forum participation is paused.', 'You can still read discussions and send private feedback to the team.')]);
     if (state.joining) return el('div', {}, [accountBar, joinForm()]);
     return el('div', { className: 'ff-guest' }, [accountBar, el('p', {}, ['Choose a display name and enter your pilot code to start discussions, reply and like.']),
