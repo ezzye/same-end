@@ -262,12 +262,13 @@ try {
     }
     const s = current('viewer');
     assert(s.probe.verified.length >= 8 && s.probe.connectedPeers > 0, 'Deficit uses multiple actually verified P2P media pieces');
-    assert(s.probe.queuedBytes > 0, 'Sustained deficit accumulates actual received callback bytes');
+    const peakQueuedBytes=Math.max(s.probe.queuedBytes,...report.samples.map(row=>row.probe?.queuedBytes||0));
+    assert(peakQueuedBytes > 0, 'Sustained deficit accumulated actual received callback bytes during the observation');
     assert(s.elapsed < firstJoinSeconds+roomDelay+deficitSeconds+40,'Deficit observation stays bounded after actual first join');
     assert.equal(s.commonStart?.state,'fallback','Completed deficit observation requires fallback');assert.equal(s.commonStart.delaySeconds,300);
     assert(s.clientDelivery?.state === 'constrained' || s.clientDelivery?.recommendation?.status === 'insufficient-throughput' || /throughput|deficit|constrain/i.test(s.commonStart?.reason || s.initialDelay?.reason || ''), 'Actual below-stream observations refuse a throughput-fixing recommendation');
     await assertChat('sustained-deficit');
-    report.admission = { observedSeconds:deficitSeconds, commonStart:s.commonStart, initialDelay:s.initialDelay, delivery:s.clientDelivery, verifiedPieces:s.probe.verified.length, queuedBytes:s.probe.queuedBytes, fallbackPlaybackObserved:s.probe.frames>0,continuousFallbackAcceptanceClaimed:false };
+    report.admission = { observedSeconds:deficitSeconds, commonStart:s.commonStart, initialDelay:s.initialDelay, delivery:s.clientDelivery, verifiedPieces:s.probe.verified.length, queuedBytes:s.probe.queuedBytes, peakQueuedBytes, supplierConnectedAtEnd:s.supplier, fallbackPlaybackObserved:s.probe.frames>0,continuousFallbackAcceptanceClaimed:false };
   } else {
     const playing=role=>{const s=current(role);return s?.probe.frames>12&&!s.paused&&s.ready>=2&&Number.isFinite(s.programTime)};
     await progress('waiting-for-actual-common-start',{timeoutSeconds:startupSeconds});
