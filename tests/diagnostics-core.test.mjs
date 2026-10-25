@@ -203,3 +203,13 @@ test('initial delay reports retain bounded policy facts and discard timestamps a
  assert.equal(value.selectedDelaySeconds,10);assert.equal(value.applied,true);assert.equal(value.committedAtMs,undefined);assert.equal(value.peerId,undefined);assert.equal(value.url,undefined);
  const bad=core.safeInitialDelay({state:'SECRET',reason:'PRIVATE',enabled:'true',commitCount:999,actualDelaySeconds:Infinity});assert.equal(bad.state,null);assert.equal(bad.reason,null);assert.equal(bad.enabled,null);assert.equal(bad.commitCount,1);assert.equal(bad.actualDelaySeconds,null);
 });
+
+
+test('common start report preserves selected and fallback delays without decision identifiers or timestamps',()=>{
+ const {c,observe}=setup();
+ const commonStart={enabled:true,state:'selected',delaySeconds:30,reserveSeconds:6,reason:'verified-delivery',conflict:false,fallbackDelaySeconds:300,decisionId:'PRIVATE-DECISION',issuedAt:1793000000000};
+ observe({commonStart});const report=c.report();const safe=report.status.commonStart;
+ assert.equal(safe.delaySeconds,30);assert.equal(safe.fallbackDelaySeconds,300);assert.equal(safe.state,'selected');
+ assert(!JSON.stringify(report).includes('PRIVATE-DECISION'));assert(!('issuedAt' in safe));
+ const summary=c.summary();assert.equal(summary.lastStatus.commonStart.delaySeconds,30);
+});

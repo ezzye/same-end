@@ -1058,6 +1058,7 @@ window.SameEndInviteSample="AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAbAbW9v
 </script>
 <script id="client-delivery-module"></script>
 <script id="initial-delay-module"></script>
+<script id="common-start-module"></script>
 <script id="client-delivery-ui-module"></script>
 <script id="delivery-health-module">(function (root) {
   'use strict';
@@ -1894,8 +1895,8 @@ function refresh(){
  $('stop').textContent=c&&s.role==='source'?'Stop sharing':'Leave room';
  if(c){
   if($('magnet-progress').textContent==='Share a tab or try the test to get started.')$('magnet-progress').textContent='Room’s ready. Send an invitation to bring everyone in.';
-  document.body.classList.remove('joining');$('room-title').textContent=testRun?'The warm-up room':'Your match room';const baseDelay=c.delay===300?'5-minute room delay':c.delay+'-second room delay';const extra=Number.isFinite(s.playbackExtraDelaySeconds)?Math.max(0,Math.floor(s.playbackExtraDelaySeconds/5)*5):0;$('room-delay').textContent=baseDelay+(moving&&extra>=10?' · +'+extra+'s buffer':'');
-  const remaining=Math.max(0,Math.ceil((c.epoch+c.delay*1000-Date.now()-s.offset)/1000)),warming=remaining>0&&s.clockReady;
+  document.body.classList.remove('joining');$('room-title').textContent=testRun?'The warm-up room':'Your match room';const baseDelay=window.SameEndRoomStatus.groupDelay(s).label;const extra=Number.isFinite(s.playbackExtraDelaySeconds)?Math.max(0,Math.floor(s.playbackExtraDelaySeconds/5)*5):0;$('room-delay').textContent=baseDelay+(moving&&extra>=10?' · +'+extra+'s buffer':'');
+  const groupPending=s.commonStart?.enabled===true&&s.commonStart.state==='pending',remaining=Number.isFinite(s.targetProgramTime)?Math.max(0,Math.ceil(-s.targetProgramTime)):0,warming=!groupPending&&remaining>0&&s.clockReady;
   $('stage-empty').hidden=moving;$('room-countdown').hidden=!warming;
   if(warming){$('room-countdown').textContent=Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0');}
   $('stage-title').textContent=reason?.title||'Getting your screen ready…';

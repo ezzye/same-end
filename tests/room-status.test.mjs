@@ -65,3 +65,14 @@ test('adaptive rebuffering is an intentional wait, while moving playback and sou
  assert.equal(explain({snapshot:{...snapshot,targetProgramTime:-2},room:room('sharing')}).code,'warming-up');
  assert.equal(explain({snapshot:{...snapshot,playbackAdaptivePhase:'PRIVATE'},room:room('sharing')}).code,'finding-route');
 });
+
+
+test('common delay presentation separates pending selection and the signed fallback',()=>{
+ const groupDelay=context.window.SameEndRoomStatus.groupDelay,base={config:{delay:300}};
+ assert.equal(groupDelay(base).label,'5-minute group delay');
+ const pending={...base,clockReady:true,targetProgramTime:-280,commonStart:{enabled:true,state:'pending'}};
+ assert.equal(groupDelay(pending).seconds,null);assert.equal(explain({snapshot:pending}).title,'Checking group delay');
+ assert.equal(groupDelay({...base,commonStart:{enabled:true,state:'selected',delaySeconds:30}}).label,'30-second group delay');
+ assert.equal(groupDelay({...base,commonStart:{enabled:true,state:'fallback',delaySeconds:300}}).seconds,300);
+ assert.equal(groupDelay({...base,commonStart:{enabled:true,state:'selected',delaySeconds:Infinity}}).seconds,300);
+});

@@ -86,3 +86,14 @@ test('client delivery is safely retained through the opt-in host report round tr
  const hostile=ctx.SameEndInviteCheck.cleanReport({joining:{clientDelivery:{...cd,recommendation:{status:'PRIVATE-CLIENT',reason:'PRIVATE-CLIENT',applied:true,candidateInitialDelaySeconds:0}}}}).joining.clientDelivery;assert.equal(hostile.recommendation.status,null);assert.equal(hostile.recommendation.reason,null);assert.equal(hostile.recommendation.applied,null);assert.equal(hostile.recommendation.candidateInitialDelaySeconds,null);
  assert.equal(ctx.SameEndInviteCheck.cleanReport({}).joining.clientDelivery,null);
 });
+
+
+test('common start survives repeated host report cleaning with no private decision data',async()=>{
+ const ctx=createContext({URLSearchParams,Uint8Array,Date,Math,JSON,setTimeout(){},setInterval(){},navigator:{userAgent:''},location:{hash:''},document:{getElementById(){return null}},addEventListener(){}});ctx.window=ctx;
+ runInContext(await readFile(new URL('../diagnostics-core.js',import.meta.url),'utf8'),ctx);runInContext(code,ctx);
+ const input={joining:{groupDelaySeconds:30,commonStart:{enabled:true,state:'selected',delaySeconds:30,reserveSeconds:6,reason:'verified-delivery',conflict:false,fallbackDelaySeconds:300,decisionId:'PRIVATE-ID',issuedAt:123456}},testSession:{reportId:'0123456789abcdef',lastStatus:{commonStart:{enabled:true,state:'fallback',delaySeconds:300,reason:'observation-timeout',fallbackDelaySeconds:300,decisionId:'PRIVATE-ID'}}}};
+ const report=ctx.SameEndInviteCheck.cleanReport(ctx.SameEndInviteCheck.cleanReport(input));
+ assert.equal(report.joining.groupDelaySeconds,30);assert.equal(report.joining.commonStart.delaySeconds,30);assert.equal(report.testSession.lastStatus.commonStart.delaySeconds,300);assert(!JSON.stringify(report).includes('PRIVATE-ID'));assert(!JSON.stringify(report).includes('issuedAt'));
+ const bad=ctx.SameEndInviteCheck.cleanReport({joining:{commonStart:{state:'PRIVATE',delaySeconds:29,reserveSeconds:Infinity,reason:'PRIVATE'}}}).joining.commonStart;
+ assert.equal(bad.state,null);assert.equal(bad.delaySeconds,null);assert.equal(bad.reserveSeconds,null);assert.equal(bad.reason,null);
+});
