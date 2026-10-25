@@ -39,24 +39,32 @@
          finite(m.sourceAgeTrendSecondsPerSecond) && m.sourceAgeTrendSecondsPerSecond > .025)) {
       this.fallback('sustained-delivery-deficit'); return;
     }
+    if (preparing) {
+      // The decision is pinned. Arrival-phase movement may withdraw the
+      // optional new-decision hint while this decoder loads real samples.
+      // Keep route/clock health and bounded fresh progress as hard gates.
+      var validProgress = m && (m.state === 'observing' || m.state === 'risk') && m.classification === 'live' &&
+        m.recordCount >= 6 && m.observationSeconds >= 20 && finite(m.sourceAgeTrendSecondsPerSecond) &&
+        finite(m.lastProgressAgeSeconds) && m.lastProgressAgeSeconds <= 12;
+      var routeReset = finite(this._preparedRouteAge) && finite(m && m.routeAgeSeconds) && m.routeAgeSeconds < this._preparedRouteAge;
+      if (!validProgress || routeReset) this.fallback('preparation-evidence-revoked');
+      else if (input.nowMs - this.preparedAtMs > MAX_PREPARATION_MS) this.fallback('decoder-preparation-timeout');
+      else if (r && finite(r.candidateReserveSeconds) && r.candidateReserveSeconds > this.reserveGoalSeconds) this.fallback('preparation-reserve-increased');
+      return;
+    }
     var fresh = m && finite(m.lastProgressAgeSeconds) && m.lastProgressAgeSeconds <= Math.max(3, (m.gapP95Seconds || 2) * 1.5);
     var eligible = m && r && r.status === 'unvalidated-candidate' && m.classification === 'live' &&
       (m.state === 'observing' || m.state === 'risk') && m.recordCount >= 6 && m.observationSeconds >= 20 && fresh &&
       finite(m.sourceAgeTrendSecondsPerSecond) && finite(r.candidateInitialDelaySeconds) && finite(r.candidateReserveSeconds);
-    if (!eligible) { if (preparing) this.fallback('preparation-evidence-revoked'); return; }
+    if (!eligible) return;
     if (r.candidateReserveSeconds < 4 || r.candidateReserveSeconds > MAX_RESERVE) { this.fallback('unsupported-reserve-goal'); return; }
     var candidate = Math.max(this.roomDelaySeconds, r.candidateInitialDelaySeconds);
     if (r.candidateInitialDelaySeconds < 6 || r.candidateInitialDelaySeconds > 420 || candidate > this.roomDelaySeconds + 60) { this.fallback('candidate-exceeds-group-bound'); return; }
-    if (preparing) {
-      if (input.nowMs - this.preparedAtMs > MAX_PREPARATION_MS) this.fallback('decoder-preparation-timeout');
-      else if (r.candidateReserveSeconds > this.reserveGoalSeconds) this.fallback('preparation-reserve-increased');
-      return;
-    }
     this.candidateDelaySeconds = candidate; this.reserveGoalSeconds = r.candidateReserveSeconds;
     var target = elapsed - candidate;
     if (target < 0) return;
     this.state = 'preparing'; this.reason = 'checking-verified-decoder-headroom';
-    this.targetProgramTime = target; this.preparedAtMs = input.nowMs; this._epoch = input.epoch;
+    this.targetProgramTime = target; this.preparedAtMs = input.nowMs; this._epoch = input.epoch; this._preparedRouteAge = m.routeAgeSeconds;
   };
   Policy.prototype.canCommit = function (facts) {
     if (this.state !== 'preparing' || !facts || !finite(facts.minimumReserveSeconds)) return false;

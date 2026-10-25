@@ -22,6 +22,7 @@ import { initialDelayPageProbe } from './helpers/initial-delay-page.mjs';
 import { createLocalTestTLS } from './helpers/local-test-tls.mjs';
 
 const root = new URL('../', import.meta.url), rootPath = fileURLToPath(root);
+const forceNative=process.env.INITIAL_NATIVE==='1';
 const device = process.env.INITIAL_DEVICE || 'chromium', profile = process.env.INITIAL_PROFILE || 'steady';
 const label = process.env.INITIAL_LABEL || `${device}-${profile}-${Date.now()}`;
 assert(['chromium','android','ios'].includes(device)); assert(['steady','slow','bursty','below95','below65'].includes(profile)); assert(/^[\w-]+$/.test(label));
@@ -48,7 +49,7 @@ const report = { schema: 1, startedAt: new Date().toISOString(), pass: false,
     realWebRTC: true, realSignedHLS: true, generatedChangingChirps: true, applicationReceiveCallbackPacing: true,
     physicalCapacityMeasurement: false, physicalDeviceAcceptance: false, autoplayOverride: false,
     testChromeSpeakerOutputMuted: true, nativeAudioAnalyserUsed: false,
-    belowStreamScope: deficit ? 'admission-only; stop before unchanged room baseline; no perpetual-smoothness claim' : null },
+    belowStreamScope: deficit ? 'bounded deficit/admission observation; fallback playback recorded separately; no perpetual smoothness claim' : null },
   bounds: { playbackSeconds, startupSeconds, deficitSeconds }, stages: [], samples: [], errors: [],
   tracker: { connections: 0, offers: 0, answers: 0, announces: 0 }, mediaHTTPAttempts: [], apiCleartextMedia: false };
 const latest = new Map(), commands = [], contexts = [], ownedPages = [], swarms = new Map();
@@ -71,7 +72,7 @@ const server = https.createServer(localTLS, async (req, res) => {
     const url = new URL(req.url, origin || `https://127.0.0.1:${port}`);
     if (url.pathname === '/metrics' && req.method === 'POST') {
       const value = JSON.parse(await body(req)); if (!['viewer','source','downstream'].includes(url.searchParams.get('role'))) return json(res, {}, 400);
-      latest.set(url.searchParams.get('role'), value); return json(res, { ok: true });
+      const role=url.searchParams.get('role'),previous=latest.get(role);latest.set(role,value);if(role==='viewer'&&JSON.stringify([previous?.initialDelay?.state,previous?.initialDelay?.reason])!==JSON.stringify([value.initialDelay?.state,value.initialDelay?.reason])){report.initialTransitions??=[];report.initialTransitions.push({at:Date.now(),elapsed:value.elapsed,initialDelay:value.initialDelay,measurement:value.clientDelivery,clockReady:value.clockReady,visibility:value.visibility,received:value.received});}return json(res,{ok:true});
     }
     if (url.pathname === '/commands') return json(res, commands.filter(c => c.role === (url.searchParams.get('role') || 'viewer') && c.id > Number(url.searchParams.get('after') || 0)));
     if (url.pathname === '/status') return json(res, { device, profile, latest: Object.fromEntries(latest), stages: report.stages, pass: report.pass });
@@ -84,7 +85,7 @@ const server = https.createServer(localTLS, async (req, res) => {
       report.mediaHTTPAttempts.push({ path: url.pathname, at: Date.now() }); return res.writeHead(403).end('Media must arrive from authenticated peers and the local native bridge.');
     }
     if (['/','/watch.html','/viewer'].includes(url.pathname)) {
-      const options = JSON.stringify({ device, profile }).replace(/</g,'\\u003c');
+      const options = JSON.stringify({ device, profile, forceNative }).replace(/</g,'\\u003c');
       const redirect = url.pathname === '/viewer' && invitation ? `if(!location.hash)location.hash=${JSON.stringify(new URL(invitation).hash)};` : '';
       const probe = `<script>${redirect}(${initialDelayPageProbe.toString()})(${options});</script>`;
       const html = originalHTML.replaceAll(publicBase, '/api').replace(/wss:\/\/tracker\.[A-Za-z0-9.-]+(?:\/[A-Za-z0-9_/-]*)?/g, origin.replace('https:','wss:') + '/tracker').replace('<head>','<head>' + probe);
@@ -206,7 +207,7 @@ try {
     assert(first.probe.firstFrame?.sourceAge !== null, 'First decoded frame records actual source-age delay');
     assert(Math.abs(first.probe.firstFrame.sourceAge - selected) < 12, 'First actual frame agrees with selected local delay within decoder startup allowance');
     assert.equal(first.probe.firstFrame.initialDelay?.state,'committed', 'Candidate is committed before first real advancing playback');
-    if (device === 'ios') { assert.equal(first.mode,'hls-native'); assert.equal(first.serviceWorkerControlled,true); }
+    if (device === 'ios' && forceNative) { assert.equal(first.mode,'hls-native'); assert.equal(first.serviceWorkerControlled,true); } else if(device==='ios')assert(['hls','hls-native'].includes(first.mode),'Actual iOS default player is recorded');
     else assert.equal(first.mode,'hls');
     report.startup = { initialDelay:first.initialDelay, firstFrame:first.probe.firstFrame, observedSourceAgeSeconds:first.probe.firstFrame.sourceAge, firstPlaybackMode:first.mode, secondsAfterSourceStart:first.elapsed };
     await progress('recommended-start-actually-playing', { selectedDelaySeconds:selected, observedSourceAgeSeconds:first.probe.firstFrame.sourceAge, mode:first.mode });

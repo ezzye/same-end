@@ -38,6 +38,7 @@ export function initialDelayPageProbe(options) {
       }
     };
   }
+  if(!isSource&&options.forceNative){let hls;Object.defineProperty(window,'SameEndHLS',{configurable:true,get:()=>hls,set:module=>{hls={...module,canPlay:()=>false}}});}
   let deliveryModule;
   Object.defineProperty(window, 'SameEndClientDelivery', { configurable: true,
     get: () => deliveryModule, set: module => {

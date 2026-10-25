@@ -138,3 +138,17 @@ test('preparation cannot play an un-due target or consume more than the total gr
  assert.equal(p.commit(facts(),1360100,100100),false);assert.equal(p.reason,'preparation-outside-group-bound');
  const unDue=policy();unDue.update(input());assert.equal(unDue.commit(facts(),1299999,100001),false);
 });
+test('a pinned decoder tolerates an arrival-phase recommendation withdrawal without chasing or bypassing headroom', () => {
+ const p=policy();p.update(input({measurement:measurement({routeAgeSeconds:60})}));
+ const transient=measurement({lastProgressAgeSeconds:3.5,routeAgeSeconds:63.5,recommendation:{status:'insufficient-data',reason:'need-fresh-live-observations',candidateInitialDelaySeconds:null,candidateReserveSeconds:null}});
+ p.update(input({nowMs:103500,sourceNowMs:1303500,measurement:transient}));
+ assert.equal(p.state,'preparing');assert.equal(p.targetProgramTime,0);assert.equal(p.commitCount,0);
+ assert.equal(p.commit(facts({decoderAheadSeconds:3}),1303500,103500),false);
+ assert(p.commit(facts(),1303500,103500));assert.equal(p.commitCount,1);assert.equal(p.selectedDelaySeconds,300);
+});
+test('a pinned trial still aborts stale or unknown progress, reset routes and unclocked media', () => {
+ for(const change of [
+  {lastProgressAgeSeconds:12.1}, {state:'stale'}, {classification:'unknown'},
+  {recordCount:0,observationSeconds:0,state:'insufficient-data'}, {routeAgeSeconds:1}
+ ]){const p=policy();p.update(input({measurement:measurement({routeAgeSeconds:60})}));p.update(input({nowMs:101000,sourceNowMs:1301000,measurement:measurement(change)}));assert.equal(p.state,'fallback');assert.equal(p.commit(facts(),1301000,101000),false);}
+});

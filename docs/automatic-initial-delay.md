@@ -7,7 +7,7 @@ It complements the observed-delivery estimator; it does not measure maximum ISP 
 ## Two timelines
 
 The signed room configuration, source clock, programme identity, retention and
-peer forwarding remain unchanged. A viewer may latch a shorter local playback
+peer forwarding remain unchanged. A viewer may latch a local starting delay on or behind that common
 baseline once before its first picture. The existing adaptive player can then
 retain additional local lag for smooth recovery. The source and another viewer
 can remain on the signed room baseline.
@@ -21,7 +21,7 @@ preparation/recovery time; reports must show that difference honestly.
 ## Admission
 
 - HLS viewers only; no source/legacy clock rewrite.
-- At least 20 seconds of fresh live observations; a 60-second analysis deadline.
+- At least 20 seconds of fresh live observations; a 60-second analysis deadline once the shared start is due.
 - No fast historical catch-up, stale clock/route, invalid signature, or duplicate credit.
 - Below-stream delivery combined with growing video age vetoes acceleration,
   including a sustained 0.95x path that is not caught by the diagnostic 0.9 threshold.
