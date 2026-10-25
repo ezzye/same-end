@@ -94,14 +94,38 @@ async function decision(h, changes = {}, signer = key) {
 }
 const hello = (h, d, fields = {}) => ({ type: 'hello', cast: h.state.config.id, commonStartVersion: 1, commonStartDecision: d, ...fields });
 
-test('pending common start holds host and viewer at programme-zero preparation without playing', () => {
+test('pending common start prepares source programme zero while keeping the viewer playback window negative', () => {
   for (const role of ['source', 'viewer']) {
     const h = harness({ role }); h.ctx.syncPlayback();
     assert.equal(h.state.commonStart.decision, null); assert.equal(h.state.player.startupHold, true);
     assert.equal(h.ctx.effectiveProgramTime(), 0); assert.equal(h.ctx.nominalProgramTime(), -278);
     assert.equal(h.trace.some(row => row[0] === 'sync'), false);
-    assert.equal(h.trace.filter(row => row[0] === 'window').at(-1)[1], 0);
+    assert.equal(h.trace.filter(row => row[0] === 'window').at(-1)[1], role === 'source' ? 0 : -278);
   }
+});
+
+test('a pending viewer keeps cache delivery and forwarding active while its actual staged window stays negative until the selected common moment', async () => {
+  const h = harness(), parent = h.peer('parent'); h.peer('child', 'down');
+  const local = []; h.state.player.enqueue = piece => local.push(piece.meta.seq);
+  h.ctx.stageWindow();
+  assert.equal(h.trace.filter(row => row[0] === 'window').at(-1)[1], -278);
+  assert.deepEqual(local, [0], 'verified media still enters the local cache-backed player during warmup');
+  assert.deepEqual(h.enqueued.filter(row => row.peer === 'child').map(row => row.seq), [0]);
+  await h.ctx.handleCommonHello(parent, hello(h, await decision(h)));
+  h.state.cache.push({ meta: { seq: 1, start: epoch + 2000, duration: 2000 } });
+  h.ctx.stageWindow();
+  assert.equal(h.trace.filter(row => row[0] === 'window').at(-1)[1], -8);
+  assert.deepEqual(local, [0, 1]);
+  assert.deepEqual(h.enqueued.filter(row => row.peer === 'child').map(row => row.seq), [0, 1]);
+  h.tick(7000); h.ctx.stageWindow();
+  assert.equal(h.trace.filter(row => row[0] === 'window').at(-1)[1], -1);
+  assert(h.trace.filter(row => row[0] === 'window').every(row => row[1] < 0));
+  h.tick(2000); h.ctx.stageWindow();
+  assert.equal(h.trace.filter(row => row[0] === 'window').at(-1)[1], 1);
+  assert.equal(h.ctx.commonDelaySeconds(), 30);
+  // This checks the real staging input, not AVPlayer behavior. The native
+  // headroom guard alone did not prove the warmup jump fixed; browser evidence
+  // must establish the combined path independently.
 });
 
 test('only the source selects and signs; host preparation commits once and viewers share its signed timeline', async () => {

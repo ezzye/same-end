@@ -151,11 +151,12 @@ const validateBaseline = state => {
   assert.equal(state.config.commonStartVersion,1);
   assert.deepEqual(identity(state), identity(current('source')), 'Signed room/source/programme identity is unchanged');
   assert(state.cacheBytes <= 192 * 1024 * 1024, 'Signed cache remains within hard bound');
+  if(deficit){assert.equal(state.initialDelay?.applied,false,'Deficit never applies accelerated local startup');assert.equal(state.initialDelay?.commitCount,0,'Deficit never commits accelerated local startup');const host=current('source');if(state.commonStart?.decisionId&&host?.commonStart?.decisionId)assert.equal(state.commonStart.decisionId,host.commonStart.decisionId,'Deficit source and viewer share the signed fallback decision');}
   assert(Number.isFinite(state.signedTarget),'Signed fallback target is observable');
   assert(Math.abs(state.signedTarget-(state.elapsed-300))<1.5,'Signed fallback clock mapping remains 300 seconds');
   if(['selected','fallback'].includes(state.commonStart?.state)){
     const delay=state.commonStart.delaySeconds;
-    if(forceFallback){assert.equal(state.commonStart.state,'fallback');assert.equal(delay,300);assert.equal(state.commonStart.reason,'observation-timeout');}
+    if(deficit||forceFallback){assert.equal(state.commonStart.state,'fallback');assert.equal(delay,300);if(forceFallback)assert.equal(state.commonStart.reason,'observation-timeout');}
     else assert(Number.isFinite(delay)&&delay>0&&delay<300,'Actual selected common delay is shorter than fallback');
     assert(state.commonStart.decisionId,'Common selection has a decision identity');
     assert(Math.abs(state.sharedTarget-(state.elapsed-delay))<1.5,'Shared target follows selected common clock');
