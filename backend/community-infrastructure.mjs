@@ -76,6 +76,19 @@ export function addCommunityInfrastructure(baseTemplate) {
   for(const [name,path] of [['FanMemberRoute','/v1/community/member/{proxy+}'],['FanMemberBaseRoute','/v1/community/member']]){
     resources[name]={Type:'AWS::ApiGatewayV2::Route',Properties:{ApiId:ref('Api'),RouteKey:`ANY ${path}`,AuthorizationType:'JWT',AuthorizerId:ref('FanAuthorizer'),AuthorizationScopes:[FAN_SCOPE],Target:{'Fn::Join':['/',['integrations',ref('Integration')]]}}};
   }
+  // Browser preflight carries no bearer token. Explicit OPTIONS routes take
+  // precedence over the protected ANY routes without opening application methods.
+  for (const [name, path] of [
+    ['StaffAdminPreflightRoute', '/v1/community/admin/{proxy+}'],
+    ['StaffAdminBasePreflightRoute', '/v1/community/admin'],
+    ['FanMemberPreflightRoute', '/v1/community/member/{proxy+}'],
+    ['FanMemberBasePreflightRoute', '/v1/community/member']
+  ]) {
+    resources[name] = {Type: 'AWS::ApiGatewayV2::Route', Properties: {
+      ApiId: ref('Api'), RouteKey: `OPTIONS ${path}`, AuthorizationType: 'NONE',
+      Target: {'Fn::Join': ['/', ['integrations', ref('Integration')]]}
+    }};
+  }
   const control = resources.Control.Properties;
   control.Environment ??= {};
   control.Environment.Variables ??= {};

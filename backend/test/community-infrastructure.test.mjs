@@ -117,6 +117,30 @@ test('fan public output values and Lambda configuration refer only to the fan po
   assert.deepEqual(added.Outputs.ApiBase, template.Outputs.ApiBase);
 });
 
+test('fan and staff preflight bypass JWT only for OPTIONS on their exact base and proxy paths', () => {
+  const r = addCommunityInfrastructure(template).Resources;
+  const preflightRoutes = [
+    ['StaffAdminPreflightRoute', 'StaffAdminRoute', '/v1/community/admin/{proxy+}'],
+    ['StaffAdminBasePreflightRoute', 'StaffAdminBaseRoute', '/v1/community/admin'],
+    ['FanMemberPreflightRoute', 'FanMemberRoute', '/v1/community/member/{proxy+}'],
+    ['FanMemberBasePreflightRoute', 'FanMemberBaseRoute', '/v1/community/member']
+  ];
+  for (const [preflightName, protectedName, path] of preflightRoutes) {
+    const preflight = r[preflightName].Properties, protectedRoute = r[protectedName].Properties;
+    assert.equal(preflight.RouteKey, `OPTIONS ${path}`);
+    assert.equal(preflight.AuthorizationType, 'NONE');
+    assert.equal(preflight.AuthorizerId, undefined); assert.equal(preflight.AuthorizationScopes, undefined);
+    assert.deepEqual(preflight.ApiId, {Ref: 'Api'}); assert.deepEqual(preflight.Target, r.Route.Properties.Target);
+    assert.equal(protectedRoute.RouteKey, `ANY ${path}`); assert.equal(protectedRoute.AuthorizationType, 'JWT');
+    assert.deepEqual(protectedRoute.AuthorizerId, {Ref: protectedName.startsWith('Fan') ? 'FanAuthorizer' : 'StaffAuthorizer'});
+    assert.deepEqual(protectedRoute.AuthorizationScopes, protectedName.startsWith('Fan') ? [FAN_SCOPE] : undefined);
+  }
+  const explicitlyUnauthenticated = Object.values(r).filter(resource => resource.Type === 'AWS::ApiGatewayV2::Route' && resource.Properties.AuthorizationType === 'NONE');
+  assert.equal(explicitlyUnauthenticated.length, 4);
+  assert.ok(explicitlyUnauthenticated.every(resource => resource.Properties.RouteKey.startsWith('OPTIONS ')), 'no application method may bypass JWT');
+  assert.deepEqual(r.Route, template.Resources.Route, 'public private-room routes remain unchanged');
+});
+
 test('domain derives a unique lowercase prefix of safe length from account and stack UUID', () => {
   const r = addCommunityInfrastructure(template).Resources;
   const prefix = r.StaffDomain.Properties.Domain;
