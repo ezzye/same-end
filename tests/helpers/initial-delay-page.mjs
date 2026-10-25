@@ -105,7 +105,7 @@ export function initialDelayPageProbe(options) {
   });
   addEventListener('error', event => telemetry.errors.push(String(event.message).slice(0, 400)));
   addEventListener('unhandledrejection', event => telemetry.errors.push(String(event.reason).slice(0, 400)));
-  let analyser, audioContext, meterSource, peakFrequency = null, lastFrame = null, commandId = 0;
+  let analyser, audioContext, meterSource, peakFrequency = null, lastFrame = null, frameRequest = null, commandId = 0;
   const snapshot = () => {
     const s = window.PrivateCast?.snapshot(), video = document.querySelector('#player');
     if (!s || !video) return null;
@@ -153,15 +153,22 @@ export function initialDelayPageProbe(options) {
     });
     video.addEventListener('seeking', () => telemetry.seeks.push({ at: Date.now(), time: video.currentTime }));
     const frame = (now, metadata) => {
-      const wall = Date.now(); telemetry.frames++; telemetry.lastFrameAt = wall;
+      frameRequest = null; const wall = Date.now(); telemetry.frames++; telemetry.lastFrameAt = wall;
       if (lastFrame !== null) telemetry.maxFrameGapMs = Math.max(telemetry.maxFrameGapMs, now - lastFrame);
       lastFrame = now;
       if (!telemetry.firstFrame && !video.paused && video.readyState >= 2) {
         const s = snapshot(); if (Number.isFinite(s?.programTime)) telemetry.firstFrame = { at: wall, mediaTime: metadata.mediaTime, programTime: s.programTime, sourceAge: s.sourceAge, initialDelay: s.initialDelay, paused: video.paused };
       }
-      video.requestVideoFrameCallback(frame);
+      frameRequest = video.requestVideoFrameCallback(frame);
     };
-    if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(frame);
+    // Safari can retire a pending frame request while an unloaded native player
+    // waits through the long room warm-up. Arm it against the active resource.
+    const armFrames = () => { if (!video.requestVideoFrameCallback) return;
+      if (frameRequest !== null) video.cancelVideoFrameCallback?.(frameRequest);
+      frameRequest = video.requestVideoFrameCallback(frame);
+    };
+    video.addEventListener('loadeddata', armFrames); video.addEventListener('playing', armFrames);
+    armFrames();
     if (!isSource) {
       const button = document.createElement('button'); button.id = 'initial-join'; button.textContent = 'Start test with sound';
       Object.assign(button.style, { position: 'fixed', top: '8px', left: '8px', zIndex: '2147483647' });
