@@ -1,0 +1,39 @@
+# Fans’ corner pilot contract
+
+Implementation scope agreed 25 October 2026: shared opt-in text forum, persistent operator feedback, small published waiting-content pack, and staff management. Private room secrets/chat and P2P match delivery are separate. No audio/video or real advertisements are included in this release.
+
+All endpoints are under `/v1/community`, JSON over the existing API base. Bearer fan secrets are 32 random bytes in base64url (43 characters); a fan identity is independent of all club invitations. Identity registration sends only a SHA-256 token hash. Fan credentials persist in this browser, feedback works before joining a room, and forum membership explicitly requires rules acceptance and a separate pilot code. Display names are self-chosen. No private-room identifiers, invitations or chat are sent.
+
+## Browser and API contract
+
+- `GET /config` → `{forumEnabled,categories:[{id,label}],adminAuth:{issuer,clientId,domain,redirectUri},retentionDays:365}`. Categories: `general`, `club`, `match`, `ideas`.
+- `POST /identities` `{id,tokenHash,name}` → `{id,name,forumMember:false}`. Registration is idempotent only for the same identity/credential. `GET /me` with fan bearer → `{id,name,forumMember,status,blockedMemberIds:[]}`.
+- `POST /membership` fan bearer, `{code,agree:true,name?:string}` → member profile. An explicit display name may be chosen at first forum joining while retaining the existing feedback identity. Membership can be disabled in settings. Codes are hashed by the service, never returned or logged. Staff set/rotate the code through management.
+- `GET /feedback` fan bearer → `{items}` for this fan only. `POST /feedback` fan bearer `{id,kind:'problem'|'suggestion'|'worked',title,text,contact?:string,diagnostics?:{build,role,roomState,playbackMode,sourceEnded,online,reserveSeconds}}` → feedback record `{id,kind,title,text,status:'received',response:'',createdAt,updatedAt}`. Contact and diagnostics stay private to sender/support. No arbitrary diagnostics. Reusing an id is idempotent within this identity. States: `received`, `investigating`, `answered`, `fixed`.
+- `GET /threads?category=general&cursor=...` member bearer → `{items,cursor}`; items expose `{id,category,title,excerpt,authorId,authorName,spoiler,locked,createdAt,updatedAt,replyCount}`. Hidden/deleted content is not returned.
+- `POST /threads` member bearer `{id,category,title,text,spoiler:boolean}` → thread record. `GET /threads/:id?cursor=...` member bearer → `{thread,replies,cursor}`; full thread/replies have `{id,authorId,authorName,text,createdAt,hidden?,deleted?}`. Replies have `threadId`. `POST /threads/:id/replies` `{id,text}` → reply. Match category forces spoiler protection. Posts must use safe text rendering.
+- `POST /reports` member bearer `{id,threadId,postId,reason}` → `{id,status:'open'}`. `POST /posts/delete` member bearer `{threadId,postId}` deletes only own post. `POST /blocks` `{memberId,blocked:boolean}` → profile; blocked authors are omitted from member reads.
+- `GET /content` unauthenticated → `{revision,items}`. Published and currently scheduled items only; complete JSON pack ≤50 KB. Items: `{id,type:'story'|'quiz'|'ad',title,body,question?,choices?:string[],answerIndex?,explanation?,sponsor?,url?}`. No arbitrary HTML, remote images, media, scripts or trackers. HTTPS links only, no invitation fragments. Local evergreen fallback remains available.
+
+## Staff contract
+
+Production routes `/v1/community/admin/*` require API Gateway verified Cognito JWT claims. Use an ID token obtained through hosted sign-in, authorization code + PKCE and MFA; role groups are `sameend-admin`, `sameend-support`, `sameend-moderator`, `sameend-editor`. Admin covers all. The backend must validate issuer/audience/group on the gateway claims, never a user-supplied role/header. Local loopback review can inject an explicit local admin credential hash; this is never enabled in Lambda. No staff bearer token is saved to localStorage or placed in URLs. PKCE state/verifier may live transiently in sessionStorage and are removed after exchange.
+
+- `GET /admin/feedback` → `{items,cursor}`; `POST /admin/feedback/:id` `{status,response}` → record. Support/admin only.
+- `GET /admin/threads?category=...&cursor=...` and `GET /admin/threads/:id` → same thread shapes, including hidden content for moderation. Moderator/admin only.
+- `POST /admin/moderation` `{threadId,postId,action:'hide'|'restore'|'lock'|'unlock',reason}` → `{ok:true}`. Moderator/admin only. No restore of author-deleted text.
+- `GET /admin/reports` → `{items,cursor}`; `POST /admin/reports/:id` `{status:'open'|'resolved',note}` → record. `POST /admin/members/:id` `{status:'active'|'suspended'}`. Moderator/admin only.
+- `GET /admin/content` → `{items,revision}`; `POST /admin/content` complete bounded item `{id,type,title,body,question?,choices?,answerIndex?,explanation?,sponsor?,url?,published:boolean,startsAt?:epochMilliseconds,endsAt?:epochMilliseconds}` → item. `DELETE /admin/content/:id` → `{ok:true}`. Editor/admin only.
+- `GET /admin/settings` → `{forumEnabled,hasJoinCode,requireReview?}`; `POST /admin/settings` `{forumEnabled,joinCode?:string}` → safe settings. Admin only. No join code is returned. Forum is disabled until a code is configured.
+- `GET /admin/audit` → `{items,cursor}`. Admin only. Audit records contain actor opaque ID, action, target, time and bounded moderation reason; never credentials, private room material, feedback body or contact data.
+
+All list reads bounded and paginated; stale/conflicting writes must not overwrite unrelated updates. Administrative changes and audit records commit together. Registration/post/report/feedback requests have per-identity/IP/global bounds; request size 16 KB, safe limits for fields, no raw IP persistence. Staff and fan permissions are distinct. Public reads never expose token hashes, contacts, diagnostics or moderation notes. Expiry and deletion are enforced on reads, not just asynchronous TTL. Local durable storage exists solely for isolated development and must never replace DynamoDB in deployment.
+
+Concurrency amendment: mutable records expose `version`. Staff update bodies and author deletion include `expectedVersion`, returning409 rather than silently replacing a changed record. New content/settings creation uses expectedVersion0; existing records use their returned version. Moderation hide/restore uses post version; lock/unlock uses thread version. Member suspension may use a fresh GET `/admin/members/:id` to obtain version first.
+
+## Integration ownership
+
+- API worker owns `backend/community-api.mjs`, `backend/test/community.test.mjs`; exports `createCommunityApi({store,now,allowedOrigins,adminAuth,localAdminTokenHash})` with `.handler(event)`.
+- Fan UI worker owns `community.js`, `community.css`; inserts UI after `#magnet-panel` at runtime and persistent header/footer access, without editing app.html/build-pwa. Reads `window.SameEndConfig.apiBase`; localhost uses `/api`. Export `window.SameEndCommunity={open,feedback,refresh}`. No auto forum loading/polling.
+- Staff worker owns `manage.html`, `manage.js`, `manage.css`, `backend/community-infrastructure.mjs`, `backend/test/community-infrastructure.test.mjs`, `docs/community-management.md`. Infrastructure function merges into current template; root integrates it. Staff HTML contains build-time `__SAME_END_CONFIG__` JSON placeholder.
+- Root owns buffering screen modules, build/app/serve and backend dispatch integration, local durable runner and end-to-end browser verification. All operate in the same isolated worktree without modifying another worker’s files.

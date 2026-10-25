@@ -55,11 +55,15 @@ try{if(!apiBase)apiBase=JSON.parse(await readFile(path.join(dir,'public-config.j
 if(process.env.SAME_END_LOCAL==='1')apiBase='';
 if(apiBase&&!/^https:\/\/[a-z0-9.-]+(?::[0-9]+)?$/.test(apiBase))throw Error('Use a public HTTPS API origin.');
 const runtime={apiBase,buildId:(process.env.CURRENT_DEPLOY_SHA||process.env.GITHUB_SHA)?.slice(0,12)||'local'};
+const communityStyle=await readFile(path.join(dir,'community.css'),'utf8');
+const waitingStyle=await readFile(path.join(dir,'waiting.css'),'utf8');
+const communityRuntime=await readFile(path.join(dir,'community.js'),'utf8');
+const waitingRuntime=(await readFile(path.join(dir,'waiting-core.js'),'utf8'))+'\n'+await readFile(path.join(dir,'waiting.js'),'utf8');
 const fixtures=JSON.parse(await readFile(path.join(dir,'fixtures.json'),'utf8'));
 const hero='data:image/webp;base64,'+(await readFile(path.join(dir,'assets/match-night.webp'))).toString('base64');
 const clubhouse='data:image/webp;base64,'+(await readFile(path.join(dir,'assets/clubhouse.webp'))).toString('base64');
 const css=(await readFile(path.join(dir,'personal-listings.css'),'utf8'))+'\n'+(await readFile(path.join(dir,'social.css'),'utf8'))+'\n'+(await readFile(path.join(dir,'brand.css'),'utf8')).replace('__HERO_IMAGE__',hero).replace('__CLUB_IMAGE__',clubhouse);
-html=html.replace('</head>','<style id="same-end-brand">'+css+'</style></head>');
+html=html.replace('</head>','<style id="same-end-brand">'+css+'</style><style id="same-end-community-style">'+communityStyle+'\n'+waitingStyle+'</style></head>');
 const social=await readFile(path.join(dir,'social.js'),'utf8');
 const personalUI=(await readFile(path.join(dir,'extension/reader-core.js'),'utf8'))+'\n'+(await readFile(path.join(dir,'personal-listings.js'),'utf8'));
 const scheduleUI=(await readFile(path.join(dir,'listing-sources.js'),'utf8'))+'\n'+await readFile(path.join(dir,'schedule-ui.js'),'utf8');
@@ -116,6 +120,14 @@ const join=$('join-magnet-button').onclick;$('join-magnet-button').onclick=async
 addEventListener('load',joinFromURL);addEventListener('hashchange',joinFromURL);
 })();
 </script></body>`);
+
+// Include the feature sources before the browser UI snapshots its clean saved
+// app; fan identity/drafts mount only after DOMContentLoaded/user activation.
+html=html.replace('<script id="same-end-browser-ui">','<script id="same-end-community">'+communityRuntime+'\n'+waitingRuntime+'</script><script id="same-end-browser-ui">');
+const management=(await readFile(path.join(dir,'manage.html'),'utf8')).replace('__SAME_END_CONFIG__',JSON.stringify(runtime).replace(/</g,'\\u003c'));
+await writeFile(path.join(out,'manage.html'),management);
+await writeFile(path.join(out,'manage.css'),await readFile(path.join(dir,'manage.css')));
+await writeFile(path.join(out,'manage.js'),(await transform(await readFile(path.join(dir,'manage.js'),'utf8'),{loader:'js',target:browserTargets})).code);
 
 // Keep the generated offline runtime executable on the declared legacy syntax floor.
 const inlineScripts=[...html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)];

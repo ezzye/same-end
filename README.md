@@ -1,5 +1,15 @@
 # Same End
 
+## Fans’ corner pilot (review branch)
+
+The third item after **Bring your mates** offers persistent private feedback and a separate, opt-in fan forum spanning rooms. Forum joining uses a distinct pilot code; it never reveals private room invitations or encrypted chat. Spoiler topics conceal their title and body until deliberately revealed. The waiting screen offers a small published text/quiz/sponsor pack and an offline football tip; it leaves capture, match sound and the group clock untouched and gives way to a verified ready picture. No server audio/video or actual advertiser is included.
+
+The staff desk at `/manage.html` manages feedback replies/statuses, moderation and reports, member suspension, waiting content/schedules, pilot settings and an audit trail. Production infrastructure adds administrator-created Cognito accounts, required authenticator MFA and role-protected API routes. See [management setup](docs/community-management.md), [API contract](docs/community-contract.md) and [privacy](PRIVACY.md). Production sign-in, deployed persistence and physical-device acceptance require separate verification.
+
+For an isolated review, run `npm run review:community`. It binds only to this computer at `http://127.0.0.1:8972/`, with the staff desk at `/manage.html`. Its random local review credential is in the ignored `privatework/community-review/access.json` file; keep it private and paste it into **Enter local review**. This fixture credential has no production authority. Review data persists under that ignored directory. Stop the launcher with Ctrl+C. The launcher does not deploy or modify the live service.
+
+Validation: `npm run build`, `npm test`, and `SAME_END_LOCAL=1 npm run build && npm run test:community`. Browser checks require Playwright (`SAMEEND_PLAYWRIGHT` can identify its module) and Chrome (`CHROME_PATH` can override its executable). The community harness owns isolated loopback servers and temporary test identities; it never operates a live room. Waiting readiness in that harness is a state fixture, not real-network match acceptance.
+
 **Your match. Your mates.** A private football club for planning the next game, chatting with your mates and watching the same delayed picture together.
 
 Open [Same End](https://www.sameend.com/watch.html) in Safari, Chrome or Edge. The compatibility player supports MP4 viewing on phones, tablets and computers; see the device targets and evidence below. There is no account or extension to install. Installing the app is optional. The standalone [guide](test-guide.html) can be saved and shared as an HTML file.
