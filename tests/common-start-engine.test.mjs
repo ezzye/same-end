@@ -79,7 +79,10 @@ function harness({ role = 'viewer', subtle = webcrypto.subtle, nativeMinimum = 4
     },
     report: () => ctx.window.SameEndCommonStart.reportFromMeasurement(measurement(), time),
     async signingDone() {
-      for (let i = 0; state.commonStart?.signing && i < 100; i++) await new Promise(resolve => setImmediate(resolve));
+      // WebCrypto settles on a worker; a count of immediate ticks can exhaust in
+      // a few milliseconds on CI before that worker has run.
+      const deadline = performance.now() + 2000;
+      while (state.commonStart?.signing && performance.now() < deadline) await new Promise(resolve => setTimeout(resolve, 2));
       assert.equal(state.commonStart?.signing, false, 'source signing did not settle');
     } };
 }
