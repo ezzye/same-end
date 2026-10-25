@@ -24,8 +24,21 @@ const checks=[],errors=[],external=[];let browser;
 async function seen(page,locator){await locator.waitFor({state:'visible',timeout:10000});}
 async function notice(page,pattern){await page.waitForFunction(({id,source,flags})=>new RegExp(source,flags).test(document.getElementById(id)?.textContent||''),{id:'notice',source:pattern.source,flags:pattern.flags},{timeout:10000});}
 async function openForum(page){await seen(page,page.locator('#fan-forum'));if(await page.locator('#ff-toggle').getAttribute('aria-expanded')!=='true')await page.locator('#ff-toggle').click();await seen(page,page.locator('#ff-body'));}
-async function join(page,name){await openForum(page);await page.getByRole('button',{name:'Join the conversation',exact:true}).first().click();await seen(page,page.locator('#fc-code'));await page.locator('#fc-name').fill(name);await page.locator('#fc-code').fill(pilot);await page.locator('#fc-agree').check();await page.getByRole('button',{name:'Join and start posting',exact:true}).click();await seen(page,page.locator('.ff-me'));}
-async function newThread(page,title,text,topic){await page.getByRole('button',{name:'Start a discussion',exact:true}).click();if(topic)await page.locator('.ff-topic').getByRole('radio',{name:topic,exact:true}).click();await page.locator('#ff-new-title').fill(title);await page.locator('#ff-new-text').fill(text);await page.getByRole('button',{name:'Post discussion',exact:true}).click();await seen(page,page.getByRole('button',{name:'All discussions'}));}
+async function assertJoinLayout(page){
+ const original=page.viewportSize();
+ for(const width of [1796,1280,390,320]){
+  await page.setViewportSize({width,height:1000});await page.locator('#fc-agree').scrollIntoViewIfNeeded();
+  const geometry=await page.locator('.ff-join').evaluate(form=>{const label=form.querySelector('.ff-check'),box=label.querySelector('input'),text=label.querySelector('span');const f=form.getBoundingClientRect(),l=label.getBoundingClientRect(),b=box.getBoundingClientRect(),r=text?.getBoundingClientRect();return {formRight:f.right,labelRight:l.right,labelHeight:l.height,boxWidth:b.width,boxRight:b.right,textRight:r?.right,textWidth:r?.width,viewport:innerWidth,pageWidth:document.documentElement.scrollWidth};});
+  if(geometry.boxWidth>24)await page.locator('.ff-join').screenshot({path:evidenceDir+'/join-layout-before.png'});
+  assert.ok(geometry.boxWidth>=14&&geometry.boxWidth<=24,'Checkbox must keep its native compact width: '+JSON.stringify({width,...geometry}));
+  assert.ok(geometry.textWidth>150&&geometry.textRight<=geometry.formRight+1,'Rules text stays readable inside the form');
+  assert.ok(geometry.labelHeight<220&&geometry.pageWidth<=geometry.viewport,'Consent row wraps without a tall gap or page overflow');
+  if(width===1280||width===320)await page.locator('.ff-join').screenshot({path:evidenceDir+'/join-layout-'+width+'.png'});
+ }
+ await page.setViewportSize(original);
+}
+async function join(page,name){await openForum(page);await page.getByRole('button',{name:'Join the conversation',exact:true}).first().click();await seen(page,page.locator('#fc-code'));await assertJoinLayout(page);await page.locator('#fc-name').fill(name);await page.locator('#fc-code').fill(pilot);await page.locator('#fc-agree').check();await page.getByRole('button',{name:'Join and start posting',exact:true}).click();await seen(page,page.locator('.ff-me'));}
+async function newThread(page,title,text,topic){await page.getByRole('button',{name:'Start a discussion',exact:true}).click();const spoilerBox=page.locator('.ff-compose input[type=checkbox]');if(await spoilerBox.isVisible()){assert.ok(await spoilerBox.evaluate(n=>n.getBoundingClientRect().width<=24));await page.locator('.ff-compose .ff-check span').click();assert.equal(await spoilerBox.isChecked(),true);await page.locator('.ff-compose .ff-check span').click();assert.equal(await spoilerBox.isChecked(),false);}if(topic)await page.locator('.ff-topic').getByRole('radio',{name:topic,exact:true}).click();await page.locator('#ff-new-title').fill(title);await page.locator('#ff-new-text').fill(text);await page.getByRole('button',{name:'Post discussion',exact:true}).click();await seen(page,page.getByRole('button',{name:'All discussions'}));}
 const feedbackButton=page=>page.locator('.fc-footer-access').getByRole('button',{name:'Send feedback',exact:true});
 try{
  await waitServer();browser=await chromium.launch({headless:true,...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:process.platform==='darwin'?{executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'}:{})});
