@@ -279,7 +279,7 @@ async function boot() {
   try {
     const config = await request('/config', {publicRequest: true});
     try { auth = validateAuthConfiguration(config.adminAuth, location.href); $('hosted-signin').disabled = false; $('session').textContent = 'Signed out';
-      mfaSetup=createStaffMfa({auth,container:$('staff-mfa'),onComplete:()=>{message('Your authenticator is ready. Choose “Sign in securely” to finish.');$('session').textContent='Authenticator ready';$('hosted-signin').disabled=false;$('hosted-signin').focus();},onCancel:()=>{$('hosted-signin').disabled=!auth;}});
+      mfaSetup=createStaffMfa({auth,container:$('staff-mfa'),onComplete:()=>{message('Your authenticator is ready. Choose “Sign in securely”, then use a fresh code from your app.');$('session').textContent='Authenticator ready';$('hosted-signin').disabled=false;$('hosted-signin').focus();},onCancel:()=>{$('hosted-signin').disabled=!auth;}});
       $('finish-mfa').hidden=!auth.enrollmentClientId;
     }
     catch (error) { $('session').textContent = local ? 'Local review' : 'Sign-in unavailable'; $('signin-help').textContent = local ? 'Use the configured test credential below for local review. Production requires secure sign-in and MFA.' : error.message; }
