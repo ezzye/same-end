@@ -56,6 +56,8 @@ body.fc-open{overflow:hidden}
 .ff-danger-btn{background:#9e2a22;border-color:#9e2a22;color:#fff}
 /* Identity bar, guest banner and join */
 .ff-me,.ff-guest{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px;color:var(--ff-muted)}
+.ff-account-choice{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 15px;border:1px solid rgba(244,183,63,.4);border-radius:12px;background:rgba(244,183,63,.07);color:var(--ff-muted)}
+.ff-account-choice strong{flex:1 0 100%;color:var(--ff-text)}.ff-account-choice p{flex:1 0 100%;margin:0}
 .ff-me b{color:var(--ff-text)}
 .ff-me-name{flex:1;min-width:0}
 .ff-guest{justify-content:space-between;padding:12px 14px;border:1px dashed rgba(244,183,63,.5);border-radius:12px;background:rgba(244,183,63,.07)}

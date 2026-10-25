@@ -69,7 +69,7 @@ if(apiBase&&!/^https:\/\/[a-z0-9.-]+(?::[0-9]+)?$/.test(apiBase))throw Error('Us
 const runtime={apiBase,buildId:(process.env.CURRENT_DEPLOY_SHA||process.env.GITHUB_SHA)?.slice(0,12)||'local',automaticInitialDelay:process.env.SAMEEND_AUTOMATIC_INITIAL_DELAY!=='0',automaticCommonStart:process.env.SAMEEND_AUTOMATIC_COMMON_START!=='0'};
 const communityStyle=await readFile(path.join(dir,'community.css'),'utf8');
 const waitingStyle=await readFile(path.join(dir,'waiting.css'),'utf8');
-const communityRuntime=await readFile(path.join(dir,'community.js'),'utf8');
+const communityRuntime=(await readFile(path.join(dir,'fan-auth.js'),'utf8'))+'\n'+await readFile(path.join(dir,'community.js'),'utf8');
 const waitingRuntime=(await readFile(path.join(dir,'waiting-core.js'),'utf8'))+'\n'+await readFile(path.join(dir,'waiting.js'),'utf8');
 const fixtures=JSON.parse(await readFile(path.join(dir,'fixtures.json'),'utf8'));
 const hero='data:image/webp;base64,'+(await readFile(path.join(dir,'assets/match-night.webp'))).toString('base64');
@@ -138,6 +138,9 @@ addEventListener('load',joinFromURL);addEventListener('hashchange',joinFromURL);
 html=html.replace('<script id="same-end-browser-ui">','<script id="same-end-community">'+communityRuntime+'\n'+waitingRuntime+'</script><script id="same-end-browser-ui">');
 const management=(await readFile(path.join(dir,'manage.html'),'utf8')).replace('__SAME_END_CONFIG__',JSON.stringify(runtime).replace(/</g,'\\u003c'));
 await writeFile(path.join(out,'manage.html'),management);
+// The account callback is intentionally outside the offline service-worker shell.
+for(const file of ['fan-signin.html','fan-signin.css'])await writeFile(path.join(out,file),await readFile(path.join(dir,file)));
+await writeFile(path.join(out,'fan-signin.js'),(await transform(await readFile(path.join(dir,'fan-signin.js'),'utf8'),{loader:'js',target:browserTargets})).code);
 await writeFile(path.join(out,'manage.css'),await readFile(path.join(dir,'manage.css')));
 // Staff-only starter discussions; validated JSON, published through the authenticated staff desk.
 const starters=JSON.parse(await readFile(path.join(dir,'community-starters.json'),'utf8'));if(!Array.isArray(starters.items)||starters.items.length>20)throw Error('Invalid community starter pack.');

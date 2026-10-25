@@ -1,5 +1,5 @@
 /* Fan forum (section 3) and private feedback. No room secrets or chat are read here.
- * Anyone can read an open forum. Posting, replying and liking need the pilot code. */
+ * Anyone can read an open forum. Posting, replying and liking need a pilot account and the pilot code. */
 (function () {
   'use strict';
   const STORE_KEY = 'sameend-fan-identity-v1', UI_KEY = 'sameend-forum-ui-v1', DRAFT_KEY = 'sameend-fc-feedback-draft';
@@ -8,7 +8,7 @@
   const POLL_MS = 25000, MAX_POLL_MS = 120000, CHILD_PREVIEW = 3, TOP_PREVIEW = 20;
   const RULES = 'I agree to the forum rules: be kind, keep personal information private, and never post viewing links or private room details. Posts are public: anyone using Same End can read them.';
   const state = {
-    identity: null, me: null, meLoaded: false, ui: { open: false, sort: 'hot', category: 'all', commentSort: 'top', lastSeen: 0 },
+    identity: null, me: null, meLoaded: false, account: null, accountReady: false, authEpoch: 0, authMessage: '', claimOld: false, authConfig: null, ui: { open: false, sort: 'hot', category: 'all', commentSort: 'top', lastSeen: 0 },
     list: { items: [], cursor: null, total: 0, latest: 0, loaded: false, loading: false, error: '' },
     thread: null, pending: 0, closed: false, revealed: new Set(), drafts: new Map(), composing: false, joining: false,
     replyTo: null, menuFor: null, reportFor: null, deleteFor: null, timer: null, pollMs: POLL_MS, busy: false,
@@ -83,19 +83,28 @@
     return u.href.replace(/\/$/, '');
   }
   const KNOWN = { forum_closed: 'The fan forum is not open yet.', membership_required: 'Join the conversation to post, reply or like.', thread_locked: 'This discussion is locked.', reply_limit: 'This discussion has reached its reply limit.', join_unavailable: 'That code was not accepted. Check it with the organiser.', post_not_found: 'That comment is no longer available.', thread_not_found: 'This discussion is no longer available.', member_suspended: 'This identity cannot take part in the forum.' };
-  function request(path, method, body, auth) {
+  function request(path, method, body, auth, asMember) {
     const headers = { 'Content-Type': 'application/json' };
-    if (auth && state.identity) headers.Authorization = 'Bearer ' + state.identity.token;
+    const helper = window.SameEndFanAuth, epoch = state.authEpoch;
+    if (asMember) {
+      if (!helper || !helper.signedIn()) return Promise.reject(new Error('Sign in to take part in the fan forum.'));
+      const token = helper.accessToken(); if (!token) return Promise.reject(new Error('Your forum sign-in has expired. Sign in again.'));
+      headers.Authorization = 'Bearer ' + token; path = '/member' + path;
+    } else if (auth && state.identity) headers.Authorization = 'Bearer ' + state.identity.token;
     let url; try { url = apiBase() + '/v1/community' + path; } catch (e) { return Promise.reject(e); }
     return fetch(url, { method: method || 'GET', headers, body: body ? JSON.stringify(body) : undefined, credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer' })
       .then(r => r.json().catch(() => ({})).then(data => {
+        if (epoch !== state.authEpoch) throw new Error('Your sign-in changed. Please try again.');
         if (r.ok) return data;
-        const e = new Error(KNOWN[data.code] || (r.status === 409 ? 'Something changed while you were working. Try again.' : r.status === 429 ? 'Too many requests. Give it a moment and try again.' : r.status === 401 ? 'Your saved fan identity was not recognised.' : 'The forum could not complete that. Try again shortly.'));
+        if (asMember && r.status === 401 && data.code !== 'account_profile_required' && helper.clearSession) helper.clearSession('expired');
+        const e = new Error(KNOWN[data.code] || (r.status === 409 ? 'Something changed while you were working. Try again.' : r.status === 429 ? 'Too many requests. Give it a moment and try again.' : r.status === 401 ? (asMember ? 'Your forum sign-in expired. Sign in again.' : 'Your saved fan identity was not recognised.') : 'The forum could not complete that. Try again shortly.'));
         e.status = r.status; e.code = data.code; throw e;
       }), e => { throw new Error(e instanceof TypeError ? 'The forum is unreachable. Check your connection and try again.' : e.message); });
   }
+  const memberRequest = (path, method, body) => request(path, method, body, false, true);
   // Reads include the saved identity (for likes and blocks) but never fail because of it.
-  function read(path) { return request(path, 'GET', null, true).catch(e => { if (e.status === 401 && state.identity) return request(path, 'GET', null, false); throw e; }); }
+  // The public thread route is always anonymous. Account reads use its protected member twin.
+  function read(path) { return member() ? memberRequest(path, 'GET') : request(path, 'GET', null, false); }
   function b64(bytes) { let s = ''; for (const b of bytes) s += String.fromCharCode(b); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
   function uuid() {
     if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
@@ -119,19 +128,81 @@
     });
   }
   function getMe() {
-    return ensureIdentity().then(() => request('/me', 'GET', null, true)).then(m => { state.me = m; state.meLoaded = true; if (m && m.name) state.identity.name = String(m.name).slice(0, 40); return m; });
+    return ensureIdentity().then(() => request('/me', 'GET', null, true)).then(m => { if (!hasAccount()) { state.me = m; state.meLoaded = true; } if (m && m.name) state.identity.name = String(m.name).slice(0, 40); return m; });
   }
   function loadMe() {
     if (!state.identity) { state.meLoaded = true; return Promise.resolve(null); }
     return getMe().catch(() => { state.meLoaded = true; return null; });
   }
-  const member = () => !!(state.me && state.me.forumMember && state.me.status === 'active');
+  function clearPersonalState(reason) {
+    state.authEpoch++; state.me = null; state.meLoaded = true; state.account = null; state.accountReady = false;
+    state.joining = false; state.claimOld = false; state.composing = false; state.replyTo = null;
+    state.menuFor = state.reportFor = state.deleteFor = null; state.drafts.clear(); state.thread = null;
+    state.draft = null; try { sessionStorage.removeItem(DRAFT_KEY); } catch (_) {}
+    state.list = { items: [], cursor: null, total: 0, latest: 0, loaded: false, loading: false, error: '' };
+    const view = $('ff-view'); if (view) replace(view);
+    if (state.feedbackOpen) { const body = $('fc-body'); if (body) replace(body); }
+    status(reason === 'expired' ? 'Your forum sign-in expired. Sign in again to continue.' : '');
+  }
+  function accountChanged(event) {
+    clearPersonalState(event && event.type);
+    state.authMessage = event && event.message || '';
+    if (event && event.type === 'signed-in') {
+      state.accountReady = true;
+      memberMe().then(() => { if (state.feedbackOpen) renderFeedback($('fc-body')); });
+    } else { state.accountReady = true; render(); refreshList(true); if (state.feedbackOpen) renderFeedback($('fc-body')); }
+  }
+  function memberMe() {
+    if (!window.SameEndFanAuth || !window.SameEndFanAuth.signedIn()) return Promise.resolve(null);
+    const epoch = state.authEpoch; state.accountReady = true; state.meLoaded = false; render();
+    return memberRequest('/me', 'GET').then(me => {
+      if (epoch !== state.authEpoch) return null;
+      state.me = me; state.account = me; state.meLoaded = true; state.accountReady = true; state.joining = false;
+      state.claimOld = false; return refreshList(true).then(() => me);
+    }).catch(e => {
+      if (epoch !== state.authEpoch) return null;
+      state.meLoaded = true;
+      if ((e.status === 404 && e.code === 'account_setup_required') || (e.status === 401 && e.code === 'account_profile_required')) {
+        state.accountReady = true;
+        if (state.identity) { state.claimOld = true; state.joining = false; render(); }
+        else return memberRequest('/identity', 'POST', { name: 'Fan' }).then(me => { if (epoch === state.authEpoch) { state.me = state.account = me; render(); return refreshList(true); } }).catch(err => { if (epoch === state.authEpoch) status(err.message, true); });
+      } else status(e.message, true);
+      render(); return null;
+    });
+  }
+  function setupAccount(claim) {
+    const old = state.identity, payload = {};
+    if (claim && old) { payload.legacyToken = old.token; if (old.name) payload.name = old.name; }
+    else payload.name = 'Fan';
+    const epoch = state.authEpoch;
+    memberRequest('/identity', 'POST', payload).then(me => {
+      if (epoch !== state.authEpoch) return;
+      if (claim && old) { try { localStorage.removeItem(STORE_KEY); } catch (_) {} state.identity = null; }
+      state.me = state.account = me; state.meLoaded = true; state.claimOld = false; render(); refreshList(true);
+      if (state.feedbackOpen) renderFeedback($('fc-body'));
+    }).catch(e => status(e.message, true));
+  }
+  function configureAccounts() {
+    let url; try { url = apiBase() + '/v1/community/config'; } catch (_) { return Promise.resolve(); }
+    return fetch(url, { credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer' }).then(r => r.ok ? r.json() : null).then(data => {
+      const helper = window.SameEndFanAuth;
+      if (data && data.fanAuth && helper && typeof helper.configure === 'function') { state.authConfig = data.fanAuth; helper.configure(data.fanAuth); }
+    }).catch(() => {});
+  }
+  const hasAccount = () => !!(window.SameEndFanAuth && window.SameEndFanAuth.signedIn() && state.account);
+  const member = () => !!(state.accountReady && window.SameEndFanAuth && window.SameEndFanAuth.signedIn() && state.me && state.me.forumMember && state.me.status === 'active');
 
   // ---------- section shell ----------
   function status(text, bad) { const n = $('ff-status'); if (n) { n.textContent = text || ''; n.classList.toggle('ff-error', !!bad); } }
   function build() {
     if (state.built || !document.body) return; state.built = true;
     loadUI(); loadIdentity();
+    window.addEventListener('storage', event => {
+      if (event.key !== STORE_KEY && event.key !== null) return;
+      loadIdentity();
+      if (!window.SameEndFanAuth || !window.SameEndFanAuth.signedIn()) { state.authEpoch++; state.me = null; }
+      if (state.feedbackOpen) renderFeedback($('fc-body'));
+    });
     const top = document.querySelector('.topbar');
     if (top) top.append(el('div', { className: 'fc-header-access' }, [button('Fan forum', () => openForum(), 'fc-access')]));
     const footer = document.querySelector('footer');
@@ -164,7 +235,12 @@
     document.addEventListener('visibilitychange', () => { if (document.hidden) clearTimeout(state.timer); else if (state.ui.open && state.inView) poll(); });
     document.addEventListener('click', e => { if (state.menuFor && !e.target.closest('.ff-menu-wrap')) { state.menuFor = null; render(); } });
     setOpen(state.ui.open, true);
-    loadMe().then(() => refreshList(true));
+    configureAccounts().then(() => {
+      const helper = window.SameEndFanAuth;
+      if (helper && helper.onChange) helper.onChange(accountChanged);
+      if (helper && helper.signedIn()) return memberMe();
+      state.accountReady = true; state.meLoaded = true; return refreshList(true).then(render);
+    });
   }
   function setOpen(open, initial) {
     state.ui.open = !!open; saveUI();
@@ -215,7 +291,7 @@
   function schedule() { clearTimeout(state.timer); if (state.ui.open && state.inView && !document.hidden) state.timer = setTimeout(poll, state.pollMs); }
   function poll() {
     clearTimeout(state.timer); if (!state.ui.open || !state.inView || document.hidden) return;
-    const t = state.thread, mine = id => state.identity && id === state.identity.id;
+    const t = state.thread, mine = id => member() && id === state.me.id;
     let check = Promise.resolve();
     if (t && t.data) check = read('/threads/' + encodeURIComponent(t.id)).then(data => {
       if (state.thread !== t || !t.data) return;
@@ -262,15 +338,25 @@
   }
   function emptyState(title, text, action) { return el('div', { className: 'ff-empty' }, [el('strong', { text: title }), el('p', { text }), action || null]); }
   function identityBar() {
-    if (!state.meLoaded) return null;
+    const helper = window.SameEndFanAuth;
+    if (!state.meLoaded || !state.accountReady) return null;
+    if (state.claimOld) return el('div', { className: 'ff-account-choice' }, [el('strong', { text: 'Set up your forum profile' }), el('p', { text: 'This browser has older forum posts or feedback. You can bring that history into this account, or start with a new forum profile.' }),
+      button('Bring this browser’s posts and feedback into this account', () => setupAccount(true), 'ff-btn ff-primary'), button('Start with a new forum profile', () => setupAccount(false), 'ff-btn')]);
     if (member()) return el('div', { className: 'ff-me' }, [avatar(state.me.name, true), el('span', { className: 'ff-me-name' }, ['Posting as ', el('b', { text: state.me.name })]),
+      button('Sign out', () => helper.signOut(), 'ff-btn ff-ghost'),
       !state.thread && !state.composing ? button([icon('plus'), 'Start a discussion'], () => { state.composing = true; render(); const n = $('ff-new-title'); if (n) n.focus(); }, 'ff-btn ff-primary ff-start') : null]);
-    if (state.joining) return joinForm();
-    return el('div', { className: 'ff-guest' }, [el('p', {}, [el('b', { text: 'Reading as a guest. ' }), 'Join the conversation to start discussions, reply and like.']),
+    if (!helper || !helper.signedIn()) return el('div', { className: 'ff-guest' }, [el('p', {}, [el('b', { text: 'Reading as a guest. ' }), 'Sign in or create an account to join the fan forum. Private rooms do not need an account.']),
+      state.authMessage ? el('p', {className:'ff-error', text:state.authMessage}) : null,
+      state.authMessage ? button('Finish signing out', () => helper.signOut(), 'ff-btn') : null,
+      button('Sign in / Create account', () => helper && helper.signIn().catch(e => status(e.message, true)), 'ff-btn ff-primary')]);
+    const accountBar = el('div', {className:'ff-me'}, [el('span', {text:'Signed in to your pilot account'}), button('Sign out', () => helper.signOut(), 'ff-btn ff-ghost')]);
+    if (state.me && state.me.status === 'suspended') return el('div', {}, [accountBar, emptyState('Your forum participation is paused.', 'You can still read discussions and send private feedback to the team.')]);
+    if (state.joining) return el('div', {}, [accountBar, joinForm()]);
+    return el('div', { className: 'ff-guest' }, [accountBar, el('p', {}, ['Choose a display name and enter your pilot code to start discussions, reply and like.']),
       button('Join the conversation', () => { state.joining = true; render(); const n = $('fc-name'); if (n) n.focus(); }, 'ff-btn ff-primary')]);
   }
   function joinForm() {
-    const known = (state.me && state.me.name !== 'Fan' && state.me.name) || (state.identity && state.identity.name !== 'Fan' && state.identity.name) || '';
+    const known = (state.me && state.me.name !== 'Fan' && state.me.name) || '';
     const name = el('input', { id: 'fc-name', 'data-draft': 'join-name', maxlength: '40', required: true, autocomplete: 'nickname', placeholder: 'How other fans see you', value: state.drafts.get('join-name') || known });
     const code = el('input', { id: 'fc-code', type: 'password', maxlength: '128', minlength: '8', required: true, autocomplete: 'off', placeholder: 'From the organiser' });
     const agree = el('input', { id: 'fc-agree', type: 'checkbox', required: true });
@@ -286,8 +372,8 @@
     if (!agreed || state.busy) return;
     const body = { code, agree: true }, chosen = String(name || '').trim().slice(0, 40); if (chosen) body.name = chosen;
     state.busy = true; status('Joining…');
-    ensureIdentity(chosen || 'Fan').then(() => request('/membership', 'POST', body, true)).then(me => {
-      state.me = me; state.meLoaded = true; if (me && me.name) state.identity.name = me.name; state.joining = false; state.drafts.delete('join-name');
+    memberRequest('/membership', 'POST', body).then(me => {
+      state.me = state.account = me; state.meLoaded = true; state.joining = false; state.drafts.delete('join-name');
       status('Welcome, ' + me.name + '. You can now post, reply and like.');
       // Re-read so your own likes and blocks apply.
       if (state.thread) loadThread(); else refreshList(true);
@@ -343,7 +429,7 @@
     let postId = null; [title, text].forEach(n => n.addEventListener('input', () => { postId = null; }));
     return el('form', { className: 'ff-compose', on: { submit: e => {
       e.preventDefault(); if (state.busy) return; const submittedTitle = title.value, submittedText = text.value; postId = postId || uuid(); state.busy = true; status('Posting…');
-      request('/threads', 'POST', { id: postId, category, title: title.value.trim(), text: text.value.trim(), spoiler: category === 'match' || spoiler.checked }, true).then(t => {
+      memberRequest('/threads', 'POST', { id: postId, category, title: title.value.trim(), text: text.value.trim(), spoiler: category === 'match' || spoiler.checked }, true).then(t => {
         if (title.value === submittedTitle && text.value === submittedText) { title.value = ''; text.value = ''; state.drafts.delete('new-title'); state.drafts.delete('new-text'); } state.composing = false; status('Your discussion is live.');
         if (state.ui.category !== 'all' && state.ui.category !== category) state.ui.category = 'all';
         state.ui.sort = 'new'; saveUI(); state.revealed.add(t.id);
@@ -384,7 +470,7 @@
   function sortRoots(list) { return list.slice().sort(state.ui.commentSort === 'new' ? (a, b) => b.createdAt - a.createdAt : (a, b) => (b.score || 0) - (a.score || 0) || a.createdAt - b.createdAt); }
   function descendants(id, tree) { let n = 0; for (const c of tree.get(id) || []) n += 1 + descendants(c.id, tree); return n; }
   function comment(r, tree, thread) {
-    const t = state.thread, children = tree.get(r.id) || [], collapsed = t.collapsed.has(r.id), removed = r.deleted || r.hidden || r.blocked, mine = state.identity && r.authorId === state.identity.id;
+    const t = state.thread, children = tree.get(r.id) || [], collapsed = t.collapsed.has(r.id), removed = r.deleted || r.hidden || r.blocked, mine = member() && r.authorId === state.me.id;
     const toggle = button(collapsed ? '+' : '−', () => { if (collapsed) t.collapsed.delete(r.id); else t.collapsed.add(r.id); render(); }, 'ff-collapse', { 'aria-expanded': String(!collapsed), 'aria-label': (collapsed ? 'Expand' : 'Collapse') + ' comment' + (r.authorName ? ' by ' + r.authorName : '') });
     const head = el('div', { className: 'ff-c-head' }, [
       el('span', { className: 'ff-author', text: removed ? (r.deleted ? '[deleted]' : r.hidden ? '[removed]' : '[hidden]') : r.authorName }),
@@ -425,7 +511,7 @@
     box.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); box.form.requestSubmit(); } });
     return el('form', { className: 'ff-reply' + (parent ? ' ff-reply-nested' : '') + (box.value ? ' ff-active' : ''), on: { submit: e => {
       e.preventDefault(); const text = box.value.trim(); if (!text || state.busy) return; replyId = replyId || uuid(); state.busy = true; status('Posting…');
-      request('/threads/' + encodeURIComponent(threadId) + '/replies', 'POST', { id: replyId, text, ...(parent && { parentId: parent.id }) }, true).then(reply => {
+      memberRequest('/threads/' + encodeURIComponent(threadId) + '/replies', 'POST', { id: replyId, text, ...(parent && { parentId: parent.id }) }, true).then(reply => {
         if (box.value.trim() === text) { box.value = ''; state.drafts.delete(key); } state.replyTo = null; status('');
         const t = state.thread;
         if (t && t.data) {
@@ -447,7 +533,7 @@
     if (!member()) { needMember('Join the conversation to like posts.'); return; }
     const before = { score: post.score || 0, myVote: post.myVote || 0 }, value = before.myVote ? 0 : 1;
     post.myVote = value; post.score = Math.max(0, before.score + (value ? 1 : -1)); render();
-    request('/votes', 'POST', { threadId, postId: post.id, value }, true).then(r => { post.score = r.score; post.myVote = r.myVote; render(); })
+    memberRequest('/votes', 'POST', { threadId, postId: post.id, value }, true).then(r => { post.score = r.score; post.myVote = r.myVote; render(); })
       .catch(e => { post.score = before.score; post.myVote = before.myVote; render(); status(e.message, true); });
   }
 
@@ -456,7 +542,7 @@
     const open = state.menuFor === post.id;
     const more = button([icon('more')], () => { state.menuFor = open ? null : post.id; state.reportFor = null; state.deleteFor = null; render(); }, 'ff-more', { 'aria-haspopup': 'menu', 'aria-expanded': String(open), 'aria-label': 'More actions' });
     if (!open) return el('span', { className: 'ff-menu-wrap' }, [more]);
-    const mine = state.identity && post.authorId === state.identity.id, items = [];
+    const mine = member() && post.authorId === state.me.id, items = [];
     if (mine) items.push(button('Delete', () => { state.menuFor = null; state.deleteFor = post.id; render(); }, 'ff-menu-item ff-danger'));
     else {
       items.push(button('Report', () => { if (!member()) { needMember('Join the conversation to report posts.'); return; } state.menuFor = null; state.reportFor = post.id; render(); const n = $('ff-report-reason'); if (n) n.focus(); }, 'ff-menu-item'));
@@ -467,13 +553,13 @@
   function inlineTools(post, threadId) {
     if (state.reportFor === post.id) {
       const reason = el('input', { id: 'ff-report-reason', maxlength: '300', required: true, placeholder: 'What’s wrong with this post?', 'aria-label': 'Reason for reporting' });
-      return el('form', { className: 'ff-inline-form', on: { submit: e => { e.preventDefault(); request('/reports', 'POST', { id: uuid(), threadId, postId: post.id, reason: reason.value.trim().slice(0, 300) }, true).then(() => { state.reportFor = null; render(); status('Thanks — the moderators will take a look.'); }).catch(e2 => status(e2.message, true)); } } },
+      return el('form', { className: 'ff-inline-form', on: { submit: e => { e.preventDefault(); memberRequest('/reports', 'POST', { id: uuid(), threadId, postId: post.id, reason: reason.value.trim().slice(0, 300) }, true).then(() => { state.reportFor = null; render(); status('Thanks — the moderators will take a look.'); }).catch(e2 => status(e2.message, true)); } } },
         [reason, el('button', { type: 'submit', className: 'ff-btn ff-primary', text: 'Send report' }), button('Cancel', () => { state.reportFor = null; render(); }, 'ff-btn ff-ghost')]);
     }
     if (state.deleteFor === post.id) {
       return el('div', { className: 'ff-inline-form' }, [el('span', { text: post.id === threadId ? 'Delete this discussion for everyone?' : 'Delete your comment?' }),
         button('Delete', () => {
-          request('/posts/delete', 'POST', { threadId, postId: post.id, expectedVersion: post.version }, true).then(() => {
+          memberRequest('/posts/delete', 'POST', { threadId, postId: post.id, expectedVersion: post.version }, true).then(() => {
             state.deleteFor = null; status('Deleted.');
             if (post.id === threadId) { state.thread = null; refreshList(true); } else loadThread();
           }).catch(e => status(e.message, true));
@@ -482,7 +568,7 @@
     return null;
   }
   function block(memberId) {
-    request('/blocks', 'POST', { memberId, blocked: true }, true).then(me => { state.me = me; status('You won’t see that fan’s posts any more.'); return state.thread ? loadThread() : refreshList(true); }).catch(e => status(e.message, true));
+    memberRequest('/blocks', 'POST', { memberId, blocked: true }, true).then(me => { state.me = me; status('You won’t see that fan’s posts any more.'); return state.thread ? loadThread() : refreshList(true); }).catch(e => status(e.message, true));
   }
 
   // ---------- private feedback (dialog) ----------
@@ -514,6 +600,10 @@
   function fcField(label, control) { return el('label', { className: 'fc-field' }, [el('span', { text: label }), control]); }
   function renderFeedback(body) {
     replace(body);
+    if (window.SameEndFanAuth && window.SameEndFanAuth.signedIn() && !state.account) {
+      body.append(el('p', {text:'Finish setting up your forum profile before sending account feedback.'}), button('Go to forum profile', () => { closeFeedback(); openForum(); }, 'fc-button'));
+      return;
+    }
     const kind = el('select', { id: 'fc-kind', required: true }, [el('option', { value: 'suggestion', text: 'Suggestion' }), el('option', { value: 'problem', text: 'Something went wrong' }), el('option', { value: 'worked', text: 'Something worked well' })]);
     const title = el('input', { id: 'fc-feedback-title', maxlength: '120', required: true, placeholder: 'A short title' });
     const text = el('textarea', { id: 'fc-feedback-text', rows: '4', maxlength: '6000', required: true, placeholder: 'Tell us what happened or what you would change.' });
@@ -537,30 +627,37 @@
   }
   function sendFeedback(form) {
     if (state.busy) return;
+    if (window.SameEndFanAuth && window.SameEndFanAuth.signedIn() && !state.account) { fbStatus('Finish setting up your forum profile first.', true); return; }
     const id = (state.draft && state.draft.id) || uuid();
     const payload = { id, kind: $('fc-kind').value, title: $('fc-feedback-title').value.trim(), text: $('fc-feedback-text').value.trim() }, contact = $('fc-contact').value.trim();
     if (contact) payload.contact = contact;
     state.draft = { id, kind: payload.kind, title: payload.title, text: payload.text, contact }; try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(state.draft)); } catch (_) { /* Convenience. */ }
     const controls = form.querySelectorAll('input,textarea,select,button'); controls.forEach(c => { c.disabled = true; });
     state.busy = true; fbStatus('Sending private feedback…');
-    ensureIdentity(state.identity ? null : 'Fan').then(() => request('/feedback', 'POST', payload, true)).then(() => {
+    const epoch = state.authEpoch;
+    const sending = hasAccount() ? memberRequest('/feedback', 'POST', payload) : ensureIdentity(state.identity ? null : 'Fan').then(() => request('/feedback', 'POST', payload, true));
+    sending.then(() => {
+      if (epoch !== state.authEpoch) return;
       state.draft = null; try { sessionStorage.removeItem(DRAFT_KEY); } catch (_) { /* Convenience. */ }
       if (state.feedbackOpen) { renderFeedback($('fc-body')); fbStatus('Received by the Same End support team. Your receipt is saved below.'); }
-    }).catch(e => { if (state.feedbackOpen) fbStatus(e.message + ' Your draft is kept here; retrying will use the same receipt ID.', true); })
+    }).catch(e => { if (epoch === state.authEpoch && state.feedbackOpen) fbStatus(e.message + ' Your draft is kept here; retrying will use the same receipt ID.', true); })
       .finally(() => { state.busy = false; if (form.isConnected) controls.forEach(c => { c.disabled = false; }); });
   }
   function loadFeedback(target) {
-    replace(target, el('h3', { text: 'Your feedback' }), el('p', { className: 'fc-muted', text: 'Receipts and replies are private to your browser identity.' }));
-    if (!state.identity) { target.append(el('p', { className: 'fc-muted', text: 'Your first receipt will appear here after you send feedback.' })); return Promise.resolve(); }
-    return getMe().then(() => request('/feedback', 'GET', null, true)).then(data => {
+    const account = hasAccount(), epoch = state.authEpoch;
+    replace(target, el('h3', { text: 'Your feedback' }), el('p', { className: 'fc-muted', text: account ? 'Receipts and replies are private to your pilot account.' : 'Receipts and replies are private to this browser identity. Sign in to keep new feedback in your pilot account.' }));
+    if (!account && !state.identity) { target.append(el('p', { className: 'fc-muted', text: 'Your first receipt will appear here after you send feedback.' })); return Promise.resolve(); }
+    const loading = account ? memberRequest('/feedback', 'GET') : getMe().then(() => request('/feedback', 'GET', null, true));
+    return loading.then(data => {
+      if (epoch !== state.authEpoch || !target.isConnected) return;
       const items = Array.isArray(data.items) ? data.items : [];
-      if (!items.length) { target.append(el('p', { className: 'fc-muted', text: 'No feedback sent from this browser yet.' })); return; }
+      if (!items.length) { target.append(el('p', { className: 'fc-muted', text: account ? 'No feedback sent from this account yet.' : 'No feedback sent from this browser yet.' })); return; }
       for (const item of items) target.append(el('article', { className: 'fc-record' }, [
         el('div', { className: 'fc-record-top' }, [el('strong', { text: item.title || 'Feedback' }), el('span', { className: 'fc-pill', text: item.status || 'received' })]),
         el('p', { text: item.text || '' }), item.response ? el('p', { className: 'fc-response', text: 'Reply: ' + item.response }) : null,
         el('small', { text: item.createdAt ? new Date(item.createdAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '' }),
       ]));
-    }).catch(() => { target.append(el('p', { className: 'fc-muted', text: 'Your private feedback list is unavailable right now.' })); });
+    }).catch(() => { if (epoch === state.authEpoch && target.isConnected) target.append(el('p', { className: 'fc-muted', text: 'Your private feedback list is unavailable right now.' })); });
   }
 
   // ---------- public API (waiting screen, header and tests) ----------

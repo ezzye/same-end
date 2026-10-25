@@ -57,6 +57,7 @@ async function main() {
   const deployed = await applyStack(cf, stackName, template, parameters);
   state.apiBase = deployed.Outputs.find(o => o.OutputKey === 'ApiBase').OutputValue;
   state.staff=Object.fromEntries(deployed.Outputs.filter(o=>o.OutputKey.startsWith('Staff')).map(o=>[o.OutputKey,o.OutputValue]));
+  state.fan=Object.fromEntries(deployed.Outputs.filter(o=>o.OutputKey.startsWith('Fan')).map(o=>[o.OutputKey,o.OutputValue]));
   state.deployedAt = new Date().toISOString(); await writeFile(stateFile, JSON.stringify(state, null, 2), {mode: 0o600});
   await writeFile(path.join(privateDir, 'public-config.json'), JSON.stringify({apiBase: state.apiBase}, null, 2), {mode: 0o600});
   console.log(JSON.stringify({apiBase: state.apiBase, stackStatus: deployed.StackStatus}));
