@@ -19,9 +19,9 @@ function relayLimit(){
 // Programme clocks stay nominal; only HLS playback may build extra local reserve.
 function nominalProgramTime(){return state.config&&state.clockReady?(now()+state.offset-state.config.epoch)/1000-state.config.delay:null;}
 function viewerProgramTime(){
- if(!state.config||!state.clockReady)return null;
- const policy=state.initialDelayPolicy,delay=policy?.state==='committed'?policy.selectedDelaySeconds:policy?.state==='preparing'?policy.candidateDelaySeconds:state.config.delay;
- return (now()+state.offset-state.config.epoch)/1000-delay;
+ // Every viewer follows the shared baseline. A prepared later position is
+ // ordinary local adaptive lag, bounded to 60 seconds against this clock.
+ return nominalProgramTime();
 }
 function maxPlaybackLag(){return isHlsConfig(state.config)?Math.min(60,Math.max(0,Number.isFinite(window.SameEndHLS?.MAX_EXTRA_DELAY_SECONDS)?SameEndHLS.MAX_EXTRA_DELAY_SECONDS:60)):0;}
 function boundedPlaybackLag(value){return typeof value==='number'&&Number.isFinite(value)?Math.min(maxPlaybackLag(),Math.max(0,value)):0;}

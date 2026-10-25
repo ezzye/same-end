@@ -6,7 +6,7 @@
  * Windows: BROWSER_CHANNEL=chrome|msedge; CHROME_PATH overrides channel.
  * No clock/frame fabrication or HTTP media fallback. Queue pacing is application
  * callback scheduling AFTER real P2P receipt, never physical capacity evidence.
- * Deficit runs are admission-only and stop before the unchanged300s baseline.
+ * Deficit runs check refusal of an accelerated start; fallback playback is reported separately.
  */
 import assert from 'node:assert/strict';
 import https from 'node:https';
@@ -26,6 +26,7 @@ const device = process.env.INITIAL_DEVICE || 'chromium', profile = process.env.I
 const label = process.env.INITIAL_LABEL || `${device}-${profile}-${Date.now()}`;
 assert(['chromium','android','ios'].includes(device)); assert(['steady','slow','bursty','below95','below65'].includes(profile)); assert(/^[\w-]+$/.test(label));
 const playbackSeconds = Number(process.env.INITIAL_PLAYBACK_SECONDS || 120);
+const roomDelay = Number(process.env.INITIAL_ROOM_DELAY || 60); assert([10,60,300].includes(roomDelay));
 const deficitSeconds = Number(process.env.INITIAL_DEFICIT_SECONDS || 95);
 const startupSeconds = Number(process.env.INITIAL_STARTUP_SECONDS || 420);
 const port = Number(process.env.INITIAL_PORT || 19036), deficit = profile.startsWith('below');
@@ -138,22 +139,22 @@ async function assertChat(stage) {
   report.chat ??= []; report.chat.push({ stage, latencyMs });
 }
 const validateBaseline = state => {
-  assert.equal(state.config.delay,300); assert.equal(state.initialDelay?.roomDelaySeconds,300);
+  assert.equal(state.config.delay,roomDelay); assert.equal(state.initialDelay?.roomDelaySeconds,roomDelay);
   assert.deepEqual(identity(state), identity(current('source')), 'Original signed room/source/programme identity is unchanged');
   assert(state.cacheBytes <= 192 * 1024 * 1024, 'Signed cache remains within hard bound');
-  if (Number.isFinite(state.target)) assert(Math.abs(state.target - (state.elapsed - 300)) < 1.5, 'Signed room target retains the300s source-clock mapping');
+  if (Number.isFinite(state.target)) assert(Math.abs(state.target - (state.elapsed - roomDelay)) < 1.5, 'Signed room target retains the signed source-clock mapping');
 };
 try {
   browser = await chromium.launch({ ...(process.env.CHROME_PATH ? { executablePath:process.env.CHROME_PATH } : { channel:process.env.BROWSER_CHANNEL || 'chrome' }), headless:process.env.INITIAL_HEADED !== '1',
     args:['--mute-audio','--ignore-certificate-errors','--disable-background-timer-throttling','--disable-renderer-backgrounding','--disable-features=WebRtcHideLocalIpsWithMdns'] });
   source = await newLocalPage('source');
-  await source.evaluate(() => { const b = document.createElement('button'); b.id = 'start-initial-source'; b.textContent = 'Start generated HLS'; b.onclick = () => window.initialSourceStart = PrivateCast.testing.startDemo({ delay:300,profile:'hls' }); document.body.append(b); });
+  await source.evaluate(delay => { const b = document.createElement('button'); b.id = 'start-initial-source'; b.textContent = 'Start generated HLS'; b.onclick = () => window.initialSourceStart = PrivateCast.testing.startDemo({ delay:delay,profile:'hls' }); document.body.append(b); }, roomDelay);
   await source.locator('#start-initial-source').click(); await source.evaluate(() => initialSourceStart);
   await source.evaluate(() => PrivateCast.testing.setRelayLimit(1)); await source.locator('#make-magnet').click();
   await source.waitForFunction(() => { const value=document.querySelector('#browser-invitation').value; if(!value)return false; const q=new URLSearchParams(new URL(value).hash.slice(1)); return q.has('club')&&q.get('watch')==='1'&&!q.has('owner'); }, null, { timeout:45000 });
   invitation = await source.locator('#browser-invitation').inputValue();
   const invite = new URL(invitation); invite.searchParams.set('testRole','viewer');
-  await progress('source-started', { server:origin, externalViewerURL:`${origin}/viewer?testRole=viewer`, sourceDelay:300, evidenceDirectory:fileURLToPath(output), testCertificate:fileURLToPath(new URL('owned-test-root-cert.pem',output)) });
+  await progress('source-started', { server:origin, externalViewerURL:`${origin}/viewer?testRole=viewer`, sourceDelay:roomDelay, evidenceDirectory:fileURLToPath(output), testCertificate:fileURLToPath(new URL('owned-test-root-cert.pem',output)) });
   if (device === 'android') {
     remoteBrowser = await chromium.connectOverCDP(process.env.ANDROID_CDP || 'http://127.0.0.1:18967');
     const context = remoteBrowser.contexts()[0]; assert(context, 'Android CDP has an existing owned test context');
@@ -183,17 +184,17 @@ try {
     while (Date.now() - began < deficitSeconds * 1000) {
       const s = current('viewer'); validateBaseline(s);
       assert.equal(s.initialDelay.commitCount,0, 'Below-stream arrival must never commit an accelerated start');
-      assert.equal(s.initialDelay.applied,false, 'Deficit must preserve fallback300s target');
-      assert.equal(s.probe.frames,0, 'Admission-only test stops before fallback starts');
+      assert.equal(s.initialDelay.applied,false, 'Deficit must preserve the configured fallback target');
+      if(s.probe.frames>0&&s.probe.firstFrame)assert(s.probe.firstFrame.sourceAge>=roomDelay-3,'Deficit never starts ahead of the common baseline');
       await sleep(1000);
     }
     const s = current('viewer');
     assert(s.probe.verified.length >= 8 && s.probe.connectedPeers > 0, 'Deficit uses multiple actually verified P2P media pieces');
     assert(s.probe.queuedBytes > 0, 'Sustained deficit accumulates actual received callback bytes');
-    assert(s.elapsed < 290, 'Admission run remains before real300s fallback deadline');
+    assert(s.elapsed < roomDelay+deficitSeconds+40,'Deficit observation stays bounded');
     assert(s.clientDelivery?.state === 'constrained' || s.clientDelivery?.recommendation?.status === 'insufficient-throughput' || /throughput|deficit|constrain/i.test(s.initialDelay.reason || ''), 'Actual below-stream observations refuse a throughput-fixing recommendation');
     await assertChat('sustained-deficit');
-    report.admission = { observedSeconds:deficitSeconds, initialDelay:s.initialDelay, delivery:s.clientDelivery, verifiedPieces:s.probe.verified.length, queuedBytes:s.probe.queuedBytes, fallbackPlaybackTested:false };
+    report.admission = { observedSeconds:deficitSeconds, initialDelay:s.initialDelay, delivery:s.clientDelivery, verifiedPieces:s.probe.verified.length, queuedBytes:s.probe.queuedBytes, fallbackPlaybackObserved:s.probe.frames>0,continuousFallbackAcceptanceClaimed:false };
   } else {
     await progress('waiting-for-actual-recommended-start', { timeoutSeconds:startupSeconds });
     await until(() => { const s = current('viewer'); if(s?.initialDelay?.state==='fallback')throw Error('Recommended start fell back: '+s.initialDelay.reason); return s?.probe.frames > 12 && !s.paused && s.ready >= 2 && Number.isFinite(s.programTime); }, startupSeconds, 'Recommended start did not decode actual moving HLS pictures');
@@ -201,7 +202,7 @@ try {
     assert.equal(first.initialDelay.state,'committed', 'Positive trace actually commits the recommended start');
     assert.equal(first.initialDelay.commitCount,1); assert.equal(first.initialDelay.applied,true);
     const selected = first.initialDelay.selectedDelaySeconds;
-    assert(Number.isFinite(selected) && selected > 0 && selected < 300, 'Selected local startup delay is genuinely earlier than baseline');
+    assert(Number.isFinite(selected) && selected >= roomDelay && selected <= roomDelay+60, 'Selected delay stays on or behind the common room baseline');
     assert(first.probe.firstFrame?.sourceAge !== null, 'First decoded frame records actual source-age delay');
     assert(Math.abs(first.probe.firstFrame.sourceAge - selected) < 12, 'First actual frame agrees with selected local delay within decoder startup allowance');
     assert.equal(first.probe.firstFrame.initialDelay?.state,'committed', 'Candidate is committed before first real advancing playback');
@@ -209,7 +210,7 @@ try {
     else assert.equal(first.mode,'hls');
     report.startup = { initialDelay:first.initialDelay, firstFrame:first.probe.firstFrame, observedSourceAgeSeconds:first.probe.firstFrame.sourceAge, firstPlaybackMode:first.mode, secondsAfterSourceStart:first.elapsed };
     await progress('recommended-start-actually-playing', { selectedDelaySeconds:selected, observedSourceAgeSeconds:first.probe.firstFrame.sourceAge, mode:first.mode });
-    // A fresh downstream retains the original signed300s clock and receives real
+    // A fresh downstream retains the original signed room clock and receives real
     // pieces from the viewer. Its own eventual baseline playback is outside this
     // startup test; receiving does not falsely claim downstream decoding.
     const downstreamURL = new URL(invitation); downstreamURL.searchParams.set('testRole','downstream');
@@ -217,13 +218,16 @@ try {
     await until(() => current('downstream')?.clockReady && current('downstream')?.received > 2 && current('downstream')?.supplier, 60, 'Viewer did not relay signed pieces to an unchanged-clock downstream');
     assert.deepEqual(identity(current('downstream')), identity(current('source')));
     report.downstream = { config:current('downstream').config, received:current('downstream').received, clockReady:current('downstream').clockReady, decodingClaimed:false };
-    const stableStart = Date.now(), before = current('viewer'), stable = [];
+    await until(()=>Number.isFinite(current('source')?.programTime),20,'Host did not play at the shared baseline');
+    const stableStart = Date.now(), before = current('viewer'), stable = [];let maxGroupSeparation=0;
     await progress('continuous-recommended-playback', { durationSeconds:playbackSeconds });
     while (Date.now() - stableStart < playbackSeconds * 1000) {
       const s = current('viewer'); validateBaseline(s); stable.push(s);
       assert.equal(s.initialDelay.selectedDelaySeconds,selected, 'Viewer local initial delay remains latched');
       assert.equal(s.initialDelay.commitCount,1, 'Initial start commits exactly once');
+      const host=current('source');if(Number.isFinite(host?.programTime)){const separation=Math.abs(host.programTime-s.programTime);maxGroupSeparation=Math.max(maxGroupSeparation,separation);assert(separation<=61,'Host and viewer stay within bounded local extra delay');}
       assert.equal(s.paused,false); assert(s.ready >= 2, 'Decoder remains ready after actual start');
+      assert(s.sourceAge>=roomDelay-1&&s.sourceAge<=roomDelay+61,'Actual viewer delay stays within the common baseline plus bounded extra');
       assert(Date.now() - s.probe.lastFrameAt < 2500, 'No unexpected decoded-frame gap after startup');
       assert.equal(s.stalls,before.stalls, 'No post-start application rebuffer');
       await sleep(500);
@@ -238,7 +242,7 @@ try {
       report.audio = { route:'owned media-element analyser', positiveSamples:audio.length, totalSamples:stable.length, audibleSpeakerClaim:false };
     } else report.audio = { route:'unchanged native output', result:'requires separate owned-process capture by operator', analyserUsed:false };
     await assertChat('continuous-playback');
-    report.continuity = { measuredSeconds:(Date.now()-stableStart)/1000, decodedFrameCallbacks:end.probe.frames-before.probe.frames, maxFrameGapMs:end.probe.maxFrameGapMs, addedSeeks:addedSeeks.length, stallsBefore:before.stalls, stallsAfter:end.stalls, finalSourceAgeSeconds:end.sourceAge };
+    report.continuity = { measuredSeconds:(Date.now()-stableStart)/1000, decodedFrameCallbacks:end.probe.frames-before.probe.frames, maxFrameGapMs:end.probe.maxFrameGapMs, addedSeeks:addedSeeks.length, stallsBefore:before.stalls, stallsAfter:end.stalls, finalSourceAgeSeconds:end.sourceAge,maxGroupSeparationSeconds:maxGroupSeparation,commonRoomDelaySeconds:roomDelay };
     command('viewer','visibility',{hidden:true}); await sleep(1500);
     command('viewer','visibility',{hidden:false}); await sleep(2500);
     const resumed = current('viewer');

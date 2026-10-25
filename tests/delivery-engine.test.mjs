@@ -361,17 +361,17 @@ test('viewer startup commits locally while room clock, retention, signatures and
  const config={id:'cast-1',epoch:nowValue-400000,delay:300,mime:'application/vnd.apple.mpegurl',mediaProfile:'hls-cmaf-v1'};
  const {ctx,state}=harness({config,clockReady:true,supplier:{id:'relay'},appendedSeq:new Set()},null,holder.SameEndInitialDelay.Policy);
  ctx.document={visibilityState:'visible'};ctx.navigator={onLine:true};const video={muted:true};ctx.$=()=>video;
- ctx.sampleClientDelivery=()=>({state:'observing',classification:'live',recordCount:11,observationSeconds:20,lastProgressAgeSeconds:0,gapP95Seconds:2,deliveryToStreamRatio:.968,sourceAgeTrendSecondsPerSecond:0,recommendation:{status:'unvalidated-candidate',candidateInitialDelaySeconds:9,candidateReserveSeconds:6}});
+ ctx.sampleClientDelivery=()=>({state:'observing',classification:'live',recordCount:11,observationSeconds:20,lastProgressAgeSeconds:0,gapP95Seconds:2,deliveryToStreamRatio:.968,sourceAgeTrendSecondsPerSecond:0,recommendation:{status:'unvalidated-candidate',candidateInitialDelaySeconds:316,candidateReserveSeconds:6}});
  const windows=[],prepared=[],forwarded=[];let position=null;
- state.player={adaptive:{everPlayed:false},setPlaybackWindow:t=>windows.push(t),lookAheadSeconds:()=>16,getPlaybackTarget:nominal=>position??nominal,programTime:()=>position,
+ state.player={adaptive:{everPlayed:false},enqueue:()=>{},setPlaybackWindow:t=>windows.push(t),lookAheadSeconds:()=>16,getPlaybackTarget:nominal=>position??nominal,programTime:()=>position,
  prepareStartup(target){prepared.push(target);position=target;return{programTime:target,minimumReserveSeconds:4,ready:true,aligned:true,cacheAheadSeconds:12,decoderAheadSeconds:12}},commitStartup:()=>true};
  vm.runInContext(sliceBetween('function stageWindow()', 'function syncPlayback()'),ctx);
  const before={nominal:ctx.nominalProgramTime(),cutoff:ctx.retentionCutoff(),offset:state.offset,config:JSON.stringify(config)};
- ctx.advanceInitialDelay();assert.equal(state.initialDelayPolicy.state,'committed');assert.equal(state.initialDelayPolicy.selectedDelaySeconds,9);
- assert.equal(ctx.viewerProgramTime()-ctx.nominalProgramTime(),291);assert.equal(ctx.effectiveProgramTime(),position);assert.equal(ctx.initialDelaySnapshot().commitCount,1);
+ ctx.advanceInitialDelay();assert.equal(state.initialDelayPolicy.state,'committed');assert.equal(state.initialDelayPolicy.selectedDelaySeconds,316);
+ assert.equal(ctx.viewerProgramTime()-ctx.nominalProgramTime(),0);assert.equal(ctx.effectiveProgramTime(),position);assert.equal(ctx.initialDelaySnapshot().commitCount,1);
  assert.equal(ctx.nominalProgramTime(),before.nominal);assert.equal(ctx.retentionCutoff(),before.cutoff);assert.equal(state.offset,before.offset);assert.equal(JSON.stringify(config),before.config);
  const meta={seq:1,start:config.epoch+before.nominal*1000,duration:2000};state.cache=[{meta,buf:new ArrayBuffer(1)}];state.peers.set('child',{direction:'down',ready:true,queued:0,lastSentSeq:-1});ctx.enqueue=(peer,piece)=>forwarded.push(piece);
- ctx.stageWindow();assert.equal(forwarded[0].meta,meta,'old room-target media still forwards when this viewer watches newer media');
- assert(windows.at(-1)>before.nominal);ctx.advanceInitialDelay();assert.equal(state.initialDelayPolicy.commitCount,1);assert.equal(prepared.length,2);
+ ctx.stageWindow();assert.equal(forwarded[0].meta,meta,"room-target media still forwards independently of this viewer bounded extra lag");
+ assert.equal(windows.at(-1),before.nominal);assert.equal(before.nominal-position,16);const initialPosition=position;position=before.nominal-80;assert.equal(ctx.effectiveProgramTime(),before.nominal-60,'initial and recovery lag share one sixty-second room bound');position=initialPosition;ctx.advanceInitialDelay();assert.equal(state.initialDelayPolicy.commitCount,1);assert.equal(prepared.length,2);
  state.role='source';ctx.resetClientDelivery();assert.equal(state.initialDelayPolicy.state,'disabled');assert.equal(ctx.viewerProgramTime(),before.nominal);
 });
