@@ -28,11 +28,12 @@
     return {revision:text(String(input.revision||'published'),100),items:items};
   }
   function explain(snapshot,room,classification){
-    var s=snapshot||{},r=room||{},cfg=s.config,target=s.targetProgramTime,hasTarget=Number.isFinite(target),delivery=s.mediaDiagnostics&&s.mediaDiagnostics.delivery;
+    var s=snapshot||{},r=room||{},cfg=s.config,target=Number.isFinite(s.effectiveTargetProgramTime)?s.effectiveTargetProgramTime:s.targetProgramTime,hasTarget=Number.isFinite(target),delivery=s.mediaDiagnostics&&s.mediaDiagnostics.delivery;
     var positionGood=Number.isFinite(s.programTime)&&hasTarget&&Math.abs(s.programTime-target)<=4;
     // HAVE_CURRENT_DATA and the correct verified programme interval are the
     // readiness boundary, including a paused picture waiting for a sound tap.
-    var ready=!!(cfg&&s.clockReady&&hasTarget&&target>=0&&s.ready>=2&&positionGood&&delivery&&delivery.requiredPiecePresent===true);
+    var adaptive=typeof s.playbackAdaptivePhase==='string';
+    var ready=!!(cfg&&s.clockReady&&hasTarget&&target>=0&&s.ready>=2&&positionGood&&(!adaptive||s.playbackAdaptivePhase==='playing')&&((delivery&&delivery.requiredPiecePresent===true)||(adaptive&&s.paused===false)));
     var engaged=!!(cfg||s.joiningBusy||r.connected||r.watching);
     if(!engaged||ready)return {visible:false,ready:ready,state:ready?'ready':'idle'};
     var code=classification&&classification.code||'finding-route';

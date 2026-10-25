@@ -30,9 +30,9 @@ The discovery renewal adapter is deliberately tied to the checked-in WebTorrent 
 
 ## Buffer exhaustion and the shared moment
 
-A direct connection alone is not playback acceptance. After a sufficiently long outage, the player may have no media around the current group target even though old frames remain buffered. Recovery must wait for verified files at the current target and resume the ordinary HLS pipeline there, preserving the existing sound preference. It must not show the live source or play the outdated buffer as if it were synchronized.
+A direct connection alone is not playback acceptance. After an outage, HLS playback waits for verified files and useful decoder headroom at its effective local target, preserving the sound preference. It retains extra local delay instead of repeatedly seeking to the nominal group target. Startup and recovery never reveal the source's live edge. A material extra delay is shown in the room.
 
-If the outage exceeds the group's reserve, material can be missed. Recovery rejoins the group's current moment; it cannot both replay everything missed and remain synchronized with people who kept watching. Networks that block every direct route may still fail to connect.
+Extra active delay is bounded to 60 seconds. A paused viewer can fall further behind during a long outage; recovery then chooses an available window within that bound, so material can be missed. Smooth playback, every missed frame and finite delay cannot all be guaranteed on an indefinitely slow route. Networks that block every direct route may still fail to connect. See [adaptive playback](adaptive-playback.md).
 
 ## Diagnostics and validation
 

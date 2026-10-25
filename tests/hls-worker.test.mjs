@@ -121,13 +121,16 @@ test('first native join activates a waiting bridge over a legacy controller with
  finally{player?.close();for(const [name,descriptor]of Object.entries(saved)){if(descriptor)Object.defineProperty(globalThis,name,descriptor);else delete globalThis[name];}}
 });
 
-test('native sync seeks a valid unbuffered group target before waiting for its files', async () => {
+test('native sync positions a verified startup target before waiting for decoder headroom', async () => {
  let plays=0;const range=(a,b)=>({length:1,start:()=>a,end:()=>b}), video={currentTime:10,readyState:4,seeking:false,paused:false,playbackRate:1,buffered:range(10,11),seekable:range(0,16),pause(){this.paused=true}};
- const player={video,origin:0,lastSeek:-Infinity,syncSeekRequests:0,setPlaybackWindow(){},mapTimeline(){},mediaTime(){return video.currentTime},play(){plays++;video.paused=false;return Promise.resolve()}};
+ const {AdaptivePlayout}=await import('../adaptive-playout.js');
+ const player={video,origin:0,lastSeek:-Infinity,syncSeekRequests:0,adaptive:new AdaptivePlayout(),cache:{contiguousWindows:()=>[{start:0,end:16}]},setPlaybackWindow(){},mapTimeline(){},programTime(){return video.currentTime},playheadTime(){return video.currentTime},play(){plays++;video.paused=false;return Promise.resolve()}};
  const initial=NativePlayer.prototype.sync.call(player,4);assert.equal(initial.waiting,true);assert.equal(video.currentTime,4);assert.equal(player.syncSeekRequests,1);assert.equal(video.paused,true);
  NativePlayer.prototype.sync.call(player,4.1);assert.equal(player.syncSeekRequests,1,'waiting for bytes must not trigger repeated seeks');
  video.buffered=range(4,8);const resumed=NativePlayer.prototype.sync.call(player,4.2);assert.equal(resumed.waiting,false);assert.equal(plays,1);assert.equal(video.paused,false);assert.equal(player.syncSeekRequests,1);
- const unavailable=NativePlayer.prototype.sync.call(player,20);assert.equal(unavailable.waiting,true);assert.equal(player.syncSeekRequests,1,'target outside the declared native seekable range must wait');
+ const healthy=NativePlayer.prototype.sync.call(player,20);assert.equal(healthy.waiting,false);assert.equal(player.syncSeekRequests,1,'healthy playback retains local delay instead of chasing nominal time');
+ player.cache.contiguousWindows=()=>[];video.readyState=1;video.buffered={length:0};player.starved=true;
+ const unavailable=NativePlayer.prototype.sync.call(player,100);assert.equal(unavailable.waiting,true);assert.equal(player.syncSeekRequests,1,'expired history without a useful verified window must wait');
 });
 
 test('native media playlist hints exact group start without changing shared playlists or media bytes', () => {

@@ -11,6 +11,11 @@ test('only a verified playable frame at the actual group target yields the waiti
 test('source absence and stale presence preserve honest explanations without a fixed timer or sponsor',()=>{
  for(const code of ['source-stopped','source-unreachable','waiting-for-source']){const r=core.explain({}, {connected:true},{code,title:'Known source status',detail:'Still in the room'});assert.equal(r.visible,true);assert.equal(r.title,'Known source status');assert.equal(r.seconds,null);assert.equal(r.allowSponsor,false);assert.equal(r.canFetch,false);}
 });
+test('adaptive playback uses its effective position and never covers healthy locally delayed video',()=>{
+ const s={config:{},clockReady:true,targetProgramTime:70,effectiveTargetProgramTime:20,programTime:20,ready:2,paused:false,playbackAdaptivePhase:'playing',mediaDiagnostics:{delivery:{requiredPiecePresent:false}}};
+ assert.equal(core.explain(s,{},{}).visible,false);
+ for(const phase of ['starting','rebuffering','recovering'])assert.equal(core.explain({...s,playbackAdaptivePhase:phase,mediaDiagnostics:{delivery:{requiredPiecePresent:true}}},{},{code:'buffering',title:'Building a smoother picture'}).visible,true);
+});
 test('warmup follows source clock and late join never adds a fresh five minutes',()=>{
  const r=core.explain({config:{},clockReady:true,targetProgramTime:-14.2,sourceReachable:true},{},{code:'warming-up'});assert.equal(r.seconds,15);assert.match(r.detail,/0:15/);
  const later=core.explain({config:{},clockReady:true,targetProgramTime:20,sourceReachable:true},{},{code:'finding-route'});assert.equal(later.seconds,null);assert.equal(later.allowSponsor,false);assert.equal(later.title,'Preparing the picture');
