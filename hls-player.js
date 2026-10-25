@@ -4,6 +4,33 @@ import Hls from 'hls.js';
 import { decodeBundle } from './hls-protocol.js';
 import { AdaptivePlayout, contiguousRanges, mediaRanges, headroomAt } from './adaptive-playout.js';
 
+// Preparation may load and align verified samples but cannot call play. Both
+// decoders use the same admission facts in programme seconds.
+export function startupFacts(player, target, minimumReserveSeconds = 4) {
+  const programTime = player.playheadTime(), v = player.video;
+  return { minimumReserveSeconds, programTime,
+    cacheAheadSeconds: player.cache.contiguousAhead(target),
+    decoderAheadSeconds: headroomAt(mediaRanges(v.buffered, player.origin), target),
+    ready: v.readyState >= 2 && !v.seeking,
+    aligned: Number.isFinite(programTime) && Math.abs(programTime - target) <= .3 };
+}
+export function beginStartup(player, target, reserve) {
+  if (player.closed || player.adaptive.everPlayed || !Number.isFinite(target) || target < 0 || !Number.isFinite(reserve) || reserve < 4 || reserve > 12) return false;
+  if (player.startupPreparation && player.startupPreparation.target !== target) return false;
+  player.startupPreparation ||= { target, reserve, loadRequested: false, seekRequested: false };
+  player.adaptive.playAllowed = false; player.video.pause();
+  player.setPlaybackWindow(target, false); return true;
+}
+export function commitStartup(player, target, reserve) {
+  const preparation = player.startupPreparation;
+  if (!preparation || preparation.target !== target || player.adaptive.everPlayed) return false;
+  const facts = player.startupFacts(target), goal = Math.max(reserve, facts.minimumReserveSeconds);
+  if (!Number.isFinite(facts.minimumReserveSeconds) || !Number.isFinite(goal) || goal > 12 || !facts.ready || !facts.aligned || facts.cacheAheadSeconds + .001 < goal || facts.decoderAheadSeconds + .08 < goal) return false;
+  player.adaptive.reset(); player.adaptive.position = facts.programTime;
+  player.adaptive.bufferGoalSeconds = goal; player.adaptive.phase = 'starting';
+  player.startupPreparation = null; player.startupHold = false; return true;
+}
+
 export const HLS_BASE = 'https://sameend.invalid/hls/';
 const textDecoder = new TextDecoder('utf-8', { fatal: true });
 const textEncoder = new TextEncoder();
@@ -198,7 +225,21 @@ export class Player {
     const master = [...this.cache.playlists.keys()].find(p => !this.cache.playlists.get(p).segments.length) || [...this.cache.playlists.keys()][0];
     if (!master) return; this.started = true; this.hls.loadSource(HLS_BASE + master);
   }
-  getPlaybackTarget(nominalTarget) { return this.adaptive.target(nominalTarget, this.playheadTime()); }
+  getPlaybackTarget(nominalTarget) { return this.startupPreparation?.target ?? this.adaptive.target(nominalTarget, this.playheadTime()); }
+  startupFacts(target) { return startupFacts(this, target); }
+  prepareStartup(target, reserve) {
+    if (!beginStartup(this, target, reserve)) return null;
+    const preparation = this.startupPreparation, facts = this.startupFacts(target);
+    if (this.origin !== null) {
+      const local = Math.max(0, target - this.origin);
+      if (!preparation.loadRequested) { this.hls.startLoad(local, true); preparation.loadRequested = true; }
+      if (!preparation.seekRequested && !this.video.seeking && facts.decoderAheadSeconds + .08 >= reserve && Number.isFinite(facts.programTime) && Math.abs(facts.programTime - target) > .3) {
+        preparation.seekRequested = true; this.presented = null; this.video.currentTime = local;
+      }
+    }
+    return this.startupFacts(target);
+  }
+  commitStartup(target, reserve) { return commitStartup(this, target, reserve); }
   setPlaybackWindow(target, hidden = false) {
     if (!Number.isFinite(target) || this.closed) return;
     this.nominalTarget = target; this.target = this.getPlaybackTarget(target); this.cache.target = Math.max(0, this.target); this.suspended = hidden;
@@ -210,6 +251,8 @@ export class Player {
   mediaTime() { const p = this.presented; return p && !this.video.paused && performance.now() - p.at < 250 ? p.time : this.video.currentTime; }
   sync(target) {
     if (this.closed) return { waiting: true, drift: null, playing: false };
+    if (this.startupPreparation) { this.prepareStartup(this.startupPreparation.target, this.startupPreparation.reserve); return { waiting: true, drift: null, playing: false }; }
+    if (this.startupHold) { this.video.pause(); return { waiting: true, drift: null, playing: false }; }
     this.setPlaybackWindow(target, false); const v = this.video, now = performance.now();
     const actual = this.playheadTime(), decoderRanges = mediaRanges(v.buffered, this.origin), cacheRanges = this.cache.contiguousWindows();
     const action = this.adaptive.update({ nominal: target, actual, decoderRanges, cacheRanges, ready: v.readyState >= 2, seeking: v.seeking, underflow: this.starved || v.readyState < 2, now });
@@ -254,7 +297,7 @@ export class Player {
   muteSound() { this.soundRequested = true; this.soundBlocked = false; this.video.muted = true; }
   play() {
     // A sound preference during warm-up must not reveal the live source.
-    if(this.closed||this.suspended||this.target===null||this.target<0||this.adaptive?.playAllowed===false)return Promise.resolve();
+    if(this.closed||this.suspended||this.startupHold||this.startupPreparation||this.target===null||this.target<0||this.adaptive?.playAllowed===false)return Promise.resolve();
     const audible = !this.video.muted;
     return Promise.resolve(this.video.play()).then(() => { this.blocked = false; this.lastPlayError = null; if (audible && !this.video.muted) this.soundBlocked = false; }, error => {
       this.lastPlayError = error.name; if (error.name === 'NotAllowedError') { this.blocked = true; if (audible) { this.soundBlocked = true; this.video.muted = true; Promise.resolve(this.video.play()).catch(() => {}); } } throw error;

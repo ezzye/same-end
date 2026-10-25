@@ -57,7 +57,8 @@
   }
   function update(){
     var snapshot=window.PrivateCast&&window.PrivateCast.snapshot?window.PrivateCast.snapshot():{},room=window.SameEndSocial&&window.SameEndSocial.snapshot?window.SameEndSocial.snapshot():{},classification=window.SameEndRoomStatus&&window.SameEndRoomStatus.explain?window.SameEndRoomStatus.explain({snapshot:snapshot,room:room,online:navigator.onLine}):null;
-    var state=core.explain(snapshot,room,classification);lastState=state;
+    if(!snapshot.config&&!snapshot.joiningBusy&&!room.connected&&!room.watching)hadPicture=false;
+    var state=core.explain(snapshot,room,classification,{hasPlayed:hadPicture});lastState=state;
     if(state.ready)hadPicture=true;
     root.hidden=!state.visible;stage.classList.toggle('has-wait-content',state.visible);
     if(!state.visible||document.hidden){cancel();return;}

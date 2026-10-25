@@ -18,7 +18,7 @@ function sliceBetween(start, end) {
   return engine.slice(from, to).trim();
 }
 
-function harness(overrides = {}, Estimator = null) {
+function harness(overrides = {}, Estimator = null, InitialDelayPolicy = null) {
   const sent = [];
   const state = {
     config:{id:'cast-1',epoch:nowValue-60000,delay:10,mime:'video/webm',segmentVersion:2,sourceId:'source-1',sourceEpoch:0,programId:'match-1'},
@@ -27,6 +27,7 @@ function harness(overrides = {}, Estimator = null) {
     recovery:{state:'idle'}, ...overrides
   };
   const window = Estimator ? {SameEndClientDelivery:{Estimator}} : {};
+  if(InitialDelayPolicy){window.SameEndInitialDelay={Policy:InitialDelayPolicy};window.SameEndConfig={automaticInitialDelay:true};}
   const ctx = {
     window, state, sent, SameEndHLS:{decodeBundle}, crypto:webcrypto, enc, TextEncoder, TextDecoder, Uint8Array, ArrayBuffer,
     Number, Math, JSON, Set, Map, Promise, Error, Date, Buffer,
@@ -353,4 +354,24 @@ test('client reserve remains unknown during countdown and becomes measurable at 
  ctx.sampleClientDelivery();assert.equal(ctx.effectiveProgramTime(),-1);assert.equal(meter.samples.at(-1).reserveSeconds,null,'countdown is not evidence of an empty playpoint reserve');assert.equal(meter.samples.at(-1).decoderAheadSeconds,4);
  state.config.epoch-=1000;ctx.sampleClientDelivery();assert.equal(ctx.effectiveProgramTime(),0);assert.equal(meter.samples.at(-1).reserveSeconds,0,'a real empty playpoint remains measured zero');
  state.clockReady=false;ctx.sampleClientDelivery();assert.equal(meter.samples.at(-1).reserveSeconds,null,'unclocked reserve is unknown');
+});
+
+test('viewer startup commits locally while room clock, retention, signatures and child forwarding stay nominal',async()=>{
+ const holder={};vm.runInNewContext(await readFile(new URL('../initial-delay.js',import.meta.url),'utf8'),{window:holder,isFinite,Math});
+ const config={id:'cast-1',epoch:nowValue-400000,delay:300,mime:'application/vnd.apple.mpegurl',mediaProfile:'hls-cmaf-v1'};
+ const {ctx,state}=harness({config,clockReady:true,supplier:{id:'relay'},appendedSeq:new Set()},null,holder.SameEndInitialDelay.Policy);
+ ctx.document={visibilityState:'visible'};ctx.navigator={onLine:true};const video={muted:true};ctx.$=()=>video;
+ ctx.sampleClientDelivery=()=>({state:'observing',classification:'live',recordCount:11,observationSeconds:20,lastProgressAgeSeconds:0,gapP95Seconds:2,deliveryToStreamRatio:.968,sourceAgeTrendSecondsPerSecond:0,recommendation:{status:'unvalidated-candidate',candidateInitialDelaySeconds:9,candidateReserveSeconds:6}});
+ const windows=[],prepared=[],forwarded=[];let position=null;
+ state.player={adaptive:{everPlayed:false},setPlaybackWindow:t=>windows.push(t),lookAheadSeconds:()=>16,getPlaybackTarget:nominal=>position??nominal,programTime:()=>position,
+ prepareStartup(target){prepared.push(target);position=target;return{programTime:target,minimumReserveSeconds:4,ready:true,aligned:true,cacheAheadSeconds:12,decoderAheadSeconds:12}},commitStartup:()=>true};
+ vm.runInContext(sliceBetween('function stageWindow()', 'function syncPlayback()'),ctx);
+ const before={nominal:ctx.nominalProgramTime(),cutoff:ctx.retentionCutoff(),offset:state.offset,config:JSON.stringify(config)};
+ ctx.advanceInitialDelay();assert.equal(state.initialDelayPolicy.state,'committed');assert.equal(state.initialDelayPolicy.selectedDelaySeconds,9);
+ assert.equal(ctx.viewerProgramTime()-ctx.nominalProgramTime(),291);assert.equal(ctx.effectiveProgramTime(),position);assert.equal(ctx.initialDelaySnapshot().commitCount,1);
+ assert.equal(ctx.nominalProgramTime(),before.nominal);assert.equal(ctx.retentionCutoff(),before.cutoff);assert.equal(state.offset,before.offset);assert.equal(JSON.stringify(config),before.config);
+ const meta={seq:1,start:config.epoch+before.nominal*1000,duration:2000};state.cache=[{meta,buf:new ArrayBuffer(1)}];state.peers.set('child',{direction:'down',ready:true,queued:0,lastSentSeq:-1});ctx.enqueue=(peer,piece)=>forwarded.push(piece);
+ ctx.stageWindow();assert.equal(forwarded[0].meta,meta,'old room-target media still forwards when this viewer watches newer media');
+ assert(windows.at(-1)>before.nominal);ctx.advanceInitialDelay();assert.equal(state.initialDelayPolicy.commitCount,1);assert.equal(prepared.length,2);
+ state.role='source';ctx.resetClientDelivery();assert.equal(state.initialDelayPolicy.state,'disabled');assert.equal(ctx.viewerProgramTime(),before.nominal);
 });

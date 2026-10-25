@@ -49,6 +49,10 @@ const clientDelivery=await readFile(path.join(dir,'client-delivery.js'),'utf8');
 const clientDeliverySlot=/(<script id="client-delivery-module">)[\s\S]*?(<\/script>)/;
 if(!clientDeliverySlot.test(html))throw Error('Missing client delivery measurement slot.');
 html=html.replace(clientDeliverySlot,(_,a,b)=>a+clientDelivery+b);
+const initialDelay=await readFile(path.join(dir,'initial-delay.js'),'utf8');
+const initialDelaySlot=/(<script id="initial-delay-module">)[\s\S]*?(<\/script>)/;
+if(!initialDelaySlot.test(html))throw Error('Missing initial delay policy slot.');
+html=html.replace(initialDelaySlot,(_,a,b)=>a+initialDelay+b);
 const clientDeliveryUI=await readFile(path.join(dir,'client-delivery-ui.js'),'utf8');
 html=html.replace(/(<script id="client-delivery-ui-module">)[\s\S]*?(<\/script>)/,(_,a,b)=>a+clientDeliveryUI+b);
 for(const [id,file]of [['share-help-module','share-help.js'],['diagnostics-core','diagnostics-core.js'],['session-diagnostics-ui','diagnostics-ui.js']]){const body=await readFile(path.join(dir,file),'utf8'),pattern=new RegExp('(<script id="'+id+'">)[\\s\\S]*?(</script>)');if(!pattern.test(html))throw Error('Missing test diagnostics slot.');html=html.replace(pattern,(_,a,b)=>a+body+b);}
