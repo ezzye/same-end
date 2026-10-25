@@ -90,14 +90,21 @@ function contentInput(body, time) {
   return item;
 }
 
-export function createCommunityApi({store, now = Date.now, allowedOrigins = ['https://www.sameend.com'], adminAuth = {}, localAdminTokenHash} = {}) {
+export function createCommunityApi({store, now = Date.now, allowedOrigins = ['https://www.sameend.com'], adminAuth = {}, fanAuth = {}, localAdminTokenHash} = {}) {
   if (!store) throw new Error('A persistent store is required');
   // Explicit injection is confined to the isolated runner. Lambda and any configured
   // production issuer disable it, regardless of whether a caller accidentally passes it.
   const localEnabled = !!localAdminTokenHash && !process.env.AWS_LAMBDA_FUNCTION_NAME && !adminAuth.issuer && process.env.NODE_ENV !== 'production';
-  const active = row => row && row.expiresAt > now() / 1000;
+  // Only account-bound identity metadata is durable. Content, receipts and legacy
+  // browser credentials retain their existing expiry checks and DynamoDB TTL.
+  const boundFan = value => value?.sk === `FAN#${value.id}` && HASH.test(value.accountKey || '');
+  const active = value => value && (value.expiresAt > now() / 1000 || value.expiresAt === undefined && boundFan(value));
   const get = sk => store.get(PK, sk);
-  const row = (sk, fields) => ({pk: PK, sk, ...fields, version: (fields.version || 0) + 1, rev: randomUUID(), expiresAt: fields.expiresAt ?? Math.floor((now() + RETENTION) / 1000)});
+  const row = (sk, fields) => {
+    const value = {pk: PK, sk, ...fields, version: (fields.version || 0) + 1, rev: randomUUID(), expiresAt: fields.expiresAt ?? Math.floor((now() + RETENTION) / 1000)};
+    if (boundFan(value)) delete value.expiresAt;
+    return value;
+  };
   const put = (value, before) => ({put: value, condition: cond(before)});
   const cap = (name, maximum) => ({key: {pk: PK, sk: `COUNT#${name}`}, add: {count: 1}, condition: {attribute: 'count', lt: maximum}});
   async function retry(action) {
@@ -133,9 +140,64 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
   async function fan(token, member = false) {
     if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(token) || Buffer.from(token, 'base64url').length !== 32 || Buffer.from(token, 'base64url').toString('base64url') !== token) fail(401, 'fan_auth_required', 'Use your saved fan identity.');
     const key = await get(`TOKEN#${digest(token)}`), current = key && await get(`FAN#${key.id}`);
-    if (!active(key) || !active(current) || !equal(current.tokenHash, digest(token))) fail(401, 'fan_auth_required', 'Use your saved fan identity.');
+    if (!active(key) || !active(current) || current.accountKey || !equal(current.tokenHash, digest(token))) fail(401, 'fan_auth_required', 'Use your saved fan identity.');
     if (member && (!current.forumMember || current.status !== 'active' || !safeSettings(await settings()).forumEnabled)) fail(403, 'membership_required', 'Join the forum pilot to take part.');
     return current;
+  }
+  function accountPrincipal(event) {
+    // Claims are supplied by the configured API Gateway JWT authorizer. There is
+    // deliberately no JWT decoding or bearer-token fallback on public routes.
+    const claims = event.requestContext?.authorizer?.jwt?.claims;
+    const exp = Number(claims?.exp), scope = fanAuth.scope || 'sameend-community/use';
+    if (!fanAuth.issuer || !fanAuth.clientId || !claims || claims.iss !== fanAuth.issuer || claims.client_id !== fanAuth.clientId || claims.token_use !== 'access' || typeof claims.sub !== 'string' || !/^[A-Za-z0-9_-]{1,200}$/.test(claims.sub) || !Number.isFinite(exp) || exp <= now() / 1000 || (claims.nbf !== undefined && (!Number.isFinite(Number(claims.nbf)) || Number(claims.nbf) > now() / 1000)) || (claims.iat !== undefined && (!Number.isFinite(Number(claims.iat)) || Number(claims.iat) > now() / 1000)) || typeof claims.scope !== 'string' || claims.scope.length > 2048 || !claims.scope.split(' ').includes(scope)) fail(401, 'account_required', 'Sign in with your fan account.');
+    return {key: digest(`${claims.iss}/${claims.sub}`)};
+  }
+  async function accountFan(principal, member = false) {
+    const account = await get(`ACCOUNT#${principal.key}`), current = account && UUID.test(account.fanId || '') && await get(`FAN#${account.fanId}`);
+    if (!account) fail(401, 'account_profile_required', 'Finish setting up your fan account.');
+    if (!active(current) || !equal(current.accountKey, principal.key)) fail(409, 'account_profile_unavailable', 'Your fan profile is unavailable. Contact the Same End team.');
+    if (member && (!current.forumMember || current.status !== 'active' || !safeSettings(await settings()).forumEnabled)) fail(403, 'membership_required', 'Join the forum pilot to take part.');
+    return current;
+  }
+  async function accountIdentity(principal, body, ipSlot) {
+    shape(body, [], ['legacyToken', 'name']);
+    const name = body.name === undefined ? 'Fan' : string(body.name, 40);
+    let legacyHash;
+    if (body.legacyToken !== undefined) {
+      if (typeof body.legacyToken !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(body.legacyToken) || Buffer.from(body.legacyToken, 'base64url').length !== 32 || Buffer.from(body.legacyToken, 'base64url').toString('base64url') !== body.legacyToken) fail(400, 'invalid_credential', 'Use the saved identity from this browser.');
+      legacyHash = digest(body.legacyToken);
+    }
+    return retry(async () => {
+      const sk = `ACCOUNT#${principal.key}`, account = await get(sk);
+      if (account) {
+        if (legacyHash && !equal(account.legacyClaimHash, legacyHash)) fail(409, 'account_link_conflict', 'This account already has a fan identity.');
+        return profile(await accountFan(principal));
+      }
+      // Verified accounts may share an office or household network. Keep the unsigned limit separate.
+      await rate('account-setup-global', 200, DAY); await rate(`account-setup-ip-${ipSlot}`, 50, DAY);
+      let current, credential;
+      if (legacyHash) {
+        credential = await get(`TOKEN#${legacyHash}`);
+        current = credential && await get(`FAN#${credential.id}`);
+        if (!active(credential) || !active(current) || current.accountKey || !equal(current.tokenHash, legacyHash)) {
+          // Another request for this same account may have consumed the secret
+          // after our first mapping read. Re-read before declaring it unavailable.
+          const committed = await get(sk);
+          if (committed && equal(committed.legacyClaimHash, legacyHash)) return profile(await accountFan(principal));
+          fail(409, 'legacy_identity_unavailable', 'That browser identity cannot be linked.');
+        }
+      } else {
+        await limited('identities', COMMUNITY_LIMITS.identities);
+      }
+      const fanId = current?.id || randomUUID();
+      const linked = row(`FAN#${fanId}`, current ? {...current, accountKey: principal.key} : {id: fanId, accountKey: principal.key, name, forumMember: false, status: 'active', blockedMemberIds: [], feedbackCount: 0, createdAt: now()});
+      delete linked.tokenHash;
+      // Account mappings and reverse bindings have no content TTL. The hash of a
+      // consumed secret permits same-account retry only; it never authorizes reads.
+      const mapping = {pk: PK, sk, fanId, rev: randomUUID(), createdAt: now(), ...(legacyHash && {legacyClaimHash: legacyHash})};
+      await store.transact([put(mapping), put(linked, current), ...(credential ? [{delete: true, key: {pk: PK, sk: credential.sk}, condition: cond(credential)}] : [cap('identities', COMMUNITY_LIMITS.identities)])]);
+      return profile(linked);
+    });
   }
   function staff(event, token, permission) {
     const raw = event.requestContext?.authorizer?.jwt?.claims;
@@ -236,8 +298,13 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
     return {thread: {...threadView(current), score: threadScore, myVote: votes.get(threadId) || 0}, replies, cursor: null};
   }
   async function route(method, path, query, body, token, event, ipSlot) {
+    const accountRoute = path === '/member' || path.startsWith('/member/');
+    const principal = accountRoute ? accountPrincipal(event) : null;
+    if (accountRoute) path = path.slice('/member'.length) || '/';
+    const resolveViewer = member => principal ? accountFan(principal, member) : fan(token, member);
+    if (accountRoute && path === '/identity' && method === 'POST') return accountIdentity(principal, body, ipSlot);
     if (path === '/config' && method === 'GET') {
-      const s = await settings(); return {forumEnabled: safeSettings(s).forumEnabled, categories: CATEGORIES, adminAuth: {issuer: adminAuth.issuer || '', clientId: adminAuth.clientId || '', domain: adminAuth.domain || '', redirectUri: adminAuth.redirectUri || '', enrollmentClientId: adminAuth.enrollmentClientId || ''}, retentionDays: 365};
+      const s = await settings(); return {forumEnabled: safeSettings(s).forumEnabled, categories: CATEGORIES, adminAuth: {issuer: adminAuth.issuer || '', clientId: adminAuth.clientId || '', domain: adminAuth.domain || '', redirectUri: adminAuth.redirectUri || '', enrollmentClientId: adminAuth.enrollmentClientId || ''}, fanAuth: {issuer: fanAuth.issuer || '', clientId: fanAuth.clientId || '', domain: fanAuth.domain || '', redirectUri: fanAuth.redirectUri || '', scope: fanAuth.scope || 'sameend-community/use'}, retentionDays: 365};
     }
     if (path === '/content' && method === 'GET') {
       const revision = await get('CONTENTREV'), items = (await collection('CONTENT#', COMMUNITY_LIMITS.content)).filter(x => x.published && (x.startsAt === undefined || x.startsAt <= now()) && (x.endsAt === undefined || x.endsAt > now())).map(contentView);
@@ -245,7 +312,7 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
       if (Buffer.byteLength(JSON.stringify(pack)) > COMMUNITY_LIMITS.packBytes) fail(503, 'content_unavailable', 'Waiting content is temporarily unavailable.');
       return pack;
     }
-    if (path === '/identities' && method === 'POST') {
+    if (!accountRoute && path === '/identities' && method === 'POST') {
       shape(body, ['id', 'tokenHash', 'name']);
       const fanId = id(body.id), name = string(body.name, 40);
       if (typeof body.tokenHash !== 'string' || !HASH.test(body.tokenHash)) fail(400, 'invalid_credential', 'Create a fresh fan identity.');
@@ -260,14 +327,16 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
         return profile(current);
       });
     }
-    if (path.startsWith('/admin/')) return adminRoute(method, path, query, body, token, event);
-    // Anyone may read the forum while it is open. A saved fan identity adds votes and blocks.
+    if (!accountRoute && path.startsWith('/admin/')) return adminRoute(method, path, query, body, token, event);
+    // Public reads are always guest reads. Personal votes and blocks are available
+    // only on the separately gateway-authorized member routes.
     if (method === 'GET' && (path === '/threads' || /^\/threads\/[a-f0-9-]+$/i.test(path))) {
       if (!safeSettings(await settings()).forumEnabled) fail(403, 'forum_closed', 'The fan forum is not open yet.');
-      const reader = token ? await fan(token) : {id: 'guest', guest: true, blockedMemberIds: []};
+      const reader = accountRoute ? await resolveViewer(false) : {id: 'guest', guest: true, blockedMemberIds: []};
       return path === '/threads' ? listThreads(query, false, reader) : readThread(id(path.slice(9)), query, false, reader);
     }
-    const viewer = await fan(token, !['/me', '/feedback', '/membership'].includes(path));
+    if (!accountRoute && !['/me', '/feedback'].includes(path)) fail(401, 'account_required', 'Sign in with your fan account.');
+    const viewer = await resolveViewer(!['/me', '/feedback', '/membership'].includes(path));
     if (method !== 'GET') {
       await rate('write-global', 1000, 60000); await rate(`write-ip-${ipSlot}`, 50, 60000);
       // Votes are small, frequent toggles; they have their own per-fan allowance.
@@ -279,7 +348,7 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
       const code = string(body.code, 128, 8), chosenName = body.name === undefined ? undefined : string(body.name, 40), s = await settings();
       if (!safeSettings(s).forumEnabled || !equal(digest(code), s.joinCodeHash)) fail(403, 'join_unavailable', 'Check the pilot code with the organiser.');
       return retry(async () => {
-        const current = await fan(token);
+        const current = await resolveViewer(false);
         if (current.status !== 'active') fail(403, 'member_suspended', 'This identity cannot join the forum.');
         if (current.forumMember) return profile(current);
         const updated = row(current.sk, {...current, ...(chosenName !== undefined && {name: chosenName}), forumMember: true, joinedAt: now()});
@@ -297,12 +366,12 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
       if (body.contact !== undefined && body.contact !== '') value.contact = string(body.contact, 200);
       if (body.diagnostics !== undefined) value.diagnostics = diagnostics(body.diagnostics);
       return retry(async () => {
+        const current = await resolveViewer(false);
         const sk = `FEEDBACK#${viewer.id}#${recordId}`, existing = await get(sk);
         if (active(existing)) return feedbackView(existing);
         if (existing) fail(409, 'expired_id', 'Create a new feedback item.');
         const index = await get(`FEEDBACKID#${recordId}`);
         if (index) fail(409, 'feedback_conflict', 'Create a new feedback item.');
-        const current = await fan(token);
         if ((current.feedbackCount || 0) >= COMMUNITY_LIMITS.feedbackPerFan) fail(429, 'feedback_limit', 'This pilot identity has reached its feedback limit.');
         await limited('feedback', COMMUNITY_LIMITS.feedback);
         const feedback = row(sk, {...value, status: 'received', response: '', createdAt: now(), updatedAt: now()}), updated = row(current.sk, {...current, feedbackCount: (current.feedbackCount || 0) + 1});
@@ -314,12 +383,13 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
       const value = {id: threadId, category, title: string(body.title, 120), text: string(body.text, 4000), spoiler: category === 'match' || boolean(body.spoiler)};
       boolean(body.spoiler);
       return retry(async () => {
+        const currentFan = await resolveViewer(true);
         const existing = await get(`THREAD#${threadId}`);
-        if (active(existing) && existing.authorId === viewer.id) return threadView(existing);
+        if (active(existing) && existing.authorId === currentFan.id) return threadView(existing);
         if (existing) fail(409, 'post_conflict', 'Create a new conversation.');
         await limited('threads', COMMUNITY_LIMITS.threads);
-        const current = row(`THREAD#${threadId}`, {...value, authorId: viewer.id, authorName: viewer.name, locked: false, hidden: false, deleted: false, replyCount: 0, createdAt: now(), updatedAt: now()});
-        await store.transact([put(current), {put: viewer, condition: cond(viewer)}, cap('threads', COMMUNITY_LIMITS.threads)]); return threadView(current);
+        const current = row(`THREAD#${threadId}`, {...value, authorId: currentFan.id, authorName: currentFan.name, locked: false, hidden: false, deleted: false, replyCount: 0, createdAt: now(), updatedAt: now()});
+        await store.transact([put(current), put(currentFan, currentFan), cap('threads', COMMUNITY_LIMITS.threads)]); return threadView(current);
       });
     }
     let match = path.match(/^\/threads\/([a-f0-9-]+)$/i);
@@ -327,66 +397,70 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
     if (match && method === 'POST') {
       shape(body, ['id', 'text'], ['parentId']); const threadId = id(match[1]), replyId = id(body.id), text = string(body.text, 4000), parentInput = body.parentId === undefined || body.parentId === null ? threadId : id(body.parentId);
       return retry(async () => {
+        const currentFan = await resolveViewer(true);
         const existing = await get(`REPLY#${threadId}#${replyId}`);
-        if (active(existing) && existing.authorId === viewer.id) return postView(existing);
+        if (active(existing) && existing.authorId === currentFan.id) return postView(existing);
         if (existing) fail(409, 'post_conflict', 'Create a new reply.');
-        const current = await thread(threadId, false, viewer);
+        const current = await thread(threadId, false, currentFan);
         if (current.locked) fail(403, 'thread_locked', 'This conversation is locked.');
         if (current.replyCount >= COMMUNITY_LIMITS.replies) fail(429, 'reply_limit', 'This conversation has reached the pilot reply limit.');
         let parentId = null, depth = 1, replyToName, replyToId, parent;
         if (parentInput !== threadId) {
           parent = await get(`REPLY#${threadId}#${parentInput}`);
-          if (!active(parent) || parent.hidden || parent.deleted || viewer.blockedMemberIds?.includes(parent.authorId)) fail(404, 'post_not_found', 'That comment is no longer available.');
+          if (!active(parent) || parent.hidden || parent.deleted || currentFan.blockedMemberIds?.includes(parent.authorId)) fail(404, 'post_not_found', 'That comment is no longer available.');
           const parentDepth = parent.depth || 1;
           if (parentDepth >= MAX_DEPTH) { parentId = parent.parentId || null; depth = MAX_DEPTH; replyToName = parent.authorName; replyToId = parent.id; }
           else { parentId = parent.id; depth = parentDepth + 1; }
         }
-        const reply = row(`REPLY#${threadId}#${replyId}`, {id: replyId, threadId, parentId, depth, ...(replyToName && {replyToName}), ...(replyToId && {replyToId}), text, authorId: viewer.id, authorName: viewer.name, hidden: false, deleted: false, createdAt: now()}), updated = row(current.sk, {...current, replyCount: current.replyCount + 1, updatedAt: now()});
-        await store.transact([put(reply), put(updated, current), ...(parent ? [put(parent, parent)] : []), {put: viewer, condition: cond(viewer)}]); return postView(reply);
+        const reply = row(`REPLY#${threadId}#${replyId}`, {id: replyId, threadId, parentId, depth, ...(replyToName && {replyToName}), ...(replyToId && {replyToId}), text, authorId: currentFan.id, authorName: currentFan.name, hidden: false, deleted: false, createdAt: now()}), updated = row(current.sk, {...current, replyCount: current.replyCount + 1, updatedAt: now()});
+        await store.transact([put(reply), put(updated, current), ...(parent ? [put(parent, parent)] : []), put(currentFan, currentFan)]); return postView(reply);
       });
     }
     if (path === '/votes' && method === 'POST') {
       shape(body, ['threadId', 'postId', 'value']); const threadId = id(body.threadId), postId = id(body.postId);
       if (body.value !== 0 && body.value !== 1) fail(400, 'invalid_vote', 'Choose like or remove your like.');
       return retry(async () => {
-        await targetPost(threadId, postId, false, viewer);
-        const voteSk = `VOTE#${viewer.id}#${threadId}#${postId}`, scoreSk = postId === threadId ? `TSCORE#${threadId}` : `RSCORE#${threadId}#${postId}`;
+        const currentFan = await resolveViewer(true);
+        await targetPost(threadId, postId, false, currentFan);
+        const voteSk = `VOTE#${currentFan.id}#${threadId}#${postId}`, scoreSk = postId === threadId ? `TSCORE#${threadId}` : `RSCORE#${threadId}#${postId}`;
         const vote = await get(voteSk), tally = await get(scoreSk), before = active(vote) ? vote.value : 0, score = tally?.score || 0;
         if (before === body.value) return {threadId, postId, score, myVote: before};
         if (!vote) await limited('votes', COMMUNITY_LIMITS.votes);
         const nextScore = Math.max(0, score + body.value - before);
         // Scores live beside posts, so liking never changes a post version used by author or moderator edits.
-        await store.transact([put(row(scoreSk, {postId, threadId, score: nextScore}), tally), put(row(voteSk, {postId, threadId, value: body.value}), vote), ...(vote ? [] : [cap('votes', COMMUNITY_LIMITS.votes)])]);
+        await store.transact([put(row(scoreSk, {postId, threadId, score: nextScore}), tally), put(row(voteSk, {postId, threadId, value: body.value}), vote), put(currentFan, currentFan), ...(vote ? [] : [cap('votes', COMMUNITY_LIMITS.votes)])]);
         return {threadId, postId, score: nextScore, myVote: body.value};
       });
     }
     if (path === '/reports' && method === 'POST') {
       shape(body, ['id', 'threadId', 'postId', 'reason']); const reportId = id(body.id), threadId = id(body.threadId), postId = id(body.postId), reason = string(body.reason, 300);
       return retry(async () => {
+        const currentFan = await resolveViewer(true);
         const existing = await get(`REPORT#${reportId}`);
-        if (active(existing) && existing.reporterId === viewer.id) return {id: reportId, status: existing.status};
+        if (active(existing) && existing.reporterId === currentFan.id) return {id: reportId, status: existing.status};
         if (existing) fail(409, 'report_conflict', 'Create a new report.');
-        await targetPost(threadId, postId, false, viewer); await limited('reports', COMMUNITY_LIMITS.reports);
-        const report = row(`REPORT#${reportId}`, {id: reportId, threadId, postId, reporterId: viewer.id, reason, status: 'open', note: '', createdAt: now(), updatedAt: now()});
-        await store.transact([put(report), {put: viewer, condition: cond(viewer)}, cap('reports', COMMUNITY_LIMITS.reports)]); return {id: reportId, status: 'open'};
+        await targetPost(threadId, postId, false, currentFan); await limited('reports', COMMUNITY_LIMITS.reports);
+        const report = row(`REPORT#${reportId}`, {id: reportId, threadId, postId, reporterId: currentFan.id, reason, status: 'open', note: '', createdAt: now(), updatedAt: now()});
+        await store.transact([put(report), put(currentFan, currentFan), cap('reports', COMMUNITY_LIMITS.reports)]); return {id: reportId, status: 'open'};
       });
     }
     if (path === '/posts/delete' && method === 'POST') {
       shape(body, ['threadId', 'postId', 'expectedVersion']); const threadId = id(body.threadId), postId = id(body.postId);
       return retry(async () => {
+        const currentFan = await resolveViewer(true);
         const {parent, post} = await targetPost(threadId, postId, true);
         expected(body, post);
-        if (post.authorId !== viewer.id) fail(403, 'post_owner_required', 'Only the author can delete this post.');
+        if (post.authorId !== currentFan.id) fail(403, 'post_owner_required', 'Only the author can delete this post.');
         if (post.deleted) return {ok: true};
         const updated = row(post.sk, {...post, text: '', ...(postId === threadId && {title: '[Deleted]'}), deleted: true, updatedAt: now()});
-        await store.transact([put(updated, post), ...(postId !== threadId ? [{put: parent, condition: cond(parent)}] : [])]); return {ok: true};
+        await store.transact([put(updated, post), put(currentFan, currentFan), ...(postId !== threadId ? [{put: parent, condition: cond(parent)}] : [])]); return {ok: true};
       });
     }
     if (path === '/blocks' && method === 'POST') {
       shape(body, ['memberId', 'blocked']); const memberId = id(body.memberId), blocked = boolean(body.blocked);
       if (memberId === viewer.id || !active(await get(`FAN#${memberId}`))) fail(400, 'invalid_member', 'Choose another forum member.');
       return retry(async () => {
-        const current = await fan(token, true), members = new Set(current.blockedMemberIds);
+        const current = await resolveViewer(true), members = new Set(current.blockedMemberIds);
         blocked ? members.add(memberId) : members.delete(memberId);
         if (members.size > COMMUNITY_LIMITS.blocks) fail(429, 'block_limit', 'This pilot has reached its block list limit.');
         const updated = row(current.sk, {...current, blockedMemberIds: [...members]}); await store.put(updated, cond(current)); return profile(updated);

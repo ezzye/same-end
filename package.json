@@ -50,7 +50,8 @@
     "test:community": "node tests/community-browser.test.mjs",
     "review:community": "node scripts/review-community.mjs",
     "test:initial-delay": "node tests/initial-delay-platform-browser.test.mjs",
-    "test:common-start": "node tests/common-start-platform-browser.test.mjs"
+    "test:common-start": "node tests/common-start-platform-browser.test.mjs",
+    "test:accounts": "node tests/fan-auth-browser.test.mjs && node tests/community-browser.test.mjs"
   },
   "engines": {
     "node": ">=20"

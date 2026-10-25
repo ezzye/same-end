@@ -5,7 +5,7 @@ import {homedir} from 'node:os';
 import path from 'node:path';
 import {createHash, webcrypto} from 'node:crypto';
 import {template} from '../cloudformation.mjs';
-import {addCommunityInfrastructure, STAFF_GROUPS, STAFF_REDIRECT_URI} from '../community-infrastructure.mjs';
+import {addCommunityInfrastructure, STAFF_GROUPS, STAFF_REDIRECT_URI, FAN_REDIRECT_URI, FAN_SCOPE} from '../community-infrastructure.mjs';
 import {allowedPanels, base64url, makePkce, validateAuthConfiguration, validatePkceTransaction, inspectIdToken, takeCallback, contentPayload, isLoopback, PKCE_KEY} from '../../manage.js';
 const auth = {issuer: 'https://cognito-idp.eu-west-2.amazonaws.com/eu-west-2_TestPool', clientId: 'client123', domain: 'https://sameend-test.auth.eu-west-2.amazoncognito.com', redirectUri: STAFF_REDIRECT_URI};
 const now = 1800000000000;
@@ -43,6 +43,80 @@ test('staff template preserves existing routes/environment and hardens every adm
   assert.throws(() => addCommunityInfrastructure({Resources: {}}), /requires Api/);
 });
 
+test('fan email/password signup is a separate retained pool with verified-email recovery and a public PKCE client', () => {
+  const r = addCommunityInfrastructure(template).Resources, pool = r.FanUserPool, client = r.FanClient.Properties;
+  assert.equal(pool.Type, 'AWS::Cognito::UserPool');
+  assert.equal(pool.DeletionPolicy, 'Retain'); assert.equal(pool.UpdateReplacePolicy, 'Retain'); assert.equal(pool.Properties.DeletionProtection, 'ACTIVE');
+  assert.equal(pool.Properties.UserPoolTier, 'LITE');
+  assert.deepEqual(pool.Properties.AdminCreateUserConfig, {AllowAdminCreateUserOnly: false});
+  assert.equal(pool.Properties.MfaConfiguration, 'OFF');
+  assert.deepEqual(pool.Properties.UsernameAttributes, ['email']); assert.deepEqual(pool.Properties.AutoVerifiedAttributes, ['email']);
+  assert.deepEqual(pool.Properties.UsernameConfiguration, {CaseSensitive: false});
+  assert.deepEqual(pool.Properties.AccountRecoverySetting, {RecoveryMechanisms: [{Name: 'verified_email', Priority: 1}]});
+  assert.ok(pool.Properties.Schema.some(attribute => attribute.Name === 'email' && attribute.Required === true));
+  const password = pool.Properties.Policies.PasswordPolicy;
+  assert.ok(password.MinimumLength >= 12); assert.equal(password.RequireLowercase, true); assert.equal(password.RequireUppercase, true); assert.equal(password.RequireNumbers, true);
+  assert.equal(pool.Properties.VerificationMessageTemplate.DefaultEmailOption, 'CONFIRM_WITH_CODE');
+  assert.match(pool.Properties.VerificationMessageTemplate.EmailMessage, /\{####\}/);
+  assert.equal(pool.Properties.LambdaConfig, undefined, 'no auto-confirm trigger bypasses email verification');
+  assert.deepEqual(client.UserPoolId, {Ref: 'FanUserPool'}); assert.notDeepEqual(client.UserPoolId, r.StaffClient.Properties.UserPoolId);
+  assert.equal(client.GenerateSecret, false); assert.equal(client.AllowedOAuthFlowsUserPoolClient, true); assert.deepEqual(client.AllowedOAuthFlows, ['code']);
+  assert.deepEqual(client.SupportedIdentityProviders, ['COGNITO']);
+  assert.deepEqual(client.CallbackURLs, [FAN_REDIRECT_URI]); assert.deepEqual(client.LogoutURLs, [FAN_REDIRECT_URI]); assert.equal(client.DefaultRedirectURI, FAN_REDIRECT_URI);
+  assert.notEqual(FAN_REDIRECT_URI, STAFF_REDIRECT_URI); assert.match(FAN_REDIRECT_URI, /^https:\/\/www\.sameend\.com\/[^?#]+\.html$/);
+  assert.equal(client.EnableTokenRevocation, true); assert.equal(client.PreventUserExistenceErrors, 'ENABLED');
+  assert.equal(client.TokenValidityUnits.AccessToken, 'minutes'); assert.ok(client.AccessTokenValidity >= 5 && client.AccessTokenValidity <= 60);
+  assert.equal(client.TokenValidityUnits.RefreshToken, 'days'); assert.equal(client.RefreshTokenValidity, 1);
+  assert.deepEqual(r.FanDomain.Properties.UserPoolId, {Ref: 'FanUserPool'}); assert.equal(r.FanDomain.Properties.ManagedLoginVersion, 1, 'Lite uses classic hosted login');
+  assert.equal(r.StaffUserPool.Properties.MfaConfiguration, 'ON'); assert.deepEqual(r.StaffUserPool.Properties.EnabledMfas, ['SOFTWARE_TOKEN_MFA']);
+  assert.deepEqual(r.StaffUserPool.Properties.AdminCreateUserConfig, {AllowAdminCreateUserOnly: true});
+  for (const group of Object.values(r).filter(resource => resource.Type === 'AWS::Cognito::UserPoolGroup')) assert.deepEqual(group.Properties.UserPoolId, {Ref: 'StaffUserPool'});
+});
+
+test('fan member routes require the custom access scope without changing public rooms or staff authorization', () => {
+  const added = addCommunityInfrastructure(template), r = added.Resources;
+  const server = r.FanResourceServer.Properties;
+  assert.deepEqual(server.UserPoolId, {Ref: 'FanUserPool'});
+  assert.ok(server.Scopes.some(scope => `${server.Identifier}/${scope.ScopeName}` === FAN_SCOPE));
+  assert.equal(r.FanClient.DependsOn, 'FanResourceServer', 'custom scope must exist before the client');
+  assert.deepEqual(r.FanClient.Properties.AllowedOAuthScopes, ['openid', 'email', FAN_SCOPE]);
+  assert.deepEqual(r.FanAuthorizer.Properties.JwtConfiguration, {Audience: [{Ref: 'FanClient'}], Issuer: {'Fn::Sub': 'https://cognito-idp.${AWS::Region}.${AWS::URLSuffix}/${FanUserPool}'}});
+  assert.equal(r.FanAuthorizer.Properties.AuthorizerType, 'JWT'); assert.deepEqual(r.FanAuthorizer.Properties.IdentitySource, ['$request.header.Authorization']);
+  for (const [key, route] of [['FanMemberRoute', 'ANY /v1/community/member/{proxy+}'], ['FanMemberBaseRoute', 'ANY /v1/community/member']]) {
+    assert.equal(r[key].Properties.RouteKey, route); assert.equal(r[key].Properties.AuthorizationType, 'JWT');
+    assert.deepEqual(r[key].Properties.AuthorizerId, {Ref: 'FanAuthorizer'}); assert.deepEqual(r[key].Properties.AuthorizationScopes, [FAN_SCOPE]);
+    assert.deepEqual(r[key].Properties.Target, r.Route.Properties.Target);
+  }
+  assert.equal(r.Route.Properties.RouteKey, 'ANY /v1/{proxy+}'); assert.equal(r.Route.Properties.AuthorizationType, undefined);
+  for (const [key, resource] of Object.entries(template.Resources)) {
+    if (key !== 'Control') assert.deepEqual(r[key], resource, `existing room/control resource ${key} must remain unchanged`);
+  }
+  assert.deepEqual(r.Control.Properties.Role, template.Resources.Control.Properties.Role);
+  assert.deepEqual(r.StaffAuthorizer.Properties.JwtConfiguration.Audience, [{Ref: 'StaffClient'}]);
+  for (const key of ['StaffAdminRoute', 'StaffAdminBaseRoute']) {
+    assert.deepEqual(r[key].Properties.AuthorizerId, {Ref: 'StaffAuthorizer'}); assert.equal(r[key].Properties.AuthorizationScopes, undefined);
+  }
+  const fanRoutes = Object.values(r).filter(resource => resource.Type === 'AWS::ApiGatewayV2::Route' && resource.Properties.AuthorizerId?.Ref === 'FanAuthorizer');
+  assert.equal(fanRoutes.length, 2); assert.ok(fanRoutes.every(resource => /^ANY \/v1\/community\/member(?:$|\/)/.test(resource.Properties.RouteKey)));
+});
+
+test('fan public output values and Lambda configuration refer only to the fan pool and client', () => {
+  const added = addCommunityInfrastructure(template), environment = added.Resources.Control.Properties.Environment.Variables;
+  const expected = {
+    FanUserPoolId: {Ref: 'FanUserPool'},
+    FanIssuer: {'Fn::Sub': 'https://cognito-idp.${AWS::Region}.${AWS::URLSuffix}/${FanUserPool}'},
+    FanClientId: {Ref: 'FanClient'},
+    FanDomain: {'Fn::Sub': 'https://${FanDomain}.auth.${AWS::Region}.amazoncognito.com'},
+    FanRedirectUri: FAN_REDIRECT_URI
+  };
+  assert.deepEqual(Object.fromEntries(Object.entries(added.Outputs).filter(([key]) => key.startsWith('Fan')).map(([key, output]) => [key, output.Value])), expected);
+  assert.deepEqual(environment.COMMUNITY_FAN_ISSUER, expected.FanIssuer); assert.deepEqual(environment.COMMUNITY_FAN_CLIENT_ID, expected.FanClientId);
+  assert.deepEqual(environment.COMMUNITY_FAN_DOMAIN, expected.FanDomain); assert.equal(environment.COMMUNITY_FAN_REDIRECT_URI, FAN_REDIRECT_URI); assert.equal(environment.COMMUNITY_FAN_SCOPE, FAN_SCOPE);
+  assert.deepEqual(environment.TABLE_NAME, template.Resources.Control.Properties.Environment.Variables.TABLE_NAME);
+  assert.deepEqual(environment.VAPID_PRIVATE_KEY, template.Resources.Control.Properties.Environment.Variables.VAPID_PRIVATE_KEY);
+  assert.deepEqual(added.Outputs.ApiBase, template.Outputs.ApiBase);
+});
+
 test('domain derives a unique lowercase prefix of safe length from account and stack UUID', () => {
   const r = addCommunityInfrastructure(template).Resources;
   const prefix = r.StaffDomain.Properties.Domain;
@@ -54,7 +128,11 @@ test('domain derives a unique lowercase prefix of safe length from account and s
     if (value['Fn::Select']) { const [index, list] = value['Fn::Select']; return resolve(list)[index]; }
     throw new Error('Unknown intrinsic');
   }
-  const domain = resolve(prefix); assert.match(domain, /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/); assert.ok(domain.includes('123456789012')); assert.ok(domain.includes('12345678-abcd')); assert.ok(domain.length <= 63);
+  const domain = resolve(prefix), fanDomain = resolve(r.FanDomain.Properties.Domain);
+  for (const value of [domain, fanDomain]) {
+    assert.match(value, /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/); assert.ok(value.includes('123456789012')); assert.ok(value.includes('12345678-abcd')); assert.ok(value.length <= 63);
+  }
+  assert.notEqual(fanDomain, domain, 'fan and staff hosted sign-in domains must be distinct');
 });
 
 test('PKCE uses independent strong randomness and a reproducible SHA256 challenge', async () => {

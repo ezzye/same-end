@@ -7,13 +7,17 @@ import {createCommunityApi, COMMUNITY_LIMITS} from '../community-api.mjs';
 const hash = value => createHash('sha256').update(value).digest('hex');
 const issuer = 'https://cognito-idp.eu-west-2.amazonaws.com/eu-west-2_Pilot';
 const clientId = 'pilotclient';
+const fanIssuer = 'https://cognito-idp.eu-west-2.amazonaws.com/eu-west-2_Fans', fanClientId = 'fanclient', fanScope = 'sameend-community/use';
+const fanAuth = {issuer: fanIssuer, clientId: fanClientId, domain: 'https://fans.auth.eu-west-2.amazoncognito.com', redirectUri: 'https://sameend.test/account.html', scope: fanScope};
 function fixture(options = {}) {
   let time = Date.UTC(2026, 9, 25, 10);
   const store = options.store || new MemoryStore(), adminAuth = options.adminAuth || {issuer, clientId, domain: 'https://pilot.auth.eu-west-2.amazoncognito.com', redirectUri: 'https://sameend.test/manage.html'};
-  const api = createCommunityApi({store, now: () => time, allowedOrigins: ['https://sameend.test'], adminAuth, ...options});
-  async function request(method, suffix, body, {token, role, claims, origin = 'https://sameend.test', ip = '192.0.2.1', query, raw, headers = {}} = {}) {
+  const api = createCommunityApi({store, now: () => time, allowedOrigins: ['https://sameend.test'], adminAuth, fanAuth, ...options});
+  async function request(method, suffix, body, {token, account, role, claims, origin = 'https://sameend.test', ip = '192.0.2.1', query, raw, headers = {}} = {}) {
+    if (account && !suffix.startsWith('/admin/') && suffix !== '/member' && !suffix.startsWith('/member/') && !['/config', '/content', '/identities'].includes(suffix)) suffix = `/member${suffix}`;
     const event = {rawPath: `/v1/community${suffix}`, requestContext: {http: {method, sourceIp: ip}}, headers: {origin, ...(body !== undefined && {'content-type': 'application/json'}), ...(token && {authorization: `Bearer ${token}`}), ...headers}, queryStringParameters: query, body: raw ?? (body !== undefined ? JSON.stringify(body) : undefined)};
-    if (role || claims) event.requestContext.authorizer = {jwt: {claims: {iss: issuer, aud: clientId, token_use: 'id', sub: 'staff-opaque', exp: Math.floor(time / 1000) + 3600, 'cognito:groups': [`sameend-${role || 'admin'}`], ...claims}}};
+    if (account && !role) event.requestContext.authorizer = {jwt: {claims: {iss: fanIssuer, client_id: fanClientId, token_use: 'access', sub: account, exp: Math.floor(time / 1000) + 3600, scope: fanScope, ...claims}}};
+    else if (role || claims) event.requestContext.authorizer = {jwt: {claims: {iss: issuer, aud: clientId, token_use: 'id', sub: 'staff-opaque', exp: Math.floor(time / 1000) + 3600, 'cognito:groups': [`sameend-${role || 'admin'}`], ...claims}}};
     const result = await api.handler(event); return {...result, json: JSON.parse(result.body)};
   }
   const admin = (method, suffix, body, options = {}) => request(method, `/admin${suffix}`, body, {role: 'admin', ...options});
@@ -24,13 +28,18 @@ function fixture(options = {}) {
     return {id: fanId, token, profile: response.json};
   }
   async function enable() { const before = await admin('GET', '/settings'); return admin('POST', '/settings', {forumEnabled: true, joinCode: 'pilot-rules-2026', expectedVersion: before.json.version}); }
+  async function account(name = 'Fan', legacy) {
+    const who = {account: randomUUID()}, response = await request('POST', '/member/identity', {name, ...(legacy && {legacyToken: legacy.token})}, who);
+    assert.equal(response.statusCode, 200, JSON.stringify(response.json));
+    return {...who, id: response.json.id, profile: response.json};
+  }
   async function member(name = 'Fan') {
-    const who = await identity(name); const result = await request('POST', '/membership', {code: 'pilot-rules-2026', agree: true}, who); assert.equal(result.statusCode, 200, JSON.stringify(result.json)); return {...who, profile: result.json};
+    const who = await account(name); const result = await request('POST', '/membership', {code: 'pilot-rules-2026', agree: true}, who); assert.equal(result.statusCode, 200, JSON.stringify(result.json)); return {...who, profile: result.json};
   }
   async function thread(who, extra = {}) {
     const response = await request('POST', '/threads', {id: randomUUID(), category: 'general', title: 'A conversation', text: 'A plain text thought.', spoiler: false, ...extra}, who); assert.equal(response.statusCode, 200, JSON.stringify(response.json)); return response.json;
   }
-  return {store, request, admin, identity, member, thread, enable, now: () => time, advance: amount => {time += amount;}};
+  return {store, request, admin, identity, account, member, thread, enable, now: () => time, advance: amount => {time += amount;}};
 }
 const ok = response => assert.equal(response.statusCode, 200, JSON.stringify(response.json));
 
@@ -102,7 +111,7 @@ test('local injected admin is isolated from configured production and Lambda', a
 });
 
 test('forum requires opt-in rules and separate hashed pilot code; settings persist and stale changes fail', async () => {
-  const f = fixture(), a = await f.identity();
+  const f = fixture(), a = await f.account();
   assert.equal((await f.admin('POST', '/settings', {forumEnabled: true, expectedVersion: 0})).statusCode, 400);
   ok(await f.enable());
   assert.equal((await f.request('POST', '/membership', {code: 'pilot-rules-2026', agree: false}, a)).statusCode, 400);
@@ -208,11 +217,13 @@ test('validation, origin, request size, bounded diagnostics and private error ha
 });
 
 test('expiry is enforced during reads, independently of physical TTL deletion', async () => {
-  const f = fixture(); await f.enable(); const a = await f.member(), t = await f.thread(a);
+  const f = fixture(); await f.enable(); const a = await f.member(), legacy = await f.identity(), t = await f.thread(a);
   ok(await f.request('POST', '/feedback', {id: randomUUID(), kind: 'worked', title: 'Worked', text: 'It worked'}, a));
   ok(await f.admin('POST', '/content', {id: randomUUID(), type: 'story', title: 'Story', body: 'Body', published: true, expectedVersion: 0}));
   f.advance(366 * 86400000);
-  assert.equal((await f.request('GET', '/me', undefined, a)).statusCode, 401);
+  ok(await f.request('GET', '/me', undefined, a));
+  assert.equal((await f.request('GET', '/me', undefined, legacy)).statusCode, 401);
+  assert.equal((await f.request('GET', '/feedback', undefined, a)).json.items.length, 0);
   assert.equal((await f.request('GET', '/content')).json.items.length, 0);
   assert.equal((await f.admin('GET', '/feedback')).json.items.length, 0);
   assert.equal((await f.admin('GET', '/threads')).json.items.length, 0);
@@ -289,8 +300,9 @@ test('Dynamo-compatible transactions have no duplicate keys and bounded operatio
 
 
 test('feedback-first identity chooses its forum name on first opt-in and retains private feedback receipts', async () => {
-  const f = fixture(), a = await f.identity('Fan');
-  const feedback = await f.request('POST', '/feedback', {id: randomUUID(), kind: 'problem', title: 'Before joining', text: 'A private report before forum membership', contact: 'owner@example.test'}, a); ok(feedback);
+  const f = fixture(), legacy = await f.identity('Fan');
+  const feedback = await f.request('POST', '/feedback', {id: randomUUID(), kind: 'problem', title: 'Before joining', text: 'A private report before forum membership', contact: 'owner@example.test'}, legacy); ok(feedback);
+  const a = await f.account('Fan', legacy); assert.equal(a.id, legacy.id);
   await f.enable();
   assert.equal((await f.request('POST', '/membership', {code: 'pilot-rules-2026', agree: true, name: 'a'.repeat(41)}, a)).statusCode, 400);
   const joined = await f.request('POST', '/membership', {code: 'pilot-rules-2026', agree: true, name: 'Chosen Fan'}, a); ok(joined);
@@ -309,9 +321,9 @@ test('anyone can read an open forum without an identity; closed forums stay clos
   assert.doesNotMatch(list.body, /tokenHash|blockedMemberIds|contact|diagnostics/);
   ok(await f.request('GET', `/threads/${t.id}`));
   const guest = await f.identity('Guest'); ok(await f.request('GET', '/threads', undefined, {...guest, query: {sort: 'hot'}}));
-  // Taking part still needs the pilot code.
-  assert.equal((await f.request('POST', '/threads', {id: randomUUID(), category: 'general', title: 'x', text: 'y', spoiler: false}, guest)).statusCode, 403);
-  assert.equal((await f.request('POST', '/votes', {threadId: t.id, postId: t.id, value: 1}, guest)).statusCode, 403);
+  // Taking part requires an account as well as pilot membership.
+  assert.equal((await f.request('POST', '/threads', {id: randomUUID(), category: 'general', title: 'x', text: 'y', spoiler: false}, guest)).statusCode, 401);
+  assert.equal((await f.request('POST', '/votes', {threadId: t.id, postId: t.id, value: 1}, guest)).statusCode, 401);
   assert.equal((await f.request('POST', '/threads', {id: randomUUID(), category: 'general', title: 'x', text: 'y', spoiler: false})).statusCode, 401);
 });
 
@@ -445,4 +457,159 @@ test('staff publish labelled team discussions idempotently; fans can read, like 
   const audit = await f.admin('GET', '/audit'); ok(audit); assert.ok(audit.json.items.some(x => x.action === 'thread.publish' && x.target === body.id));
   // A fan-created thread ID cannot be taken over by staff publishing.
   const fanThread = await f.thread(a); assert.equal((await f.admin('POST', '/threads', {...body, id: fanThread.id}, {role: 'moderator'})).statusCode, 409);
+});
+
+test('fan accounts require trusted access-token claims and stay isolated from staff and browser credentials', async () => {
+  const f = fixture(), a = await f.account('Alice'), legacy = await f.identity();
+  assert.deepEqual((await f.request('GET', '/config')).json.fanAuth, fanAuth);
+  assert.equal((await f.request('GET', '/member/me', undefined, legacy)).statusCode, 401);
+  const forged = Buffer.from(JSON.stringify({iss: fanIssuer, client_id: fanClientId, token_use: 'access', sub: a.account, scope: fanScope, exp: f.now() / 1000 + 3600})).toString('base64url');
+  assert.equal((await f.request('GET', '/member/me', undefined, {token: `e30.${forged}.fake`})).statusCode, 401);
+  assert.equal((await f.request('GET', '/member/me', undefined, {role: 'admin'})).statusCode, 401);
+  assert.equal((await f.request('GET', '/admin/settings', undefined, a)).statusCode, 401);
+  for (const claims of [{iss: issuer}, {client_id: clientId}, {client_id: ''}, {token_use: 'id'}, {sub: ''}, {sub: 'x'.repeat(201)}, {exp: f.now() / 1000}, {exp: 'invalid'}, {nbf: f.now() / 1000 + 60}, {iat: f.now() / 1000 + 60}, {scope: ''}, {scope: `${fanScope}.evil`}, {scope: [fanScope]}]) {
+    const result = await f.request('GET', '/member/me', undefined, {...a, claims}); assert.equal(result.statusCode, 401, JSON.stringify(claims));
+  }
+  ok(await f.request('GET', '/member/me', undefined, {...a, claims: {scope: `openid ${fanScope} email`, exp: String(f.now() / 1000 + 3600)}}));
+  assert.equal((await fixture({fanAuth: {}}).request('POST', '/member/identity', {}, {account: randomUUID()})).statusCode, 401);
+  const unregistered = {account: randomUUID()};
+  assert.equal((await f.request('GET', '/member/me', undefined, unregistered)).json.code, 'account_profile_required');
+});
+
+test('old browser tokens never authorize forum writes and public reads never personalize optional credentials', async () => {
+  const f = fixture(); await f.enable(); const a = await f.member('Alice'), b = await f.member('Bob'), legacy = await f.identity();
+  // Model an existing pilot browser identity from before account rollout.
+  const oldRow = await f.store.get('COMMUNITY#PILOT', `FAN#${legacy.id}`);
+  await f.store.put({...oldRow, forumMember: true, rev: randomUUID()});
+  const t = await f.thread(a);
+  ok(await f.request('POST', '/votes', {threadId: t.id, postId: t.id, value: 1}, b));
+  assert.equal((await f.request('GET', `/threads/${t.id}`, undefined, b)).json.thread.myVote, 1);
+  const guest = await f.request('GET', `/threads/${t.id}`, undefined, {token: 'forged.jwt.token', claims: {iss: fanIssuer, client_id: fanClientId, token_use: 'access', sub: b.account, scope: fanScope}});
+  ok(guest); assert.equal(guest.json.thread.myVote, 0);
+  ok(await f.request('POST', '/blocks', {memberId: a.id, blocked: true}, b));
+  assert.equal((await f.request('GET', '/threads', undefined, b)).json.items.length, 0);
+  assert.equal((await f.request('GET', '/threads', undefined, {token: 'invalid'})).json.items.length, 1);
+  for (const [suffix, body] of [
+    ['/membership', {code: 'pilot-rules-2026', agree: true}],
+    ['/threads', {id: randomUUID(), category: 'general', title: 'Old credential', text: 'Denied', spoiler: false}],
+    [`/threads/${t.id}/replies`, {id: randomUUID(), text: 'Denied'}],
+    ['/votes', {threadId: t.id, postId: t.id, value: 1}],
+    ['/reports', {id: randomUUID(), threadId: t.id, postId: t.id, reason: 'Denied'}],
+    ['/posts/delete', {threadId: t.id, postId: t.id, expectedVersion: 1}],
+    ['/blocks', {memberId: a.id, blocked: true}]
+  ]) {
+    const denied = await f.request('POST', suffix, body, legacy); assert.equal(denied.statusCode, 401); assert.equal(denied.json.code, 'account_required');
+    assert.equal((await f.request('POST', `/member${suffix}`, body, legacy)).statusCode, 401);
+  }
+  const feedback = {id: randomUUID(), kind: 'suggestion', title: 'Without signup', text: 'Private feedback still works'};
+  ok(await f.request('POST', '/feedback', feedback, legacy));
+  assert.equal((await f.request('GET', '/feedback', undefined, legacy)).json.items.length, 1);
+  assert.equal((await f.request('POST', '/threads', {}, {token: a.profile.id})).statusCode, 401);
+});
+
+test('legacy claiming preserves ownership, membership, feedback, votes, blocks and consumes the old secret atomically', async () => {
+  const f = fixture(); await f.enable(); const old = await f.identity('Original'), other = await f.member('Other');
+  const before = await f.store.get('COMMUNITY#PILOT', `FAN#${old.id}`);
+  await f.store.put({...before, forumMember: true, blockedMemberIds: [other.id], joinedAt: f.now() - 1000, rev: randomUUID()});
+  const receipt = await f.request('POST', '/feedback', {id: randomUUID(), kind: 'problem', title: 'Before account', text: 'Private old receipt', contact: 'owner@example.test'}, old); ok(receipt);
+  const oldThreadId = randomUUID();
+  await f.store.put({pk: 'COMMUNITY#PILOT', sk: `THREAD#${oldThreadId}`, id: oldThreadId, authorId: old.id, authorName: 'Original', category: 'general', title: 'Existing post', text: 'Owned before signup', createdAt: f.now(), updatedAt: f.now(), replyCount: 0, version: 1, rev: randomUUID(), expiresAt: f.now() / 1000 + 86400});
+  await f.store.put({pk: 'COMMUNITY#PILOT', sk: `VOTE#${old.id}#${oldThreadId}#${oldThreadId}`, postId: oldThreadId, threadId: oldThreadId, value: 1, rev: randomUUID(), expiresAt: f.now() / 1000 + 86400});
+  const countBefore = (await f.store.get('COMMUNITY#PILOT', 'COUNT#identities')).count;
+  const a = await f.account('Ignored rename', old);
+  assert.equal(a.id, old.id); assert.equal(a.profile.name, 'Original'); assert.equal(a.profile.forumMember, true); assert.deepEqual(a.profile.blockedMemberIds, [other.id]);
+  assert.equal((await f.store.get('COMMUNITY#PILOT', 'COUNT#identities')).count, countBefore);
+  const bound = await f.store.get('COMMUNITY#PILOT', `FAN#${old.id}`);
+  assert.equal(bound.tokenHash, undefined); assert.equal(bound.expiresAt, undefined); assert.equal(bound.feedbackCount, 1); assert.equal(bound.joinedAt, f.now() - 1000);
+  assert.equal(await f.store.get('COMMUNITY#PILOT', `TOKEN#${hash(old.token)}`), undefined);
+  assert.equal((await f.request('GET', '/feedback', undefined, old)).statusCode, 401);
+  assert.deepEqual((await f.request('GET', '/feedback', undefined, a)).json.items, [receipt.json]);
+  assert.equal((await f.request('GET', `/threads/${oldThreadId}`, undefined, a)).json.thread.myVote, 1);
+  ok(await f.request('POST', '/posts/delete', {threadId: oldThreadId, postId: oldThreadId, expectedVersion: 1}, a));
+  const repeat = await f.request('POST', '/member/identity', {legacyToken: old.token, name: 'Another name'}, a); ok(repeat); assert.equal(repeat.json.id, old.id); assert.equal(repeat.json.name, 'Original');
+  ok(await f.request('POST', '/member/identity', {}, a));
+  assert.equal((await f.request('POST', '/member/identity', {legacyToken: old.token}, {account: randomUUID()})).statusCode, 409);
+  const another = await f.identity('Unlinked');
+  assert.equal((await f.request('POST', '/member/identity', {legacyToken: another.token}, a)).json.code, 'account_link_conflict');
+  ok(await f.request('GET', '/me', undefined, another));
+  assert.equal((await f.request('GET', '/feedback', undefined, other)).json.items.length, 0);
+  assert.doesNotMatch((await f.request('GET', '/me', undefined, a)).body, /accountKey|legacyClaimHash|tokenHash|owner@example/);
+});
+
+test('claim races have one owner, same-account retries converge, and failed transactions leave legacy credentials intact', async () => {
+  const f = fixture(), old = await f.identity(), identities = [{account: randomUUID()}, {account: randomUUID()}];
+  const raced = await Promise.all(identities.map(who => f.request('POST', '/member/identity', {legacyToken: old.token}, who)));
+  assert.deepEqual(raced.map(x => x.statusCode).sort(), [200, 409]);
+  const winner = identities[raced.findIndex(x => x.statusCode === 200)], loser = identities[raced.findIndex(x => x.statusCode === 409)];
+  const retries = await Promise.all([1, 2].map(() => f.request('POST', '/member/identity', {legacyToken: old.token}, winner))); retries.forEach(ok); assert.equal(retries[0].json.id, retries[1].json.id);
+  assert.equal((await f.request('GET', '/member/me', undefined, loser)).statusCode, 401);
+  const failedOld = await f.identity(), transact = f.store.transact.bind(f.store), newAccount = {account: randomUUID()};
+  f.store.transact = async ops => { if (ops.some(x => x.put?.sk.startsWith('ACCOUNT#'))) throw new Error('link storage failed'); return transact(ops); };
+  assert.equal((await f.request('POST', '/member/identity', {legacyToken: failedOld.token}, newAccount)).statusCode, 503);
+  f.store.transact = transact;
+  ok(await f.request('GET', '/me', undefined, failedOld));
+  assert.equal((await f.request('GET', '/member/me', undefined, newAccount)).statusCode, 401);
+  ok(await f.request('POST', '/member/identity', {legacyToken: failedOld.token}, newAccount));
+  const sameOld = await f.identity(), sameAccount = {account: randomUUID()};
+  const sameRace = await Promise.all([1, 2].map(() => f.request('POST', '/member/identity', {legacyToken: sameOld.token}, sameAccount)));
+  sameRace.forEach(ok); assert.equal(sameRace[0].json.id, sameOld.id); assert.deepEqual(sameRace[0].json, sameRace[1].json);
+});
+
+test('claiming rejects expired identities and retains suspensions with durable identity metadata only', async () => {
+  const f = fixture(); await f.enable(); const old = await f.identity('Suspended'), expired = await f.identity('Expired');
+  const before = await f.store.get('COMMUNITY#PILOT', `FAN#${old.id}`), expiredRow = await f.store.get('COMMUNITY#PILOT', `FAN#${expired.id}`);
+  await f.store.put({...before, forumMember: true, status: 'suspended', rev: randomUUID()});
+  await f.store.put({...expiredRow, expiresAt: f.now() / 1000 - 1, rev: randomUUID()});
+  assert.equal((await f.request('POST', '/member/identity', {legacyToken: expired.token}, {account: randomUUID()})).statusCode, 409);
+  const a = await f.account('Ignored', old); assert.equal(a.profile.status, 'suspended');
+  assert.equal((await f.request('POST', '/membership', {code: 'pilot-rules-2026', agree: true}, a)).statusCode, 403);
+  assert.equal((await f.request('POST', '/threads', {id: randomUUID(), category: 'general', title: 'Denied', text: 'Denied', spoiler: false}, a)).statusCode, 403);
+  const receipt = {id: randomUUID(), kind: 'problem', title: 'Private', text: 'Can still contact support'};
+  ok(await f.request('POST', '/feedback', receipt, a));
+  const staffBefore = await f.admin('GET', `/members/${a.id}`); ok(staffBefore);
+  ok(await f.admin('POST', `/members/${a.id}`, {status: 'active', expectedVersion: staffBefore.json.version}));
+  assert.equal((await f.store.get('COMMUNITY#PILOT', `FAN#${a.id}`)).expiresAt, undefined);
+  const mapping = [...f.store.items.values()].find(x => x.sk.startsWith('ACCOUNT#') && x.fanId === a.id); assert.equal(mapping.expiresAt, undefined);
+  f.advance(366 * 86400000);
+  const retained = await f.request('GET', '/me', undefined, a); ok(retained); assert.equal(retained.json.id, old.id);
+  assert.equal((await f.request('GET', '/feedback', undefined, a)).json.items.length, 0);
+  const reloaded = await f.request('POST', '/member/identity', {}, a); ok(reloaded); assert.equal(reloaded.json.id, old.id);
+  assert.equal((await f.request('POST', '/member/identity', {legacyToken: old.token}, {account: randomUUID()})).statusCode, 409);
+  // Removing an account's FAN must fail closed instead of creating a new identity.
+  await f.store.transact([{delete: true, key: {pk: 'COMMUNITY#PILOT', sk: `FAN#${a.id}`}}]);
+  assert.equal((await f.request('POST', '/member/identity', {}, a)).json.code, 'account_profile_unavailable');
+});
+
+test('membership revocation during a forum write is rechecked on transaction retry', async () => {
+  for (const action of ['thread', 'reply', 'vote', 'report', 'delete', 'block']) {
+    const f = fixture(); await f.enable(); const a = await f.member(), b = await f.member(), t = await f.thread(a);
+    const transact = f.store.transact.bind(f.store); let raced = false;
+    f.store.transact = async ops => {
+      if (!raced && ops.some(x => x.put?.sk === `FAN#${a.id}`)) {
+        raced = true;
+        const current = await f.store.get('COMMUNITY#PILOT', `FAN#${a.id}`);
+        await transact([{put: {...current, status: 'suspended', rev: randomUUID()}}]);
+      }
+      return transact(ops);
+    };
+    const requests = {
+      thread: ['/threads', {id: randomUUID(), category: 'general', title: 'Race', text: 'Denied', spoiler: false}],
+      reply: [`/threads/${t.id}/replies`, {id: randomUUID(), text: 'Denied'}],
+      vote: ['/votes', {threadId: t.id, postId: t.id, value: 1}],
+      report: ['/reports', {id: randomUUID(), threadId: t.id, postId: t.id, reason: 'Denied'}],
+      delete: ['/posts/delete', {threadId: t.id, postId: t.id, expectedVersion: 1}],
+      block: ['/blocks', {memberId: b.id, blocked: true}]
+    };
+    const [path, body] = requests[action], denied = await f.request('POST', path, body, a);
+    assert.equal(raced, true, action); assert.equal(denied.statusCode, 403, action);
+    assert.equal((await f.store.get('COMMUNITY#PILOT', `THREAD#${t.id}`)).deleted, false);
+  }
+});
+
+// A pilot group can register from the same workplace connection.
+test('verified account setup allows a group on one network while retaining its bound', async () => {
+  const f = fixture();
+  for (let i = 0; i < 50; i++) ok(await f.request('POST', '/member/identity', {name: 'Pilot fan'}, {account: 'colleague-' + i}));
+  assert.equal((await f.request('POST', '/member/identity', {name: 'Next fan'}, {account: 'colleague-51'})).statusCode, 429);
+  ok(await f.request('POST', '/member/identity', {}, {account: 'colleague-0'}));
 });

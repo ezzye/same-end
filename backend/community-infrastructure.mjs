@@ -1,7 +1,9 @@
-/** Cognito is solely for staff. Fan membership keeps its independent credential. */
+/** Staff and pilot fans have separate Cognito pools; private rooms remain unsigned. */
 const ref = Ref => ({Ref});
 const sub = value => ({'Fn::Sub': value});
 export const STAFF_REDIRECT_URI = 'https://www.sameend.com/manage.html';
+export const FAN_REDIRECT_URI = 'https://www.sameend.com/fan-signin.html';
+export const FAN_SCOPE = 'sameend-community/use';
 export const STAFF_GROUPS = Object.freeze(['sameend-admin', 'sameend-support', 'sameend-moderator', 'sameend-editor']);
 
 /** Merge into the control template without mutating it or weakening fan routes. */
@@ -16,6 +18,8 @@ export function addCommunityInfrastructure(baseTemplate) {
   // Stack UUID is lower-case, unique per stack/account/region and keeps the prefix below 63 characters.
   const domainPrefix = {'Fn::Join': ['-', ['sameend', ref('AWS::AccountId'), {'Fn::Select': [2, {'Fn::Split': ['/', ref('AWS::StackId')]}]}]]};
   const domain = sub('https://${StaffDomain}.auth.${AWS::Region}.amazoncognito.com');
+  const fanIssuer = sub('https://cognito-idp.${AWS::Region}.${AWS::URLSuffix}/${FanUserPool}');
+  const fanDomain = sub('https://${FanDomain}.auth.${AWS::Region}.amazoncognito.com');
   Object.assign(resources, {
     StaffUserPool: {Type: 'AWS::Cognito::UserPool', DeletionPolicy: 'Retain', UpdateReplacePolicy: 'Retain', Properties: {
       UserPoolName: sub('${AWS::StackName}-staff'), DeletionProtection: 'ACTIVE',
@@ -39,7 +43,26 @@ export function addCommunityInfrastructure(baseTemplate) {
     StaffAuthorizer: {Type: 'AWS::ApiGatewayV2::Authorizer', Properties: {
       ApiId: ref('Api'), Name: 'SameEndStaff', AuthorizerType: 'JWT', IdentitySource: ['$request.header.Authorization'],
       JwtConfiguration: {Audience: [ref('StaffClient')], Issuer: issuer}
-    }}
+    }},
+    FanUserPool: {Type:'AWS::Cognito::UserPool',DeletionPolicy:'Retain',UpdateReplacePolicy:'Retain',Properties:{
+      UserPoolName:sub('${AWS::StackName}-pilot-fans'),UserPoolTier:'LITE',DeletionProtection:'ACTIVE',
+      AdminCreateUserConfig:{AllowAdminCreateUserOnly:false},MfaConfiguration:'OFF',
+      UsernameConfiguration:{CaseSensitive:false},UsernameAttributes:['email'],AutoVerifiedAttributes:['email'],
+      AccountRecoverySetting:{RecoveryMechanisms:[{Name:'verified_email',Priority:1}]},
+      Policies:{PasswordPolicy:{MinimumLength:12,RequireLowercase:true,RequireUppercase:true,RequireNumbers:true,RequireSymbols:false}},
+      Schema:[{Name:'email',AttributeDataType:'String',Required:true,Mutable:true}],
+      VerificationMessageTemplate:{DefaultEmailOption:'CONFIRM_WITH_CODE',EmailSubject:'Verify your Same End pilot account',EmailMessage:'Your Same End pilot verification code is {####}.'}
+    }},
+    FanResourceServer:{Type:'AWS::Cognito::UserPoolResourceServer',Properties:{UserPoolId:ref('FanUserPool'),Identifier:'sameend-community',Name:'Same End pilot forum',Scopes:[{ScopeName:'use',ScopeDescription:'Use your pilot forum account'}]}},
+    FanClient:{Type:'AWS::Cognito::UserPoolClient',DependsOn:'FanResourceServer',Properties:{
+      UserPoolId:ref('FanUserPool'),ClientName:'Same End pilot browser',GenerateSecret:false,
+      AllowedOAuthFlowsUserPoolClient:true,AllowedOAuthFlows:['code'],AllowedOAuthScopes:['openid','email',FAN_SCOPE],
+      SupportedIdentityProviders:['COGNITO'],CallbackURLs:[FAN_REDIRECT_URI],LogoutURLs:[FAN_REDIRECT_URI],DefaultRedirectURI:FAN_REDIRECT_URI,
+      ExplicitAuthFlows:['ALLOW_REFRESH_TOKEN_AUTH','ALLOW_USER_SRP_AUTH'],EnableTokenRevocation:true,PreventUserExistenceErrors:'ENABLED',
+      IdTokenValidity:60,AccessTokenValidity:60,RefreshTokenValidity:1,TokenValidityUnits:{IdToken:'minutes',AccessToken:'minutes',RefreshToken:'days'}
+    }},
+    FanDomain:{Type:'AWS::Cognito::UserPoolDomain',Properties:{UserPoolId:ref('FanUserPool'),ManagedLoginVersion:1,Domain:{'Fn::Join':['-',['sameend-fans',ref('AWS::AccountId'),{'Fn::Select':[2,{'Fn::Split':['/',ref('AWS::StackId')]}]}]]}}},
+    FanAuthorizer:{Type:'AWS::ApiGatewayV2::Authorizer',Properties:{ApiId:ref('Api'),Name:'SameEndPilotFans',AuthorizerType:'JWT',IdentitySource:['$request.header.Authorization'],JwtConfiguration:{Audience:[ref('FanClient')],Issuer:fanIssuer}}}
   });
   STAFF_GROUPS.forEach((group, i) => {
     resources[`StaffGroup${i}`] = {Type: 'AWS::Cognito::UserPoolGroup', Properties: {GroupName: group, UserPoolId: ref('StaffUserPool'), Description: `Same End ${group.slice(8)} staff access`}};
@@ -50,16 +73,21 @@ export function addCommunityInfrastructure(baseTemplate) {
       Target: {'Fn::Join': ['/', ['integrations', ref('Integration')]]}
     }};
   }
+  for(const [name,path] of [['FanMemberRoute','/v1/community/member/{proxy+}'],['FanMemberBaseRoute','/v1/community/member']]){
+    resources[name]={Type:'AWS::ApiGatewayV2::Route',Properties:{ApiId:ref('Api'),RouteKey:`ANY ${path}`,AuthorizationType:'JWT',AuthorizerId:ref('FanAuthorizer'),AuthorizationScopes:[FAN_SCOPE],Target:{'Fn::Join':['/',['integrations',ref('Integration')]]}}};
+  }
   const control = resources.Control.Properties;
   control.Environment ??= {};
   control.Environment.Variables ??= {};
   Object.assign(control.Environment.Variables, {
     COMMUNITY_ADMIN_ISSUER: issuer, COMMUNITY_ADMIN_CLIENT_ID: ref('StaffClient'),
-    COMMUNITY_ADMIN_DOMAIN: domain, COMMUNITY_ADMIN_REDIRECT_URI: STAFF_REDIRECT_URI,COMMUNITY_ENROLLMENT_CLIENT_ID:ref('StaffEnrollmentClient')
+    COMMUNITY_ADMIN_DOMAIN: domain, COMMUNITY_ADMIN_REDIRECT_URI: STAFF_REDIRECT_URI,COMMUNITY_ENROLLMENT_CLIENT_ID:ref('StaffEnrollmentClient'),
+    COMMUNITY_FAN_ISSUER:fanIssuer,COMMUNITY_FAN_CLIENT_ID:ref('FanClient'),COMMUNITY_FAN_DOMAIN:fanDomain,COMMUNITY_FAN_REDIRECT_URI:FAN_REDIRECT_URI,COMMUNITY_FAN_SCOPE:FAN_SCOPE
   });
   template.Outputs = {...template.Outputs,
     StaffUserPoolId: {Value: ref('StaffUserPool')}, StaffIssuer: {Value: issuer}, StaffClientId: {Value: ref('StaffClient')},
-    StaffDomain: {Value: domain}, StaffRedirectUri: {Value: STAFF_REDIRECT_URI},StaffEnrollmentClientId:{Value:ref('StaffEnrollmentClient')}
+    StaffDomain: {Value: domain}, StaffRedirectUri: {Value: STAFF_REDIRECT_URI},StaffEnrollmentClientId:{Value:ref('StaffEnrollmentClient')},
+    FanUserPoolId:{Value:ref('FanUserPool')},FanIssuer:{Value:fanIssuer},FanClientId:{Value:ref('FanClient')},FanDomain:{Value:fanDomain},FanRedirectUri:{Value:FAN_REDIRECT_URI}
   };
   return template;
 }
