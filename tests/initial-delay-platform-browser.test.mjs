@@ -238,16 +238,18 @@ try {
       await sleep(500);
     }
     const end = current('viewer'), addedSeeks = end.probe.seeks.filter(e => e.at > stableStart + 2000);
+    const mediaWallRatio=(end.programTime-before.programTime)/((end.at-before.at)/1000);
+    assert(mediaWallRatio>=.95&&mediaWallRatio<=1.05,'Playback advances at normal media speed against wall time');
     assert(end.probe.frames - before.probe.frames > playbackSeconds * 8, 'Real moving frame callbacks advance throughout120s playback');
     assert(addedSeeks.length <= 2, 'No repeated post-start seeking');
     if (device !== 'ios') {
       const audio = stable.filter(s => s.rms > .001 && !s.muted && s.audioContextState === 'running');
       assert(audio.length >= stable.length * .9, 'Actual decoded generated chirps remain present');
       assert(Math.max(...audio.map(s => s.peakFrequency)) - Math.min(...audio.map(s => s.peakFrequency)) > 400, 'Measured audio contains changing chirps');
-      report.audio = { route:'owned media-element analyser', positiveSamples:audio.length, totalSamples:stable.length, audibleSpeakerClaim:false };
+      report.audio = { route:audioTee?'owned capture-stream tee analyser':'owned media-element analyser', positiveSamples:audio.length, totalSamples:stable.length, audibleSpeakerClaim:false };
     } else report.audio = { route:'unchanged native output', result:'requires separate owned-process capture by operator', analyserUsed:false };
     await assertChat('continuous-playback');
-    report.continuity = { measuredSeconds:(Date.now()-stableStart)/1000, decodedFrameCallbacks:end.probe.frames-before.probe.frames, maxFrameGapMs:end.probe.maxFrameGapMs, addedSeeks:addedSeeks.length, stallsBefore:before.stalls, stallsAfter:end.stalls, finalSourceAgeSeconds:end.sourceAge,maxGroupSeparationSeconds:maxGroupSeparation,commonRoomDelaySeconds:roomDelay };
+    report.continuity = { mediaWallRatio, measuredSeconds:(Date.now()-stableStart)/1000, decodedFrameCallbacks:end.probe.frames-before.probe.frames, maxFrameGapMs:end.probe.maxFrameGapMs, addedSeeks:addedSeeks.length, stallsBefore:before.stalls, stallsAfter:end.stalls, finalSourceAgeSeconds:end.sourceAge,maxGroupSeparationSeconds:maxGroupSeparation,commonRoomDelaySeconds:roomDelay };
     command('viewer','visibility',{hidden:true}); await sleep(1500);
     command('viewer','visibility',{hidden:false}); await sleep(2500);
     command('viewer','visibility-restore');await sleep(600);

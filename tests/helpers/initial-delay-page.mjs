@@ -161,8 +161,8 @@ export function initialDelayPageProbe(options) {
       }
       frameRequest = video.requestVideoFrameCallback(frame);
     };
-    // Safari can retire a pending frame request while an unloaded native player
-    // waits through the long room warm-up. Arm it against the active resource.
+    // Arm against the active native resource at its load/play boundaries,
+    // rather than relying solely on a request made before a long warm-up.
     const armFrames = () => { if (!video.requestVideoFrameCallback) return;
       if (frameRequest !== null) video.cancelVideoFrameCallback?.(frameRequest);
       frameRequest = video.requestVideoFrameCallback(frame);
