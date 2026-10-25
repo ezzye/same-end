@@ -20,6 +20,14 @@ test('warmup follows source clock and late join never adds a fresh five minutes'
  const r=core.explain({config:{},clockReady:true,targetProgramTime:-14.2,sourceReachable:true},{},{code:'warming-up'});assert.equal(r.seconds,15);assert.match(r.detail,/0:15/);
  const later=core.explain({config:{},clockReady:true,targetProgramTime:20,sourceReachable:true},{},{code:'finding-route'});assert.equal(later.seconds,null);assert.equal(later.allowSponsor,false);assert.equal(later.title,'Preparing the picture');
 });
+test('initial buffer content stays hidden after a picture while a returning tab rebuilds locally',()=>{
+ const s={config:{},clockReady:true,targetProgramTime:25,programTime:22,ready:1,paused:true,sourceReachable:true,playbackAdaptivePhase:'rebuffering'};
+ assert.equal(core.explain(s,{},{code:'buffering'}).visible,true,'first join still explains preparation');
+ for(const patch of [{},{clockReady:false},{targetProgramTime:-8},{playbackAdaptivePhase:'recovering'}]){
+  const r=core.explain({...s,...patch},{},{code:'buffering'},{hasPlayed:true});assert.equal(r.visible,false);assert.equal(r.state,'resuming');
+ }
+ const failure=core.explain({...s,sourceReachable:false},{connected:true},{code:'source-unreachable',title:'The source left'},{hasPlayed:true});assert.equal(failure.visible,true);assert.equal(failure.title,'The source left');
+});
 test('waiting pack rejects oversized/unknown formats and removes links, media and invitation material',()=>{
  assert.equal(core.cleanPack({items:[{body:'x'.repeat(50001)}]}),null);
  const pack=core.cleanPack({revision:'r1',items:[{id:'a',type:'story',title:'Good',body:'Useful text',html:'<img>',video:'https://x'},{id:'b',type:'video',title:'No',body:'Video'},{id:'c',type:'story',title:'Private #club=secret',body:'Do not include'},{id:'d',type:'ad',title:'Sponsor',body:'Supported',sponsor:'Test',url:'javascript:alert(1)'}]});

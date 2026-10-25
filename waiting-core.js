@@ -27,7 +27,7 @@
     });
     return {revision:text(String(input.revision||'published'),100),items:items};
   }
-  function explain(snapshot,room,classification){
+  function explain(snapshot,room,classification,session){
     var s=snapshot||{},r=room||{},cfg=s.config,target=Number.isFinite(s.effectiveTargetProgramTime)?s.effectiveTargetProgramTime:s.targetProgramTime,hasTarget=Number.isFinite(target),delivery=s.mediaDiagnostics&&s.mediaDiagnostics.delivery;
     var positionGood=Number.isFinite(s.programTime)&&hasTarget&&Math.abs(s.programTime-target)<=4;
     // HAVE_CURRENT_DATA and the correct verified programme interval are the
@@ -37,6 +37,10 @@
     var engaged=!!(cfg||s.joiningBusy||r.connected||r.watching);
     if(!engaged||ready)return {visible:false,ready:ready,state:ready?'ready':'idle'};
     var code=classification&&classification.code||'finding-route';
+    // The initial waiting content is not a recovery overlay. After a picture
+    // has appeared, leave it visible during local buffer/clock rebuilding.
+    // Source/network failure explanations still use their existing path.
+    if(session&&session.hasPlayed===true&&(s.sourceReachable===true||code==='warming-up'||code==='buffering'))return {visible:false,ready:false,state:'resuming'};
     var title=classification&&classification.title||'Finding your shared picture';
     var detail=classification&&classification.detail||'Your room stays open while we find the picture.';
     var seconds=null;

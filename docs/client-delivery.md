@@ -84,5 +84,8 @@ HLS, real WebRTC, a local secure tracker and encrypted chat. Owned receive queue
 pace application delivery for steady, bursty, near-stream and below-stream tests.
 Those are controlled application bottlenecks, not measurements of physical Wi-Fi,
 5G or broadband. CPU, source pacing and verification are included in observations.
-Physical devices, separate networks, and an optimal initial-delay policy still
-need independent evidence before recommendations control playback.
+The standalone trial remains an advisory. The separately tested
+[automatic startup policy](automatic-initial-delay.md) consumes bounded evidence
+while respecting the common room delay. Physical devices, separate networks and
+a full match still need independent acceptance; this is not a maximum-speed test
+or proof of an optimal delay.

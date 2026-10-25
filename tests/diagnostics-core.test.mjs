@@ -196,3 +196,10 @@ test('rich client measurements trim compact event detail rather than erase the h
  for(let i=0;i<20;i++)c.mark('picture-ok');const report=c.report(),summary=c.summary();assert(summary,'new fields must not erase compact session');assert(JSON.stringify(summary).length<=4096);assert.equal(summary.reportId,report.reportId);assert.equal(summary.lastStatus.clientDelivery.sourceBitrateBps,1e6);assert.equal(summary.lastStatus.clientDelivery.recommendation.applied,false);assert.equal(report.events.length,20,'compaction never mutates the full local timeline');
  const ctx={};vm.runInNewContext(source,{window:ctx,globalThis:ctx});const again=ctx.SameEndDiagnosticsCore.cleanSummary(summary);assert(again);assert(JSON.stringify(again).length<=4096);assert.equal(again.reportId,summary.reportId);assert.equal(again.lastStatus.clientDelivery.reserveSeconds,290);
 });
+
+test('initial delay reports retain bounded policy facts and discard timestamps and private fields',()=>{
+ const ctx={window:{}};vm.runInNewContext(source,ctx);const core=ctx.window.SameEndDiagnosticsCore;
+ const value=core.safeInitialDelay({enabled:true,applied:true,state:'committed',reason:'verified-decoder-headroom',roomDelaySeconds:300,selectedDelaySeconds:10,candidateDelaySeconds:10,reserveGoalSeconds:6,actualDelaySeconds:12,commitCount:1,committedAtMs:123456,peerId:'PRIVATE',url:'SECRET'});
+ assert.equal(value.selectedDelaySeconds,10);assert.equal(value.applied,true);assert.equal(value.committedAtMs,undefined);assert.equal(value.peerId,undefined);assert.equal(value.url,undefined);
+ const bad=core.safeInitialDelay({state:'SECRET',reason:'PRIVATE',enabled:'true',commitCount:999,actualDelaySeconds:Infinity});assert.equal(bad.state,null);assert.equal(bad.reason,null);assert.equal(bad.enabled,null);assert.equal(bad.commitCount,1);assert.equal(bad.actualDelaySeconds,null);
+});

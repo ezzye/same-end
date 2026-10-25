@@ -1,6 +1,6 @@
 /* Native HLS uses the same verified page cache as hls.js. Only the local worker
  * capability URL is exposed to the media element; no room credential is a URL. */
-import { VerifiedHlsCache, HLS_BASE } from './hls-player.js';
+import { VerifiedHlsCache, HLS_BASE, startupFacts, beginStartup, commitStartup } from './hls-player.js';
 import { decodeBundle } from './hls-protocol.js';
 import { AdaptivePlayout, mediaRanges } from './adaptive-playout.js';
 import { HLS_NAMESPACE, HLS_BRIDGE_VERSION, MAX_RESPONSE_BYTES, validResource, byteRange, boundCapability } from './hls-sw-handler.js';
@@ -140,7 +140,27 @@ export class NativePlayer {
   enqueue(piece, epoch) { if (this.closed) return; try { this.cache.add(decodeBundle(piece.buf), { epoch, start: (piece.meta.start - epoch) / 1000, duration: piece.meta.duration / 1000 }); this.start(); } catch (error) { this.onError('The verified HLS media was invalid: ' + error.message); } }
   start() { if (this.closed || this.started || !this.bridgeReady || this.target === null || this.target < 0 || this.suspended || !this.cache.files.has('master.m3u8')) return; this.started = true; this.srcChanges++; this.video.src = this.sourceBase + 'master.m3u8'; this.video.load(); }
   mapTimeline() { if (this.origin === null && this.initialProgrammeStart !== null && this.video.seekable.length) this.origin = this.initialProgrammeStart - this.video.seekable.start(0); }
-  getPlaybackTarget(nominalTarget) { return this.adaptive.target(nominalTarget, this.playheadTime()); }
+  getPlaybackTarget(nominalTarget) { return this.startupPreparation?.target ?? this.adaptive.target(nominalTarget, this.playheadTime()); }
+  startupFacts(target) {
+    const durations = [...this.cache.playlists.values()].filter(list => list.segments.length).map(list => Number(list.lines.find(line => line.startsWith('#EXT-X-TARGETDURATION:'))?.slice(22)));
+    const minimum = durations.length && durations.every(value => Number.isFinite(value) && value > 0) ? Math.max(4, ...durations.map(value => value * 3)) : null;
+    return startupFacts(this, target, minimum);
+  }
+  prepareStartup(target, reserve) {
+    if (!beginStartup(this, target, reserve)) return null;
+    this.mapTimeline(); const preparation = this.startupPreparation, facts = this.startupFacts(target), local = target - this.origin;
+    const goal = Math.max(reserve, facts.minimumReserveSeconds || reserve);
+    // AVPlayer may preload a later fragment while currentTime still reports
+    // the requested beginning. One seek can request the missing verified
+    // samples; commitment still requires those samples to be decoded.
+    const needsSamples = facts.decoderAheadSeconds + .08 < goal;
+    if (this.origin !== null && !preparation.seekRequested && !this.video.seeking && Number.isFinite(facts.programTime) && (Math.abs(facts.programTime - target) > .3 || needsSamples)) {
+      let seekable = false; for (let i = 0; i < this.video.seekable.length; i++) if (local >= this.video.seekable.start(i) && local < this.video.seekable.end(i)) seekable = true;
+      if (seekable && goal <= 12 && facts.cacheAheadSeconds + .001 >= goal) { preparation.seekRequested = true; this.presented = null; this.video.currentTime = local; }
+    }
+    return this.startupFacts(target);
+  }
+  commitStartup(target, reserve) { return commitStartup(this, target, reserve); }
   setPlaybackWindow(target, hidden = false) {
     if (!Number.isFinite(target) || this.closed) return;
     this.nominalTarget = target; this.target = this.getPlaybackTarget(target); this.cache.target = Math.max(0, this.target);
@@ -153,6 +173,8 @@ export class NativePlayer {
   mediaTime() { const p = this.presented; return p && !this.video.paused && performance.now() - p.at < 250 ? p.time : this.video.currentTime; }
   sync(target) {
     if (this.closed) return { waiting: true, drift: null, playing: false };
+    if (this.startupPreparation) { this.prepareStartup(this.startupPreparation.target, this.startupPreparation.reserve); return { waiting: true, drift: null, playing: false }; }
+    if (this.startupHold) { this.video.pause(); return { waiting: true, drift: null, playing: false }; }
     this.setPlaybackWindow(target, false); this.mapTimeline(); const v = this.video, now = performance.now(), actual = this.playheadTime();
     const action = this.adaptive.update({ nominal: target, actual, decoderRanges: mediaRanges(v.buffered, this.origin), cacheRanges: this.cache.contiguousWindows(), ready: v.readyState >= 2, seeking: v.seeking, underflow: this.starved || v.readyState < 2, now });
     this.target = this.adaptive.target(target, actual); this.cache.target = Math.max(0, this.target);
@@ -178,7 +200,7 @@ export class NativePlayer {
     return this.play();
   }
   muteSound() { this.soundRequested = true; this.soundBlocked = false; this.video.muted = true; }
-  play() { if (this.closed || this.suspended || this.target === null || this.target < 0 || this.adaptive?.playAllowed === false) return Promise.resolve(); const audible = !this.video.muted; if (!this.video.paused) { if (audible) { this.blocked = false; this.soundBlocked = false; this.lastPlayError = null; } return Promise.resolve(); } return Promise.resolve(this.video.play()).then(() => { this.blocked = false; this.lastPlayError = null; if (audible && !this.video.muted) this.soundBlocked = false; }, error => { this.lastPlayError = error.name; if (error.name === 'NotAllowedError') { this.blocked = true; if (audible) { this.soundBlocked = true; this.video.muted = true; Promise.resolve(this.video.play()).catch(() => {}); } } throw error; }); }
+  play() { if (this.closed || this.suspended || this.startupHold || this.startupPreparation || this.target === null || this.target < 0 || this.adaptive?.playAllowed === false) return Promise.resolve(); const audible = !this.video.muted; if (!this.video.paused) { if (audible) { this.blocked = false; this.soundBlocked = false; this.lastPlayError = null; } return Promise.resolve(); } return Promise.resolve(this.video.play()).then(() => { this.blocked = false; this.lastPlayError = null; if (audible && !this.video.muted) this.soundBlocked = false; }, error => { this.lastPlayError = error.name; if (error.name === 'NotAllowedError') { this.blocked = true; if (audible) { this.soundBlocked = true; this.video.muted = true; Promise.resolve(this.video.play()).catch(() => {}); } } throw error; }); }
   facts() {
     const v = this.video, quality = v.getVideoPlaybackQuality?.(); let ahead = 0, buffered = 0;
     for (let i = 0; i < v.buffered.length; i++) { buffered += v.buffered.end(i) - v.buffered.start(i); if (v.currentTime >= v.buffered.start(i) && v.currentTime < v.buffered.end(i)) ahead = v.buffered.end(i) - v.currentTime; }
