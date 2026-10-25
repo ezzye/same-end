@@ -10,7 +10,7 @@
     'playback-blocked':'The room is connected, but this browser needs you to tap Play before the picture and sound can start.',
     'chat-unavailable':'Chat could not connect. You can still try the picture. Your host can use the report below to help.',
     'video-decode':'The picture could not play in this browser. Try Safari, Chrome or Edge, or ask your host to start a fresh room.',
-    'connection-slow':'You are not watching yet. We are still looking for a connection and will keep trying for up to 90 seconds. Keep this page open.',
+    'connection-slow':'You are not watching yet. We are still finding a direct connection. Searches can take up to 90 seconds; keep this page open while we retry automatically.',
     'picture-stalled':'The picture is no longer moving. Same End is reconnecting automatically. If it does not return, try again or send your host a report.',
     'app-error':'Something interrupted joining. Send your host this check so they can help.',
     'invitation-incomplete':'This invitation is incomplete. Ask your host to send a fresh, complete link.'
@@ -39,8 +39,12 @@
   }
   function cleanNetwork(n){
     if(!n||typeof n!=='object')return null;
-    const out={phase:['idle','publishing','finding-peers','descriptor-ready','connected','failed','closed'].includes(n.phase)?n.phase:null,problem:['no-direct-peer','descriptor-invalid','transport-error','cancelled'].includes(n.problem)?n.problem:null,relayConfigured:typeof n.relayConfigured==='boolean'?n.relayConfigured:null};
-    for(const k of ['elapsedSeconds','trackerCount','stunServerCount','reannounces','trackerReplies','warnings','peerAttempts','peerErrors','monitoredPeers','iceConnected','iceFailed','hostCandidates','reflexiveCandidates'])out[k]=Number.isFinite(n[k])?Math.max(0,Math.min(86400,Math.floor(n[k]))):null;
+    const out={phase:['idle','publishing','finding-peers','retrying','descriptor-ready','connected','failed','closed'].includes(n.phase)?n.phase:null,problem:['no-direct-peer','descriptor-invalid','transport-error','cancelled'].includes(n.problem)?n.problem:null,relayConfigured:typeof n.relayConfigured==='boolean'?n.relayConfigured:null};
+    for(const k of ['elapsedSeconds','trackerCount','stunServerCount','reannounces','trackerReplies','warnings','peerAttempts','peerErrors','monitoredPeers','iceConnected','iceFailed','hostCandidates','reflexiveCandidates','discoveryResets','bootstrapRetries'])out[k]=Number.isFinite(n[k])?Math.max(0,Math.min(86400,Math.floor(n[k]))):null;
+    out.resetState=['idle','scheduled','renewing','renewed','unsupported','failed'].includes(n.resetState)?n.resetState:null;
+    out.resetProblem=['discovery-adapter-unavailable','discovery-renewal-failed','discovery-session-ended'].includes(n.resetProblem)?n.resetProblem:null;
+    const retry=Number.isFinite(n.retryInSeconds)?n.retryInSeconds:Number.isFinite(n.retryAt)?(n.retryAt-Date.now())/1000:null;
+    out.retryInSeconds=retry===null?null:Math.max(0,Math.min(60,Math.ceil(retry)));
     return out;
   }
   function facts(){

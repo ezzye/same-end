@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {webcrypto} from 'node:crypto';
 import vm from 'node:vm';
+import {EventEmitter} from 'node:events';
 const script=(await readFile(new URL('../magnet-transport.js',import.meta.url),'utf8')).replace("import WebTorrent from './vendor/webtorrent.min.js';",'');
 const ctx={window:{},TextEncoder,TextDecoder,crypto:webcrypto,btoa,atob,URL,queueMicrotask,setTimeout,clearTimeout,setInterval,clearInterval};vm.createContext(ctx);vm.runInContext(script,ctx);const Transport=ctx.window.CastMagnetTransport;
 const remote=(id,trail=[],extra={})=>({nodeId:id,label:id,role:'viewer',trail,clockReady:true,downCount:0,hasParent:true,rooted:true,...extra});
@@ -24,3 +25,80 @@ test('watchdog recovery closes only the failed supplier and cools it before reas
 test('exhausted recovery schedules an automatic bounded retry',()=>{const t=transport();t._recover();t.recovery.deadline=Date.now()-1;t._statusTick();assert.equal(t.recovery.state,'exhausted');assert.ok(t.recovery.retryAt>=Date.now());assert.ok(t.recovery.retryAt<=Date.now()+61000);t.recovery.retryAt=Date.now()-1;t._statusTick();assert.equal(t.recovery.state,'searching');assert.equal(t.recovery.reason,'automatic-retry');});
 test('session close clears recovery failure state and expired cooldowns are pruned',async()=>{const t=transport();t.failedSuppliers.set('old',Date.now()-1);t.failures=4;t._statusTick();assert.equal(t.failedSuppliers.has('old'),false);t.failedSuppliers.set('old',Date.now()+20000);t.recovery={state:'exhausted'};await t.close();assert.equal(t.failedSuppliers.size,0);assert.equal(t.failures,0);assert.equal(t.recovery,null);});
 test('direct downstream open enforces the current local relay limit',()=>{const t=transport('source');t.readStatus=()=>({nodeId:'self',clockReady:true,relayLimit:0});const s=peer(remote('child',[],{hasParent:false}));s.direction='down';t.wires.set(s.wire,s);t._open(s);assert.equal(s.wire.destroyed,true);assert.equal(s.opened,undefined);assert.equal(t.down,0);});
+
+function renewal({shared=false,stale=true,holdDestroy=false}={}){
+ let wall=100000,seq=0,release,starts=0;const intervals=new Map([[7,()=>{}]]),timeouts=new Map();class Clock extends Date{static now(){return wall}}
+ class Socket extends EventEmitter{constructor(){super();this.consumers=shared?2:1;this.connected=true;this.destroyed=false;}destroy(){this.destroyed=true;this.emit('close')}}
+ let pooled=new Socket();
+ class Discovery extends EventEmitter{constructor(){super();if(pooled.destroyed)pooled=new Socket();this.tracker={_trackers:[{socket:pooled}],update(){}};}destroy(done){this.tracker._trackers[0].socket.consumers--;if(holdDestroy)release=done;else done();}}
+ const context={...ctx,window:{},Date:Clock,setTimeout(fn,ms){const id=++seq;timeouts.set(id,{fn,ms});return id},clearTimeout:id=>timeouts.delete(id),setInterval(fn){const id=++seq;intervals.set(id,fn);return id},clearInterval:id=>intervals.delete(id)};
+ vm.runInNewContext(script,context);const t=new context.window.CastMagnetTransport();
+ const original=new Discovery(),torrent=Object.assign(new EventEmitter(),{infoHash:'unchanged-descriptor-hash',destroy(opts,done){this.destroyed=true;done()},discovery:original,_noPeersIntervalId:7,_startDiscovery(){starts++;this.discovery=new Discovery();this._noPeersIntervalId=++seq;intervals.set(this._noPeersIntervalId,()=>{});}});
+ t.role='source';t.sessionReady=true;t.config={id:'same-cast',epoch:50,delay:300};t.key=new Uint8Array([7,8,9]);t.torrent=torrent;t._resetNetwork('descriptor-ready');t.lastTrackerReply=stale?10000:wall;
+ const child=peer(remote('healthy-child'));child.lastSeen=wall;child.opened=true;child.direction='down';child.adapter={readyState:'open'};t.wires.set(child.wire,child);t.down=1;
+ return {t,torrent,original,child,intervals,timeouts,context,oldSocket:original.tracker._trackers[0].socket,release:()=>release(),starts:()=>starts,advance(ms){wall+=ms},runScheduled(){const entry=[...timeouts].find(([,v])=>v.ms<=60000);assert(entry);timeouts.delete(entry[0]);entry[1].fn();}};
+}
+test('stale pooled tracker socket is replaced while descriptor key clock and healthy child remain intact',async()=>{
+ const h=renewal(),config=h.t.config,key=h.t.key,old=h.oldSocket,hash=h.torrent.infoHash;let sessions=0;h.t.onSession=()=>sessions++;
+ const before=h.t.torrent.discovery.tracker;before.update();assert.equal(h.torrent.discovery,h.original,'update alone cannot replace a stale discovery/socket');
+ assert.equal(await h.t._renewDiscovery(),true);
+ assert.notEqual(h.torrent.discovery,h.original);assert.notEqual(h.torrent.discovery.tracker._trackers[0].socket,old);assert.equal(old.destroyed,true);
+ assert.equal(h.t.torrent,h.torrent);assert.equal(h.t.config,config);assert.equal(h.t.key,key);assert.equal(h.child.wire.destroyed,false);assert.equal(h.child.adapter.readyState,'open');assert.equal(h.t.down,1);assert.equal(h.torrent.infoHash,hash);assert.equal(sessions,0);assert.equal(h.intervals.size,1);assert.equal(h.t.snapshot().network.discoveryResets,1);
+});
+test('discovery renewal preserves a healthy tracker socket shared by another consumer',async()=>{const h=renewal({shared:true,stale:false});await h.t._renewDiscovery();assert.equal(h.oldSocket.destroyed,false);assert.equal(h.torrent.discovery.tracker._trackers[0].socket,h.oldSocket);});
+test('closing during asynchronous discovery destruction cannot restart or erase a newer torrent',async()=>{
+ const h=renewal({holdDestroy:true}),task=h.t._renewDiscovery();await h.t.close();h.t.closed=false;h.t.torrent={discovery:{newer:true}};h.release();assert.equal(await task,false);assert.equal(h.starts(),0);assert.equal(h.oldSocket.destroyed,false);assert.equal(h.t.torrent.discovery.newer,true);
+});
+test('repeated route hints coalesce and obey bounded reset backoff',async()=>{const h=renewal();for(let i=0;i<20;i++)assert.equal(h.t.refreshNetwork('online'),true);assert.equal(h.timeouts.size,1);h.runScheduled();for(let i=0;i<10;i++)await Promise.resolve();assert.equal(h.starts(),1);assert.equal(h.t.nextResetAt>=110000,true);await h.t.resetPromise;h.t.refreshNetwork('network-change');const scheduled=[...h.timeouts.values()];assert.equal(scheduled.length,1);assert(scheduled[0].ms>=10000&&scheduled[0].ms<=60000);});
+test('unsupported pinned discovery adapter reports a recoverable coded limitation and keeps media',async()=>{const h=renewal();h.torrent._startDiscovery=null;let message;h.t.onError=e=>message=e.message;assert.equal(await h.t._renewDiscovery(),false);assert.equal(h.t.snapshot().network.resetProblem,'discovery-adapter-unavailable');assert.match(message,/Reopen the current Same End/);assert.equal(h.child.wire.destroyed,false);assert.equal(h.t.config.id,'same-cast');});
+test('half-open authenticated wires expire while healthy children and suspended-page grace survive',()=>{
+ const h=renewal(),dead=peer(remote('half-open'));dead.lastSeen=60000;dead.opened=true;dead.direction='up';h.t.wires.set(dead.wire,dead);h.t._statusTick();assert.equal(dead.wire.destroyed,true);assert.equal(h.child.wire.destroyed,false);
+ dead.wire.destroyed=false;dead.lastSeen=100000;h.advance(120000);h.t._statusTick();assert.equal(dead.wire.destroyed,false,'suspended timers grant a new heartbeat grace');for(let i=0;i<26;i++){h.advance(1000);h.t._statusTick();}assert.equal(dead.wire.destroyed,true,'unresponsive peer expires after suspension grace');
+});
+test('renewing discovery does not accumulate torrent readiness or warning listeners',async()=>{const h=renewal();h.t._watchDiscovery(h.torrent);const counts=['ready','warning','infoHash'].map(e=>h.torrent.listenerCount?.(e));await h.t._renewDiscovery();assert.deepEqual(['ready','warning','infoHash'].map(e=>h.torrent.listenerCount?.(e)),counts);});
+
+
+test('failed discovery creation retries from missing discovery without claiming unsupported or duplicating intervals',async()=>{
+ const h=renewal(),start=h.torrent._startDiscovery;let attempts=0;h.torrent._startDiscovery=function(){if(++attempts===1)throw Error('temporary failure');return start.call(this)};
+ assert.equal(await h.t._renewDiscovery(),false);assert.equal(h.torrent.discovery,null);assert.equal(h.t.snapshot().network.resetState,'failed');assert.equal(h.intervals.size,0);assert.equal(h.t.snapshot().network.discoveryResets,0);
+ assert.equal(await h.t._renewDiscovery(),true);assert.equal(h.t.snapshot().network.resetState,'renewed');assert.equal(h.t.snapshot().network.discoveryResets,1);assert.equal(h.intervals.size,1);
+});
+test('destroyed discovery wrapper can be recreated without a second destruction',async()=>{const h=renewal();h.original.destroyed=true;h.original.destroy=()=>assert.fail('destroyed wrapper destroyed twice');assert.equal(await h.t._renewDiscovery(),true);assert.equal(h.intervals.size,1);});
+test('destroyed torrent or client and no-op discovery creation never report renewal success',async()=>{
+ for(const field of ['torrent','client']){const h=renewal();if(field==='torrent')h.torrent.destroyed=true;else h.t.client={destroyed:true};let warning;h.t.onError=e=>warning=e.message;assert.equal(await h.t._renewDiscovery(),false);assert.equal(h.t.snapshot().network.resetProblem,'discovery-session-ended');assert.equal(h.t.snapshot().network.discoveryResets,0);assert.match(warning,/Reopen your private invitation/);assert.equal(h.child.wire.destroyed,false);}
+ const h=renewal();h.torrent._startDiscovery=()=>{};assert.equal(await h.t._renewDiscovery(),false);assert.equal(h.t.snapshot().network.resetState,'failed');assert.equal(h.t.snapshot().network.discoveryResets,0);
+});
+test('healthy source uses ordinary announces without periodic discovery resets, but unanswered announces renew',async()=>{
+ const h=renewal({stale:false});h.t._watchDiscovery(h.torrent);let announces=0;h.original.tracker.update=()=>{announces++;h.original.emit('trackerAnnounce')};
+ for(let i=0;i<120;i++){h.advance(1000);h.t._statusTick();}
+ assert(announces>=7);assert.equal(h.t.resetTimer,null);assert.equal(h.t.snapshot().network.discoveryResets,0);
+ h.original.tracker.update=()=>{announces++};for(let i=0;i<46;i++){h.advance(1000);h.t._statusTick();}
+ assert.notEqual(h.t.resetTimer,null);assert.equal(h.t.snapshot().network.resetReason,'tracker-stale');assert.equal(h.child.wire.destroyed,true,'no heartbeat is distinct from healthy tracker replies');
+});
+
+
+test('tracker offers honor a minimum interval, correct numwant, and a finite pending allocation limit',()=>{
+ const t=transport('source'),intervals=[],announces=[];const tracker={peers:{},DEFAULT_ANNOUNCE_INTERVAL:30000,setInterval:ms=>intervals.push(ms),announce:o=>announces.push(o)};
+ t._boundTrackerOffers({tracker:{_trackers:[tracker]}});tracker.setInterval(2000);assert.equal(intervals.at(-1),15000);tracker.setInterval(120000);assert.equal(intervals.at(-1),120000);tracker.setInterval(0);assert.equal(intervals.at(-1),0);
+ tracker.announce({numwant:50});assert.equal(announces.at(-1).numwant,4);tracker.announce({numwant:0});assert.equal(announces.at(-1).numwant,0);tracker.announce({numwant:-5});assert.equal(announces.at(-1).numwant,0);
+ for(let i=0;i<12;i++)tracker.peers[i]={destroyed:false};const count=announces.length;tracker.announce({numwant:4});assert.equal(announces.length,count+1);assert.equal(announces.at(-1).numwant,0,'full pending budget still announces presence');
+ tracker.announce({event:'stopped'});assert.equal(announces.at(-1).event,'stopped');
+ let disposed=0;tracker.peers[0]={destroyed:false,_pc:{connectionState:'closed'},destroy(){disposed++}};tracker.announce({numwant:4});assert.equal(disposed,1);assert.equal(announces.at(-1).numwant,1);assert.equal(Object.keys(tracker.peers).length,11);
+ const wrapped=tracker.announce;t._boundTrackerOffers({tracker:{_trackers:[tracker]}});assert.equal(tracker.announce,wrapped,'no accumulating wrapper callbacks');
+});
+
+
+test('retired already-destroyed tracker cannot resurrect an orphan socket during discovery renewal',async()=>{
+ const h=renewal(),handle=h.original.tracker._trackers[0];let reopened=0;
+ handle.destroyed=true;handle.reconnecting=true;
+ handle.reconnectTimer=h.context.setTimeout(()=>{reopened++;h.oldSocket.consumers++;},1000);
+ const timer=handle.reconnectTimer;assert(h.timeouts.has(timer));
+ // The pinned child destroy() takes its already-destroyed early return here.
+ await h.t._renewDiscovery();assert.equal(h.timeouts.has(timer),false);assert.equal(handle.reconnectTimer,null);assert.equal(handle.reconnecting,false);assert.equal(reopened,0);
+ assert.equal(h.torrent.discovery.tracker._trackers[0].socket.consumers,1,'exactly the new discovery owns the new pool socket');
+});
+test('explicit close cancels orphan tracker reconnect timers even after socket failure',async()=>{
+ const h=renewal(),handle=h.original.tracker._trackers[0];handle.destroyed=true;handle.reconnecting=true;let reopened=false;
+ handle.reconnectTimer=h.context.setTimeout(()=>{reopened=true},1000);const timer=handle.reconnectTimer;
+ await h.t.close();assert.equal(h.timeouts.has(timer),false);assert.equal(handle.reconnectTimer,null);assert.equal(handle.reconnecting,false);assert.equal(reopened,false);assert.equal(h.t.closed,true);
+});

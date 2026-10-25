@@ -30,6 +30,10 @@ Direct connections are not guaranteed on mobile, hotspot, restricted or carrier-
 
 Normal video + chat invitations use a private `#club=…&watch=1` room link. The encrypted club state resolves its current stream; the media still travels directly between peers. Stopping sharing keeps the room, chat and Copy/Share invitation controls open. On the same saved organiser browser, choose **Share a tab again**; existing viewers automatically wait and reconnect to the new source, with its normal group warm-up. Reloading that browser restores its last hosted saved room. Explicit **Leave room** prevents further automatic picture joins. Clearing site data or forgetting the room removes its saved organiser access. Old combined club + magnet links follow the current source when opened with the updated app; raw video-only magnets remain specific to one capture. Keep member invitations private, and never send your organiser link to viewers.
 
+Automatic recovery keeps the normal invitation open while direct peers and tracker discovery reconnect after a network change. A restarted source is resolved through the encrypted room state; a changed network keeps the existing source identity and group clock. Returning to a suspended phone page also refreshes the room and direct discovery. Explicit **Leave room** stops automatic joining. See [automatic reconnection](docs/automatic-reconnection.md) for behavior, test scope and network limits.
+
+
+
 ## Rehearse with your own laptops
 
 In an open club, expand **Try it together · three-laptop rehearsal**. The organiser chooses the ten-second warm-up and **Create & join rehearsal**. Select and copy its member invitation yourself; each mate joins the club, labels their laptop and chooses **Join current rehearsal**. Once all three sessions are recently seen, the organiser chooses **Start generated picture**. Enrolled viewers join the generated picture automatically. No desktop capture or automatic clipboard access is used.

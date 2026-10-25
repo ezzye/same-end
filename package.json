@@ -41,7 +41,9 @@
     "test:hls-five-minute": "node tests/hls-engine-browser.test.mjs --five-minute",
     "test:hls-flow": "node tests/hls-room-flow-browser.test.mjs",
     "test:hls-produced": "node tests/hls-capture-browser.test.mjs && node tests/hls-produced-browser.test.mjs",
-    "test:persistent-room-hls": "node tests/persistent-room-hls-browser.test.mjs"
+    "test:persistent-room-hls": "node tests/persistent-room-hls-browser.test.mjs",
+    "test:automatic-reconnection": "node tests/automatic-reconnection-hls-browser.test.mjs",
+    "test:reconnection-webkit": "SAMEEND_SOCIAL_ENGINE=webkit node tests/persistent-room-browser.test.mjs"
   },
   "engines": {
     "node": ">=20"
