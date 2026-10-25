@@ -44,3 +44,36 @@ test('live report state comes from shared room explanation and social source sta
  const ctx=createContext({URLSearchParams,Uint8Array,Date,Math,JSON,setTimeout(){},setInterval(){},navigator:{userAgent:'',onLine:true},location:{hash:''},document:{visibilityState:'visible',getElementById(){return null},createElement(){return {canPlayType:()=>''}}},addEventListener(){}});ctx.window=ctx;ctx.PrivateCast={snapshot:()=>({role:'viewer',config:{delay:60},transport:{availability:{authenticatedPeers:1,rootedSuppliers:1,fullSuppliers:1,eligibleSuppliers:0,unrootedPeers:0,lastReject:'capacity-full'}}})};ctx.SameEndSocial={snapshot:()=>({connected:true,roomSource:{state:'sharing',fresh:true},member:'PRIVATE-ID'})};let got;ctx.SameEndRoomStatus={explain:input=>{got=input;return {code:'suppliers-full',roomJoined:true,title:'Suppliers are full',detail:'Waiting for a local route.',tone:'warning',waiting:false};}};runInContext(code,ctx);
  const report=ctx.SameEndInviteCheck.report(),text=JSON.stringify(report);assert.equal(report.joining.roomState,'suppliers-full');assert.equal(report.joining.roomJoined,true);assert.equal(report.joining.sourceState,'sharing');assert.equal(report.joining.availability.fullSuppliers,1);assert.equal(got.room.connected,true);assert.equal(got.pictureMoving,false);assert(!text.includes('PRIVATE-ID'));
 });
+
+test('adaptive invitation report round-trip bounds actual lag and exposes only safe phase and counts',()=>{
+ const ctx=createContext({URLSearchParams,Uint8Array,Date,Math,JSON,setTimeout(){},setInterval(){},navigator:{userAgent:''},location:{hash:''},document:{getElementById(){return null}},addEventListener(){}});ctx.window=ctx;runInContext(code,ctx);
+ const joining={extraDelaySeconds:125,adaptivePhase:'suspended',bufferGoalSeconds:8,rebufferCount:3,adaptiveSeekCount:1,privateKey:'PRIVATE-ADAPTIVE'};
+ const report=ctx.SameEndInviteCheck.cleanReport({joining}),twice=ctx.SameEndInviteCheck.cleanReport(report);
+ assert.equal(twice.joining.extraDelaySeconds,125);assert.equal(twice.joining.adaptivePhase,'suspended');assert.equal(twice.joining.bufferGoalSeconds,8);assert.equal(twice.joining.rebufferCount,3);assert(!JSON.stringify(twice).includes('PRIVATE-ADAPTIVE'));
+ const hostile=ctx.SameEndInviteCheck.cleanReport({joining:{extraDelaySeconds:1e9,adaptivePhase:'PRIVATE-PHASE',bufferGoalSeconds:1e9,rebufferCount:Infinity,adaptiveSeekCount:-5}}).joining;
+ assert.equal(hostile.extraDelaySeconds,86400);assert.equal(hostile.adaptivePhase,null);assert.equal(hostile.bufferGoalSeconds,30);assert.equal(hostile.rebufferCount,null);assert.equal(hostile.adaptiveSeekCount,0);
+ const legacy=ctx.SameEndInviteCheck.cleanReport({}).joining;assert.equal(legacy.extraDelaySeconds,null);assert.equal(legacy.adaptivePhase,null);
+});
+
+test('intentional adaptive buffer waits avoid generic stall failures while source loss and decode errors remain visible',()=>{
+ const failures=[],wall=Date.now(),S={active:true,kind:'screen',started:wall-90000,connectedAt:wall-90000,lastAdvance:wall-60000,lastTime:0,hasPicture:true,picture:true,failure:null};
+ const snap={config:{epoch:wall-180000,delay:10},clockReady:true,offset:0,role:'viewer',sourceReachable:true,playbackAdaptivePhase:'rebuffering',peers:[{ready:true,state:'connected'}]};
+ const ctx=createContext({S,Date,Math,Number,document:{visibilityState:'visible'},completed:true,$:()=>({readyState:0,paused:true}),roomContext:()=>({}),explainRoom:()=>({code:'buffering',roomJoined:true}),fail:value=>failures.push(value),clearProblem(){throw Error('critical failure must not be cleared');},render(){},mark(){}});ctx.window={PrivateCast:{snapshot:()=>snap}};
+ const from=code.indexOf('  function observe(){'),to=code.indexOf('  async function sendToHost()',from);runInContext(code.slice(from,to),ctx);
+ for(const phase of ['starting','rebuffering','recovering']){snap.playbackAdaptivePhase=phase;ctx.observe();}assert.deepEqual(failures,[]);
+ snap.playbackAdaptivePhase='playing';ctx.observe();assert.deepEqual(failures,['picture-stalled']);failures.length=0;
+ snap.playbackAdaptivePhase='rebuffering';snap.sourceReachable=false;ctx.observe();assert.deepEqual(failures,['picture-stalled']);failures.length=0;
+ snap.sourceReachable=true;S.failure='video-decode';ctx.observe();assert.equal(S.failure,'video-decode');assert.deepEqual(failures,[]);
+});
+
+test('authenticated adaptive recovery clears stale picture overlays but preserves real failures and history',()=>{
+ const wall=Date.now(),S={active:true,kind:'screen',started:wall-90000,connectedAt:wall-90000,lastAdvance:wall-60000,lastTime:0,hasPicture:true,picture:true,failure:null,failures:['picture-stalled']};
+ const snap={config:{epoch:wall-180000,delay:10},clockReady:true,offset:0,role:'viewer',sourceReachable:true,playbackAdaptivePhase:'recovering',peers:[{ready:true,state:'connected'}]};let cleared=0,rendered=0;
+ const ctx=createContext({S,Date,Math,Number,document:{visibilityState:'visible'},completed:true,$:()=>({readyState:0,paused:true}),roomContext:()=>({}),explainRoom:()=>({code:'buffering',roomJoined:true}),fail:value=>{S.failure=value;},clearProblem(){cleared++;S.failure=null;},render(){rendered++;},mark(){}});ctx.window={PrivateCast:{snapshot:()=>snap},SameEndSocial:{snapshot:()=>({connected:false})}};
+ const from=code.indexOf('  function observe(){'),to=code.indexOf('  async function sendToHost()',from);runInContext(code.slice(from,to),ctx);
+ for(const failure of ['picture-stalled','picture-unavailable','connection-slow']){S.failure=failure;ctx.observe();assert.equal(S.failure,null);}assert.equal(cleared,3);assert.equal(rendered,3);assert.deepEqual(S.failures,['picture-stalled'],'historical evidence is preserved');
+ for(const failure of ['video-decode','playback-blocked','chat-unavailable','browser-feature','invitation-incomplete','app-error']){S.failure=failure;ctx.observe();assert.equal(S.failure,failure);}assert.equal(cleared,3);
+ S.failure='picture-stalled';snap.sourceReachable=false;ctx.observe();assert.equal(S.failure,'picture-stalled');
+ snap.sourceReachable=true;snap.peers[0].ready=false;ctx.observe();assert.equal(S.failure,'picture-stalled','an unauthenticated route is insufficient');
+ snap.peers[0].ready=true;snap.clockReady=false;ctx.observe();assert.equal(S.failure,'picture-stalled','unconfirmed source time is insufficient');
+});

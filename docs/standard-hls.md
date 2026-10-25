@@ -20,9 +20,9 @@ A transport envelope is not a new video format. Its index is bounded to 64 KiB, 
 
 ## Player and memory behaviour
 
-The engine retains the five-minute-plus-safety signed relay history (192 MiB ceiling); each player keeps a separately bounded verified cache (32 MiB, normally 60 seconds), with a small decoder window (24–36 seconds). The source manifest retains 180 completed segments. Missing intervals are represented with standard `EXT-X-GAP` duration and sequence semantics rather than timestamp compression. When a relevant piece is absent, playback waits for the group moment instead of silently running behind it.
+The engine retains the configured delay plus 30 seconds of safety and up to 60 seconds of adaptive history (192 MiB ceiling); each player keeps a separately bounded verified cache (32 MiB, normally 60 seconds), with a small decoder window (24–36 seconds). The source manifest retains 180 completed segments. Missing intervals are represented with standard `EXT-X-GAP` duration and sequence semantics rather than timestamp compression. These are memory stores; this release does not add disk caching.
 
-The player stays at normal speed. Repeated fractional playback-rate updates disturbed WebKit's audio clock in testing; corrections now use infrequent seeks only when drift exceeds 0.8 seconds, with a 2.5-second correction cooldown. Warm-up gates decoder loading/playback, including early sound-button presses. This is cooperative synchronization, not copy protection.
+The player stays at normal speed. Repeated fractional playback-rate updates disturbed WebKit's audio clock in testing. The shared clock now supplies a nominal reference, while healthy playback follows its own decoder clock. Startup needs four seconds of verified and decoder headroom; real starvation waits for six seconds, increasing to eight and ten on recurrence. Playback may retain up to 60 seconds of extra local delay. An overdue fragment receives a repair interval before a forward gap correction. Seeking is reserved for initial positioning, a real unrepaired gap or expired history; hls.js's competing automatic live-edge seek is disabled. Warm-up still gates loading/playback, including early sound taps. See [adaptive playback](adaptive-playback.md). This is cooperative synchronization, not copy protection.
 
 Native HLS uses an opaque, client-bound capability URL. The private seed never appears in that URL. Worker termination can rediscover the owning page without giving another tab control of its session. Closing the player revokes its capability, cancels pending reads and releases media/cache resources. Browser service-worker support and secure HTTPS are required for that native bridge; a saved file cannot supply it.
 
@@ -45,6 +45,8 @@ After `npm ci` and `npm ci --prefix backend --ignore-scripts`:
 - `npm run test:hls-native`: native WebKit HLS served by the peer-cache bridge; ordinary HTTP media is rejected by the test server.
 - `npm run test:hls-room` and `npm run test:hls-five-minute`: built app, real signed WebRTC, generated source, sound, encrypted chat and group synchronization. The second actually waits five minutes.
 - `npm run test:hls-flow`: automatic combined invitation, late join and existing peer-recovery acceptance.
+- `npm run test:adaptive-playback`: fully buffered healthy playback plus withheld, trickled and burst-delivered media through actual browser players.
+- `npm run test:adaptive-room`: real signed peer delivery, a long outage, recovery, source replacement, chat and unchanged room invitations.
 
 These local tests create isolated profiles and ephemeral chat data. They do not establish physical iPad/phone speakers, different-home connectivity or a 90-minute match. Keep that acceptance separate from build, deployment and simulator evidence.
 

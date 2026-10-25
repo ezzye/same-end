@@ -1,9 +1,11 @@
 # Measured delivery and automatic supplier recovery
 
-This release preserves the shared programme epoch and chosen delay while a magnet
-viewer changes supplier. The player resumes at the group's current moment; it
-does not replay the interruption or invent a separate personal delay. A brief
-pause remains possible if recovery outlasts the viewer's verified reserve.
+The shared programme epoch and chosen baseline delay survive supplier changes.
+HLS playback now prioritises continuity: a viewer can retain up to 60 seconds of
+extra local delay after an interruption, rather than repeatedly chasing the
+nominal group moment. A useful reserve must refill before playback resumes.
+See [adaptive playback](adaptive-playback.md); legacy clip invitations retain
+their previous clock behaviour.
 
 ## Measurements and admission
 
@@ -31,7 +33,7 @@ Legacy peers default to two; a new limit cannot make older relays capacity-aware
 No speed test, extra encoder, background bandwidth probe or larger fan-out is
 enabled by this release.
 
-The app reports contiguous verified media ahead of the current shared play point,
+The app reports contiguous verified media ahead of the effective local play point,
 separately from total memory and decoder-buffer size. The calculation accepts
 overlapping/out-of-order pieces, bridges at most 100 ms of recorder jitter and
 stops at a larger gap. A five-minute configuration is not proof of five minutes
@@ -82,8 +84,9 @@ then pauses honestly when the shared play point has no future source bytes.
 
 The room briefly explains automatic reconnection when needed. Connection details
 show verified picture ahead and acknowledged outgoing Mbps, with the capacity
-limitation stated. Picture quality, room delay and selected-tab-only sound
-behaviour are unchanged. Private reports to the host add rounded reserve,
+limitation stated. Picture quality and selected-tab-only sound behaviour remain.
+Private reports to the host add rounded reserve, local extra delay, adaptive
+playback phase and rebuffer/seek counts,
 allowlisted supplier health and recovery count; they exclude peer IDs, addresses,
 keys, invitations, raw errors, chat and media.
 

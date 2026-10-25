@@ -1891,13 +1891,13 @@ function refresh(){
  $('stop').textContent=c&&s.role==='source'?'Stop sharing':'Leave room';
  if(c){
   if($('magnet-progress').textContent==='Share a tab or try the test to get started.')$('magnet-progress').textContent='Room’s ready. Send an invitation to bring everyone in.';
-  document.body.classList.remove('joining');$('room-title').textContent=testRun?'The warm-up room':'Your match room';$('room-delay').textContent=c.delay===300?'5-minute group delay':c.delay+'-second group delay';
+  document.body.classList.remove('joining');$('room-title').textContent=testRun?'The warm-up room':'Your match room';const baseDelay=c.delay===300?'5-minute room delay':c.delay+'-second room delay';const extra=Number.isFinite(s.playbackExtraDelaySeconds)?Math.max(0,Math.floor(s.playbackExtraDelaySeconds/5)*5):0;$('room-delay').textContent=baseDelay+(moving&&extra>=10?' · +'+extra+'s buffer':'');
   const remaining=Math.max(0,Math.ceil((c.epoch+c.delay*1000-Date.now()-s.offset)/1000)),warming=remaining>0&&s.clockReady;
   $('stage-empty').hidden=moving;$('room-countdown').hidden=!warming;
   if(warming){$('room-countdown').textContent=Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0');}
   $('stage-title').textContent=reason?.title||'Getting your screen ready…';
   $('stage-help').textContent=reason?.detail||'We’ll join the group’s moment as soon as the picture arrives.';
-  if(moving)$('room-status').textContent=(n?'You’re watching together.':'Your screen is playing.')+(s.config.audio?'':' This screen has no audio.')+(s.role==='viewer'&&!s.sourceReachable?' Playing saved video while we reconnect.':'');
+  if(moving)$('room-status').textContent=(n?'You’re watching together.':'Your screen is playing.')+(extra>=10?' Your picture has '+extra+' seconds of extra buffer.':'')+(s.config.audio?'':' This screen has no audio.')+(s.role==='viewer'&&!s.sourceReachable?' Playing saved video while we reconnect.':'');
   else $('room-status').textContent=warming?(testRun?'Quick test · 10-second wait':'Room open · invite your mates while you wait'):reason?.detail||'Finding the picture…';
  }else if(watching||hostLobby){
   $('room-title').textContent='Your match room';$('stage-empty').hidden=false;

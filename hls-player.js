@@ -2,6 +2,7 @@
  * hls.js is pinned and bundled at build time; this loader has no network route. */
 import Hls from 'hls.js';
 import { decodeBundle } from './hls-protocol.js';
+import { AdaptivePlayout, contiguousRanges, mediaRanges, headroomAt } from './adaptive-playout.js';
 
 export const HLS_BASE = 'https://sameend.invalid/hls/';
 const textDecoder = new TextDecoder('utf-8', { fatal: true });
@@ -105,6 +106,17 @@ export class VerifiedHlsCache {
     }
     return out.join('\n') + '\n';
   }
+  contiguousWindows() {
+    const available = [];
+    for (const list of this.playlists.values()) {
+      // A fragment is not independently decodable without its verified init.
+      const maps = list.lines.filter(line => line.startsWith('#EXT-X-MAP:')).map(line => /URI="([^"]+)"/.exec(line)?.[1]);
+      if (maps.some(uri => !uri || !this.files.has(resolvePath(uri, list.path)))) continue;
+      for (const segment of list.segments) { const t = this.timeline.get(segment.path); if (t && this.files.has(segment.path)) available.push({ start: t.start, end: t.end }); }
+    }
+    return contiguousRanges(available);
+  }
+  contiguousAhead(target) { return headroomAt(this.contiguousWindows(), target); }
   hasPlayableAt(target) {
     for (const [path, timing] of this.timeline) if (this.files.has(path) && !path.endsWith('.m3u8') && timing.start <= target + 2.5 && timing.end >= target - 2.5) return true;
     return false;
@@ -143,14 +155,25 @@ export function createVerifiedLoader(cache) {
   };
 }
 
+// hls.js may independently seek to its playlist live edge after starvation,
+// including backwards when an audio sample extends just past EXTINF. The
+// verified room window and AdaptivePlayout already own startup and recovery.
+class LocalClockHls extends Hls {
+  get liveSyncPosition() { return null; }
+  // A previously started controller otherwise ignores startLoad(position)
+  // and loads around the expired media.currentTime. During deliberate window
+  // recovery use its explicit loading position until the decoder has samples.
+  get hasEnoughToStart() { return this.recoveryLoading ? false : super.hasEnoughToStart; }
+}
+
 export class Player {
   constructor(video, config = {}, { onError = () => {}, onMode = () => {} } = {}) {
     if (!Hls.isSupported()) throw Error('This browser cannot play this HLS room. Use an updated browser with streaming media support.');
     this.video = video; this.config = config; this.onError = onError; this.mode = 'hls'; this.closed = false; this.blocked = false; this.soundBlocked = false; this.soundRequested = false; this.lastPlayError = null;
-    this.cache = new VerifiedHlsCache({maxBytes:32*1024*1024,retainSeconds:60}); this.target = null; this.origin = null; this.seekCount = 0; this.syncSeekRequests = 0; this.lastSeek = -Infinity; this.lastRecoveryAttempt = -Infinity; this.bufferedOnce = false; this.lastFatalType = null; this.srcChanges = 0; this.presented = null; this.frameRequest = null; this.errors = 0; this.started = false;
+    this.adaptive = new AdaptivePlayout(); this.starved = false; this.cache = new VerifiedHlsCache({maxBytes:32*1024*1024,retainSeconds:60}); this.target = null; this.origin = null; this.seekCount = 0; this.syncSeekRequests = 0; this.lastSeek = -Infinity; this.lastRecoveryAttempt = -Infinity; this.bufferedOnce = false; this.lastFatalType = null; this.srcChanges = 0; this.presented = null; this.frameRequest = null; this.errors = 0; this.started = false;
     video.autoplay=false; video.setAttribute('playsinline', ''); video.disableRemotePlayback = true; video.preload = 'auto';
     const Loader = createVerifiedLoader(this.cache);
-    this.hls = new Hls({ loader: Loader, enableWorker: false, autoStartLoad: false, lowLatencyMode: false, startFragPrefetch: false, maxBufferLength: 24, maxMaxBufferLength: 36, backBufferLength: 24, maxBufferSize: 24 * 1024 * 1024, liveSyncDuration: 12, liveMaxLatencyDuration: Infinity, maxLiveSyncPlaybackRate: 1, capLevelToPlayerSize: false, testBandwidth: false });
+    this.hls = new LocalClockHls({ loader: Loader, enableWorker: false, autoStartLoad: false, lowLatencyMode: false, startFragPrefetch: false, maxBufferLength: 24, maxMaxBufferLength: 36, backBufferLength: 24, maxBufferSize: 24 * 1024 * 1024, liveSyncDuration: 12, liveMaxLatencyDuration: Infinity, maxLiveSyncPlaybackRate: 1, capLevelToPlayerSize: false, testBandwidth: false });
     this.hls.on(Hls.Events.MEDIA_ATTACHED, () => { this.srcChanges++; this.attached = true; this.start(); });
     this.hls.on(Hls.Events.MANIFEST_PARSED, () => { this.hls.startLoad(0); });
     this.hls.on(Hls.Events.LEVEL_LOADED, (_event, { details }) => {
@@ -161,6 +184,7 @@ export class Player {
     });
     this.hls.on(Hls.Events.FRAG_CHANGED, (_event, { frag }) => { let path; try { path = cachePath(frag.url); } catch { return; } const timing = this.cache.timeline.get(path); if (timing) this.origin = timing.start - frag.start; });
     this.hls.on(Hls.Events.ERROR, (_event, data) => { if (data.fatal && !this.closed) { this.errors++;this.lastFatalType=data.type;onError('This device could not play the verified HLS picture. ' + data.details + ': ' + (data.response?.text || data.error?.message || '')); } });
+    this.onWaiting = () => { this.starved = true; }; this.onPlaying = () => { this.starved = false; }; video.addEventListener('waiting', this.onWaiting); video.addEventListener('playing', this.onPlaying);
     this.onSeeking = () => { this.seekCount++; this.presented = null; }; video.addEventListener('seeking', this.onSeeking);
     if (video.requestVideoFrameCallback) { const frame = (_now, meta) => { if (this.closed) return; this.presented = { time: meta.mediaTime, at: performance.now() }; this.frameRequest = video.requestVideoFrameCallback(frame); }; this.frameRequest = video.requestVideoFrameCallback(frame); }
     this.hls.attachMedia(video); onMode(this.mode);
@@ -174,59 +198,63 @@ export class Player {
     const master = [...this.cache.playlists.keys()].find(p => !this.cache.playlists.get(p).segments.length) || [...this.cache.playlists.keys()][0];
     if (!master) return; this.started = true; this.hls.loadSource(HLS_BASE + master);
   }
+  getPlaybackTarget(nominalTarget) { return this.adaptive.target(nominalTarget, this.playheadTime()); }
   setPlaybackWindow(target, hidden = false) {
     if (!Number.isFinite(target) || this.closed) return;
-    this.target = target; this.cache.target = Math.max(0, target); this.suspended = hidden;
-    if (hidden) { this.hls.stopLoad(); this.video.pause(); } else { this.start(); if (this.wasSuspended && this.started) this.hls.startLoad(Math.max(0, target - (this.origin || 0))); }
+    this.nominalTarget = target; this.target = this.getPlaybackTarget(target); this.cache.target = Math.max(0, this.target); this.suspended = hidden;
+    if (hidden) { this.adaptive.suspend(target, this.playheadTime()); this.hls.stopLoad(); this.video.pause(); }
+    else { this.start(); if (this.wasSuspended && this.started) this.hls.startLoad(Math.max(0, this.target - (this.origin || 0))); }
     this.wasSuspended = hidden; for (const listener of this.cache.listeners) listener();
   }
   lookAheadSeconds() { return 16; }
   mediaTime() { const p = this.presented; return p && !this.video.paused && performance.now() - p.at < 250 ? p.time : this.video.currentTime; }
   sync(target) {
-    this.setPlaybackWindow(target, false); const v = this.video;
-    if (target < 0) { v.pause(); return { waiting: true, drift: null }; }
-    const networkFatal=this.lastFatalType===Hls.ErrorTypes.NETWORK_ERROR;
-    if (this.origin === null) {
-      v.pause();
-      if(networkFatal&&this.cache.hasPlayableAt(target)&&performance.now()-this.lastRecoveryAttempt>=5000){
-        this.lastRecoveryAttempt=performance.now();this.hls.stopLoad();this.hls.startLoad(0);this.lastFatalType=null;
+    if (this.closed) return { waiting: true, drift: null, playing: false };
+    this.setPlaybackWindow(target, false); const v = this.video, now = performance.now();
+    const actual = this.playheadTime(), decoderRanges = mediaRanges(v.buffered, this.origin), cacheRanges = this.cache.contiguousWindows();
+    const action = this.adaptive.update({ nominal: target, actual, decoderRanges, cacheRanges, ready: v.readyState >= 2, seeking: v.seeking, underflow: this.starved || v.readyState < 2, now });
+    this.target = this.adaptive.target(target, actual); this.cache.target = Math.max(0, this.target);
+    if (!action.play) v.pause();
+    if (action.seek !== null && this.origin !== null) {
+      const local = Math.max(0, action.seek - this.origin);
+      if (headroomAt(decoderRanges, action.seek) + .08 >= this.adaptive.bufferGoalSeconds) {
+        // Write only after real target samples exist. An earlier write can be
+        // clamped to the old MSE duration, leaving a permanently pending seek.
+        this.hls.recoveryLoading = false; this.adaptive.seeked(now); this.lastSeek = now; this.syncSeekRequests++; this.presented = null;
+        v.currentTime = local; this.hls.startLoad(local, true); this.lastRecoveryAttempt = now; this.lastFatalType = null;
+      } else if (!this.hls.recoveryLoading || now - this.lastRecoveryAttempt >= 5000) {
+        this.hls.recoveryLoading = true; this.hls.stopLoad(); this.hls.startLoad(local, true); this.lastRecoveryAttempt = now; this.lastFatalType = null;
       }
-      return { waiting: true, drift: null };
-    }
-    const local = target - this.origin; let inRange = false;
-    for (let i = 0; i < v.buffered.length; i++) if (local >= v.buffered.start(i) && local < v.buffered.end(i)) inRange = true;
-    if (!inRange || v.readyState < 2) {
-      v.pause();
-      const now=performance.now(),farGap=Math.abs(local-v.currentTime)>24;
-      if((this.bufferedOnce||networkFatal)&&(farGap||networkFatal)&&this.cache.hasPlayableAt(target)&&now-this.lastRecoveryAttempt>=5000){
-        this.lastRecoveryAttempt=now;
-        if(this.lastFatalType===Hls.ErrorTypes.MEDIA_ERROR&&typeof this.hls.recoverMediaError==='function'){
-          this.hls.recoverMediaError();this.lastFatalType=null;
-        }else{
-          // A verified target has arrived outside the old decoder buffer. Ask
-          // hls.js to resume from that programme position; keep this video and
-          // its user-selected sound state intact.
-          this.hls.stopLoad();this.hls.startLoad(local);
-          this.lastFatalType=null;
-        }
+    } else if (!action.play && target >= 0 && this.started && now - this.lastRecoveryAttempt >= 5000) {
+      // Reload only after starvation or a fatal loader failure; startup loading
+      // already runs normally. Never interrupt a healthy buffered decoder.
+      const missing = this.cache.contiguousAhead(this.target) >= this.adaptive.bufferGoalSeconds && headroomAt(decoderRanges, this.target) < this.adaptive.bufferGoalSeconds;
+      if (this.lastFatalType || (this.adaptive.everPlayed && missing)) {
+        this.lastRecoveryAttempt = now;
+        if (this.lastFatalType === Hls.ErrorTypes.MEDIA_ERROR && typeof this.hls.recoverMediaError === 'function') this.hls.recoverMediaError();
+        else { this.hls.stopLoad(); this.hls.startLoad(this.origin === null ? 0 : Math.max(0, this.target - this.origin)); }
+        this.lastFatalType = null;
       }
-      return { waiting: true, drift: null };
     }
-    this.bufferedOnce=true;
-    const drift = local - this.mediaTime(), now = performance.now();
-    if (v.seeking) { v.pause(); return { waiting: true, drift: null }; }
-    if (Math.abs(drift) > .8 && now - this.lastSeek > 2500) { this.lastSeek = now; this.syncSeekRequests++; this.presented = null; v.currentTime = local; v.pause(); return { waiting: true, drift: null }; }
-    // Repeated fractional-rate writes disturb WebKit's streaming media clock.
-    // Leave its decoder at normal speed and reserve correction for real drift.
-    if (!v.seeking && v.playbackRate !== 1) v.playbackRate = 1;
-    this.play().catch(() => {}); return { waiting: false, drift, playing: !v.paused };
+    if (action.play) { this.hls.recoveryLoading = false; this.bufferedOnce = true; this.starved = false; if (v.playbackRate !== 1) v.playbackRate = 1; this.play().catch(() => {}); }
+    return { waiting: action.waiting, drift: action.drift, playing: action.play && !v.paused };
+  }
+  playheadTime() {
+    const shown = this.programTime();
+    return shown !== null ? shown : !this.closed && Number.isFinite(this.origin) && this.video.readyState >= 1 && Number.isFinite(this.video.currentTime) ? this.origin + this.video.currentTime : null;
   }
   programTime() { return this.closed || this.origin === null || this.video.readyState < 2 ? null : this.origin + this.mediaTime(); }
-  requestSound() { this.soundRequested = true; this.video.muted = false; return this.play(); }
+  requestSound() {
+    this.soundRequested = true; this.video.muted = false;
+    // Use the gesture immediately when the verified decoder is ready. This
+    // also preserves startup/headroom gates when a sound preference is early.
+    if (!this.closed && !this.suspended && this.nominalTarget >= 0 && this.adaptive && !this.adaptive.playAllowed) this.sync(this.nominalTarget);
+    return this.play();
+  }
   muteSound() { this.soundRequested = true; this.soundBlocked = false; this.video.muted = true; }
   play() {
     // A sound preference during warm-up must not reveal the live source.
-    if(this.closed||this.suspended||this.target===null||this.target<0)return Promise.resolve();
+    if(this.closed||this.suspended||this.target===null||this.target<0||this.adaptive?.playAllowed===false)return Promise.resolve();
     const audible = !this.video.muted;
     return Promise.resolve(this.video.play()).then(() => { this.blocked = false; this.lastPlayError = null; if (audible && !this.video.muted) this.soundBlocked = false; }, error => {
       this.lastPlayError = error.name; if (error.name === 'NotAllowedError') { this.blocked = true; if (audible) { this.soundBlocked = true; this.video.muted = true; Promise.resolve(this.video.play()).catch(() => {}); } } throw error;
@@ -235,8 +263,8 @@ export class Player {
   facts() {
     const v = this.video, quality = v.getVideoPlaybackQuality?.(); let ahead = 0, buffered = 0;
     for (let i = 0; i < v.buffered.length; i++) { buffered += v.buffered.end(i) - v.buffered.start(i); if (v.currentTime >= v.buffered.start(i) && v.currentTime < v.buffered.end(i)) ahead = v.buffered.end(i) - v.currentTime; }
-    return { mode: this.mode, hlsVersion: Hls.version, mseProgramOriginSeconds: this.origin, mediaElementTime: v.currentTime, presentedFrameTime: this.presented?.time ?? null, srcChanges: this.srcChanges, seekCount: this.seekCount, syncSeekRequests: this.syncSeekRequests, decodedFrames: quality?.totalVideoFrames ?? v.webkitDecodedFrameCount ?? null, droppedFrames: quality?.droppedVideoFrames ?? v.webkitDroppedFrameCount ?? null, decoderBufferedSeconds: buffered, playableAheadSeconds: ahead, cacheBytes: this.cache.bytes, cacheFiles: this.cache.files.size, muted: v.muted, soundBlocked: this.soundBlocked, soundRequested: this.soundRequested, playError: this.lastPlayError, width: v.videoWidth, height: v.videoHeight, errorCount: this.errors };
+    return { ...this.adaptive.facts(), mode: this.mode, hlsVersion: Hls.version, mseProgramOriginSeconds: this.origin, mediaElementTime: v.currentTime, presentedFrameTime: this.presented?.time ?? null, srcChanges: this.srcChanges, seekCount: this.seekCount, syncSeekRequests: this.syncSeekRequests, decodedFrames: quality?.totalVideoFrames ?? v.webkitDecodedFrameCount ?? null, droppedFrames: quality?.droppedVideoFrames ?? v.webkitDroppedFrameCount ?? null, decoderBufferedSeconds: buffered, playableAheadSeconds: ahead, cacheBytes: this.cache.bytes, cacheFiles: this.cache.files.size, muted: v.muted, soundBlocked: this.soundBlocked, soundRequested: this.soundRequested, playError: this.lastPlayError, width: v.videoWidth, height: v.videoHeight, errorCount: this.errors };
   }
-  close() { if (this.closed) return; this.closed = true; if (this.frameRequest !== null) this.video.cancelVideoFrameCallback?.(this.frameRequest); this.video.removeEventListener('seeking', this.onSeeking); this.hls.destroy(); this.cache.clear(); this.video.pause(); this.video.removeAttribute('src'); this.video.load(); }
+  close() { if (this.closed) return; this.closed = true; if (this.frameRequest !== null) this.video.cancelVideoFrameCallback?.(this.frameRequest); this.video.removeEventListener('seeking', this.onSeeking); this.video.removeEventListener('waiting', this.onWaiting); this.video.removeEventListener('playing', this.onPlaying); this.hls.destroy(); this.cache.clear(); this.video.pause(); this.video.removeAttribute('src'); this.video.load(); }
 }
 export const canPlay = () => Hls.isSupported();

@@ -54,3 +54,14 @@ test('authenticated capture end remains a known stop while room state still adve
  const result=explain({snapshot:{sourceEnded:true,config:null},room:room('sharing')});
  assert.equal(result.code,'source-stopped');assert.equal(result.roomJoined,true);assert.match(result.detail,/still in the room/);
 });
+
+test('adaptive rebuffering is an intentional wait, while moving playback and source evidence take priority',()=>{
+ const snapshot={config:{},sourceReachable:true,clockReady:true,targetProgramTime:75,playbackAdaptivePhase:'rebuffering'};
+ const result=explain({snapshot,room:room('sharing'),pictureMoving:false});
+ assert.equal(result.code,'buffering');assert.equal(result.waiting,true);assert.match(result.detail,/chatting/);
+ assert.equal(explain({snapshot:{...snapshot,ready:4,paused:false},room:room('sharing'),pictureMoving:true}).code,'playing');
+ assert.equal(explain({snapshot:{...snapshot,sourceReachable:false},room:room('unreachable'),pictureMoving:false}).code,'source-unreachable');
+ assert.equal(explain({snapshot:{...snapshot,sourceReachable:false},room:room('sharing'),pictureMoving:false}).code,'finding-route','lost path is not described as saving incoming media');
+ assert.equal(explain({snapshot:{...snapshot,targetProgramTime:-2},room:room('sharing')}).code,'warming-up');
+ assert.equal(explain({snapshot:{...snapshot,playbackAdaptivePhase:'PRIVATE'},room:room('sharing')}).code,'finding-route');
+});
