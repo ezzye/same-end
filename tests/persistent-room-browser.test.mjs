@@ -41,12 +41,12 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(result.statusCode, result.headers).end(result.body); return;
   }
   if (u.pathname === '/fixtures.json') { res.writeHead(200, { 'content-type': 'application/json' }).end('{"fixtures":[]}'); return; }
-  res.writeHead(200, { 'content-type': 'text/html', 'referrer-policy': 'no-referrer' }).end(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;padding:20px;font:16px system-ui}button,input,textarea,select{font:inherit}input,textarea,select{width:100%}[hidden]{display:none!important}${css}</style><main><section id="club-social"></section><section id="watch-room"><div class="stage"><video id="player"></video></div><button id="stop">Leave</button><input id="magnet-link"><div id="magnet-progress"></div><div id="room-status"></div><div id="room-social-status"></div><div id="room-chat"></div></section></main><script>window.SameEndConfig={apiBase:'/api'};window.SameEndFixtures=[];window.PrivateCast={calls:[],leaves:0,published:0,role:'viewer',active:false,config:null,hold:null,failNext:0,
-joinMagnet:async function(m){this.calls.push(m);if(this.failNext){this.failNext--;throw Error('fixture join failed')}if(this.hold)await new Promise(resolve=>{this.release=resolve});this.config={id:m};this.active=false;this.role='viewer';dispatchEvent(new Event('sameend:castchange'));},
-leaveRoom:async function(){this.leaves++;this.config=null;this.active=false;dispatchEvent(new Event('sameend:castchange'));},
-publishInvitation:async function(){this.published++;document.getElementById('magnet-link').value='magnet:?xt=urn:btih:'+this.config.id;dispatchEvent(new Event('sameend:castchange'));},
-source:function(id,magnet=''){this.config=id?{id}:null;this.role='source';this.active=!!id;document.getElementById('magnet-link').value=magnet;dispatchEvent(new Event('sameend:castchange'));},
-snapshot:function(){return {active:this.active,role:this.role,config:this.config,peers:[]}}};</script><script>${discoveryFixture}</script><script>${js}</script>`);
+  res.writeHead(200, { 'content-type': 'text/html', 'referrer-policy': 'no-referrer' }).end(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;padding:20px;font:16px system-ui}button,input,textarea,select{font:inherit}input,textarea,select{width:100%}[hidden]{display:none!important}${css}</style><main><section id="club-social"></section><section id="watch-room"><div class="stage"><video id="player"></video></div><button id="stop">Leave</button><input id="magnet-link"><div id="magnet-progress"></div><div id="room-status"></div><div id="room-social-status"></div><div id="room-chat"></div></section></main><script>window.SameEndConfig={apiBase:'/api'};window.SameEndFixtures=[];window.PrivateCast={calls:[],leaves:0,published:0,role:'viewer',active:false,sourceEnded:false,config:null,hold:null,failNext:0,
+joinMagnet:async function(m){this.calls.push(m);if(this.failNext){this.failNext--;throw Error('fixture join failed')}if(this.hold)await new Promise(resolve=>{this.release=resolve});this.config={id:m};this.active=false;this.role='viewer';this.sourceEnded=false;this.invitationConfigId=null;dispatchEvent(new Event('sameend:castchange'));},
+leaveRoom:async function(){this.leaves++;this.config=null;this.active=false;this.invitationConfigId=null;dispatchEvent(new Event('sameend:castchange'));},
+publishInvitation:async function(){this.published++;this.invitationConfigId=this.config.id;document.getElementById('magnet-link').value='magnet:?xt=urn:btih:'+this.config.id;dispatchEvent(new Event('sameend:castchange'));},
+source:function(id,magnet=''){this.config=id?{id}:null;this.role='source';this.active=!!id;this.sourceEnded=!id;this.invitationConfigId=magnet?id:null;document.getElementById('magnet-link').value=magnet;dispatchEvent(new Event('sameend:castchange'));},
+snapshot:function(){return {active:this.active,role:this.role,config:this.config,sourceEnded:this.sourceEnded,invitationConfigId:this.invitationConfigId||null,peers:[]}}};</script><script>${discoveryFixture}</script><script>${js}</script>`);
 });
 await new Promise(resolve => server.listen(18894, '127.0.0.1', resolve));
 const useWebKit=process.env.SAMEEND_SOCIAL_ENGINE==='webkit';
@@ -56,19 +56,56 @@ async function page() { const c = await browser.newContext(); contexts.push(c); 
 try {
   const old='magnet:?xt=urn:btih:old', fresh='magnet:?xt=urn:btih:new';
   const owner=await page();
-  await owner.evaluate(()=>SameEndSocial.createClub({name:'Persistent club'}));
+  const invite=await owner.evaluate(()=>SameEndSocial.prepareRoomInvitation());
+  assert.equal(await owner.evaluate(()=>SameEndSocial.snapshot().roomSource.state),'not-started');
+  assert.equal(await owner.evaluate(()=>PrivateCast.config),null,'room creation never starts capture');
+  assert.equal(await owner.evaluate(()=>document.body.classList.contains('host-lobby')),true,'prepared host sees the room lobby before capture');
+  assert.equal(await owner.locator('#club-chat-shell').isVisible(),true,'prepared host can chat before capture');
+  assert.equal(await owner.evaluate(()=>SameEndSocial.snapshot().saved),true,'host room saved before sharing');
+  assert.equal(await owner.evaluate(()=>SameEndSocial.snapshot().watchInvitation),invite);
+  const beforeSource=await page();await beforeSource.goto(invite);
+  const beforeSourceTwo=await page();await beforeSourceTwo.goto(invite);
+  await beforeSource.waitForFunction(()=>SameEndSocial.snapshot().connected);
+  await beforeSourceTwo.waitForFunction(()=>SameEndSocial.snapshot().connected);
+  assert.equal(await beforeSource.evaluate(()=>PrivateCast.calls.length),0,'source-free room does not discover media');
+  await beforeSource.evaluate(()=>SameEndSocial.sendChat('Here before the picture','First mate'));
+  await beforeSourceTwo.waitForFunction(()=>SameEndSocial.snapshot().chatCount===1);
+  await beforeSourceTwo.evaluate(()=>SameEndSocial.sendChat('Me too','Second mate'));
+  await beforeSource.waitForFunction(()=>SameEndSocial.snapshot().chatCount===2);
+  // Creating an invitation never gives mates an organiser key.
+  assert.equal(await beforeSource.evaluate(()=>SameEndSocial.snapshot().owner),false);
   await owner.evaluate(m=>PrivateCast.source('old',m),old);
-  const invite=await owner.evaluate(m=>SameEndSocial.castInvitation(m),old);
+  await beforeSource.waitForFunction(m=>PrivateCast.config?.id===m,old);
+  await beforeSourceTwo.waitForFunction(m=>PrivateCast.config?.id===m,old);
+  assert.equal(await owner.evaluate(()=>SameEndSocial.snapshot().roomSource.state),'sharing');
+  assert.equal(await owner.evaluate(()=>SameEndSocial.prepareRoomInvitation()),invite,'source attaches to prepared room');
+  // Keep the established restart assertions independent of the pre-picture chat.
+  const initialChatCount=2;
   assert.match(invite, /&watch=1$/);assert(!invite.includes('owner=')&&!invite.includes('join=')&&!invite.includes('magnet'));
   const ownerLink=await owner.evaluate(()=>{document.getElementById('club-owner-reveal').click();return document.getElementById('club-owner-url').value});
   const viewer=await page();await viewer.goto(invite);
   await viewer.waitForFunction(m=>PrivateCast.config?.id===m,old);
   assert.equal(await viewer.evaluate(()=>SameEndSocial.snapshot().saved),false,'watch invitation does not save member key');
   await owner.evaluate(()=>SameEndSocial.sendChat('Chat survives restarts','Host'));
-  await viewer.waitForFunction(()=>SameEndSocial.snapshot().chatCount===1);
+  await viewer.waitForFunction(()=>SameEndSocial.snapshot().chatCount===3);
+  // A signed source-end is authoritative even before an encrypted room update.
+  // Keep the owner's old descriptor fresh to reproduce a delayed/failed clear.
+  const signedEndViewer=await page();await signedEndViewer.goto(invite);
+  await signedEndViewer.waitForFunction(m=>PrivateCast.config?.id===m,old);
+  await signedEndViewer.waitForFunction(()=>SameEndSocial.snapshot().chatCount===3);
+  const signedEndCalls=await signedEndViewer.evaluate(()=>PrivateCast.calls.length);
+  await signedEndViewer.evaluate(()=>{PrivateCast.config=null;PrivateCast.sourceEnded=true;dispatchEvent(new Event('sameend:castchange'));dispatchEvent(new Event('online'));});
+  await new Promise(resolve=>setTimeout(resolve,2500));
+  assert.equal(await owner.evaluate(()=>SameEndSocial.snapshot().roomSource.state),'sharing','encrypted room still publishes the old fresh capture');
+  assert.equal(await signedEndViewer.evaluate(()=>PrivateCast.config),null,'signed stop does not rediscover the ended descriptor');
+  assert.equal(await signedEndViewer.evaluate(()=>PrivateCast.calls.length),signedEndCalls,'polling cannot revive an authenticated ended capture');
+  assert.equal(await signedEndViewer.evaluate(()=>SameEndSocial.snapshot().watching),true,'signed stop keeps room follow intent');
+  assert.equal(await signedEndViewer.locator('#club-chat-shell').isVisible(),true,'signed stop keeps room chat');
+  assert.equal(await signedEndViewer.evaluate(()=>SameEndSocial.snapshot().chatCount),3);
   await owner.evaluate(()=>PrivateCast.source(null));
   await viewer.waitForFunction(()=>!PrivateCast.config&&SameEndSocial.snapshot().watching);
   assert.equal(await viewer.locator('#club-chat-shell').isVisible(),true,'waiting room keeps chat');
+  assert.equal(await viewer.evaluate(()=>SameEndSocial.snapshot().roomSource.state),'stopped','deliberate source stop is distinct from a lost update');
   const waiting=await page();await waiting.goto(invite);
   await waiting.waitForFunction(()=>SameEndSocial.snapshot().connected);
   assert.equal(await waiting.evaluate(()=>PrivateCast.calls.length),0,'no stale screen in stopped-room invite');
@@ -82,9 +119,11 @@ try {
   await owner.evaluate(()=>PrivateCast.source('new'));
   await viewer.waitForFunction(m=>PrivateCast.config?.id===m,fresh);
   await waiting.waitForFunction(m=>PrivateCast.config?.id===m,fresh);
+  await signedEndViewer.waitForFunction(m=>PrivateCast.config?.id===m,fresh);
+  assert.deepEqual(await signedEndViewer.evaluate(()=>PrivateCast.calls),[old,fresh],'signed-stop tombstone permits a genuinely new capture');
   assert.equal(await owner.evaluate(()=>PrivateCast.published),1,'source restart automatically creates descriptor');
   assert.equal(await owner.evaluate(()=>SameEndSocial.snapshot().watchInvitation),invite,'same stable invitation after restart');
-  assert.equal(await viewer.evaluate(()=>SameEndSocial.snapshot().chatCount),1,'chat survives media replacement');
+  assert.equal(await viewer.evaluate(()=>SameEndSocial.snapshot().chatCount),initialChatCount+1,'chat survives media replacement');
   const late=await page();await late.goto(invite);await late.waitForFunction(m=>PrivateCast.config?.id===m,fresh);
   assert.deepEqual(await late.evaluate(()=>PrivateCast.calls),[fresh],'stable late join resolves only fresh live');
   // Reopening the same invitation in an already-open stale receiver should adopt
@@ -158,6 +197,16 @@ try {
   await secondOwner.evaluate(()=>{PrivateCast.source('newest','magnet:?xt=urn:btih:newest');return SameEndSocial.castInvitation('magnet:?xt=urn:btih:newest')});
   releasePut();await clear;
   const newest=await page();await newest.goto(invite);await newest.waitForFunction(()=>PrivateCast.config?.id==='magnet:?xt=urn:btih:newest');
+  // A queued old publication must not retry over a newer owner publication.
+  let oldPublishSeen;const oldPublishPut=new Promise(resolve=>{oldPublishSeen=resolve});heldPut=oldPublishSeen;holdPut=true;
+  await owner.evaluate(()=>{PrivateCast.role='source';PrivateCast.active=true;PrivateCast.config={id:'losing-source'};PrivateCast.invitationConfigId='losing-source';document.getElementById('magnet-link').value='magnet:?xt=urn:btih:losing-source';});
+  const oldPublish=owner.evaluate(()=>SameEndSocial.castInvitation('magnet:?xt=urn:btih:losing-source'));await oldPublishPut;
+  await secondOwner.evaluate(()=>SameEndSocial.castInvitation('magnet:?xt=urn:btih:newest'));
+  releasePut();await oldPublish;
+  await new Promise(resolve=>setTimeout(resolve,1500));
+  assert.equal(await owner.evaluate(()=>SameEndSocial.snapshot().hasLive),true);
+  const afterConflict=await page();await afterConflict.goto(invite);await afterConflict.waitForFunction(()=>PrivateCast.config?.id==='magnet:?xt=urn:btih:newest');
+  assert.deepEqual(await afterConflict.evaluate(()=>PrivateCast.calls),['magnet:?xt=urn:btih:newest'],'old publisher cannot reclaim newer room on observation');
   // Resolve fresh live while the real engine is suspended in old discovery/cleanup.
   for(const holdCleanup of [true,false]){
     const preempt=await page();await preempt.evaluate(holdCleanup=>useEngineDiscoveryFixture({holdCleanup}),holdCleanup);
@@ -175,8 +224,53 @@ try {
   assert.equal(await secondOwner.evaluate(()=>SameEndSocial.snapshot().watchInvitation),invite);
   await secondOwner.evaluate(()=>PrivateCast.source('reload'));
   await secondOwner.waitForFunction(()=>PrivateCast.published===1);
+  // Heartbeat publication is bound to a successful descriptor for this capture.
+  await secondOwner.waitForFunction(()=>SameEndSocial.snapshot().roomSource.state==='sharing');
+  const beforeHeartbeat=await secondOwner.evaluate(()=>SameEndSocial.snapshot().version);
+  await secondOwner.evaluate(()=>{const original=Date.now;window.fixtureClock=16000;Date.now=()=>original()+window.fixtureClock;dispatchEvent(new Event('sameend:castchange'));});
+  await secondOwner.waitForFunction(v=>SameEndSocial.snapshot().version>v,beforeHeartbeat);
+  assert.equal(await secondOwner.evaluate(()=>SameEndSocial.snapshot().roomSource.fresh),true,'active captured source renews its lease');
+  const crashViewer=await page();await crashViewer.goto(invite);
+  await crashViewer.waitForFunction(()=>PrivateCast.config?.id==='magnet:?xt=urn:btih:reload');
+  const crashCalls=await crashViewer.evaluate(()=>PrivateCast.calls.length);
+  await secondOwner.context().close();
+  await crashViewer.evaluate(()=>{const original=Date.now;window.fixtureClock=80000;Date.now=()=>original()+window.fixtureClock;dispatchEvent(new Event('sameend:castchange'));});
+  assert.equal(await crashViewer.evaluate(()=>SameEndSocial.snapshot().roomSource.state),'unreachable','abrupt loss expires presence without claiming deliberate departure');
+  assert.equal(await crashViewer.evaluate(()=>SameEndSocial.snapshot().hasLive),false,'six-hour descriptor is not confirmed live after lease expiry');
+  assert.equal(await crashViewer.evaluate(()=>PrivateCast.config?.id),'magnet:?xt=urn:btih:reload','stale lease does not destroy an existing authenticated receiver');
+  assert.equal(await crashViewer.evaluate(()=>PrivateCast.calls.length),crashCalls);
+  const staleArrival=await page();
+  await staleArrival.evaluate(()=>{const original=Date.now;window.fixtureClock=80000;Date.now=()=>original()+window.fixtureClock;});
+  await staleArrival.evaluate(link=>SameEndSocial.joinCastLink(link),invite);
+  assert.equal(await staleArrival.evaluate(()=>SameEndSocial.snapshot().roomSource.state),'unreachable');
+  assert.equal(await staleArrival.evaluate(()=>PrivateCast.calls.length),0,'stale late arrivals wait in chat without generic descriptor discovery errors');
+  await staleArrival.evaluate(()=>SameEndSocial.sendChat('Still here after the lost source','Waiting mate'));
+  await crashViewer.waitForFunction(()=>SameEndSocial.snapshot().chatCount===4);
+  await crashViewer.evaluate(()=>{window.fixtureClock=0});await staleArrival.evaluate(()=>{window.fixtureClock=0});
+  const returnedOwner=await page();await returnedOwner.evaluate(link=>SameEndSocial.joinClub(link,{save:true}),ownerLink);
+  assert.equal(await returnedOwner.evaluate(()=>SameEndSocial.prepareRoomInvitation()),invite);
+  await returnedOwner.evaluate(()=>PrivateCast.source('returned'));
+  await staleArrival.waitForFunction(()=>PrivateCast.config?.id==='magnet:?xt=urn:btih:returned');
+  await crashViewer.waitForFunction(()=>PrivateCast.config?.id==='magnet:?xt=urn:btih:returned');
+  await staleArrival.evaluate(()=>{document.getElementById('stop').click();return PrivateCast.leaveRoom()});
+  await returnedOwner.evaluate(()=>PrivateCast.source('after-session-leave'));
+  await crashViewer.waitForFunction(()=>PrivateCast.config?.id==='magnet:?xt=urn:btih:after-session-leave');
+  assert.equal(await staleArrival.evaluate(()=>PrivateCast.config),null,'session Leave remains respected after a later source returns');
+  // Optional source fields remain compatible with old schema-1 saved rooms.
+  const legacyOwner=await page();const legacyLink=await legacyOwner.evaluate(()=>SameEndSocial.prepareRoomInvitation());
+  await legacyOwner.evaluate(()=>SameEndSocial.updateClub({live:{magnet:'magnet:?xt=urn:btih:legacy-record',startedAt:Date.now(),expiresAt:Date.now()+3600000}}));
+  assert.deepEqual(await legacyOwner.evaluate(()=>SameEndSocial.snapshot().roomSource),{state:'unknown',fresh:false},'legacy source presence stays unknown');
+  const legacyViewer=await page();await legacyViewer.goto(legacyLink);await legacyViewer.waitForFunction(()=>PrivateCast.config?.id==='magnet:?xt=urn:btih:legacy-record');
+  const oldVersion=await legacyViewer.evaluate(()=>SameEndSocial.snapshot().version);
+  await legacyOwner.evaluate(()=>SameEndSocial.updateClub({name:'Version one, still readable'}));
+  await legacyViewer.waitForFunction(v=>SameEndSocial.snapshot().version>v,oldVersion);
+  assert.equal(await legacyViewer.evaluate(()=>SameEndSocial.snapshot().name),'Version one, still readable');
+  const unsignedOwner=await page();await unsignedOwner.evaluate(()=>SameEndSocial.prepareRoomInvitation());
+  await unsignedOwner.evaluate(()=>{PrivateCast.role='source';PrivateCast.active=true;PrivateCast.config={id:'actual-capture'};PrivateCast.invitationConfigId='different-capture';document.getElementById('magnet-link').value='magnet:?xt=urn:btih:unrelated';dispatchEvent(new Event('sameend:castchange'));});
+  await new Promise(resolve=>setTimeout(resolve,1200));
+  assert.equal(await unsignedOwner.evaluate(()=>SameEndSocial.snapshot().hasLive),false,'a descriptor for another config cannot advertise source presence');
   assert.deepEqual(errors,[]);
-  console.log('PASS: stable private URL, current/late/legacy join, waiting chat, source restart, stale receiver and Join live adoption, missing/inactive cast repair, foreign manual cast guard after close, transient invitation bootstrap retry, explicit Leave, stale clear conflict, owner refresh, and pending-join preemption.');
+  console.log('PASS: signed source-end tombstone and new-source follow, source-free saved room and two-viewer chat, config-bound source lease renewal, crash expiry with media preservation, stale late arrival and source return, old schema-1 presence, stable private URL, current/late/legacy join, waiting chat, source restart, stale receiver and Join live adoption, missing/inactive cast repair, foreign manual cast guard after close, transient invitation bootstrap retry, explicit Leave, stale clear conflict, owner refresh, and pending-join preemption.');
 } finally {
   releaseHeld?.();releasePut?.();
   await Promise.all(contexts.map(c => c.close())); await browser.close(); await new Promise(resolve => server.close(resolve));

@@ -4,6 +4,7 @@
  * No public rooms, no user profile, no TURN/HTTP media, no autoplay override.
  * Build externally first. HLS_RECONNECT_HTML can select a preserved baseline.
  * HLS_RECONNECT_SCENARIO=baseline runs only the hintless >90-second viewer fault.
+ * HLS_RECONNECT_SCENARIO=room checks source-independent rooms and source leases.
  * HLS_RECONNECT_LABEL selects the evidence folder. CHROME_PATH, BROWSER_CHANNEL
  * and SAMEEND_PLAYWRIGHT support isolated Chrome/Edge on another host.
  */
@@ -91,8 +92,8 @@ const report = { schema: 1, startedAt: new Date().toISOString(), buildSHA256: cr
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const sanitize = value => String(value).replace(/https?:\/\/\S*#\S*/g, '[private invitation removed]').replace(/magnet:\S+/g, '[magnet invitation removed]').replace(/#pc=[A-Za-z0-9_-]+/g, '#pc=[removed]');
 async function until(check, timeout, message) { const deadline = Date.now() + timeout; while (Date.now() < deadline) { if (await check()) return; await pause(250); } throw Error(message); }
-async function page(label, invitation) {
-  const context = await browser.newContext({ ignoreHTTPSErrors: true, serviceWorkers: 'block', viewport: { width: 1280, height: 900 } }); contexts.push(context);contextByLabel[label]=context;
+async function page(label, invitation, storageState) {
+  const context = await browser.newContext({ ignoreHTTPSErrors: true, serviceWorkers: 'block', viewport: { width: 1280, height: 900 }, ...(storageState ? {storageState} : {}) }); contexts.push(context);contextByLabel[label]=context;
   await context.route('**/*', route => { const url = route.request().url(); if (!url.startsWith(origin + '/')) { externalRequests.push(new URL(url).hostname); if (/\.(?:m3u8|m4s|mp4|ts)(?:$|[?#])/i.test(url)) mediaAttempts.push('[blocked external media]'); return route.abort(); } return route.continue(); });
   await instrument(context,label);
   const result = await context.newPage(); pages[label] = result;
@@ -109,7 +110,7 @@ async function snapshot(page) {
     let rms = null;
     if(probe){const spectrum=new Float32Array(probe.analyser.frequencyBinCount);probe.analyser.getFloatFrequencyData(spectrum);let best=-Infinity,index=0;for(let i=Math.floor(350*probe.analyser.fftSize/probe.context.sampleRate);i<Math.min(spectrum.length,Math.ceil(2300*probe.analyser.fftSize/probe.context.sampleRate));i++)if(spectrum[i]>best){best=spectrum[i];index=i;}probe.peakFrequency=index*probe.context.sampleRate/probe.analyser.fftSize;}
     if (probe) { const data = new Float32Array(probe.analyser.fftSize); probe.analyser.getFloatTimeDomainData(data); rms = Math.sqrt(data.reduce((sum, value) => sum + value * value, 0) / data.length); }
-    return { social:(()=>{const {roomInvitation,watchInvitation,...safe}=SameEndSocial.snapshot();return safe;})(), calls:window.acceptanceCalls, ownedNetwork:window.ownedNetwork?.stats(), audioContextState:probe?.context.state, measuredOutputGain:probe?.outputGain.gain.value??null, peakFrequency:probe?.peakFrequency??null, hlsFailureMessages:(document.querySelector('#log')?.textContent||'').split('\n').filter(line=>/HLS|buffer|fragment|decode/i.test(line)).slice(0,8), hlsCaches:[...(window.ownedHlsCaches||[])].map(c=>({hasTargetPiece:window.ownedCacheObserve?.(c)||false,freshTargetReturns:c.ownedFreshReturns||[],target:c.target,newest:c.newest,bytes:c.bytes,files:c.files.size,availableSegments:[...c.timeline.values()].filter(t=>c.files.has(t.path)&&(!Number.isFinite(c.target)||t.end>=c.target-4&&t.start<=c.target+20)).map(t=>({start:t.start,end:t.end})),lastMisses:c.ownedMisses||[]})), muted:video.muted, sampledAt: Date.now(), nodeId: state.nodeId, transport:state.transport, network:state.network, active:state.active, capture:state.mediaDiagnostics.capture, config: state.config, sourceReachable: state.sourceReachable, sourceEnded: state.sourceEnded, role: state.role, supplier: state.supplier, clockReady: state.clockReady, received: state.received, reserveSeconds: state.reserveSeconds, recovery: state.recovery, stalls: state.stalls, programTime: state.programTime, target: state.targetProgramTime, drift: state.drift, peers: state.peers, mode: state.playbackMode, cacheBytes: state.cacheBytes, playback: state.mediaDiagnostics.playback, delivery: state.delivery, chatCount: SameEndSocial.snapshot().chatCount, chatConnected: SameEndSocial.snapshot().connected, chatHidden: document.querySelector('#club-chat-shell')?.hidden, chatParent: document.querySelector('#club-chat-shell')?.parentElement?.className || null, frames: video.getVideoPlaybackQuality?.().totalVideoFrames || 0, frameCallbacks: probe?.frames || 0, lastFrameAt: probe?.lastFrameAt || null, rms, ready: video.readyState, paused: video.paused, width: video.videoWidth, height: video.videoHeight, status: document.querySelector('#play-state').textContent };
+    return { roomSource:(()=>{const source=SameEndSocial.snapshot().roomSource;return source?{state:source.state,fresh:source.fresh}:null;})(), roomConnection:{state:document.body.dataset.roomState||'',title:document.querySelector('#stage-title')?.textContent||'',detail:document.querySelector('#stage-help')?.textContent||'',status:document.querySelector('#room-status')?.textContent||''},joinFailureVisible:document.body.classList.contains('has-join-failure'),inviteCheckTitle:document.querySelector('#invite-check-title')?.textContent||'',inviteCheckMessage:document.querySelector('#invite-check-message')?.textContent||'', social:(()=>{const {roomInvitation,watchInvitation,...safe}=SameEndSocial.snapshot();return safe;})(), calls:window.acceptanceCalls, ownedNetwork:window.ownedNetwork?.stats(), audioContextState:probe?.context.state, measuredOutputGain:probe?.outputGain.gain.value??null, peakFrequency:probe?.peakFrequency??null, hlsFailureMessages:(document.querySelector('#log')?.textContent||'').split('\n').filter(line=>/HLS|buffer|fragment|decode/i.test(line)).slice(0,8), hlsCaches:[...(window.ownedHlsCaches||[])].map(c=>({hasTargetPiece:window.ownedCacheObserve?.(c)||false,freshTargetReturns:c.ownedFreshReturns||[],target:c.target,newest:c.newest,bytes:c.bytes,files:c.files.size,availableSegments:[...c.timeline.values()].filter(t=>c.files.has(t.path)&&(!Number.isFinite(c.target)||t.end>=c.target-4&&t.start<=c.target+20)).map(t=>({start:t.start,end:t.end})),lastMisses:c.ownedMisses||[]})), muted:video.muted, sampledAt: Date.now(), nodeId: state.nodeId, transport:state.transport, network:state.network, active:state.active, capture:state.mediaDiagnostics.capture, config: state.config, sourceReachable: state.sourceReachable, sourceEnded: state.sourceEnded, role: state.role, supplier: state.supplier, clockReady: state.clockReady, received: state.received, reserveSeconds: state.reserveSeconds, recovery: state.recovery, stalls: state.stalls, programTime: state.programTime, target: state.targetProgramTime, drift: state.drift, peers: state.peers, mode: state.playbackMode, cacheBytes: state.cacheBytes, playback: state.mediaDiagnostics.playback, delivery: state.delivery, chatCount: SameEndSocial.snapshot().chatCount, chatConnected: SameEndSocial.snapshot().connected, chatHidden: document.querySelector('#club-chat-shell')?.hidden, chatParent: document.querySelector('#club-chat-shell')?.parentElement?.className || null, frames: video.getVideoPlaybackQuality?.().totalVideoFrames || 0, frameCallbacks: probe?.frames || 0, lastFrameAt: probe?.lastFrameAt || null, rms, ready: video.readyState, paused: video.paused, width: video.videoWidth, height: video.videoHeight, status: document.querySelector('#play-state').textContent };
   }).catch(error => { if (page.isClosed()) return { closed: true }; throw error; });
 }
 async function record(label) { const states = Object.fromEntries(await Promise.all(Object.entries(pages).map(async ([name, page]) => [name, await snapshot(page)]))); report.events.push({ label, at: Date.now(), states }); await writeFile(new URL('progress.json',output),JSON.stringify(report,null,2));console.log(JSON.stringify({ stage: label })); return states; }
@@ -201,7 +202,105 @@ async function waitRecovery(label,config,before){
 async function startNamedPage(label,context){
  await instrument(context,label);contextByLabel[label]=context;const result=await context.newPage();pages[label]=result;result.on('pageerror',e=>pageErrors.push({label,error:sanitize(e.stack||e.message)}));await result.goto(origin+'/');await result.waitForFunction(()=>window.PrivateCast?.testing&&SameEndSocial.snapshot().ready);return result;
 }
+// This branch uses the same owned TLS/API/tracker, real WebRTC and signed HLS
+// fixture as full/baseline. No Date override touches media clocks or source leases.
+function healthyRoom(state, expected, label, needsEmptySource = false) {
+ assert.equal(state.chatConnected,true,label+' keeps private chat connected');
+ assert.equal(state.chatHidden,false,label+' exposes chat without a source');
+ assert.equal(state.social.watching,true,label+' keeps the original room watching intent');
+ assert.equal(state.roomSource?.state,expected,label+' source presence is '+expected);
+ assert.equal(state.joinFailureVisible,false,label+' must not open a fatal join dialog');
+ assert.equal(state.roomConnection.state,expected==='not-started'?'waiting-for-source':'source-unreachable',label+' exposes the correct visible room state');
+ const feedback=[state.roomConnection.title,state.roomConnection.detail,state.roomConnection.status,state.inviteCheckTitle,state.inviteCheckMessage].join(' ');
+ assert(!/room (?:is )?full|could(?:n.t| not) join|unable to join|failed to join/i.test(feedback),label+' must not report room capacity or join failure while waiting');
+ assert(/wait|start|ready|check|unavailable|connection|stopped|reconnect|reach the source/i.test([state.roomConnection.title,state.roomConnection.detail,state.roomConnection.status].join(' ')),label+' explains room waiting or connection state');
+ if(needsEmptySource){assert.equal(state.config,null,label+' has no media source');assert.equal(state.social.watchWaiting,true,label+' waits automatically for a source');}
+}
+async function waitInRoom(labels,seconds,expected,needsEmptySource=false) {
+ const started=Date.now();let elapsed=0;
+ while(Date.now()-started<seconds*1000){
+  await pause(Math.min(5000,seconds*1000-(Date.now()-started)));
+  const states=Object.fromEntries(await Promise.all(labels.map(async label=>[label,await snapshot(pages[label])])));
+  for(const [label,state]of Object.entries(states))healthyRoom(state,expected,label,needsEmptySource);
+  report.samples.push({at:Date.now(),roomWaiting:true,states});
+  if(Date.now()-started>elapsed+20000){elapsed=Date.now()-started;await writeFile(new URL('progress.json',output),JSON.stringify(report,null,2));console.log(JSON.stringify({stage:'private room remains available without source',seconds:Math.floor(elapsed/1000),sourceState:expected}));}
+ }
+ return Date.now()-started;
+}
+async function runRoom(){
+ let source=await page('source');
+ assert.equal((await snapshot(source)).config,null,'Host starts without capture');
+ await source.locator('#make-magnet').waitFor({state:'visible'});
+ await source.waitForFunction(()=>SameEndSocial.snapshot().ready&&!document.querySelector('#make-magnet').disabled,null,{timeout:10000});
+ assert.equal(await source.locator('#make-magnet').isEnabled(),true,'Invite mates is available before capture');
+ await source.locator('#make-magnet').click();
+ await source.waitForFunction(()=>document.querySelector('#browser-invitation').value.includes('&watch=1'),null,{timeout:45000});
+ const invitation=await source.locator('#browser-invitation').inputValue(),q=new URLSearchParams(new URL(invitation).hash.slice(1));
+ assert(q.has('club')&&q.get('watch')==='1'&&!q.has('owner')&&!q.has('join'));
+ assert.equal((await snapshot(source)).config,null,'Preparing the invitation does not start capture');
+ const roomId=(await snapshot(source)).social.id;
+ report.stableInvitationShape=true;report.room={invitedBeforeCapture:true,realWaitingClock:true};
+ const viewer1=await page('viewer1',invitation),viewer2=await page('viewer2',invitation);
+ for(const viewer of [viewer1,viewer2]){await viewer.waitForFunction(()=>SameEndSocial.snapshot().connected&&SameEndSocial.snapshot().watching);assert.equal(await viewer.locator('#club-chat-input').isVisible(),true,'Chat composer is visible before sharing');}
+ await chatEverywhere(viewer1,[source,viewer2],'Our private room is ready before the shared screen');
+ await record('room invitation opens chat before any source');
+ report.room.waitingBeforeSourceMs=await waitInRoom(['viewer1','viewer2'],95,'not-started',true);
+ await chatEverywhere(viewer2,[source,viewer1],'Still chatting after the former ninety second join boundary');
+ await record('source-free room remains usable beyond ninety seconds');
+ let config=await startSource(source);await source.evaluate(()=>PrivateCast.testing.setRelayLimit(2));
+ for(const viewer of [viewer1,viewer2]){await attached(viewer,config);await probe(viewer);await playing(viewer);await matching(viewer,config);}
+ assert.equal(await source.evaluate(()=>SameEndSocial.snapshot().watchInvitation),invitation);
+ await chatEverywhere(viewer1,[source,viewer2],'The shared screen joined our existing room automatically');
+ report.room.initialPlayback=await measureWindow(['source','viewer1','viewer2'],5);
+ await viewer2.locator('#sound').click();assert.equal((await snapshot(viewer2)).muted,true);
+ const beforeLoss=await record('same room automatically attaches first signed HLS source with changing chirps');
+ for(const label of ['source','viewer1','viewer2'])assert.equal(beforeLoss[label].roomSource?.state,'sharing');
+ const saved=await contextByLabel.source.storageState({indexedDB:true}),oldConfigId=config.id;
+ await contextByLabel.source.close();const disappearedAt=Date.now();
+ await chatEverywhere(viewer1,[viewer2],'Our conversation continues after the source disappears');
+ // Wait beyond the real 60-second owner lease. Existing media is free to exhaust
+ // its bounded buffer; the presence lease alone must not become a chat failure.
+ for(let elapsed=0;elapsed<65;elapsed+=5){await pause(5000);report.samples.push({at:Date.now(),sourceAbsent:true,states:{viewer1:await snapshot(viewer1),viewer2:await snapshot(viewer2)}});if(elapsed%20===15)await record('waiting for real source lease expiry');}
+ report.room.sourceAbsentMs=Date.now()-disappearedAt;
+ await until(async()=>{const states=await Promise.all([viewer1,viewer2].map(snapshot));return states.every(s=>s.roomSource?.state==='unreachable'&&!s.roomSource.fresh);},12000,'Owner source lease did not expire after abrupt context loss');
+ for(const [label,viewer]of [['viewer1',viewer1],['viewer2',viewer2]])healthyRoom(await snapshot(viewer),'unreachable',label);
+ await chatEverywhere(viewer2,[viewer1],'The source is unreachable and our private chat still works');
+ const late=await page('late',invitation);
+ await late.waitForFunction(()=>SameEndSocial.snapshot().connected&&SameEndSocial.snapshot().watching);
+ healthyRoom(await snapshot(late),'unreachable','late',true);assert.equal(await late.locator('#club-chat-input').isVisible(),true,'Late viewer can see chat while source is away');
+ await chatEverywhere(late,[viewer1,viewer2],'I joined the original invitation while the source was away');
+ report.room.lateJoinsWithoutSource=true;await record('late original invitation opens waiting room and chat after real source lease expires');
+ // Preserve all three viewers. Source fanout stays two and the existing peer tree
+ // must carry the third viewer rather than silently raising source capacity.
+ source=await page('source',undefined,saved);
+ await source.waitForFunction(()=>SameEndSocial.snapshot().owner&&SameEndSocial.snapshot().watchInvitation,null,{timeout:15000});
+ assert.equal((await snapshot(source)).social.id,roomId);
+ assert.equal(await source.evaluate(()=>SameEndSocial.snapshot().watchInvitation),invitation);
+ config=await startSource(source);await source.evaluate(()=>PrivateCast.testing.setRelayLimit(2));assert.notEqual(config.id,oldConfigId);
+ for(const viewer of [viewer1,viewer2,late])await attached(viewer,config);
+ await playing(viewer1);await probe(late);await playing(late);
+ await until(async()=>{const state=await snapshot(viewer2);return state.ready>=2&&!state.paused;},30000,'Muted existing viewer did not follow restored owner source');
+ assert.equal((await snapshot(viewer1)).muted,false);assert.equal((await snapshot(viewer2)).muted,true);assert.equal((await snapshot(late)).muted,false);
+ for(const viewer of [viewer1,viewer2,late])await matching(viewer,config);
+ await chatEverywhere(late,[source,viewer1,viewer2],'The same original invitation follows our restored shared screen');
+ report.room.restoredPlayback=await measureWindow(['source','viewer1','viewer2','late'],5);
+ report.organizerRestoredFromSavedIndexedDB=true;report.room.threeViewersFollowAtSourceFanoutTwo=true;
+ await record('restored owner storage reuses same room; old and late viewers follow signed HLS with sound preferences');
+ // Explicit Leave remains final even when another signed source is published.
+ await viewer2.locator('#stop').click();await viewer2.waitForFunction(()=>!SameEndSocial.snapshot().watching&&!PrivateCast.snapshot().config);
+ const leftBefore=await snapshot(viewer2);await source.locator('#stop').click();
+ await chatEverywhere(viewer1,[source,late],'Chat continues while the restored source is deliberately stopped');
+ config=await startSource(source);await source.evaluate(()=>PrivateCast.testing.setRelayLimit(2));
+ for(const viewer of [viewer1,late])await attached(viewer,config);
+ await playing(viewer1);await playing(late);const left=await snapshot(viewer2);
+ assert.equal(left.social.watching,false);assert.equal(left.config,null);assert.equal(left.calls.joins,leftBefore.calls.joins);
+ report.leaveStopsRetries=true;report.room.finalPlayback=await measureWindow(['source','viewer1','late'],4);
+ const joining=await viewer1.evaluate(()=>SameEndInviteCheck.report().joining);
+ assert.equal(joining.connectionMode,'direct-only');assert.equal(joining.relayFallbackConfigured,false);assert.equal(joining.network.relayConfigured,false);
+ assert(apiBodies.every(body=>!body.cleartextMedia));await record('explicit Leave remains left after fresh source; original room and chat remain usable');report.pass=true;
+}
 async function run(){
+ if(scenario==='room')return runRoom();
  let source=await page('source'),config=await startSource(source);await source.evaluate(()=>PrivateCast.testing.setRelayLimit(2));await source.locator('#make-magnet').click();await source.waitForFunction(()=>document.querySelector('#browser-invitation').value.includes('&watch=1'),null,{timeout:45000});
  const invitation=await source.locator('#browser-invitation').inputValue(),q=new URLSearchParams(new URL(invitation).hash.slice(1));assert(q.has('club')&&q.get('watch')==='1'&&!q.has('owner')&&!q.has('join'));report.stableInvitationShape=true;
  const viewer1=await page('viewer1',invitation),viewer2=await page('viewer2',invitation);

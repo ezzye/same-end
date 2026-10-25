@@ -57,9 +57,12 @@ try {
   const failedChat = await page();
   await failedChat.goto(invite);
   await failedChat.waitForFunction(() => PrivateCast.calls.length === 1);
-  await failedChat.waitForFunction(() => document.body.innerText.includes('chat could not connect'));
+  await failedChat.waitForFunction(() => document.body.innerText.includes('club service to reconnect'));
   assert.equal(await failedChat.evaluate(() => PrivateCast.calls.length), 1, 'picture join still called exactly once after chat failure');
-  assert.match(await failedChat.locator('#room-social-status').textContent(), /chat could not connect/i, 'chat failure is reported separately');
+  assert.match(await failedChat.locator('#club-notice').textContent(), /club service to reconnect/i, 'transient chat failure explains automatic recovery separately');
+  offline = false;
+  await failedChat.waitForFunction(() => SameEndSocial.snapshot().connected, null, {timeout:45000});
+  assert.equal(await failedChat.evaluate(() => PrivateCast.calls.length), 1, 'chat recovery does not duplicate the legacy picture join');
   assert.deepEqual(errors, []);
   console.log('PASS: bundled picture join starts during held chat read; fragment clears; chat opens; offline chat failure still starts picture exactly once.');
 } finally {
