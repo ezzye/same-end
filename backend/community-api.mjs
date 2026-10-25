@@ -29,7 +29,11 @@ const profile = row => ({id: row.id, name: row.name, forumMember: row.forumMembe
 const feedbackView = row => ({id: row.id, ownerId: row.ownerId, version: row.version || 1, kind: row.kind, title: row.title, text: row.text, status: row.status, response: row.response, createdAt: row.createdAt, updatedAt: row.updatedAt, ...(row.contact && {contact: row.contact}), ...(row.diagnostics && {diagnostics: row.diagnostics})});
 const postView = row => ({id: row.id, authorId: row.authorId, authorName: row.authorName, version: row.version || 1, text: row.deleted ? '' : row.text, createdAt: row.createdAt, ...(row.threadId && {threadId: row.threadId, parentId: row.parentId || null, depth: row.depth || 1, ...(row.replyToName && {replyToName: row.replyToName})}), ...(row.hidden && {hidden: true}), ...(row.deleted && {deleted: true}), ...(row.staff && {staff: true})});
 // A removed reply is kept only as an empty placeholder when other replies hang from it.
-const placeholder = (row, reason) => ({...postView(row), text: '', authorId: null, authorName: '', [reason]: true});
+const placeholder = (row, reason) => {
+  const view = {...postView(row), text: '', authorId: null, authorName: '', [reason]: true};
+  delete view.replyToName;
+  return view;
+};
 const threadView = row => ({...postView(row), category: row.category, title: row.deleted ? '[Deleted]' : row.title, spoiler: row.spoiler, locked: row.locked, updatedAt: row.updatedAt, replyCount: row.replyCount});
 const summary = row => { const {text, ...view} = threadView(row); return {...view, excerpt: text.slice(0, 180)}; };
 const reportView = row => ({id: row.id, threadId: row.threadId, postId: row.postId, reporterId: row.reporterId, version: row.version || 1, reason: row.reason, status: row.status, note: row.note, createdAt: row.createdAt, updatedAt: row.updatedAt});
@@ -219,8 +223,16 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
     const children = new Map(); for (const x of all) { const key = x.parentId || threadId; if (!children.has(key)) children.set(key, []); children.get(key).push(x); }
     const keep = new Map(), visit = x => { if (keep.has(x.id)) return keep.get(x.id); keep.set(x.id, false); const value = !removed(x) || (children.get(x.id) || []).some(visit); keep.set(x.id, value); return value; };
     const score = await scores(`RSCORE#${threadId}#`, COMMUNITY_LIMITS.replies), votes = await myVotes(viewer, `${threadId}#`), threadScore = (await get(`TSCORE#${threadId}`))?.score || 0;
+    const byId = new Map(all.map(x => [x.id, x]));
     const replies = all.filter(visit).sort((a, b) => a.createdAt - b.createdAt || (a.sk < b.sk ? -1 : 1))
-      .map(x => ({...(removed(x) ? placeholder(x, removed(x)) : postView(x)), score: score.get(x.id) || 0, myVote: votes.get(x.id) || 0}));
+      .map(x => {
+        const reason = removed(x), view = reason ? placeholder(x, reason) : postView(x);
+        if (view.replyToName) {
+          const target = x.replyToId && byId.get(x.replyToId);
+          if (!target || removed(target)) delete view.replyToName;
+        }
+        return {...view, score: score.get(x.id) || 0, myVote: votes.get(x.id) || 0};
+      });
     return {thread: {...threadView(current), score: threadScore, myVote: votes.get(threadId) || 0}, replies, cursor: null};
   }
   async function route(method, path, query, body, token, event, ipSlot) {
@@ -321,16 +333,16 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
         const current = await thread(threadId, false, viewer);
         if (current.locked) fail(403, 'thread_locked', 'This conversation is locked.');
         if (current.replyCount >= COMMUNITY_LIMITS.replies) fail(429, 'reply_limit', 'This conversation has reached the pilot reply limit.');
-        let parentId = null, depth = 1, replyToName;
+        let parentId = null, depth = 1, replyToName, replyToId, parent;
         if (parentInput !== threadId) {
-          const parent = await get(`REPLY#${threadId}#${parentInput}`);
-          if (!active(parent) || parent.hidden || parent.deleted) fail(404, 'post_not_found', 'That comment is no longer available.');
+          parent = await get(`REPLY#${threadId}#${parentInput}`);
+          if (!active(parent) || parent.hidden || parent.deleted || viewer.blockedMemberIds?.includes(parent.authorId)) fail(404, 'post_not_found', 'That comment is no longer available.');
           const parentDepth = parent.depth || 1;
-          if (parentDepth >= MAX_DEPTH) { parentId = parent.parentId || null; depth = MAX_DEPTH; replyToName = parent.authorName; }
+          if (parentDepth >= MAX_DEPTH) { parentId = parent.parentId || null; depth = MAX_DEPTH; replyToName = parent.authorName; replyToId = parent.id; }
           else { parentId = parent.id; depth = parentDepth + 1; }
         }
-        const reply = row(`REPLY#${threadId}#${replyId}`, {id: replyId, threadId, parentId, depth, ...(replyToName && {replyToName}), text, authorId: viewer.id, authorName: viewer.name, hidden: false, deleted: false, createdAt: now()}), updated = row(current.sk, {...current, replyCount: current.replyCount + 1, updatedAt: now()});
-        await store.transact([put(reply), put(updated, current), {put: viewer, condition: cond(viewer)}]); return postView(reply);
+        const reply = row(`REPLY#${threadId}#${replyId}`, {id: replyId, threadId, parentId, depth, ...(replyToName && {replyToName}), ...(replyToId && {replyToId}), text, authorId: viewer.id, authorName: viewer.name, hidden: false, deleted: false, createdAt: now()}), updated = row(current.sk, {...current, replyCount: current.replyCount + 1, updatedAt: now()});
+        await store.transact([put(reply), put(updated, current), ...(parent ? [put(parent, parent)] : []), {put: viewer, condition: cond(viewer)}]); return postView(reply);
       });
     }
     if (path === '/votes' && method === 'POST') {

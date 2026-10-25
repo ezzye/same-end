@@ -12,7 +12,7 @@
     list: { items: [], cursor: null, total: 0, latest: 0, loaded: false, loading: false, error: '' },
     thread: null, pending: 0, closed: false, revealed: new Set(), drafts: new Map(), composing: false, joining: false,
     replyTo: null, menuFor: null, reportFor: null, deleteFor: null, timer: null, pollMs: POLL_MS, busy: false,
-    feedbackOpen: false, focus: null, draft: null, built: false,
+    feedbackOpen: false, focus: null, draft: null, built: false, inView: false,
   };
 
   // ---------- small DOM helpers ----------
@@ -153,7 +153,15 @@
     const quick = $('quick-room');
     if (quick && quick.parentNode) quick.parentNode.insertBefore(section, quick.nextSibling); else document.body.append(section);
     buildFeedbackPanel();
-    document.addEventListener('visibilitychange', () => { if (document.hidden) clearTimeout(state.timer); else if (state.ui.open) poll(); });
+    state.inView = typeof IntersectionObserver !== 'function';
+    if (!state.inView) {
+      const visibility = new IntersectionObserver(entries => {
+        state.inView = entries.some(entry => entry.isIntersecting);
+        if (state.inView && state.ui.open) schedule(); else clearTimeout(state.timer);
+      });
+      visibility.observe(section);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) clearTimeout(state.timer); else if (state.ui.open && state.inView) poll(); });
     document.addEventListener('click', e => { if (state.menuFor && !e.target.closest('.ff-menu-wrap')) { state.menuFor = null; render(); } });
     setOpen(state.ui.open, true);
     loadMe().then(() => refreshList(true));
@@ -204,9 +212,9 @@
   }
 
   // ---------- auto-refresh: only while the section is open and the page is visible ----------
-  function schedule() { clearTimeout(state.timer); if (state.ui.open && !document.hidden) state.timer = setTimeout(poll, state.pollMs); }
+  function schedule() { clearTimeout(state.timer); if (state.ui.open && state.inView && !document.hidden) state.timer = setTimeout(poll, state.pollMs); }
   function poll() {
-    clearTimeout(state.timer); if (!state.ui.open || document.hidden) return;
+    clearTimeout(state.timer); if (!state.ui.open || !state.inView || document.hidden) return;
     const t = state.thread, mine = id => state.identity && id === state.identity.id;
     let check = Promise.resolve();
     if (t && t.data) check = read('/threads/' + encodeURIComponent(t.id)).then(data => {

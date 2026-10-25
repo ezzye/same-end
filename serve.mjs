@@ -5,7 +5,8 @@ import {fileURLToPath} from 'node:url';
 const root=path.join(path.dirname(fileURLToPath(import.meta.url)),'dist');
 try{await access(path.join(root,'index.html'));}catch{await import('./build-pwa.mjs');}
 const allowed=new Map([['/','index.html'],['/index.html','index.html'],['/watch.html','watch.html'],['/manifest.webmanifest','manifest.webmanifest'],['/sw.js','sw.js'],['/test-guide.html','test-guide.html'],['/device-check.html','device-check.html'],['/icon-192.png','icon-192.png'],['/icon-512.png','icon-512.png'],['/manage.html','manage.html'],['/manage.js','manage.js'],['/manage.css','manage.css'],['/community-starters.json','community-starters.json'],['/staff-mfa.js','staff-mfa.js'],['/staff-mfa.css','staff-mfa.css']]);
-const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.webmanifest':'application/manifest+json','.png':'image/png','.json':'application/json'};
+allowed.set('/same-end-intro.m4a','same-end-intro.m4a');
+const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.webmanifest':'application/manifest+json','.png':'image/png','.json':'application/json','.m4a':'audio/mp4'};
 const port=Number(process.env.PORT||8792);
 http.createServer(async(req,res)=>{const requestUrl=new URL(req.url,'http://localhost');
 if(requestUrl.pathname.startsWith('/api/v1/')){

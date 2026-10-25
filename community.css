@@ -190,8 +190,11 @@ body.fc-open{overflow:hidden}
 @keyframes ff-shimmer{to{background-position:-200% 0}}
 .ff-more-list{justify-self:center}
 /* Order on the page: always third. During a room: picture and chat, then the forum. */
-body.room-active #fan-forum{order:2}
-body.room-active #quick-room{order:3}
+#fan-forum{order:2}
+body.room-active #quick-room{order:2}
+body.viewer-mode #quick-room.flow,body.joining #quick-room.flow,body.watch-intent #quick-room.flow{display:grid;grid-template-columns:1fr;gap:0}
+body.viewer-mode #quick-room .start-card,body.joining #quick-room .start-card,body.watch-intent #quick-room .start-card{display:none}
+body.viewer-mode #quick-room #magnet-panel,body.joining #quick-room #magnet-panel,body.watch-intent #quick-room #magnet-panel{display:block}
 @media(max-width:700px){
  .ff{border-radius:14px;margin-bottom:14px}
  .ff-toggle{padding:15px 16px;gap:12px}

@@ -342,6 +342,55 @@ test('replies nest to a bounded depth, keep time order and keep placeholders for
   assert.equal((await f.request('POST', `/threads/${other.id}/replies`, {id: randomUUID(), text: 'cross', parentId: chain[1].id}, a)).statusCode, 404);
 });
 
+test('reply parents respect blocks and moderation races; flattened replies hide unavailable target names', async () => {
+  const f = fixture(); await f.enable();
+  const alice = await f.member('Alice'), bob = await f.member('Bob'), cara = await f.member('Cara');
+  const t = await f.thread(cara);
+  const post = async (who, text, parentId) => {
+    const response = await f.request('POST', `/threads/${t.id}/replies`, {id: randomUUID(), text, ...(parentId && {parentId})}, who);
+    ok(response); return response.json;
+  };
+  const holder = await post(alice, 'Placeholder parent');
+  await post(cara, 'Visible child', holder.id);
+  const holderRow = await f.store.get('COMMUNITY#PILOT', `REPLY#${t.id}#${holder.id}`);
+  await f.store.put({...holderRow, replyToName: 'Private placeholder name', replyToId: randomUUID(), rev: randomUUID()});
+  const target = await post(alice, 'Alice comment');
+  ok(await f.request('POST', '/blocks', {memberId: alice.id, blocked: true}, bob));
+  assert.equal((await f.request('POST', `/threads/${t.id}/replies`, {id: randomUUID(), text: 'blocked reply', parentId: target.id}, bob)).statusCode, 404);
+
+  // Model moderation landing after the reply handler reads its parent but before its transaction.
+  const originalTransact = f.store.transact.bind(f.store); let raced = false;
+  f.store.transact = async ops => {
+    if (!raced && ops.some(op => op.put?.sk.startsWith(`REPLY#${t.id}#`) && op.put.id !== target.id) && ops.some(op => op.put?.sk === `REPLY#${t.id}#${target.id}`)) {
+      raced = true;
+      const current = await f.store.get('COMMUNITY#PILOT', `REPLY#${t.id}#${target.id}`);
+      await originalTransact([{put: {...current, hidden: true, rev: randomUUID()}}]);
+    }
+    return originalTransact(ops);
+  };
+  const raceReply = await f.request('POST', `/threads/${t.id}/replies`, {id: randomUUID(), text: 'raced reply', parentId: target.id}, cara);
+  f.store.transact = originalTransact;
+  assert.equal(raced, true);
+  assert.equal(raceReply.statusCode, 404);
+
+  // Create a separate depth-four chain, flatten one reply, then hide its referenced target.
+  const root = await post(alice, 'Root'); let parent = root; const chain = [root];
+  for (let depth = 2; depth <= 4; depth++) { parent = await post(depth % 2 ? alice : cara, `Depth ${depth}`, parent.id); chain.push(parent); }
+  const flattened = await post(bob, 'Flattened', parent.id);
+  assert.equal(flattened.replyToName, 'Cara');
+  const targetRow = await f.store.get('COMMUNITY#PILOT', `REPLY#${t.id}#${parent.id}`);
+  await f.store.put({...targetRow, replyToName: 'Private target name', replyToId: root.id, rev: randomUUID()});
+  ok(await f.admin('POST', '/moderation', {threadId: t.id, postId: parent.id, action: 'hide', reason: 'Rules', expectedVersion: 1}, {role: 'moderator'}));
+  const read = await f.request('GET', `/threads/${t.id}`); ok(read);
+  const visibleReply = read.json.replies.find(x => x.id === flattened.id);
+  assert.equal(visibleReply.replyToName, undefined);
+  ok(await f.request('POST', '/posts/delete', {threadId: t.id, postId: holder.id, expectedVersion: 1}, alice));
+  const placeholderRead = await f.request('GET', `/threads/${t.id}`); ok(placeholderRead);
+  const placeholder = placeholderRead.json.replies.find(x => x.id === holder.id);
+  assert.equal(placeholder?.deleted, true);
+  assert.equal(placeholder.replyToName, undefined);
+});
+
 test('likes are one per fan, idempotent, reversible and never change post versions', async () => {
   const f = fixture(); await f.enable(); const a = await f.member('Alice'), b = await f.member('Bob'), c = await f.member('Cara'), t = await f.thread(a);
   const r = await f.request('POST', `/threads/${t.id}/replies`, {id: randomUUID(), text: 'Like me'}, a); ok(r);
