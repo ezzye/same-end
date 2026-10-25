@@ -62,3 +62,9 @@ test('preemption only cancels the exact pending invitation',async()=>{
  assert.equal(await h.context.api.cancelPendingJoin('magnet:?unrelated'),false);assert.equal(h.context.magnetJoinGeneration,1);
  assert.equal(await h.context.api.cancelPendingJoin('magnet:?old'),true);h.releaseCleanup();await assert.rejects(task,/cancelled/);assert.equal(h.counts().created,0);
 });
+
+
+test('foreground visibility wakes pending bootstrap with no accepted media config',()=>{
+ let handler;const hints=[],context={document:{visibilityState:'visible',addEventListener(name,fn){handler=fn}},state:{config:null},magnetTransport:{refreshNetwork:reason=>hints.push(reason)}};
+ vm.createContext(context);vm.runInContext(source.split('\n').find(line=>line.startsWith("document.addEventListener('visibilitychange'")),context);handler();assert.deepEqual(hints,['visible']);context.document.visibilityState='hidden';handler();assert.deepEqual(hints,['visible']);
+});

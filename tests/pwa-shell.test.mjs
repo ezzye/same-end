@@ -30,6 +30,20 @@ test('standalone byte shim lets the bundled WebTorrent client initialize without
 });
 test('service worker caches fixed shell only and routes generic notifications without secret links',async()=>{const code=await readFile(new URL('../dist/sw.js',import.meta.url),'utf8');const handlers={},shown=[],opened=[];const context=createContext({URL,Set,Promise,console,self:{location:{href:'https://www.sameend.com/sw.js'},addEventListener:(kind,fn)=>handlers[kind]=fn,registration:{showNotification:(title,options)=>{shown.push({title,options});return Promise.resolve()}},clients:{matchAll:async()=>[],openWindow:async url=>opened.push(url)}}});runInContext(code,context);const id='60b837fe-b197-46e2-a836-f4439e06bf2c';let promise;handlers.push({data:{json:()=>({clubId:id,url:'https://evil.invalid/#owner=secret',title:'private match name',body:'private chat'})},waitUntil:p=>promise=p});await promise;assert.equal(shown[0].title,'Same End');assert.doesNotMatch(JSON.stringify(shown),/evil|secret|private chat|private match name/);handlers.notificationclick({notification:{data:{clubId:id},close(){}},waitUntil:p=>promise=p});await promise;assert.equal(opened[0],'https://www.sameend.com/#openclub='+id);assert.doesNotMatch(opened[0],/(?:#|&)club=|owner=/);assert.match(code,/index.html.*manifest.webmanifest.*icon-192.png.*icon-512.png/);assert.match(code,/searchParams\.set\(["']v["'],\s*CACHE\)/);assert.match(code,/c.put\(key.href,response\)/);});
 
+test('a waiting app update never activates or reloads a joining, playing or club-connected room',async()=>{
+ const source=await readFile(new URL('../build-pwa.mjs',import.meta.url),'utf8');
+ const code=source.split('\n').find(line=>line.startsWith("if('serviceWorker' in navigator"));assert(code,'app shell update handler is present');
+ for(const state of [{config:{id:'playing'}},{joining:true},{connected:true},{edited:true},{}]){
+  const handlers={},messages=[],timers=[];let reloads=0;
+  const registration={waiting:{postMessage:message=>messages.push(message)},addEventListener(){}};
+  const context=createContext({console,window:{PrivateCast:{snapshot:()=>({config:state.config||null})},SameEndSocial:{snapshot:()=>({connected:!!state.connected})}},document:{body:{classList:{contains:()=>!!state.joining}},querySelectorAll:()=>state.edited?[{value:'edited',defaultValue:''}]:[]},navigator:{serviceWorker:{addEventListener:(kind,handler)=>handlers[kind]=handler,register:async()=>registration}},location:{protocol:'https:',hostname:'www.sameend.com',reload:()=>reloads++},setInterval:fn=>timers.push(fn),$:()=>({})});
+  runInContext(code,context);await new Promise(resolve=>setImmediate(resolve));
+  timers.forEach(fn=>fn());handlers.controllerchange();
+  const idle=!Object.keys(state).length;
+  assert.equal(messages.length,idle?2:0,JSON.stringify(state));assert.equal(reloads,idle?1:0,JSON.stringify(state));
+ }
+});
+
 
 test('portable extension ZIP contains only the reviewed files under its installation folder',async()=>{
  const zip=unzipSync(new Uint8Array(await readFile(new URL('../dist/same-end-local-fixtures.zip',import.meta.url))));const names=Object.keys(zip).sort();assert.equal(names.length,10);assert(names.every(n=>n.startsWith('Same-End-Local-Fixtures/')));const prefix='Same-End-Local-Fixtures/';for(const file of names){assert.deepEqual(Buffer.from(zip[file]),await readFile(new URL('../extension/'+file.slice(prefix.length),import.meta.url)));}

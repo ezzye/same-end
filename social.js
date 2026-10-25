@@ -8,7 +8,7 @@
   const S = { club: null, state: null, version: 0, chats: [], seen: new Set(), cursor: '', poll: null, castTimer: null, generation: 0, unread: 0, failures: 0, saved: [], fixtures: [], clientId: crypto.randomUUID(), nick: '', sending: false, ownerCast: false, publishedMagnet: '', abort: null, subscriptions: {}, busy: false };
   let reportClub = null;
   const HOST_ROOM_KEY = 'sameend-host-room';
-  let watching = null, watchEpoch = 0, watchChain = Promise.resolve();
+  let watching = null, watchEpoch = 0, watchChain = Promise.resolve(), requestPollNow = () => {};
   let pendingInvite = null, pendingScreen = null, pendingOpen = null, database = null, initialized = false, chatPanel = null; const dirtyClubFields = new Set(), dirtyEventFields = new Set();
   function b64(bytes) { let s = ''; for (const byte of bytes) s += String.fromCharCode(byte); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
   function unb64(s) { if (!/^[A-Za-z0-9_-]+$/.test(s)) throw Error('This invitation is incomplete. Ask your mate for the whole private link.'); const raw = atob(s.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(s.length / 4) * 4, '=')); return Uint8Array.from(raw, c => c.charCodeAt(0)); }
@@ -61,8 +61,8 @@
     return watchLink(club);
   }
   async function joinCastLink(input) { window.SameEndInviteCheck?.start('screen');const u=new URL(input,location.href),q=new URLSearchParams(u.hash.slice(1));pendingInvite=parseInvite(input);pendingScreen=q.get('watch')==='1'?'watch':q.get('join');if(pendingScreen!=='watch'&&!pendingScreen?.startsWith('magnet:'))throw Error('Ask your mate for the complete screen invitation.');return acceptScreenInvite(); }
-  function stopWatching() { const previous=watching;watchEpoch++; watching=null;if(previous?.joining)window.PrivateCast?.cancelPendingJoin?.(previous.joining).catch(()=>{});document.body.classList.remove('watch-intent');moveChat(); }
-  function beginWatching(club) { stopWatching();const follow={clubId:club.id,epoch:watchEpoch,magnet:'',configId:null,desired:'',retryAt:0};watching=follow;document.body.classList.add('watch-intent');return follow; }
+  function stopWatching() { const previous=watching;watchEpoch++; watching=null;if(previous?.bootstrapTimer)clearTimeout(previous.bootstrapTimer);if(previous?.joining)window.PrivateCast?.cancelPendingJoin?.(previous.joining).catch(()=>{});document.body.classList.remove('watch-intent');moveChat(); }
+  function beginWatching(club, adoptCurrentViewer = false) { stopWatching();const snap=window.PrivateCast?.snapshot?.();const follow={clubId:club.id,epoch:watchEpoch,magnet:'',configId:null,desired:'',retryAt:0,adoptConfigId:adoptCurrentViewer&&snap?.role==='viewer'?snap.config?.id||null:null};watching=follow;document.body.classList.add('watch-intent');return follow; }
   function followCurrent() {
     const follow=watching;if(!follow||S.club?.id!==follow.clubId)return;
     follow.desired=liveNow()?.magnet||'';
@@ -79,10 +79,14 @@
       while(watching===follow&&follow.epoch===watchEpoch){
         const desired=follow.desired,snap=window.PrivateCast?.snapshot?.();
         if(!snap||snap.role==='source'&&snap.config)return;
-        // A different manually opened room belongs to the user, never this follower.
-        if(snap.config&&(!follow.configId||snap.config.id!==follow.configId))return;
-        if(desired===follow.magnet||Date.now()<follow.retryAt)return;
-        if(snap.config){await window.PrivateCast.leaveRoom();follow.configId=null;}
+        // A different manually opened room belongs to the user, even if it is
+        // later closed. Resume only after the user explicitly reopens the link.
+        if(snap.config&&follow.configId&&snap.config.id!==follow.configId){follow.suspended=true;return;}
+        if(follow.suspended&&!snap.config)return;
+        if(follow.configId&&(!snap.config||snap.config.id!==follow.configId)){follow.configId=null;follow.magnet='';follow.retryAt=0;}
+        if(snap.config&&(!follow.configId||snap.config.id!==follow.configId)&&snap.config.id!==follow.adoptConfigId)return;
+        if(desired===follow.magnet&&!follow.adoptConfigId||Date.now()<follow.retryAt)return;
+        if(snap.config){await window.PrivateCast.leaveRoom();follow.configId=null;follow.adoptConfigId=null;}
         if(watching!==follow||follow.epoch!==watchEpoch)return;
         if(!desired){follow.magnet='';moveChat();return;}
         try {
@@ -90,7 +94,7 @@
           await window.PrivateCast.joinMagnet(desired);
           const joined=window.PrivateCast.snapshot();follow.configId=joined.config?.id||null;
           if(watching!==follow||follow.epoch!==watchEpoch){if(joined.config&&follow.configId===joined.config.id)await window.PrivateCast.leaveRoom();return;}
-          follow.retryAt=0;
+          follow.retryAt=0;follow.adoptConfigId=null;
         } catch(e) {
           follow.magnet='';
           if(watching!==follow||follow.epoch!==watchEpoch)return;
@@ -102,10 +106,26 @@
     }).finally(()=>{follow.queued=null;moveChat();});
     watchChain=follow.queued;return follow.queued;
   }
+  function transientClubError(e) { return e?.status>=500||/unreachable|timed out|connection timed out/i.test(errorMessage(e)); }
+  function scheduleClubBootstrap(invite,follow,epoch,error) {
+    if(watching!==follow||watchEpoch!==epoch)return;
+    if(!transientClubError(error)){window.SameEndInviteCheck?.fail('chat-unavailable');notice('This invitation includes chat, but chat could not connect: '+errorMessage(error),true);return;}
+    follow.bootstrapAttempt=(follow.bootstrapAttempt||0)+1;
+    const delay=Math.min(30000,2000*Math.pow(2,Math.min(follow.bootstrapAttempt-1,4)));
+    window.SameEndInviteCheck?.mark?.('chat-retrying');
+    notice('Your private invitation is waiting for the club service to reconnect. Retrying automatically.',true);
+    follow.bootstrapTimer=setTimeout(async()=>{
+      follow.bootstrapTimer=null;if(watching!==follow||watchEpoch!==epoch)return;
+      try{await joinClub(invite,{save:false,watchFollow:follow});if(watching!==follow||watchEpoch!==epoch)return;document.body.classList.add('watch-intent');window.SameEndInviteCheck?.mark?.('chat-ready');if($('room-chat'))delete $('room-chat').dataset.chatError;notice('You’re in. Same invitation works when the host restarts sharing.');followCurrent();}
+      catch(retryError){scheduleClubBootstrap(invite,follow,epoch,retryError);}
+    },delay);
+  }
   async function acceptScreenInvite() {
     const magnet=pendingScreen;pendingScreen=null;const invite=pendingInvite;pendingInvite=null;
     if(invite?.error)throw Error(invite.error);
-    const follow=beginWatching(invite);
+    // Opening the private watch link is explicit intent to resume its current
+    // screen, including replacing a stale viewer session left by a restart.
+    const follow=beginWatching(invite,true);
     window.SameEndInviteCheck?.start('screen');window.SameEndInviteCheck?.phase('joining-chat');
     // Older combined links retain immediate picture discovery while chat loads.
     // Once unlocked, the encrypted room state always supplies the current screen.
@@ -122,6 +142,7 @@
       followCurrent();
     } catch(e) {
       if(watchEpoch!==epoch)return;
+      if(transientClubError(e)){scheduleClubBootstrap(invite,follow,epoch,e);await picture;if(watching===follow)await queueFollow(follow);return;}
       window.SameEndInviteCheck?.mark?.('chat-failed');window.SameEndInviteCheck?.fail('chat-unavailable');
       document.body.classList.add('club-intent');if($('room-chat'))$('room-chat').dataset.chatError=errorMessage(e);
       if($('room-social-status'))text($('room-social-status'),'This invitation includes chat, but chat could not connect: '+errorMessage(e));
@@ -133,7 +154,7 @@
 
   let editChain = Promise.resolve();
   function editState(change) { const task = editChain.catch(() => {}).then(async () => { const club = S.club, generation = S.generation; if (!club?.owner) throw Error('Only the organiser can change the club or match diary.'); for (let i = 0; i < 3; i++) { if (S.club !== club || generation !== S.generation) throw Error('The club changed. Open it again to edit.'); const next = normalState(change(structuredClone(S.state))); const body = { expectedVersion: S.version, state: await seal(next, club), events: scheduleEntries(next) }; try { const result = await request('/clubs/' + club.id, { method: 'PUT', body }, club, true); if (S.club !== club) return; S.state = next; S.version = result.version; renderClub(false); if (S.saved.some(c => c.id === club.id)) await saveClub(club); return publicSnapshot(); } catch (e) { if (e.status !== 409 || i === 2) throw e; const latest = await loadState(club); S.state = latest.state; S.version = latest.version; } } }); editChain = task; return task; }
-  function closeClub(render = true, preserveWatch = false) { if(!preserveWatch)stopWatching(); reportClub=null;queuedReport=null;reportRows=[];reportRead.clear();reportFetchedAt=0;if(reportDialog)reportDialog.hidden=true;S.generation++; clearTimeout(S.poll); clearInterval(S.castTimer); S.abort?.abort(); S.abort = null; S.club = null; S.state = null; S.version = 0; S.chats = []; S.seen.clear(); S.cursor = ''; S.unread = 0; S.failures = 0; S.ownerCast = false; S.publishedMagnet = ''; if ($('club-invite-url')) $('club-invite-url').value = ''; if ($('club-owner-url')) { $('club-owner-url').value = ''; $('club-owner-url').hidden = true; $('club-owner-copy').hidden = true; } if (chatPanel) $('club-chat-home')?.append(chatPanel); $('club-chat-home')?.classList.remove('has-home-chat'); document.querySelector('.social-watch-layout')?.classList.remove('has-live-chat'); document.body.classList.remove('has-social-club','host-lobby'); document.documentElement.dataset.clubTheme = 'terrace'; if (render) { $('club-open').hidden = true; $('club-start').hidden = false; $('club-chat-shell').hidden = true; renderSaved(); notice('Club closed. Your saved clubs stay on this browser.'); } }
+  function closeClub(render = true, preserveWatch = false) { if(!preserveWatch)stopWatching(); requestPollNow=()=>{};reportClub=null;queuedReport=null;reportRows=[];reportRead.clear();reportFetchedAt=0;if(reportDialog)reportDialog.hidden=true;S.generation++; clearTimeout(S.poll); clearInterval(S.castTimer); S.abort?.abort(); S.abort = null; S.club = null; S.state = null; S.version = 0; S.chats = []; S.seen.clear(); S.cursor = ''; S.unread = 0; S.failures = 0; S.ownerCast = false; S.publishedMagnet = ''; if ($('club-invite-url')) $('club-invite-url').value = ''; if ($('club-owner-url')) { $('club-owner-url').value = ''; $('club-owner-url').hidden = true; $('club-owner-copy').hidden = true; } if (chatPanel) $('club-chat-home')?.append(chatPanel); $('club-chat-home')?.classList.remove('has-home-chat'); document.querySelector('.social-watch-layout')?.classList.remove('has-live-chat'); document.body.classList.remove('has-social-club','host-lobby'); document.documentElement.dataset.clubTheme = 'terrace'; if (render) { $('club-open').hidden = true; $('club-start').hidden = false; $('club-chat-shell').hidden = true; renderSaved(); notice('Club closed. Your saved clubs stay on this browser.'); } }
   async function saveLocalPreferences() { if (!S.club) return; const stored = await storage('get', S.club.id).catch(() => null); if (!stored) return; await storage('put', { ...stored, name: S.state.name, theme: S.state.theme, nick: S.nick, clientId: S.clientId, subscriptions: S.subscriptions }); }
   function londonParts(ms) { const pieces = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(ms); const p = Object.fromEntries(pieces.filter(x => x.type !== 'literal').map(x => [x.type, x.value])); return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`; }
   function londonCandidates(value) { if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) throw Error('Choose a complete kick-off date and time.'); const numeric = Date.parse(value + ':00Z'); if (!Number.isFinite(numeric)) throw Error('Choose a valid date and time.'); return [numeric - 3600000, numeric].filter(ms => londonParts(ms) === value); }
@@ -167,7 +188,7 @@
   function addChat(msg, incoming) { if (S.seen.has(msg.id)) return; if (!Number.isFinite(msg.receivedAt) || Math.abs(msg.receivedAt) > 8640000000000000) msg.receivedAt = Date.now(); S.seen.add(msg.id); S.chats.push(msg); if (S.chats.length > 200) S.chats.shift(); if (S.seen.size > 500) S.seen = new Set(S.chats.map(c => c.id)); const log = $('club-messages'); if (!log) return; const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 65; const at = msg.receivedAt || Date.now(), item = element('div', 'club-message' + (msg.clientId === S.clientId ? ' is-self' : '')); item.dataset.at = String(at); const avatar = element('span', 'club-avatar', initialFor(msg.name)); avatar.setAttribute('aria-hidden', 'true'); avatar.dataset.tone = toneFor(msg.name); const body = element('div', 'club-message-body'), meta = element('span', 'club-message-meta'), name = element('strong', '', msg.name), stamp = element('time', '', new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' }).format(at)); name.dataset.tone = avatar.dataset.tone; try { stamp.dateTime = new Date(at).toISOString(); } catch (_) { /* Display time only. */ } meta.append(name, stamp); body.append(meta, element('p', '', msg.text)); item.append(avatar, body); let next = null; for (let node = log.lastElementChild; node; node = node.previousElementSibling) { if (Number(node.dataset.at) <= at) break; next = node; } log.insertBefore(item, next); while (log.children.length > 200) log.firstChild.remove(); if (atBottom || !incoming || (S.stick && !log.clientHeight)) { log.scrollTop = log.scrollHeight; S.unread = 0; S.stick = true; requestAnimationFrame(() => { if (S.stick) log.scrollTop = log.scrollHeight; }); } else S.unread++; updateUnread(); }
   function chatFeedback(message, state = 'hint') { const feedback = $('club-chat-feedback'); feedback.dataset.state = state; text(feedback, message); }
   function updateUnread() { const badge = $('club-unread'); if (badge) { badge.textContent = '↓ ' + S.unread + (S.unread === 1 ? ' new message' : ' new messages'); badge.hidden = !S.unread; } }
-  function startPolling() { const generation = S.generation; async function poll() { if (!S.club || generation !== S.generation) return; const club = S.club; try { const loaded = await loadState(club); if (generation !== S.generation) return; if (loaded.version > S.version) { const diaryChanged = JSON.stringify(S.state.events) !== JSON.stringify(loaded.state.events); S.state = loaded.state; S.version = loaded.version; renderClub(false); if (diaryChanged) { await syncSubscriptionEvents(); notice('Your club diary changed. Download the updated calendar entry; enabled notifications follow the current diary.'); } else notice('Your club is up to date.'); } const response = await request('/clubs/' + club.id + '/messages' + (S.cursor ? '?after=' + encodeURIComponent(S.cursor) : ''), {}, club); if (generation !== S.generation) return; for (const message of (response.messages || []).slice(-100)) { if (!UUID.test(message.id) || S.seen.has(message.id)) continue; try { const payload = await unseal(message.payload, club, message.id); if (generation !== S.generation) return; for (const listener of messageListeners) { try { listener({ id: message.id, payload, receivedAt: message.receivedAt }); } catch (_) {} } if (payload.kind !== 'chat' || typeof payload.text !== 'string' || [...payload.text].length > 2000) continue; addChat({ id: message.id, name: String(payload.name || 'A mate').slice(0, 40), text: payload.text, clientId: payload.clientId, receivedAt: message.receivedAt }, true); } catch (_) { /* Invalid or differently-keyed messages never render. */ } } if (typeof response.cursor === 'string') S.cursor = response.cursor; S.failures = 0; if(club.owner)refreshDeviceReports().catch(()=>{});text($('club-chat-connection'), 'Private club chat · names are self-chosen'); } catch (e) { if (generation !== S.generation) return; S.failures++; text($('club-chat-connection'), errorMessage(e) + ' Reconnecting…'); } finally { if (S.club && generation === S.generation) S.poll = setTimeout(poll, document.hidden ? 15000 : Math.min(30000, 2000 * Math.pow(2, Math.min(S.failures, 4)))); } } poll(); S.castTimer = setInterval(observeCast, 1000); }
+  function startPolling() { const generation = S.generation; let running=false,again=false; async function poll() { if (!S.club || generation !== S.generation) return; if(running){again=true;return;}running=true;const club = S.club; try { const loaded = await loadState(club); if (generation !== S.generation) return; if (loaded.version > S.version) { const diaryChanged = JSON.stringify(S.state.events) !== JSON.stringify(loaded.state.events); S.state = loaded.state; S.version = loaded.version; renderClub(false); if (diaryChanged) { await syncSubscriptionEvents(); notice('Your club diary changed. Download the updated calendar entry; enabled notifications follow the current diary.'); } else notice('Your club is up to date.'); } else followCurrent(); const response = await request('/clubs/' + club.id + '/messages' + (S.cursor ? '?after=' + encodeURIComponent(S.cursor) : ''), {}, club); if (generation !== S.generation) return; for (const message of (response.messages || []).slice(-100)) { if (!UUID.test(message.id) || S.seen.has(message.id)) continue; try { const payload = await unseal(message.payload, club, message.id); if (generation !== S.generation) return; for (const listener of messageListeners) { try { listener({ id: message.id, payload, receivedAt: message.receivedAt }); } catch (_) {} } if (payload.kind !== 'chat' || typeof payload.text !== 'string' || [...payload.text].length > 2000) continue; addChat({ id: message.id, name: String(payload.name || 'A mate').slice(0, 40), text: payload.text, clientId: payload.clientId, receivedAt: message.receivedAt }, true); } catch (_) { /* Invalid or differently-keyed messages never render. */ } } if (typeof response.cursor === 'string') S.cursor = response.cursor; S.failures = 0; if(club.owner)refreshDeviceReports().catch(()=>{});text($('club-chat-connection'), 'Private club chat · names are self-chosen'); } catch (e) { if (generation !== S.generation) return; S.failures++; text($('club-chat-connection'), errorMessage(e) + ' Reconnecting…'); } finally { running=false;if (S.club && generation === S.generation) { const delay=again?0:document.hidden ? 15000 : Math.min(30000, 2000 * Math.pow(2, Math.min(S.failures, 4)));again=false;S.poll = setTimeout(poll,delay); } } } requestPollNow=()=>{if(!S.club||generation!==S.generation)return;if(running){again=true;return;}clearTimeout(S.poll);S.poll=setTimeout(poll,0);};poll(); S.castTimer = setInterval(observeCast, 1000); }
   let publishing = false;
   async function publishLive(magnet, club = S.club) {
     if(S.club!==club)return;
@@ -319,7 +340,7 @@
     $('club-owner-reveal').onclick = () => { $('club-owner-url').value = linkFor(S.club, true); $('club-owner-url').hidden = false; $('club-owner-copy').hidden = false; };
     $('club-owner-copy').onclick = safe(async () => { await navigator.clipboard.writeText(linkFor(S.club, true)); notice('Organiser link copied. Keep it private; use the member invitation for your mates.'); });
     $('club-live-clear').onclick = safe(async () => { await clearLive(); notice('Live invitation cleared from your club.'); });
-    $('club-join-live').onclick = safe(async () => { const live = liveNow(); if (!live) throw Error('This live invitation has expired. Ask your organiser to start a fresh room.'); if (!window.PrivateCast?.joinMagnet) throw Error('The shared screen is not available on this copy. Open the current app.'); const follow=beginWatching(S.club);follow.desired=live.magnet;await queueFollow(follow); $('watch-room')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    $('club-join-live').onclick = safe(async () => { const live = liveNow(); if (!live) throw Error('This live invitation has expired. Ask your organiser to start a fresh room.'); if (!window.PrivateCast?.joinMagnet) throw Error('The shared screen is not available on this copy. Open the current app.'); const follow=beginWatching(S.club,true);follow.desired=live.magnet;await queueFollow(follow); $('watch-room')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
     $('club-nick').onchange = safe(async () => { S.nick = $('club-nick').value.trim().slice(0, 40); updateNickUI(); await saveLocalPreferences(); });
     $('club-nick').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); $('club-nick').dispatchEvent(new Event('change')); setNickRow(false); $('club-chat-input').focus(); } };
     $('club-nick-edit').onclick = () => setNickRow($('club-nick-row').hidden);
@@ -340,7 +361,8 @@
     $('stop')?.addEventListener('click', stopWatching, true);
     window.addEventListener('hashchange', () => { const previousJoin = location.hash.startsWith('#join='); consumeFragment(); if (previousJoin) return; if (pendingOpen) { const id = pendingOpen; pendingOpen = null; openClub(id).then(() => revealClub('club-diary')).catch(e => {window.SameEndInviteCheck?.fail('room-unavailable');notice(errorMessage(e), true);}); } if (pendingScreen) acceptScreenInvite(); else if (pendingInvite) showPendingInvite(); });
     navigator.serviceWorker?.addEventListener('message', event => { if (event.data?.type === 'sameend:openclub' && UUID.test(event.data.clubId)) openClub(event.data.clubId).then(() => revealClub('club-diary')).catch(e => notice(errorMessage(e), true)); });
-    document.addEventListener('visibilitychange', () => { if (!document.hidden && S.club) { S.unread = 0; updateUnread(); } });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && S.club) { S.unread = 0; updateUnread(); requestPollNow();followCurrent(); } });
+    window.addEventListener('online', () => { if(S.club){requestPollNow();followCurrent();} });
   }
   function showPendingInvite() { revealClub(); $('club-join-details').open = true; $('club-pending-info').hidden = false; text($('club-pending-info'), pendingInvite.error || 'Private invitation received. Join to unlock and save your club.'); $('club-join-input').placeholder = 'Invitation received securely'; notice(pendingInvite.error || 'Your private club invitation is ready. Join & save to continue.', !!pendingInvite.error); }
   async function init() { if (initialized || !mount()) return; initialized = true; bind(); await savedClubs(); if (pendingScreen) await acceptScreenInvite(); else if (pendingInvite) showPendingInvite(); if (pendingOpen) { const id = pendingOpen; pendingOpen = null; try { await openClub(id); revealClub('club-diary'); } catch (e) { window.SameEndInviteCheck?.fail('room-unavailable');notice(errorMessage(e), true); } } loadFixtures(); if(!S.club&&!watching&&!pendingInvite&&hostRoomId()) { try { await openClub(hostRoomId()); } catch(_) {} } }

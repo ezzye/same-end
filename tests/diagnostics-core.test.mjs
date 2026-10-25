@@ -156,3 +156,16 @@ test('standard HLS reports retain safe player versions and native timeline ancho
   const status=c.report().status;assert.equal(status.playbackMode,mode);assert.equal(status.mediaDiagnostics.playback.mode,mode);assert.equal(status.mediaDiagnostics.playback.hlsVersion,'1.7.3');assert.equal(status.mediaDiagnostics.playback.nativeProgramOriginSeconds,30.25);assert.equal(status.mediaDiagnostics.playback.initialProgrammeStart,31);assert.equal(status.mediaDiagnostics.playback.secret,undefined);
  }
 });
+
+
+test('automatic network recovery evidence survives private reports without socket data',()=>{
+ const storage=memoryStorage(),first=setup({storage});
+ first.observe({network:{discoveryResets:4,bootstrapRetries:2,resetState:'renewed',resetProblem:null,retryAt:1792796417000,trackerUrl:'PRIVATE-TRACKER',socket:{ip:'192.0.2.123'},privateKey:'PRIVATE-KEY'}});
+ const expected=[4,2,'renewed',null,17], values=x=>[x.discoveryResets,x.bootstrapRetries,x.resetState,x.resetProblem,x.retryInSeconds];
+ assert.deepEqual(values(first.c.report().status.networkRecovery),expected);
+ assert.deepEqual(values(first.c.summary().lastStatus.networkRecovery),expected);
+ assert.deepEqual(values(setup({storage}).c.report().status.networkRecovery),expected);
+ const text=JSON.stringify(first.c.report())+JSON.stringify(first.c.summary());assert(!text.includes('PRIVATE-'));assert(!text.includes('192.0.2.123'));assert(!text.includes('retryAt'));
+ first.observe({network:{discoveryResets:Infinity,bootstrapRetries:-1,resetState:'PRIVATE-STATE',resetProblem:'PRIVATE-ERROR',retryAt:Infinity}});
+ assert.deepEqual(values(first.c.report().status.networkRecovery),[null,0,null,null,null]);
+});

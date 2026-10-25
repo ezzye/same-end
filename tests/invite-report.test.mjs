@@ -20,3 +20,14 @@ test('startup timing report keeps bounded numbers and excludes arbitrary fields'
  const report=ctx.SameEndInviteCheck.cleanReport({startup:{pictureSearchMs:0,chatReadyMs:17.9,firstMediaMs:Infinity,clockReadyMs:-1,descriptorReadyMs:'PRIVATE-KEY',firstPictureMs:99999999,rawSdp:'PRIVATE-SDP',url:'PRIVATE-INVITE'}});
  assert.equal(report.startup.pictureSearchMs,0);assert.equal(report.startup.chatReadyMs,18);assert.equal(report.startup.firstMediaMs,null);assert.equal(report.startup.clockReadyMs,null);assert.equal(report.startup.descriptorReadyMs,null);assert.equal(report.startup.firstPictureMs,3600000);assert(!JSON.stringify(report).includes('PRIVATE-'));
 });
+
+
+test('network renewal reports bounded counters and states without private transport data',()=>{
+ const ctx=createContext({URLSearchParams,Uint8Array,Date,Math,JSON,setTimeout(){},setInterval(){},navigator:{userAgent:''},location:{hash:''},document:{getElementById(){return null}},addEventListener(){}});ctx.window=ctx;runInContext(code,ctx);
+ const clean=n=>ctx.SameEndInviteCheck.cleanReport({joining:{network:n}}).joining.network;
+ const valid=clean({phase:'retrying',discoveryResets:4.8,bootstrapRetries:3,resetState:'renewed',resetProblem:null,retryAt:Date.now()+17000,privateKey:'PRIVATE-KEY',trackerUrl:'wss://PRIVATE-URL',socket:{ip:'192.0.2.123'}});
+ assert.equal(valid.phase,'retrying');assert.equal(valid.discoveryResets,4);assert.equal(valid.bootstrapRetries,3);assert.equal(valid.resetState,'renewed');assert(valid.retryInSeconds>=16&&valid.retryInSeconds<=17);assert(!('retryAt' in valid));assert(!JSON.stringify(valid).includes('PRIVATE'));
+ const hostile=clean({discoveryResets:Infinity,bootstrapRetries:-99,resetState:'PRIVATE-STATE',resetProblem:'PRIVATE-ERROR',retryAt:Infinity,retryInSeconds:9999});
+ assert.equal(hostile.discoveryResets,null);assert.equal(hostile.bootstrapRetries,0);assert.equal(hostile.resetState,null);assert.equal(hostile.resetProblem,null);assert.equal(hostile.retryInSeconds,60);
+ const twice=clean(valid);assert.equal(twice.retryInSeconds,valid.retryInSeconds);assert.equal(twice.discoveryResets,4);
+});

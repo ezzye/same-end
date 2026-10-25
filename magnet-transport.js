@@ -30,6 +30,7 @@ import WebTorrent from './vendor/webtorrent.min.js';
       this.trackers=Array.from(new Set(trackers.map(x=>{const u=new URL(x);if(u.protocol!=='wss:')throw Error('Trackers must use secure WebSocket.');return u.href;}))).slice(0,2);
       this.client=null; this.torrent=null; this.key=null; this.role=null; this.node=String((getStatus()||{}).nodeId||id()); this.label='Friend';
       this.config=null; this.closed=false; this.wires=new Map(); this.links=new Map(); this.timer=null; this.trail=[]; this.parent=null; this.parentRequest=null; this.down=0; this.clockReady=false;
+      this.bootstrapGeneration=0;this.bootstrapRetries=0;this.bootstrapTimer=null;this.cancelBootstrapWait=null;this.resumeBootstrapWait=null;this.resetTimer=null;this.resetPromise=null;this.discoveryGeneration=0;this.nextResetAt=0;this.resetFailures=0;this.lastDiscoveryReset=0;this.lastTrackerReply=0;this.lastStatusTick=0;this.watchedTorrents=new WeakSet();this.boundedTrackers=new WeakSet();
       this.joinGeneration=0;this.pendingJoin=null;this.network=null;this.lastReannounce=0;this.observedDiscovery=null;this.observedPeers=new WeakSet();
       this.sessionReady=false; this.recovery=null; this.recoveries=0; this.everParent=false; this.failedSuppliers=new Map(); this.failures=0;
     }
@@ -70,24 +71,118 @@ import WebTorrent from './vendor/webtorrent.min.js';
     _status(){ return this.getStatus(); }
     async _cryptoKey(key){ return crypto.subtle.importKey('raw',key,{name:'HMAC',hash:'SHA-256'},false,['sign','verify']); }
     async _mac(text){ return new Uint8Array(await crypto.subtle.sign('HMAC',this.hmac,encoder.encode(text))); }
-    async _client(){ if(!this.client){this.client=new WebTorrent({dht:false,maxConns:12,tracker:{announce:this.trackers,rtcConfig:{iceServers:STUN},numwant:4}});this.client.on('error',e=>this._fail(e));} return this.client; }
-    _resetNetwork(phase){this.networkStarted=Date.now();this.lastReannounce=Date.now();this.network={phase,problem:null,trackerCount:this.trackers.length,stunServerCount:STUN.length,relayConfigured:false,reannounces:0,trackerReplies:0,warnings:0,peerAttempts:0,peerErrors:0,monitoredPeers:0,iceConnected:0,iceFailed:0,hostCandidates:0,reflexiveCandidates:0};}
+    async _client(){ if(!this.client){this.client=new WebTorrent({dht:false,maxConns:12,tracker:{announce:this.trackers,rtcConfig:{iceServers:STUN},getAnnounceOpts:()=>({numwant:4})}});this.client.on('error',e=>this._fail(e));} return this.client; }
+    _resetNetwork(phase){this.nextResetAt=0;this.resetFailures=0;this.lastTrackerReply=0;this.lastDiscoveryReset=0;this.networkStarted=Date.now();this.lastReannounce=Date.now();this.network={phase,problem:null,trackerCount:this.trackers.length,stunServerCount:STUN.length,relayConfigured:false,discoveryResets:0,resetState:'idle',resetProblem:null,bootstrapRetries:this.bootstrapRetries,retryAt:null,reannounces:0,trackerReplies:0,warnings:0,peerAttempts:0,peerErrors:0,monitoredPeers:0,iceConnected:0,iceFailed:0,hostCandidates:0,reflexiveCandidates:0};}
     _watchDiscovery(t){
       const current=()=>!this.closed&&this.torrent===t;
-      const observe=()=>{const d=t.discovery;if(!current()||!d||this.observedDiscovery===d)return;this.observedDiscovery=d;
-        d.on?.('trackerAnnounce',()=>{if(current()){this.network.trackerReplies=Math.min(10000,this.network.trackerReplies+1);this._progress('tracker-reply');}});
-        d.on?.('peer',peer=>{if(!current()||!peer||typeof peer!=='object'||this.observedPeers.has(peer))return;this.observedPeers.add(peer);this.network.peerAttempts=Math.min(10000,this.network.peerAttempts+1);
+      const observe=()=>{const d=t.discovery;if(!current()||!d||this.observedDiscovery===d)return;this.observedDiscovery=d;this._boundTrackerOffers(d);
+        d.on?.('trackerAnnounce',()=>{if(current()&&t.discovery===d){this.lastTrackerReply=Date.now();this.resetFailures=0;this.network.trackerReplies=Math.min(10000,this.network.trackerReplies+1);this._progress('tracker-reply');}});
+        d.on?.('peer',peer=>{if(!current()||t.discovery!==d||!peer||typeof peer!=='object'||this.observedPeers.has(peer))return;this.observedPeers.add(peer);this.network.peerAttempts=Math.min(10000,this.network.peerAttempts+1);
           peer.on?.('error',()=>{if(current())this.network.peerErrors=Math.min(10000,this.network.peerErrors+1);});
           const pc=peer._pc;if(!pc?.addEventListener)return;this.network.monitoredPeers=Math.min(10000,this.network.monitoredPeers+1);let connected=false,failed=false;
           const iceState=()=>{if(!current())return;const state=pc.iceConnectionState;if(!connected&&['connected','completed'].includes(state)){connected=true;this.network.iceConnected++;this._progress('ice-connected');}if(!failed&&state==='failed'){failed=true;this.network.iceFailed++;}};pc.addEventListener('iceconnectionstatechange',iceState);iceState();
           pc.addEventListener('icecandidate',event=>{if(!current())return;const type=event.candidate?.type;if(type==='host')this.network.hostCandidates=Math.min(10000,this.network.hostCandidates+1);if(type==='srflx'||type==='prflx')this.network.reflexiveCandidates=Math.min(10000,this.network.reflexiveCandidates+1);});
         });
       };
-      t.on('infoHash',()=>queueMicrotask(observe));t.on('ready',observe);t.on('warning',()=>{if(current())this.network.warnings=Math.min(10000,this.network.warnings+1);});observe();queueMicrotask(observe);
+      if(!this.watchedTorrents.has(t)){this.watchedTorrents.add(t);t.on('infoHash',()=>queueMicrotask(observe));t.on('ready',observe);t.on('warning',()=>{if(current())this.network.warnings=Math.min(10000,this.network.warnings+1);});}observe();queueMicrotask(observe);
+    }
+    _boundTrackerOffers(discovery){
+      // Tracker response intervals are untrusted scheduling hints. The pinned
+      // browser tracker otherwise permits arbitrarily rapid offer allocation.
+      for(const tracker of discovery?.tracker?._trackers||[]){
+        if(this.boundedTrackers.has(tracker)||typeof tracker.setInterval!=='function'||typeof tracker.announce!=='function')continue;
+        this.boundedTrackers.add(tracker);const setInterval=tracker.setInterval,announce=tracker.announce;
+        tracker.setInterval=function(ms){return setInterval.call(this,ms===0?0:Math.max(REANNOUNCE,Number(ms)||this.DEFAULT_ANNOUNCE_INTERVAL||REANNOUNCE));};
+        tracker.announce=function(options={}){
+          if(options.event==='stopped'||options.event==='completed')return announce.call(this,options);
+          for(const [key,peer] of Object.entries(this.peers||{})){
+            if(peer.destroyed||['closed','failed'].includes(peer._pc?.connectionState)||['closed','failed'].includes(peer._pc?.iceConnectionState)){
+              clearTimeout(peer.trackerTimeout);peer.trackerTimeout=null;delete this.peers[key];if(!peer.destroyed)peer.destroy();
+            }
+          }
+          const room=Math.max(0,12-Object.keys(this.peers||{}).length),requested=Number(options.numwant);
+          const count=Number.isFinite(requested)?Math.max(0,Math.min(4,Math.floor(requested))):4;
+          return announce.call(this,{...options,numwant:Math.min(room,count)});
+        };
+        // Apply the floor to the already-started tracker timer as well.
+        tracker.setInterval(REANNOUNCE);
+      }
     }
     _refreshDiscovery(){
-      if(this.closed||Date.now()-this.lastReannounce<REANNOUNCE)return false;const tracker=this.torrent?.discovery?.tracker;if(typeof tracker?.update!=='function')return false;this.lastReannounce=Date.now();
+      if(this.closed||Date.now()-this.lastReannounce<REANNOUNCE||this.lastTrackerReply&&Date.now()-this.lastTrackerReply<REANNOUNCE)return false;const tracker=this.torrent?.discovery?.tracker;if(typeof tracker?.update!=='function')return false;this.lastReannounce=Date.now();
       try{tracker.update({numwant:4});if(this.network)this.network.reannounces=Math.min(10000,this.network.reannounces+1);return true;}catch{if(this.network)this.network.warnings=Math.min(10000,this.network.warnings+1);return false;}
+    }
+    // Adapter for the pinned WebTorrent bundle: renew tracker sockets/offers,
+    // retaining its descriptor store and all still-healthy application wires.
+    refreshNetwork(reason='network-change') {
+      if(this.resumeBootstrapWait){this.resumeBootstrapWait();return true;}
+      if(this.closed||!this.torrent)return false;
+      if(this.resetTimer||this.resetPromise)return true;
+      const allowed=['online','visible','network-change','recovery-stalled','tracker-stale','manual'];
+      const cause=allowed.includes(reason)?reason:'network-change';
+      const delay=Math.min(60000,Math.max(200,this.nextResetAt-Date.now())+Math.floor(Math.random()*500));
+      if(this.network){this.network.resetState='scheduled';this.network.resetReason=cause;}
+      this.resetTimer=setTimeout(()=>{this.resetTimer=null;this.resetPromise=this._renewDiscovery().catch(()=>{}).finally(()=>{this.resetPromise=null;});},delay);
+      return true;
+    }
+    _retireTrackerTimers(discovery){
+      // Pinned tracker.destroy() returns early when its socket has already
+      // failed, leaving the reconnect timer installed by _onSocketClose alive.
+      // Cancel it explicitly so retired discovery wrappers cannot reopen pooled
+      // sockets and negotiate orphan peers with no WebTorrent wire listeners.
+      for(const tracker of discovery?.tracker?._trackers||[]){
+        clearTimeout(tracker.reconnectTimer);tracker.reconnectTimer=null;
+        clearInterval(tracker.interval);tracker.interval=null;tracker.reconnecting=false;
+      }
+    }
+    async _renewDiscovery() {
+      const torrent=this.torrent,discovery=torrent?.discovery,generation=this.discoveryGeneration;
+      const current=()=>!this.closed&&this.torrent===torrent&&this.discoveryGeneration===generation;
+      if(!current())return false;
+      // These internals are checked explicitly because a vendor upgrade may
+      // change them. Unsupported copies retain media and report the limitation.
+      if(torrent?.destroyed||this.client?.destroyed){
+        if(this.network){this.network.resetState='failed';this.network.resetProblem='discovery-session-ended';}this.nextResetAt=Date.now()+60000;
+        if(!this.sessionEndedWarned){this.sessionEndedWarned=true;this._fail(Error('The direct discovery session ended. Reopen your private invitation to reconnect; the saved picture and group clock remain here.'));}return false;
+      }
+      if(typeof torrent?._startDiscovery!=='function'||discovery&&!discovery.destroyed&&(typeof discovery.destroy!=='function'||!Array.isArray(discovery.tracker?._trackers))){
+        if(this.network){this.network.resetState='unsupported';this.network.resetProblem='discovery-adapter-unavailable';}
+        this.nextResetAt=Date.now()+60000;
+        if(!this.adapterWarned){this.adapterWarned=true;this._fail(Error('Automatic network discovery renewal is unavailable on this app copy. Reopen the current Same End app to reconnect.'));}
+        return false;
+      }
+      const sockets=[...new Set((discovery?.tracker?._trackers||[]).map(t=>t.socket).filter(Boolean))];
+      if(sockets.some(s=>typeof s.destroy!=='function')){if(this.network){this.network.resetState='unsupported';this.network.resetProblem='discovery-adapter-unavailable';}this.nextResetAt=Date.now()+60000;return false;}
+      this.resetFailures++;this.nextResetAt=Date.now()+Math.min(60000,10000*Math.pow(2,Math.min(3,this.resetFailures-1)));
+      if(this.network)this.network.resetState='renewing';
+      // _startDiscovery creates a new no-peers timer; retire the old one first.
+      clearInterval(torrent._noPeersIntervalId);torrent._noPeersIntervalId=null;this._retireTrackerTimers(discovery);
+      if(discovery&&!discovery.destroyed)await new Promise(resolve=>{let settled=false;const done=()=>{if(settled)return;settled=true;clearTimeout(timeout);resolve();};const timeout=setTimeout(done,3000);try{discovery.destroy(done);}catch{done();}});
+      // A tracker socket can be shared by discovery clients in this window.
+      // Retire the old pooled socket as well, otherwise a new wrapper can reuse
+      // the same half-open WebSocket and its multi-minute reconnect backoff.
+      for(const socket of sockets){if(!current())return false;if(socket.destroyed)continue;const lastReply=Math.max(this.lastTrackerReply,this.networkStarted||0);if(socket.consumers>0&&socket.connected!==false&&Date.now()-lastReply<45000)continue;await new Promise(resolve=>{let settled=false;const done=()=>{if(settled)return;settled=true;clearTimeout(timeout);resolve();};const timeout=setTimeout(done,1500);socket.once?.('close',done);try{socket.destroy();}catch{done();}if(socket.destroyed)done();});}
+      if(!current())return false;
+      if(torrent.discovery!==discovery)return false;
+      torrent.discovery=null;this.observedDiscovery=null;
+      try{torrent._startDiscovery();if(!torrent.discovery||torrent.discovery===discovery||torrent.discovery.destroyed||torrent.destroyed||this.client?.destroyed)throw Error('Discovery was not installed.');this._watchDiscovery(torrent);this.lastDiscoveryReset=Date.now();if(this.network){this.network.discoveryResets=Math.min(10000,this.network.discoveryResets+1);this.network.resetState='renewed';this.network.resetProblem=null;}this._progress('discovery-renewed');return true;}
+      catch{if(this.network){this.network.resetState='failed';this.network.resetProblem='discovery-renewal-failed';}this._fail(Error('The network changed. Same End is retrying direct discovery.'));return false;}
+    }
+    async join(magnet) {
+      await this.close();this.closed=false;const intent=++this.bootstrapGeneration;this.bootstrapRetries=0;
+      while(intent===this.bootstrapGeneration){
+        try{return await this._joinAttempt(magnet);}
+        catch(error){
+          if(intent!==this.bootstrapGeneration||!['no-direct-peer','transport-error'].includes(error.code)||error.acceptedSession)throw error;
+          this.bootstrapRetries++;
+          const delay=Math.min(60000,2000*Math.pow(2,Math.min(5,this.bootstrapRetries-1))+Math.floor(Math.random()*1000));
+          if(this.network){this.network.bootstrapRetries=this.bootstrapRetries;this.network.retryAt=Date.now()+delay;this.network.phase='retrying';}
+          this._progress('bootstrap-retrying');this.onRecovery({state:'retrying',reason:error.code,retryAt:Date.now()+delay,attempts:this.bootstrapRetries});
+          await new Promise((resolve,reject)=>{this.cancelBootstrapWait=()=>{clearTimeout(this.bootstrapTimer);this.bootstrapTimer=null;this.cancelBootstrapWait=null;this.resumeBootstrapWait=null;const e=Error('The direct connection search was cancelled.');e.code='cancelled';reject(e);};this.resumeBootstrapWait=()=>{clearTimeout(this.bootstrapTimer);this.bootstrapTimer=null;this.cancelBootstrapWait=null;this.resumeBootstrapWait=null;resolve();};this.bootstrapTimer=setTimeout(this.resumeBootstrapWait,delay);});
+          if(intent!==this.bootstrapGeneration){const e=Error('The direct connection search was cancelled.');e.code='cancelled';throw e;}
+          this.closed=false;
+        }
+      }
     }
     async publish(config){
       if(!configOK(config)) throw Error('Unsupported Same End settings.'); await this.close(); this.closed=false;
@@ -100,12 +195,12 @@ import WebTorrent from './vendor/webtorrent.min.js';
       await new Promise((resolve,reject)=>{ const timer=setTimeout(()=>reject(Error('Tracker service did not initialize in time.')),20000); const t=this.client.seed(new File([payload],'private-cast.cast',{type:'application/octet-stream'}),{announce:this.trackers,private:true,store:MemoryStore,storeCacheSlots:0,destroyStoreOnDestroy:true},t=>{this.torrent=t;clearTimeout(timer);resolve();}); this.torrent=t;this._watchDiscovery(t); t.on('error',e=>{clearTimeout(timer);reject(e);}); });
       this.network.phase='descriptor-ready';this.sessionReady=true; this._topology(); this._start(); return `${this.torrent.magnetURI}#pc=${b64(this.key)}`;
     }
-    async join(magnet){
-      await this.close();this.closed=false;const generation=++this.joinGeneration;
+    async _joinAttempt(magnet){
+      this.closed=false;const generation=++this.joinGeneration;
       if(typeof magnet!=='string'||magnet.length>8192||!/^magnet:\?/.test(magnet))throw Error('Choose a valid Same End magnet.');
       const u=new URL(magnet.replace(/%23pc(?:=|%3d)([A-Za-z0-9_-]{43})$/i,'#pc=$1')),packed=u.hash.slice(1).split('&').find(x=>x.startsWith('pc='))?.slice(3);
       if(!packed)throw Error('This magnet is missing its private cast key.');this.key=un64(decodeURIComponent(packed));
-      if(this.key.length!==32)throw Error('This magnet has an invalid private cast key.');this.hmac=await this._cryptoKey(this.key);this.role='viewer';u.hash='';this.label=String((this.getStatus()||{}).label||'Friend').slice(0,40);
+      if(this.key.length!==32)throw Error('This magnet has an invalid private cast key.');this.hmac=await this._cryptoKey(this.key);if(this.closed||generation!==this.joinGeneration){const e=Error('The direct connection search was cancelled.');e.code='cancelled';throw e;}this.role='viewer';u.hash='';this.label=String((this.getStatus()||{}).label||'Friend').slice(0,40);
       const xt=u.searchParams.get('xt');if(!/^urn:btih:[a-f\d]{40}$/i.test(xt||''))throw Error('Magnet must contain a valid BitTorrent infohash.');
       this._resetNetwork('finding-peers');const client=await this._client();
       try{await new Promise((resolve,reject)=>{
@@ -128,10 +223,10 @@ import WebTorrent from './vendor/webtorrent.min.js';
             this.sessionReady=true;this._start();finish();
           }catch{failure('descriptor-invalid','Unable to verify this private room. Ask your host for a fresh invitation.');}})();
         });this.torrent=t;this._watchDiscovery(t);t.on('error',()=>failure('transport-error','The direct picture connection stopped. Check the host and try the invitation again.'));t.on('wire',w=>this._attach(w));
-      });}catch(e){if(this.network&&this.network.phase!=='failed'){this.network.phase='failed';this.network.problem='transport-error';}await this.close();throw e;}
+      });}catch(e){if(this.network&&this.network.phase!=='failed'){this.network.phase='failed';this.network.problem='transport-error';}const accepted=!!this.config;await this._closeSession();e.acceptedSession=accepted;if(accepted&&!e.code)e.code='descriptor-invalid';throw e;}
     }
     _start(){ this._recover(); if(this.timer)clearInterval(this.timer); this.timer=setInterval(()=>{this._statusTick();},1000); this._statusTick(); this.torrent?.on('wire',w=>this._attach(w)); for(const s of this.wires.values())if(s.auth)this._assign(s); }
-    _attach(w){ if(this.closed||this.wires.has(w))return; if(this.wires.size>=12){w.destroy();return;} const state={wire:w,auth:false,remote:null,challenge:b64(rand(24)),peerId:id(),last:0}; this.wires.set(w,state);
+    _attach(w){ if(this.closed||this.wires.has(w))return; if(this.wires.size>=12){w.destroy();return;} const state={wire:w,auth:false,remote:null,challenge:b64(rand(24)),peerId:id(),last:0,createdAt:Date.now(),lastSeen:Date.now()}; this.wires.set(w,state);
       const self=this;
       function Extension(wire){this.wire=wire; this.name=EXT; this.onExtendedHandshake=()=>self._send(state,{type:'_pc_hello',challenge:state.challenge,...self._status()}); this.onMessage=buf=>{self._message(state,buf).catch(e=>self._fail(e));};}
       Extension.prototype.name=EXT;
@@ -139,30 +234,33 @@ import WebTorrent from './vendor/webtorrent.min.js';
     }
     _send(s,m){ if(!s.wire?.extended) return; const json=encoder.encode(JSON.stringify(m)); if(json.length<=4096){const b=new Uint8Array(json.length+1);b[0]=0;b.set(json,1);try{s.wire.extended(EXT,b);}catch(e){this._fail(e);}} }
     async _message(s,buf){
+      if(this.closed||!this.wires.has(s.wire))return;
       if(!buf?.length)throw Error('Invalid private cast control message.');
       const kind=buf[0], body=buf.subarray(1);
-      if(kind===1){if(s.auth&&s.adapter)s.adapter.onmessage?.({data:decoder.decode(body)});return;}
-      if(kind===2){if(s.auth&&s.adapter)s.adapter.onmessage?.({data:body.buffer.slice(body.byteOffset,body.byteOffset+body.byteLength)});return;}
+      if(kind===1){if(s.auth)s.lastSeen=Date.now();if(s.auth&&s.adapter)s.adapter.onmessage?.({data:decoder.decode(body)});return;}
+      if(kind===2){if(s.auth)s.lastSeen=Date.now();if(s.auth&&s.adapter)s.adapter.onmessage?.({data:body.buffer.slice(body.byteOffset,body.byteOffset+body.byteLength)});return;}
       if(kind!==0)throw Error('Invalid private cast frame.');
       if(body.length>4096)throw Error('Invalid private cast control message.');
       const m=JSON.parse(decoder.decode(body)); if(typeof m.type!=='string'||!m.type.startsWith('_pc_'))throw Error('Invalid private cast control message.');
       if(m.type==='_pc_hello'){
         if(typeof m.challenge!=='string'||m.challenge.length>100||!this._validStatus(m))return;
-        s.remote=m; const proof=b64(await this._mac(m.challenge+'|'+this.node)); this._send(s,{type:'_pc_auth',proof,challenge:s.challenge,...this._status()}); return;
+        s.remote=m; const proof=b64(await this._mac(m.challenge+'|'+this.node)); if(this.closed||!this.wires.has(s.wire))return;this._send(s,{type:'_pc_auth',proof,challenge:s.challenge,...this._status()}); return;
       }
       if(m.type==='_pc_auth'){
         if(!s.remote||!await crypto.subtle.verify('HMAC',this.hmac,un64(m.proof),encoder.encode(s.challenge+'|'+s.remote.nodeId)))return;
+        if(this.closed||!this.wires.has(s.wire))return;
         if(m.nodeId!==undefined&&(!this._validStatus(m)||m.nodeId!==s.remote.nodeId))return;
-        s.auth=true;this._progress('peer-authenticated'); s.remote={...s.remote,...m}; this._send(s,{type:'_pc_ready',proof:b64(await this._mac(s.remote.challenge+'|'+this.node))}); this._assign(s); return;
+        s.auth=true;s.lastSeen=Date.now();this.resetFailures=0;this._progress('peer-authenticated'); s.remote={...s.remote,...m}; this._send(s,{type:'_pc_ready',proof:b64(await this._mac(s.remote.challenge+'|'+this.node))}); this._assign(s); return;
       }
       if(m.type==='_pc_ready'){
         if(!s.remote||!await crypto.subtle.verify('HMAC',this.hmac,un64(m.proof),encoder.encode(s.challenge+'|'+s.remote.nodeId)))return;
-        s.auth=true;this._progress('peer-authenticated'); this._assign(s); return;
+        if(this.closed||!this.wires.has(s.wire))return;
+        s.auth=true;s.lastSeen=Date.now();this.resetFailures=0;this._progress('peer-authenticated'); this._assign(s); return;
       }
       if(!s.auth)return;
       if(m.type==='_pc_status'){
         if(!this._validStatus(m)||m.nodeId!==s.remote?.nodeId)return;
-        s.remote={...s.remote,...m};
+        s.lastSeen=Date.now();s.remote={...s.remote,...m};
         if(this.parent===s){
           if(s.remote.trail.includes(this.node)||s.remote.trail.length>=12){s.wire.destroy();return;}
           this._topology();
@@ -209,16 +307,21 @@ import WebTorrent from './vendor/webtorrent.min.js';
     _broadcast(){const st=this._status();for(const s of this.wires.values())if(s.auth)this._send(s,{type:'_pc_status',...st});}
     _statusTick(){
       if(this.closed)return;
-      const t=Date.now();
+      const t=Date.now(),suspended=this.lastStatusTick&&t-this.lastStatusTick>10000;this.lastStatusTick=t;
       for(const [nodeId,until] of this.failedSuppliers)if(until<=t)this.failedSuppliers.delete(nodeId);
       for(const s of this.wires.values()){
+        if(suspended)s.lastSeen=t;
+        if(s.lastSeen&&t-s.lastSeen>(s.auth?25000:15000)){s.failureReason='peer-unresponsive';s.wire.destroy();continue;}
         if(s.pendingNonce&&s.pendingUntil<t)s.pendingNonce=null;
         if(this.parentRequest===s&&s.requestUntil<t)this._releaseRequest(s);
       }
       const r=this.recovery;
       if(!this.parent&&r?.state==='searching'&&(t>=r.deadline||r.attempts>=8)&&!this.parentRequest){r.state='exhausted';this.failures++;r.failures=this.failures;const delay=Math.min(60000,5000*Math.pow(2,Math.min(4,Math.max(0,r.failures-1))));r.retryAt=t+Math.min(60000,delay+Math.floor(Math.random()*1000));this.onRecovery({...r,recoveries:this.recoveries});}
       if(!this.parent&&r?.state==='exhausted'&&r.retryAt&&t>=r.retryAt)this._recover(true,'automatic-retry');
-      this._broadcast();if(this.recovery?.state==='searching')this._refreshDiscovery();
+      this._broadcast();if(this.sessionReady||this.recovery?.state==='searching')this._refreshDiscovery();
+      const baseline=Math.max(this.lastTrackerReply,this.lastDiscoveryReset,this.networkStarted||t);
+      if(this.torrent&&this.lastReannounce>baseline&&t-baseline>45000)this.refreshNetwork('tracker-stale');
+      if(this.sessionReady&&this.role!=='source'&&!this.parent&&this.recovery&&t-this.recovery.startedAt>15000)this.refreshNetwork('recovery-stalled');
       // Prefer the original source, then the shortest authenticated rooted path.
       const candidates=[...this.wires.values()].sort((a,b)=>(a.remote?.trail?.length??99)-(b.remote?.trail?.length??99));
       for(const s of candidates)this._assign(s);
@@ -236,7 +339,8 @@ import WebTorrent from './vendor/webtorrent.min.js';
       if(!this.closed)queueMicrotask(()=>this._statusTick());
     }
     _fail(e){ if(!this.closed)this.onError(e instanceof Error?e:Error(String(e))); }
-    async close(){this.closed=true;this.joinGeneration++;const cancel=this.pendingJoin;this.pendingJoin=null;cancel?.();this.observedDiscovery=null; clearInterval(this.timer); this.timer=null; for(const s of this.wires.values())try{s.wire.destroy();}catch{} this.wires.clear();this.links.clear();this.parent=null;this.parentRequest=null;this.down=0;this.sessionReady=false;this.failedSuppliers.clear();this.failures=0;this.recovery=null;this.recoveries=0;this.everParent=false; if(this.torrent&&!this.torrent.destroyed){try{await Promise.race([new Promise(resolve=>this.torrent.destroy({destroyStore:true},resolve)),new Promise(resolve=>setTimeout(resolve,1500))]);}catch{}} if(this.client&&!this.client.destroyed){try{await Promise.race([new Promise(resolve=>this.client.destroy(resolve)),new Promise(resolve=>setTimeout(resolve,1500))]);}catch{}} this.torrent=null;this.client=null;this.config=null;this.hmac=null;this.key=null; }
+    async close(){this.bootstrapGeneration++;this.cancelBootstrapWait?.();this.bootstrapRetries=0;await this._closeSession();}
+    async _closeSession(){this._retireTrackerTimers(this.torrent?.discovery);this.discoveryGeneration++;clearTimeout(this.resetTimer);this.resetTimer=null;this.closed=true;this.joinGeneration++;const cancel=this.pendingJoin;this.pendingJoin=null;cancel?.();this.observedDiscovery=null; clearInterval(this.timer); this.timer=null; for(const s of this.wires.values())try{s.wire.destroy();}catch{} this.wires.clear();this.links.clear();this.parent=null;this.parentRequest=null;this.down=0;this.sessionReady=false;this.failedSuppliers.clear();this.failures=0;this.recovery=null;this.recoveries=0;this.everParent=false; if(this.torrent&&!this.torrent.destroyed){try{await Promise.race([new Promise(resolve=>this.torrent.destroy({destroyStore:true},resolve)),new Promise(resolve=>setTimeout(resolve,1500))]);}catch{}} if(this.client&&!this.client.destroyed){try{await Promise.race([new Promise(resolve=>this.client.destroy(resolve)),new Promise(resolve=>setTimeout(resolve,1500))]);}catch{}} this.torrent=null;this.client=null;this.config=null;this.hmac=null;this.key=null; }
   }
   window.CastMagnetTransport=MagnetTransport;
 })();

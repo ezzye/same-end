@@ -47,5 +47,14 @@ try{
  assert.equal(await retryPage.evaluate(()=>JSON.stringify(SameEndInviteCheck.report()).includes(fakeLink)||document.documentElement.outerHTML.includes(fakeLink)||JSON.stringify(localStorage).includes(fakeLink)),false,'retry link is not put in reports, DOM or local storage');
  const saved=retryPage.waitForEvent('download');await retryPage.evaluate(()=>document.querySelector('#save-app').click());const savedApp=await readFile(await (await saved).path(),'utf8');assert(!savedApp.includes('synthetic-test-key'),'saved standalone app excludes retry invitation');
  await retryPage.evaluate(()=>document.querySelector('#stop').onclick());assert.equal(await retryPage.evaluate(()=>PrivateCast.canRetryJoin()),false,'stop handler clears remembered retry invitation');await retryPage.close();assert.deepEqual(errors,[]);
+ // An autonomous bootstrap retry must still expose the ordinary Leave control.
+ const pendingPage=await context.newPage();pendingPage.on('pageerror',e=>errors.push(e.message));
+ await pendingPage.addInitScript(()=>{window.CastMagnetTransport=class{join(){return new Promise((resolve,reject)=>{this.cancel=reject})}snapshot(){return {network:{phase:'finding-peers',problem:null}}}async close(){this.cancel?.(Error('Cancelled pending connection'));}};});
+ await pendingPage.goto(origin+'/#join='+encodeURIComponent('magnet:?xt=urn:btih:'+('b'.repeat(40))+'#pc=synthetic-cancellation-key'));
+ await pendingPage.waitForFunction(()=>window.PrivateCast?.snapshot().joiningBusy);await pendingPage.waitForTimeout(1100);
+ assert.equal(await pendingPage.locator('#stop').isVisible(),true,'raw invitation search exposes Leave');
+ assert.equal(await pendingPage.locator('#stop').isEnabled(),true,'Leave remains enabled while the connection search is pending');
+ await pendingPage.locator('#stop').click();await pendingPage.waitForFunction(()=>!PrivateCast.snapshot().joiningBusy);
+ assert.equal(await pendingPage.evaluate(()=>PrivateCast.canRetryJoin()),false,'Leave cancels the retry intent');await pendingPage.close();assert.deepEqual(errors,[]);
  console.log('PASS: terminal invite failure dialog, focus/Escape, persistent panel/help reopen, retry reset, playback-blocked action, connected group wait, 45s warning, recovery on playback, host report action, and 390px width. All connection state and time are synthetic; no real invite or network connection tested.');
 }finally{await context.close();await browser.close();await new Promise(r=>server.close(r));}
