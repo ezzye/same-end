@@ -42,7 +42,7 @@
     var seconds=null;
     if(cfg&&s.clockReady&&hasTarget&&target<0&&code!=='source-stopped'&&code!=='source-unreachable'){
       code='warming-up';title='Building your match buffer';seconds=Math.ceil(-target);
-      detail='Group start in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+'. Picture readiness is checked separately.';
+      detail='Group start in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+'. We’ll show the picture as soon as it’s ready.';
     }else if(cfg&&s.sourceReachable&&hasTarget&&target>=0&&code==='finding-route'){
       title='Preparing the picture';detail='Waiting for verified picture at the group’s current moment. Your chat stays open.';
     }

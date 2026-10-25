@@ -136,6 +136,10 @@ await writeFile(path.join(out,'manage.css'),await readFile(path.join(dir,'manage
 await writeFile(path.join(out,'staff-mfa.css'),await readFile(path.join(dir,'staff-mfa.css')));
 await writeFile(path.join(out,'staff-mfa.js'),(await transform(await readFile(path.join(dir,'staff-mfa.js'),'utf8'),{loader:'js',target:browserTargets})).code);
 await writeFile(path.join(out,'manage.js'),(await transform(await readFile(path.join(dir,'manage.js'),'utf8'),{loader:'js',target:browserTargets})).code);
+// An optional static introduction, fetched only after a listener chooses Play.
+const introAudio=await readFile(path.join(dir,'assets/same-end-intro.m4a'));
+if(introAudio.byteLength>100000)throw Error('Keep the optional Same End introduction below 100 KB.');
+await writeFile(path.join(out,'same-end-intro.m4a'),introAudio);
 
 // Keep the generated offline runtime executable on the declared legacy syntax floor.
 const inlineScripts=[...html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/gi)];

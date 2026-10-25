@@ -69,3 +69,13 @@ These checks do not create AWS resources or verify a real hosted sign-in. Before
 - [API Gateway HTTP JWT authorizer](https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-jwt-authorizer.html) — signature/issuer/audience/time checks and trusted claims. This application's contract deliberately uses an ID token; Lambda must enforce `token_use: id` because the gateway does not distinguish token purpose automatically.
 
 Gateway claim-shape reference: the [AWS-owned REST migration sample](https://github.com/aws-solutions-library-samples/accelerated-intelligent-document-processing-on-aws/blob/main/docs/migration-appsync-to-rest.md) documents that gateway group claims can be flattened into a bracketed string such as `[Admin Author]` or a comma-joined form; do not assume the Lambda receives the original JWT JSON array. Normalize only trusted authorizer claims and compare complete role names.
+
+## Inline forum and welcome audio
+
+The shared fan forum is a normal page section after the two invitation steps, on both organiser and receiver layouts. Topic replies expand in place; replies may target a visible reply in the same topic. Names are self-chosen fan identities, separate from private room names. Private service feedback remains a separate inline disclosure. Staff moderation, reports, roles and audit use the existing desk.
+
+The waiting screen presents an optional short Same End introduction with a static SVG and the same text as a transcript. `assets/same-end-intro.txt` is the original script; `assets/same-end-intro.m4a` is the reusable ElevenLabs Jamie (Upbeat British Ad Voice), Eleven v4 recording, encoded as mono AAC at 24 kbit/s. The build caps the file at 100 KB. It is a separate static asset and is not in the eager service-worker shell cache. The browser assigns its URL only after Play. Hiding the guide, hiding/leaving the page, or verified picture readiness pauses and releases the introduction. It never changes match playback controls. There is no automatic restart after an interruption.
+
+Published staff text, quizzes and sponsor cards remain under the optional “Something to read while you wait” disclosure; the bounded pack is fetched only when that is opened. The server still accepts text formats only. No arbitrary uploaded audio, remote media, or tracking code is accepted by the content editor.
+
+Voice provenance: generated in the owner’s signed-in ElevenLabs account with the owner’s explicit permission, using the already selected Jamie voice and Eleven v4 model. Only the original 373-character introduction was sent. Review sample forum users and comments are separate local fixtures; they are never seeded into production by the build.

@@ -25,7 +25,7 @@ function boolean(value) { if (typeof value !== 'boolean') fail(400, 'invalid_boo
 const cond = row => row ? {attribute: 'rev', equals: row.rev} : {absent: true};
 const profile = row => ({id: row.id, name: row.name, forumMember: row.forumMember, status: row.status, blockedMemberIds: row.blockedMemberIds || [], version: row.version || 1});
 const feedbackView = row => ({id: row.id, ownerId: row.ownerId, version: row.version || 1, kind: row.kind, title: row.title, text: row.text, status: row.status, response: row.response, createdAt: row.createdAt, updatedAt: row.updatedAt, ...(row.contact && {contact: row.contact}), ...(row.diagnostics && {diagnostics: row.diagnostics})});
-const postView = row => ({id: row.id, authorId: row.authorId, authorName: row.authorName, version: row.version || 1, text: row.deleted ? '' : row.text, createdAt: row.createdAt, ...(row.threadId && {threadId: row.threadId}), ...(row.hidden && {hidden: true}), ...(row.deleted && {deleted: true})});
+const postView = row => ({id: row.id, authorId: row.authorId, authorName: row.authorName, version: row.version || 1, text: row.deleted ? '' : row.text, createdAt: row.createdAt, ...(row.threadId && {threadId: row.threadId, parentId: row.parentId || row.threadId}), ...(row.hidden && {hidden: true}), ...(row.deleted && {deleted: true})});
 const threadView = row => ({...postView(row), category: row.category, title: row.deleted ? '[Deleted]' : row.title, spoiler: row.spoiler, locked: row.locked, updatedAt: row.updatedAt, replyCount: row.replyCount});
 const summary = row => { const {text, ...view} = threadView(row); return {...view, excerpt: text.slice(0, 180)}; };
 const reportView = row => ({id: row.id, threadId: row.threadId, postId: row.postId, reporterId: row.reporterId, version: row.version || 1, reason: row.reason, status: row.status, note: row.note, createdAt: row.createdAt, updatedAt: row.updatedAt});
@@ -263,7 +263,7 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
     if (match && method === 'GET') return readThread(id(match[1]), query, false, viewer);
     match = path.match(/^\/threads\/([a-f0-9-]+)\/replies$/i);
     if (match && method === 'POST') {
-      shape(body, ['id', 'text']); const threadId = id(match[1]), replyId = id(body.id), text = string(body.text, 4000);
+      shape(body, ['id', 'text'], ['parentId']); const threadId = id(match[1]), replyId = id(body.id), text = string(body.text, 4000), parentId = body.parentId === undefined ? threadId : id(body.parentId);
       return retry(async () => {
         const existing = await get(`REPLY#${threadId}#${replyId}`);
         if (active(existing) && existing.authorId === viewer.id) return postView(existing);
@@ -271,8 +271,10 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
         const current = await thread(threadId, false, viewer);
         if (current.locked) fail(403, 'thread_locked', 'This conversation is locked.');
         if (current.replyCount >= COMMUNITY_LIMITS.replies) fail(429, 'reply_limit', 'This conversation has reached the pilot reply limit.');
-        const reply = row(`REPLY#${threadId}#${replyId}`, {id: replyId, threadId, text, authorId: viewer.id, authorName: viewer.name, hidden: false, deleted: false, createdAt: now()}), updated = row(current.sk, {...current, replyCount: current.replyCount + 1, updatedAt: now()});
-        await store.transact([put(reply), put(updated, current), {put: viewer, condition: cond(viewer)}]); return postView(reply);
+        const target = parentId === threadId ? current : await get(`REPLY#${threadId}#${parentId}`);
+        if (!active(target) || target.hidden || target.deleted || viewer.blockedMemberIds?.includes(target.authorId)) fail(404, 'post_not_found', 'This post is unavailable.');
+        const reply = row(`REPLY#${threadId}#${replyId}`, {id: replyId, threadId, parentId, text, authorId: viewer.id, authorName: viewer.name, hidden: false, deleted: false, createdAt: now()}), updated = row(current.sk, {...current, replyCount: current.replyCount + 1, updatedAt: now()});
+        await store.transact([put(reply), put(updated, current), ...(parentId === threadId ? [] : [{put: target, condition: cond(target)}]), {put: viewer, condition: cond(viewer)}]); return postView(reply);
       });
     }
     if (path === '/reports' && method === 'POST') {

@@ -129,6 +129,34 @@ test('two separate fans share threads/replies, match spoiler protection, privacy
   assert.equal((await f.request('POST', '/posts/delete', {threadId: thread.id, postId: reply.json.id, expectedVersion: 1}, a)).statusCode, 403);
 });
 
+test('inline replies persist a same-thread parent, validate visibility and preserve legacy root replies', async () => {
+  const f = fixture(); await f.enable(); const a = await f.member('Alice'), b = await f.member('Bob');
+  const t = await f.thread(a), other = await f.thread(a);
+  const rootReply = await f.request('POST', `/threads/${t.id}/replies`, {id: randomUUID(), text: 'Root-level reply'}, a); ok(rootReply);
+  assert.equal(rootReply.json.parentId, t.id);
+  const childBody = {id: randomUUID(), text: 'Inline response', parentId: rootReply.json.id};
+  const child = await f.request('POST', `/threads/${t.id}/replies`, childBody, b); ok(child);
+  assert.equal(child.json.parentId, rootReply.json.id);
+  assert.equal((await f.store.get('COMMUNITY#PILOT', `REPLY#${t.id}#${child.json.id}`)).parentId, rootReply.json.id);
+  // Recreating the API over the same persistent store preserves the parent link.
+  const reloaded = createCommunityApi({store: f.store, now: f.now, allowedOrigins: ['https://sameend.test'], adminAuth: {issuer, clientId}});
+  const read = await reloaded.handler({rawPath: `/v1/community/threads/${t.id}`, requestContext: {http: {method: 'GET'}}, headers: {origin: 'https://sameend.test', authorization: `Bearer ${b.token}`}});
+  assert.equal(JSON.parse(read.body).replies.find(x => x.id === child.json.id).parentId, rootReply.json.id);
+  assert.deepEqual((await f.request('POST', `/threads/${t.id}/replies`, {...childBody, text: 'Changed retry'}, b)).json, child.json);
+  assert.equal((await f.request('POST', `/threads/${t.id}/replies`, {id: randomUUID(), text: 'Cross-thread', parentId: other.id}, b)).statusCode, 404);
+  assert.equal((await f.request('POST', `/threads/${t.id}/replies`, {id: randomUUID(), text: 'Malformed', parentId: 'not-a-uuid'}, b)).statusCode, 400);
+  const hidden = await f.request('POST', `/threads/${t.id}/replies`, {id: randomUUID(), text: 'Will hide'}, a); ok(hidden);
+  ok(await f.admin('POST', '/moderation', {threadId: t.id, postId: hidden.json.id, action: 'hide', reason: 'Private reason', expectedVersion: 1}, {role: 'moderator'}));
+  const rejectHidden = await f.request('POST', `/threads/${t.id}/replies`, {id: randomUUID(), text: 'Hidden target', parentId: hidden.json.id}, b);
+  assert.equal(rejectHidden.statusCode, 404); assert.doesNotMatch(rejectHidden.body, /Private reason|Will hide/);
+  const deleted = await f.request('POST', `/threads/${t.id}/replies`, {id: randomUUID(), text: 'Will delete'}, a); ok(deleted);
+  ok(await f.request('POST', '/posts/delete', {threadId: t.id, postId: deleted.json.id, expectedVersion: 1}, a));
+  assert.equal((await f.request('POST', `/threads/${t.id}/replies`, {id: randomUUID(), text: 'Deleted target', parentId: deleted.json.id}, b)).statusCode, 404);
+  const blocked = await f.request('POST', '/threads/' + t.id + '/replies', {id: randomUUID(), text: 'Alice authored'}, a); ok(blocked);
+  ok(await f.request('POST', '/blocks', {memberId: a.id, blocked: true}, b));
+  assert.equal((await f.request('POST', `/threads/${t.id}/replies`, {id: randomUUID(), text: 'Blocked target', parentId: blocked.json.id}, b)).statusCode, 404);
+});
+
 test('moderation hides posts, locks threads, cannot restore author-deleted text, blocks omit authors', async () => {
   const f = fixture(); await f.enable(); const a = await f.member('Alice'), b = await f.member('Bob'), t = await f.thread(a);
   const r = await f.request('POST', `/threads/${t.id}/replies`, {id: randomUUID(), text: 'Reply to moderate'}, b); ok(r);
