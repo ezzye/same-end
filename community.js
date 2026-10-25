@@ -277,7 +277,7 @@
     return el('form', { className: 'ff-join', on: { submit: e => { e.preventDefault(); joinForum(name.value, code.value, agree.checked); } } }, [
       el('strong', { className: 'ff-join-title', text: 'Join the conversation' }),
       el('div', { className: 'ff-join-grid' }, [field('Display name', name), field('Pilot code', code)]),
-      el('label', { className: 'ff-check' }, [agree, ' ' + RULES]),
+      el('label', { className: 'ff-check' }, [agree, el('span', { text: RULES })]),
       el('div', { className: 'ff-actions' }, [el('button', { type: 'submit', className: 'ff-btn ff-primary', text: 'Join and start posting' }), button('Not now', () => { state.joining = false; render(); }, 'ff-btn ff-ghost')]),
     ]);
   }
@@ -336,7 +336,7 @@
     const text = el('textarea', { id: 'ff-new-text', 'data-draft': 'new-text', className: 'ff-grow', rows: '3', maxlength: '4000', required: true, placeholder: 'What do you want to talk about?', 'aria-label': 'Message', on: { input: e => grow(e.target) } });
     text.value = state.drafts.get('new-text') || '';
     let category = state.ui.category === 'all' ? 'general' : state.ui.category;
-    const spoiler = el('input', { type: 'checkbox' }), spoilerRow = el('label', { className: 'ff-check', hidden: category === 'match' }, [spoiler, ' Contains match spoilers']);
+    const spoiler = el('input', { type: 'checkbox' }), spoilerRow = el('label', { className: 'ff-check', hidden: category === 'match' }, [spoiler, el('span', { text: 'Contains match spoilers' })]);
     const topic = el('div', { className: 'ff-chips ff-topic', role: 'radiogroup', 'aria-label': 'Topic' });
     const drawTopic = () => replace(topic, ...CATEGORIES.map(c => button(c.label, () => { category = c.id; drawTopic(); spoilerRow.hidden = c.id === 'match'; }, 'ff-chip ff-chip-' + c.id, { role: 'radio', 'aria-checked': String(category === c.id) })));
     drawTopic();
