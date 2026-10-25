@@ -344,7 +344,7 @@
     return el('form', { className: 'ff-compose', on: { submit: e => {
       e.preventDefault(); if (state.busy) return; postId = postId || uuid(); state.busy = true; status('Posting…');
       request('/threads', 'POST', { id: postId, category, title: title.value.trim(), text: text.value.trim(), spoiler: category === 'match' || spoiler.checked }, true).then(t => {
-        state.drafts.delete('new-title'); state.drafts.delete('new-text'); state.composing = false; status('Your discussion is live.');
+        title.value = ''; text.value = ''; state.drafts.delete('new-title'); state.drafts.delete('new-text'); state.composing = false; status('Your discussion is live.');
         if (state.ui.category !== 'all' && state.ui.category !== category) state.ui.category = 'all';
         state.ui.sort = 'new'; saveUI(); state.revealed.add(t.id);
         return refreshList(true).then(() => openThread(t.id, true));
@@ -426,7 +426,7 @@
     return el('form', { className: 'ff-reply' + (parent ? ' ff-reply-nested' : '') + (box.value ? ' ff-active' : ''), on: { submit: e => {
       e.preventDefault(); const text = box.value.trim(); if (!text || state.busy) return; replyId = replyId || uuid(); state.busy = true; status('Posting…');
       request('/threads/' + encodeURIComponent(threadId) + '/replies', 'POST', { id: replyId, text, ...(parent && { parentId: parent.id }) }, true).then(reply => {
-        state.drafts.delete(key); state.replyTo = null; status('');
+        box.value = ''; state.drafts.delete(key); state.replyTo = null; status('');
         const t = state.thread;
         if (t && t.data) {
           t.data.replies = t.data.replies.filter(x => x.id !== reply.id).concat([{ ...reply, score: 0, myVote: 0 }]);
@@ -437,7 +437,7 @@
       }).catch(e2 => status(e2.message + ' Your reply is still here.', true)).finally(() => { state.busy = false; });
     } } }, [
       parent ? null : avatar(state.me && state.me.name, true), box,
-      el('div', { className: 'ff-reply-actions' }, [button('Cancel', () => { state.replyTo = null; state.drafts.delete(key); render(); }, 'ff-btn ff-ghost'), el('button', { type: 'submit', className: 'ff-btn ff-primary', text: parent ? 'Reply' : 'Comment' })]),
+      el('div', { className: 'ff-reply-actions' }, [button('Cancel', () => { box.value = ''; state.replyTo = null; state.drafts.delete(key); render(); }, 'ff-btn ff-ghost'), el('button', { type: 'submit', className: 'ff-btn ff-primary', text: parent ? 'Reply' : 'Comment' })]),
     ]);
   }
   function grow(n) { n.style.height = 'auto'; n.style.height = Math.min(n.scrollHeight + 2, 260) + 'px'; }
