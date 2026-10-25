@@ -11,13 +11,12 @@ import assert from 'node:assert/strict';
 import https from 'node:https';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
-import { execFileSync } from 'node:child_process';
-import { readFile, writeFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath,pathToFileURL } from 'node:url';
 import { createApi } from '../backend/api.mjs';
 import { MemoryStore } from '../backend/store.mjs';
+import { createLocalTestTLS } from './helpers/local-test-tls.mjs';
 
 const runtimeInput=process.env.SAMEEND_PLAYWRIGHT||(process.env.HOME||process.env.USERPROFILE)+'/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs';
 const runtimeURL=/^file:/i.test(runtimeInput)?new URL(runtimeInput):pathToFileURL(runtimeInput),runtimePath=fileURLToPath(runtimeURL);
@@ -36,12 +35,11 @@ for (const id of ['magnet-module', 'magnet-vendor']) {
   assert.doesNotThrow(() => new Function(asset[1]), 'Built deferred asset parses: ' + id);
 }
 const publicBase = JSON.parse(await readFile(new URL('public-config.json', root), 'utf8')).apiBase;
-const certDir = await mkdtemp(join(tmpdir(), 'sameend-hls-room-'));
-execFileSync(process.env.OPENSSL||'openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1', '-keyout', join(certDir, 'key.pem'), '-out', join(certDir, 'cert.pem'), '-subj', '/CN=localhost'], { stdio: 'ignore' });
+const localTLS = createLocalTestTLS();
 let origin, servedHTML, api;
 const apiBodies = [];
 const requests = [], mediaAttempts = [], externalRequests = [], trackerErrors = [];
-const server = https.createServer({ key: await readFile(join(certDir, 'key.pem')), cert: await readFile(join(certDir, 'cert.pem')) }, async (req, res) => {
+const server = https.createServer(localTLS, async (req, res) => {
   try {
     const url = new URL(req.url, origin); requests.push(url.pathname);
     if (url.pathname.startsWith('/api/')) {
@@ -230,4 +228,4 @@ async function run(){
 }
 try{await Promise.race([run(),new Promise((_,reject)=>{const timer=setTimeout(()=>reject(Error('Automatic reconnection acceptance exceeded15-minute bound')),900000);timer.unref();})]);assert.deepEqual(pageErrors,[]);assert.deepEqual(mediaAttempts,[]);assert.deepEqual(externalRequests,[]);}
 catch(error){report.pass=false;report.error=sanitize(error.stack||error.message);console.error(report.error);process.exitCode=1;await record('failure').catch(()=>{});}
-finally{report.completedAt=new Date().toISOString();report.pageErrors=pageErrors;report.trackerErrors=trackerErrors;report.httpMediaAttempts=mediaAttempts;report.externalRequestCount=externalRequests.length;report.backend={apiBodies,cleartextMediaBodies:apiBodies.filter(b=>b.cleartextMedia).length};await writeFile(new URL('result.json',output),JSON.stringify(report,null,2));console.log(JSON.stringify({pass:report.pass,error:report.error,buildSHA256:report.buildSHA256,viewerRecoveryMs:report.viewerRecoveryMs}));await Promise.all(contexts.map(c=>c.close().catch(()=>{})));await browser.close();for(const socket of tracker.clients)socket.terminate();await new Promise(r=>tracker.close(r));await new Promise(r=>server.close(r));await rm(certDir,{recursive:true,force:true});}
+finally{report.completedAt=new Date().toISOString();report.pageErrors=pageErrors;report.trackerErrors=trackerErrors;report.httpMediaAttempts=mediaAttempts;report.externalRequestCount=externalRequests.length;report.backend={apiBodies,cleartextMediaBodies:apiBodies.filter(b=>b.cleartextMedia).length};await writeFile(new URL('result.json',output),JSON.stringify(report,null,2));console.log(JSON.stringify({pass:report.pass,error:report.error,buildSHA256:report.buildSHA256,viewerRecoveryMs:report.viewerRecoveryMs}));await Promise.all(contexts.map(c=>c.close().catch(()=>{})));await browser.close();for(const socket of tracker.clients)socket.terminate();await new Promise(r=>tracker.close(r));await new Promise(r=>server.close(r));}
