@@ -3,9 +3,11 @@ import {Conflict} from './store.mjs';
 
 // Deliberately finite pilot capacity. Lifetime counters fail closed even if TTL
 // removes data before an operator reviews capacity; they never create unlimited partitions.
-export const COMMUNITY_LIMITS = Object.freeze({requestBytes: 16384, identities: 1000, threads: 200, replies: 100, feedback: 1000, feedbackPerFan: 30, reports: 500, content: 30, audit: 1000, blocks: 100, page: 20, packBytes: 50000});
+export const COMMUNITY_LIMITS = Object.freeze({requestBytes: 16384, identities: 1000, threads: 1000, replies: 500, votes: 50000, feedback: 1000, feedbackPerFan: 30, reports: 500, content: 30, audit: 1000, blocks: 100, page: 20, packBytes: 50000});
 const PK = 'COMMUNITY#PILOT', DAY = 86400000, RETENTION = 365 * DAY;
 const HASH = /^[a-f0-9]{64}$/, UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// Replies nest Reddit-style. Deeper replies attach to the deepest allowed parent and name who they answer.
+const MAX_DEPTH = 4, SORTS = ['hot', 'new', 'top'];
 const CATEGORIES = [{id: 'general', label: 'General'}, {id: 'club', label: 'Club'}, {id: 'match', label: 'Match'}, {id: 'ideas', label: 'Ideas'}];
 const digest = value => createHash('sha256').update(value).digest('hex');
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -25,7 +27,9 @@ function boolean(value) { if (typeof value !== 'boolean') fail(400, 'invalid_boo
 const cond = row => row ? {attribute: 'rev', equals: row.rev} : {absent: true};
 const profile = row => ({id: row.id, name: row.name, forumMember: row.forumMember, status: row.status, blockedMemberIds: row.blockedMemberIds || [], version: row.version || 1});
 const feedbackView = row => ({id: row.id, ownerId: row.ownerId, version: row.version || 1, kind: row.kind, title: row.title, text: row.text, status: row.status, response: row.response, createdAt: row.createdAt, updatedAt: row.updatedAt, ...(row.contact && {contact: row.contact}), ...(row.diagnostics && {diagnostics: row.diagnostics})});
-const postView = row => ({id: row.id, authorId: row.authorId, authorName: row.authorName, version: row.version || 1, text: row.deleted ? '' : row.text, createdAt: row.createdAt, ...(row.threadId && {threadId: row.threadId}), ...(row.hidden && {hidden: true}), ...(row.deleted && {deleted: true})});
+const postView = row => ({id: row.id, authorId: row.authorId, authorName: row.authorName, version: row.version || 1, text: row.deleted ? '' : row.text, createdAt: row.createdAt, ...(row.threadId && {threadId: row.threadId, parentId: row.parentId || null, depth: row.depth || 1, ...(row.replyToName && {replyToName: row.replyToName})}), ...(row.hidden && {hidden: true}), ...(row.deleted && {deleted: true})});
+// A removed reply is kept only as an empty placeholder when other replies hang from it.
+const placeholder = (row, reason) => ({...postView(row), text: '', authorId: null, authorName: '', [reason]: true});
 const threadView = row => ({...postView(row), category: row.category, title: row.deleted ? '[Deleted]' : row.title, spoiler: row.spoiler, locked: row.locked, updatedAt: row.updatedAt, replyCount: row.replyCount});
 const summary = row => { const {text, ...view} = threadView(row); return {...view, excerpt: text.slice(0, 180)}; };
 const reportView = row => ({id: row.id, threadId: row.threadId, postId: row.postId, reporterId: row.reporterId, version: row.version || 1, reason: row.reason, status: row.status, note: row.note, createdAt: row.createdAt, updatedAt: row.updatedAt});
@@ -169,15 +173,55 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
     if (!active(post) || (!admin && (post.hidden || post.deleted || viewer.blockedMemberIds?.includes(post.authorId)))) fail(404, 'post_not_found', 'This post is unavailable.');
     return {parent, post};
   }
+  async function scores(prefix, maximum) { return new Map((await collection(prefix, maximum)).map(x => [x.postId, x.score || 0])); }
+  async function myVotes(viewer, prefix = '') {
+    if (!viewer || viewer.guest) return new Map();
+    return new Map((await collection(`VOTE#${viewer.id}#${prefix}`, COMMUNITY_LIMITS.votes)).filter(x => x.value === 1).map(x => [x.postId, 1]));
+  }
+  function hot(row, score) {
+    const hours = Math.max(0, now() - row.createdAt) / 3600000;
+    return (score + (row.replyCount || 0) * 0.5 + 1) / Math.pow(hours + 2, 1.5);
+  }
   async function listThreads(query, admin, viewer) {
-    const category = query.category === undefined ? undefined : one(query.category, CATEGORIES.map(x => x.id));
+    const category = query.category === undefined || query.category === 'all' ? undefined : one(query.category, CATEGORIES.map(x => x.id));
     const rows = (await collection('THREAD#', COMMUNITY_LIMITS.threads)).filter(x => (!category || x.category === category) && (admin || !x.hidden && !x.deleted && !viewer.blockedMemberIds?.includes(x.authorId)));
-    return page(rows, query.cursor, `${admin ? 'admin' : viewer.id}:threads:${category || '*'}`, summary);
+    const scope = `${admin ? 'admin' : viewer.id}:threads:${category || '*'}`;
+    if (query.sort === undefined) return page(rows, query.cursor, scope, summary);
+    const sort = one(query.sort, SORTS), score = await scores('TSCORE#', COMMUNITY_LIMITS.threads), votes = await myVotes(viewer);
+    const ranked = rows.map(x => ({row: x, score: score.get(x.id) || 0}));
+    const order = {
+      new: (a, b) => b.row.createdAt - a.row.createdAt,
+      top: (a, b) => b.score - a.score || (b.row.replyCount || 0) - (a.row.replyCount || 0) || b.row.createdAt - a.row.createdAt,
+      hot: (a, b) => hot(b.row, b.score) - hot(a.row, a.score) || b.row.createdAt - a.row.createdAt,
+    }[sort];
+    ranked.sort(order);
+    let offset = 0;
+    const sortedScope = `${scope}:${sort}`;
+    if (query.cursor) {
+      if (typeof query.cursor !== 'string' || query.cursor.length > 400 || !/^[A-Za-z0-9_-]+$/.test(query.cursor)) fail(400, 'invalid_cursor', 'Refresh this list.');
+      try { const decoded = JSON.parse(Buffer.from(query.cursor, 'base64url').toString()); if (decoded.scope !== sortedScope || !Number.isSafeInteger(decoded.offset) || decoded.offset < 0) throw new Error(); offset = decoded.offset; } catch { fail(400, 'invalid_cursor', 'Refresh this list.'); }
+    }
+    const selected = ranked.slice(offset, offset + COMMUNITY_LIMITS.page), next = offset + selected.length;
+    return {
+      items: selected.map(x => ({...summary(x.row), score: x.score, myVote: votes.get(x.row.id) || 0})),
+      cursor: next < ranked.length ? Buffer.from(JSON.stringify({scope: sortedScope, offset: next})).toString('base64url') : null,
+      total: ranked.length, latest: rows.reduce((n, x) => Math.max(n, x.updatedAt || x.createdAt || 0), 0),
+    };
   }
   async function readThread(threadId, query, admin, viewer) {
-    const current = await thread(threadId, admin, viewer), rows = (await collection(`REPLY#${threadId}#`, COMMUNITY_LIMITS.replies)).filter(x => admin || !x.hidden && !x.deleted && !viewer.blockedMemberIds?.includes(x.authorId));
-    const result = page(rows, query.cursor, `${admin ? 'admin' : viewer.id}:replies:${threadId}`, postView);
-    return {thread: threadView(current), replies: result.items, cursor: result.cursor};
+    const current = await thread(threadId, admin, viewer), all = await collection(`REPLY#${threadId}#`, COMMUNITY_LIMITS.replies);
+    if (admin) {
+      const result = page(all, query.cursor, `admin:replies:${threadId}`, postView);
+      return {thread: threadView(current), replies: result.items, cursor: result.cursor};
+    }
+    // Members and guests receive the whole bounded conversation in time order, as a tree.
+    const removed = x => x.hidden ? 'hidden' : x.deleted ? 'deleted' : viewer.blockedMemberIds?.includes(x.authorId) ? 'blocked' : null;
+    const children = new Map(); for (const x of all) { const key = x.parentId || threadId; if (!children.has(key)) children.set(key, []); children.get(key).push(x); }
+    const keep = new Map(), visit = x => { if (keep.has(x.id)) return keep.get(x.id); keep.set(x.id, false); const value = !removed(x) || (children.get(x.id) || []).some(visit); keep.set(x.id, value); return value; };
+    const score = await scores(`RSCORE#${threadId}#`, COMMUNITY_LIMITS.replies), votes = await myVotes(viewer, `${threadId}#`), threadScore = (await get(`TSCORE#${threadId}`))?.score || 0;
+    const replies = all.filter(visit).sort((a, b) => a.createdAt - b.createdAt || (a.sk < b.sk ? -1 : 1))
+      .map(x => ({...(removed(x) ? placeholder(x, removed(x)) : postView(x)), score: score.get(x.id) || 0, myVote: votes.get(x.id) || 0}));
+    return {thread: {...threadView(current), score: threadScore, myVote: votes.get(threadId) || 0}, replies, cursor: null};
   }
   async function route(method, path, query, body, token, event, ipSlot) {
     if (path === '/config' && method === 'GET') {
@@ -205,9 +249,17 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
       });
     }
     if (path.startsWith('/admin/')) return adminRoute(method, path, query, body, token, event);
+    // Anyone may read the forum while it is open. A saved fan identity adds votes and blocks.
+    if (method === 'GET' && (path === '/threads' || /^\/threads\/[a-f0-9-]+$/i.test(path))) {
+      if (!safeSettings(await settings()).forumEnabled) fail(403, 'forum_closed', 'The fan forum is not open yet.');
+      const reader = token ? await fan(token) : {id: 'guest', guest: true, blockedMemberIds: []};
+      return path === '/threads' ? listThreads(query, false, reader) : readThread(id(path.slice(9)), query, false, reader);
+    }
     const viewer = await fan(token, !['/me', '/feedback', '/membership'].includes(path));
     if (method !== 'GET') {
-      await rate('write-global', 1000, 60000); await rate(`write-ip-${ipSlot}`, 50, 60000); await rate(`fan-${viewer.id}`, 20, 60000);
+      await rate('write-global', 1000, 60000); await rate(`write-ip-${ipSlot}`, 50, 60000);
+      // Votes are small, frequent toggles; they have their own per-fan allowance.
+      if (path === '/votes') await rate(`vote-${viewer.id}`, 120, 60000); else await rate(`fan-${viewer.id}`, 20, 60000);
     }
     if (path === '/me' && method === 'GET') return profile(viewer);
     if (path === '/membership' && method === 'POST') {
@@ -245,7 +297,6 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
         await store.transact([put(feedback), put(row(`FEEDBACKID#${recordId}`, {feedbackSk: sk})), put(updated, current), cap('feedback', COMMUNITY_LIMITS.feedback)]); return feedbackView(feedback);
       });
     }
-    if (path === '/threads' && method === 'GET') return listThreads(query, false, viewer);
     if (path === '/threads' && method === 'POST') {
       shape(body, ['id', 'category', 'title', 'text', 'spoiler']); const threadId = id(body.id), category = one(body.category, CATEGORIES.map(x => x.id));
       const value = {id: threadId, category, title: string(body.title, 120), text: string(body.text, 4000), spoiler: category === 'match' || boolean(body.spoiler)};
@@ -260,10 +311,9 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
       });
     }
     let match = path.match(/^\/threads\/([a-f0-9-]+)$/i);
-    if (match && method === 'GET') return readThread(id(match[1]), query, false, viewer);
     match = path.match(/^\/threads\/([a-f0-9-]+)\/replies$/i);
     if (match && method === 'POST') {
-      shape(body, ['id', 'text']); const threadId = id(match[1]), replyId = id(body.id), text = string(body.text, 4000);
+      shape(body, ['id', 'text'], ['parentId']); const threadId = id(match[1]), replyId = id(body.id), text = string(body.text, 4000), parentInput = body.parentId === undefined || body.parentId === null ? threadId : id(body.parentId);
       return retry(async () => {
         const existing = await get(`REPLY#${threadId}#${replyId}`);
         if (active(existing) && existing.authorId === viewer.id) return postView(existing);
@@ -271,8 +321,31 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
         const current = await thread(threadId, false, viewer);
         if (current.locked) fail(403, 'thread_locked', 'This conversation is locked.');
         if (current.replyCount >= COMMUNITY_LIMITS.replies) fail(429, 'reply_limit', 'This conversation has reached the pilot reply limit.');
-        const reply = row(`REPLY#${threadId}#${replyId}`, {id: replyId, threadId, text, authorId: viewer.id, authorName: viewer.name, hidden: false, deleted: false, createdAt: now()}), updated = row(current.sk, {...current, replyCount: current.replyCount + 1, updatedAt: now()});
+        let parentId = null, depth = 1, replyToName;
+        if (parentInput !== threadId) {
+          const parent = await get(`REPLY#${threadId}#${parentInput}`);
+          if (!active(parent) || parent.hidden || parent.deleted) fail(404, 'post_not_found', 'That comment is no longer available.');
+          const parentDepth = parent.depth || 1;
+          if (parentDepth >= MAX_DEPTH) { parentId = parent.parentId || null; depth = MAX_DEPTH; replyToName = parent.authorName; }
+          else { parentId = parent.id; depth = parentDepth + 1; }
+        }
+        const reply = row(`REPLY#${threadId}#${replyId}`, {id: replyId, threadId, parentId, depth, ...(replyToName && {replyToName}), text, authorId: viewer.id, authorName: viewer.name, hidden: false, deleted: false, createdAt: now()}), updated = row(current.sk, {...current, replyCount: current.replyCount + 1, updatedAt: now()});
         await store.transact([put(reply), put(updated, current), {put: viewer, condition: cond(viewer)}]); return postView(reply);
+      });
+    }
+    if (path === '/votes' && method === 'POST') {
+      shape(body, ['threadId', 'postId', 'value']); const threadId = id(body.threadId), postId = id(body.postId);
+      if (body.value !== 0 && body.value !== 1) fail(400, 'invalid_vote', 'Choose like or remove your like.');
+      return retry(async () => {
+        await targetPost(threadId, postId, false, viewer);
+        const voteSk = `VOTE#${viewer.id}#${threadId}#${postId}`, scoreSk = postId === threadId ? `TSCORE#${threadId}` : `RSCORE#${threadId}#${postId}`;
+        const vote = await get(voteSk), tally = await get(scoreSk), before = active(vote) ? vote.value : 0, score = tally?.score || 0;
+        if (before === body.value) return {threadId, postId, score, myVote: before};
+        if (!vote) await limited('votes', COMMUNITY_LIMITS.votes);
+        const nextScore = Math.max(0, score + body.value - before);
+        // Scores live beside posts, so liking never changes a post version used by author or moderator edits.
+        await store.transact([put(row(scoreSk, {postId, threadId, score: nextScore}), tally), put(row(voteSk, {postId, threadId, value: body.value}), vote), ...(vote ? [] : [cap('votes', COMMUNITY_LIMITS.votes)])]);
+        return {threadId, postId, score: nextScore, myVote: body.value};
       });
     }
     if (path === '/reports' && method === 'POST') {
