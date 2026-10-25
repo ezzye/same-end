@@ -41,11 +41,22 @@ test('historical catchup, stale arrivals, unclocked or unhealthy routes cannot s
   ]) { const p = policy(); p.update(input(change)); assert.equal(p.state, 'observing'); assert.equal(p.commitCount, 0); }
 });
 
-test('sustained .95x delivery with slow growing age is vetoed despite old estimator candidate', () => {
-  const p = policy(); p.update(input({ measurement: measurement({ deliveryToStreamRatio: .95, sourceAgeTrendSecondsPerSecond: .05 }) }));
+test('sustained .95x steady delivery with growing age is vetoed once growth exceeds arrival variance', () => {
+  const p = policy(); p.update(input({ measurement: measurement({ observationSeconds: 50, deliveryToStreamRatio: .95, sourceAgeTrendSecondsPerSecond: .05, gapStddevSeconds: .03 }) }));
   assert.equal(p.state, 'fallback'); assert.equal(p.reason, 'sustained-delivery-deficit'); assert.equal(p.selectedDelaySeconds, 300);
   const quantised = policy(); quantised.update(input({ measurement: measurement({ deliveryToStreamRatio: .956, sourceAgeTrendSecondsPerSecond: 0 }) }));
   assert.equal(quantised.state, 'preparing', 'source-paced byte quantisation alone does not establish sustained deficit');
+});
+test('sustainable native bursts do not turn endpoint phase noise into a sustained deficit', () => {
+ const p=policy();
+ const burst=measurement({observationSeconds:59.747,deliveryToStreamRatio:.97335,sourceAgeTrendSecondsPerSecond:.02717,gapStddevSeconds:1.897,gapP95Seconds:4.644,recordCount:30});
+ p.update(input({measurement:burst}));assert.equal(p.state,'preparing');assert.equal(p.selectedDelaySeconds,300);
+ p.update(input({nowMs:101000,sourceNowMs:1301000,measurement:burst}));assert.equal(p.state,'preparing');assert(p.commit(facts(),1301000,101000));
+});
+test('early near-stream noise needs more evidence while explicit estimator throughput failure remains decisive', () => {
+ const p=policy();p.update(input({sourceNowMs:1030000,measurement:measurement({deliveryToStreamRatio:.95,sourceAgeTrendSecondsPerSecond:.05,gapStddevSeconds:.03})}));assert.equal(p.state,'observing');
+ p.update(input({nowMs:130000,sourceNowMs:1060000,measurement:measurement({observationSeconds:50,deliveryToStreamRatio:.95,sourceAgeTrendSecondsPerSecond:.05,gapStddevSeconds:.03})}));assert.equal(p.reason,'sustained-delivery-deficit');
+ const explicit=policy();explicit.update(input({measurement:measurement({deliveryToStreamRatio:.65,sourceAgeTrendSecondsPerSecond:.01,gapStddevSeconds:3,recommendation:{status:'insufficient-throughput'}})}));assert.equal(explicit.reason,'sustained-delivery-deficit');
 });
 
 test('unsupported reserve, excessive group lag and already-started playback use conservative fallback', () => {

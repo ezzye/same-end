@@ -10,7 +10,7 @@
  */
 import assert from 'node:assert/strict';
 import https from 'node:https';
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname, resolve, extname } from 'node:path';
@@ -39,7 +39,8 @@ const { wsServer: WebSocketServer } = require(join(dirname(dirname(fileURLToPath
 const output = new URL(`privatework/initial-delay-platform/${label}/`, root);
 await mkdir(output, { recursive: true });
 const originalHTML = await readFile(new URL('dist/watch.html', root), 'utf8');
-const localTLS = createLocalTestTLS();
+await writeFile(new URL('app-under-test.html',output),originalHTML);
+const localTLS = createLocalTestTLS(), runNonce=randomBytes(16).toString('hex');
 await writeFile(new URL('owned-test-root-cert.pem',output),localTLS.cert);
 const publicBase = JSON.parse(await readFile(new URL('public-config.json', root), 'utf8')).apiBase;
 const git = (...args) => spawnSync('git', args, { cwd: rootPath, encoding: 'utf8' }).stdout?.trim() || null;
@@ -48,7 +49,7 @@ const report = { schema: 1, startedAt: new Date().toISOString(), pass: false,
   environment: { hostPlatform: process.platform, device, profile, browserChannel: process.env.BROWSER_CHANNEL || 'chrome',
     realWebRTC: true, realSignedHLS: true, generatedChangingChirps: true, applicationReceiveCallbackPacing: true,
     physicalCapacityMeasurement: false, physicalDeviceAcceptance: false, autoplayOverride: false,
-    testChromeSpeakerOutputMuted: true, nativeAudioAnalyserUsed: false,
+    testChromeSpeakerOutputMuted: true, nativeAudioAnalyserUsed: false, stalePageMetricsRejected:true,
     belowStreamScope: deficit ? 'bounded deficit/admission observation; fallback playback recorded separately; no perpetual smoothness claim' : null },
   bounds: { playbackSeconds, startupSeconds, deficitSeconds }, stages: [], samples: [], errors: [],
   tracker: { connections: 0, offers: 0, answers: 0, announces: 0 }, mediaHTTPAttempts: [], apiCleartextMedia: false };
@@ -71,10 +72,13 @@ const server = https.createServer(localTLS, async (req, res) => {
   try {
     const url = new URL(req.url, origin || `https://127.0.0.1:${port}`);
     if (url.pathname === '/metrics' && req.method === 'POST') {
+      if(url.searchParams.get('run')!==runNonce)return json(res,{expired:true},410);
       const value = JSON.parse(await body(req)); if (!['viewer','source','downstream'].includes(url.searchParams.get('role'))) return json(res, {}, 400);
       const role=url.searchParams.get('role'),previous=latest.get(role);latest.set(role,value);if(role==='viewer'&&JSON.stringify([previous?.initialDelay?.state,previous?.initialDelay?.reason])!==JSON.stringify([value.initialDelay?.state,value.initialDelay?.reason])){report.initialTransitions??=[];report.initialTransitions.push({at:Date.now(),elapsed:value.elapsed,initialDelay:value.initialDelay,measurement:value.clientDelivery,clockReady:value.clockReady,visibility:value.visibility,received:value.received});}return json(res,{ok:true});
     }
+    if (url.pathname === '/commands' && url.searchParams.get('run')!==runNonce)return json(res,{expired:true},410);
     if (url.pathname === '/commands') return json(res, commands.filter(c => c.role === (url.searchParams.get('role') || 'viewer') && c.id > Number(url.searchParams.get('after') || 0)));
+    if(url.pathname==='/operator'&&req.method==='POST'){const data=JSON.parse(await body(req));if(data.type!=='audio-mute'||typeof data.muted!=='boolean')return json(res,{},400);commands.push({id:commands.length+1,role:'viewer',type:'audio-mute',muted:data.muted});return json(res,{ok:true});}
     if (url.pathname === '/status') return json(res, { device, profile, latest: Object.fromEntries(latest), stages: report.stages, pass: report.pass });
     if (url.pathname.startsWith('/api/')) {
       const raw = await body(req); if (/magnet:|video\/mp4|segment-\d|#EXTM3U/.test(raw)) report.apiCleartextMedia = true;
@@ -85,7 +89,7 @@ const server = https.createServer(localTLS, async (req, res) => {
       report.mediaHTTPAttempts.push({ path: url.pathname, at: Date.now() }); return res.writeHead(403).end('Media must arrive from authenticated peers and the local native bridge.');
     }
     if (['/','/watch.html','/viewer'].includes(url.pathname)) {
-      const options = JSON.stringify({ device, profile, forceNative }).replace(/</g,'\\u003c');
+      const options = JSON.stringify({ device, profile, forceNative, runNonce }).replace(/</g,'\\u003c');
       const redirect = url.pathname === '/viewer' && invitation ? `if(!location.hash)location.hash=${JSON.stringify(new URL(invitation).hash)};` : '';
       const probe = `<script>${redirect}(${initialDelayPageProbe.toString()})(${options});</script>`;
       const html = originalHTML.replaceAll(publicBase, '/api').replace(/wss:\/\/tracker\.[A-Za-z0-9.-]+(?:\/[A-Za-z0-9_/-]*)?/g, origin.replace('https:','wss:') + '/tracker').replace('<head>','<head>' + probe);

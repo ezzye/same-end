@@ -33,10 +33,15 @@
     if (elapsed >= this.roomDelaySeconds && this.sharedStartDueAtMs === null) this.sharedStartDueAtMs = input.nowMs;
     if (!preparing && this.sharedStartDueAtMs !== null && input.nowMs - this.sharedStartDueAtMs >= MAX_OBSERVATION_MS) { this.fallback('observation-timeout'); return; }
     if (!input.healthy) { if (preparing) this.fallback('preparation-route-interrupted'); return; }
+    // A burst's endpoint phase can imitate a small positive age slope. Require
+    // accumulated age growth to exceed an arrival-variance allowance before
+    // inferring a persistent deficit from the near-stream rate alone.
+    var ageGrowth = m && finite(m.sourceAgeTrendSecondsPerSecond) ? m.sourceAgeTrendSecondsPerSecond * Math.min(60, m.observationSeconds) : 0;
+    var ageNoise = 2 + 2 * (m && finite(m.gapStddevSeconds) ? Math.max(0, m.gapStddevSeconds) : 0);
     if (m && m.observationSeconds >= 20 &&
         (r && r.status === 'insufficient-throughput' ||
          finite(m.deliveryToStreamRatio) && m.deliveryToStreamRatio < .99 &&
-         finite(m.sourceAgeTrendSecondsPerSecond) && m.sourceAgeTrendSecondsPerSecond > .025)) {
+         ageGrowth > ageNoise)) {
       this.fallback('sustained-delivery-deficit'); return;
     }
     if (preparing) {

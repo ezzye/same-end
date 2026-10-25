@@ -177,14 +177,15 @@ export function initialDelayPageProbe(options) {
     }
     setInterval(async () => {
       const state = snapshot(); if (!state) return;
-      try { await fetch('/metrics?role=' + role, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(state), cache: 'no-store' }); } catch {}
+      try { await fetch('/metrics?role=' + role+'&run='+options.runNonce, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(state), cache: 'no-store' }); } catch {}
     }, 500);
     if (!isSource) setInterval(async () => {
       try {
-        const commands = await (await fetch('/commands?after=' + commandId + '&role=' + role, { cache: 'no-store' })).json();
+        const commands = await (await fetch('/commands?after=' + commandId + '&role=' + role+'&run='+options.runNonce, { cache: 'no-store' })).json();
         for (const c of commands) {
           commandId = Math.max(commandId, c.id);
           if (c.type === 'chat') { const input = document.querySelector('#club-chat-input'); input.value = c.text; input.dispatchEvent(new Event('input', { bubbles: true })); document.querySelector('#club-send-chat').click(); }
+          if(c.type==='audio-mute'){document.querySelector('#player').muted=c.muted;telemetry.audioCuts??=[];telemetry.audioCuts.push({at:Date.now(),muted:c.muted});}
           if (c.type === 'relay') window.PrivateCast?.testing.setRelayLimit(c.limit);
           if (c.type === 'visibility') {
             // Supplemental owned-document lifecycle stimulus; explicitly not
