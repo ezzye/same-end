@@ -176,3 +176,144 @@ test('canonical signatures survive key reordering and reject any changed decisio
     assert.equal(await verify({ ...d, [field]: changed }), false, field);
   }
 });
+
+const v2Input = (elapsed, changes = {}) => {
+  const at = epoch + elapsed * 1000;
+  return input({ sourceNowMs: at, hostReport: report({}, at), reports: [report({}, at)], ...changes });
+};
+const openV2 = (p, elapsed) => p.update(v2Input(elapsed, { hostReport: null, reports: [] }));
+const v2Config = { ...config, commonStartVersion: 2 };
+
+test('v1 canonical bytes remain unchanged when the module also supports v2', () => {
+  const d = signedFields(new Policy({ epoch }).update(input()));
+  assert.equal(canonicalDecision(d), JSON.stringify(['common-start', 1, 'cast', 'source', 0, 'programme', 1,
+    30, 6, epoch + 22000, epoch + 30000, 'verified-delivery']));
+});
+
+test('v2 waits indefinitely for its first viewer instead of locking fallback at capture sixty seconds', () => {
+  const p = new Policy({ epoch, version: 2 });
+  for (const elapsed of [0, 60, 300, 900]) {
+    assert.equal(p.update(v2Input(elapsed, { hasViewers: false, unsupportedPeer: true })), null);
+    assert.equal(p.snapshot().deadlineAtSourceMs, null); assert.equal(p.preview(), null);
+  }
+  assert.equal(openV2(p, 901), null); assert.equal(p.snapshot().observationStartedAt, epoch + 901000);
+  p.update(v2Input(910, { hasViewers: false })); p.update(v2Input(920));
+  assert.equal(p.snapshot().deadlineAtSourceMs, epoch + 961000, 'leave/rejoin does not renew the first window');
+});
+
+for (const firstJoin of [0, 90, 900]) test('v2 first viewer at '+firstJoin+'s gets one measured common delay independent of capture age', () => {
+  const p = new Policy({ epoch, version: 2 }); assert.equal(openV2(p, firstJoin), null);
+  assert.equal(p.update(v2Input(firstJoin + 19.9)), null); assert.equal(p.preview(), null);
+  assert.equal(p.update(v2Input(firstJoin + 20)), null);
+  const preview = p.preview(); assert(Object.isFrozen(preview)); assert.equal(preview.delaySeconds, 30);
+  assert.equal(preview.programmeTime, firstJoin + 2); assert.equal(preview.startsAt, epoch + (firstJoin + 32) * 1000);
+  p.update(v2Input(firstJoin + 21, { preparedProgrammeTime: preview.programmeTime + 1 }));
+  assert.strictEqual(p.preview(), preview, 'an unaligned host cannot move the target or publish');
+  const d = p.update(v2Input(firstJoin + 21, { preparedProgrammeTime: preview.programmeTime }));
+  assert.equal(d.version, 2); assert.equal(d.delaySeconds, 30); assert.equal(d.programmeTime, preview.programmeTime);
+  assert.equal(d.observationStartedAt, epoch + firstJoin * 1000); assert.equal(d.startsAt - d.issuedAt, 11000);
+  assert.equal(validateDecision(signedFields(d), v2Config), true);
+  assert.strictEqual(p.update(v2Input(firstJoin + 100, { unsupportedPeer: true })), d);
+  assert.equal(p.preview(), null);
+});
+
+test('v2 chooses the worst measured candidate and host minimum, including a longer early-capture warmup', () => {
+  const p = new Policy({ epoch, version: 2 }); openV2(p, 0);
+  const at = epoch + 20000, slow = report({ recommendation: { status: 'unvalidated-candidate', candidateInitialDelaySeconds: 53.1, candidateReserveSeconds: 9 } }, at);
+  p.update(v2Input(20, { reports: [slow], hostMinimumReserveSeconds: 12 })); const preview = p.preview();
+  assert.equal(preview.delaySeconds, 54); assert.equal(preview.reserveSeconds, 12); assert.equal(preview.programmeTime, 0);
+  const d = p.update(v2Input(20, { reports: [slow], hostMinimumReserveSeconds: 12, preparedProgrammeTime: 0 }));
+  assert.equal(d.startsAt, epoch + 54000); assert.equal(validateDecision(signedFields(d), v2Config), true);
+});
+
+test('v2 uses actual first signed media as its minimum programme position without fabricating a sample at zero', () => {
+  const p = new Policy({ epoch, version: 2 }); openV2(p, 0);
+  const at = epoch + 20000, slower = report({ recommendation: { status: 'unvalidated-candidate', candidateInitialDelaySeconds: 54, candidateReserveSeconds: 6 } }, at);
+  p.update(v2Input(20, { reports: [slower], minimumProgrammeTime: .196 }));
+  const preview = p.preview(); assert(Math.abs(preview.programmeTime - .196) < 1e-9);
+  assert.equal(preview.startsAt, epoch + 54196);
+  const d = p.update(v2Input(20, { reports: [slower], minimumProgrammeTime: .196, preparedProgrammeTime: preview.programmeTime }));
+  assert.equal(validateDecision(signedFields(d), v2Config), true);
+});
+
+test('v2 late 120-second candidate starts from the bounded live bootstrap position and keeps its target pinned', () => {
+  const p = new Policy({ epoch, version: 2 }); openV2(p, 900);
+  const at = epoch + 920000, slower = report({ recommendation: { status: 'unvalidated-candidate', candidateInitialDelaySeconds: 120, candidateReserveSeconds: 6 } }, at);
+  p.update(v2Input(920, { reports: [slower], minimumProgrammeTime: 900 }));
+  const preview = p.preview(); assert.equal(preview.delaySeconds, 120); assert.equal(preview.programmeTime, 900);
+  assert.equal(preview.startsAt, epoch + 1020000);
+  const fresh = report({ recommendation: { status: 'unvalidated-candidate', candidateInitialDelaySeconds: 120, candidateReserveSeconds: 6 } }, epoch + 925000);
+  p.update(v2Input(925, { reports: [fresh], minimumProgrammeTime: 905, hostReady: false }));
+  assert.strictEqual(p.preview(), preview, 'a moving live lower bound must not slide the active decoder target');
+  const d = p.update(v2Input(925, { reports: [fresh], minimumProgrammeTime: 905, preparedProgrammeTime: 900 }));
+  assert.equal(d.programmeTime, 900); assert.equal(validateDecision(signedFields(d), v2Config), true);
+  for (const minimumProgrammeTime of [null, -1, Infinity, '900', 921]) {
+    const q = new Policy({ epoch, version: 2 }); openV2(q, 900);
+    assert.equal(q.update(v2Input(920, { minimumProgrammeTime })), null); assert.equal(q.preview(), null);
+  }
+});
+
+test('v2 missing, stale and uncertain reports wait for the fixed first-connection deadline; fallback has a future common start', () => {
+  for (const changes of [{ reports: [] }, { reports: [null] }, { hostReport: null }, { hasViewers: false },
+    { hostMinimumReserveSeconds: null }, { hostMinimumReserveSeconds: 15 },
+    { reports: [report({}, epoch + 900000)] }]) {
+    const p = new Policy({ epoch, version: 2 }); openV2(p, 900);
+    assert.equal(p.update(v2Input(920, changes)), null); assert.equal(p.preview(), null);
+    const d = p.update(v2Input(960, changes));
+    assert.equal(d.delaySeconds, 300); assert.equal(d.startsAt, epoch + 964000); assert.equal(d.programmeTime, 664);
+    assert.equal(d.reason, 'observation-timeout'); assert.equal(validateDecision(signedFields(d), v2Config), true);
+  }
+  const p = new Policy({ epoch, version: 2 }); openV2(p, 90);
+  const uncertain = report({ deliveryToStreamRatio: .95, sourceAgeTrendSecondsPerSecond: .05 }, epoch + 110000);
+  p.update(v2Input(110, { reports: [uncertain] })); assert.equal(p.preview(), null);
+});
+
+test('v2 unsupported peers and actual sustained deficits force fallback without claiming sufficient throughput', () => {
+  for (const [changes, reason] of [
+    [{ unsupportedPeer: true }, 'unsupported-peer'],
+    [{ reports: [report({ recommendation: { status: 'insufficient-throughput' } }, epoch + 920000)] }, 'sustained-delivery-deficit']
+  ]) {
+    const p = new Policy({ epoch, version: 2 }); openV2(p, 900);
+    const d = p.update(v2Input(920, changes)); assert.equal(d.delaySeconds, 300); assert.equal(d.reason, reason);
+    assert.equal(validateDecision(signedFields(d), v2Config), true);
+  }
+  const p = new Policy({ epoch, version: 2 });
+  const d = p.update(v2Input(10, { unsupportedPeer: true }));
+  assert.equal(d.startsAt, epoch + 300000); assert.equal(d.programmeTime, 0);
+});
+
+test('v2 preview renewals preserve the first deadline, revoke changed evidence and remain bounded', () => {
+  const p = new Policy({ epoch, version: 2 }); openV2(p, 900);
+  p.update(v2Input(920)); const first = p.preview();
+  p.update(v2Input(921, { hostReady: false })); assert.strictEqual(p.preview(), first);
+  p.update(v2Input(929, { preparedProgrammeTime: first.programmeTime }));
+  const renewed = p.preview(); assert(renewed.programmeTime > first.programmeTime); assert.equal(renewed.revision, 2);
+  assert.equal(p.snapshot().deadlineAtSourceMs, epoch + 960000);
+  p.update(v2Input(930, { reports: [] })); assert.equal(p.preview(), null);
+  for (let revision = 3; revision <= 5; revision++) {
+    p.update(v2Input(930 + revision)); assert.equal(p.preview().revision, revision);
+    p.update(v2Input(930 + revision, { reports: [] }));
+  }
+  p.update(v2Input(940)); assert.equal(p.preview(), null, 'repeated withdrawals cannot churn unlimited decoder previews');
+  assert.equal(p.update(v2Input(960)).delaySeconds, 300);
+  const q = new Policy({ epoch, version: 2 }); openV2(q, 900); q.update(v2Input(920));
+  q.update(v2Input(921, { hostMinimumReserveSeconds: 12 }));
+  assert.equal(q.preview().revision, 2); assert.equal(q.preview().reserveSeconds, 12);
+});
+
+test('v2 structural validation and real signatures bind observation window, programme target and decision identity', async () => {
+  const p = new Policy({ epoch, version: 2 }); openV2(p, 900); p.update(v2Input(920));
+  const d = signedFields(p.update(v2Input(921, { preparedProgrammeTime: p.preview().programmeTime })));
+  assert.equal(validateDecision(d, config), false); assert.equal(validateDecision({ ...d, version: 1 }, v2Config), false);
+  for (const changes of [{ programmeTime: -1 }, { programmeTime: d.programmeTime + 1 }, { startsAt: d.startsAt + 1 },
+    { issuedAt: d.startsAt - 3000 }, { observationStartedAt: d.issuedAt + 1 }, { observationStartedAt: epoch - 1 },
+    { observationStartedAt: d.issuedAt - 60000 }, { sourceId: 'other' }, { version: 3 }, { delaySeconds: 31 }])
+    assert.equal(validateDecision({ ...d, ...changes }, v2Config), false, JSON.stringify(changes));
+  const keys = await webcrypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+  const bytes = value => new TextEncoder().encode(canonicalDecision(value));
+  const sig = await webcrypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, keys.privateKey, bytes(d));
+  assert(await webcrypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, keys.publicKey, sig, bytes(d)));
+  for (const changes of [{ programmeTime: d.programmeTime + .001 }, { observationStartedAt: d.observationStartedAt + 1 }, { startsAt: d.startsAt + 1 }])
+    assert.equal(await webcrypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, keys.publicKey, sig, bytes({ ...d, ...changes })), false);
+  assert.throws(() => new Policy({ epoch, version: 3 }));
+});

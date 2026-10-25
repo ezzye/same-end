@@ -5,7 +5,7 @@
   const codes = ['idle', 'waiting-for-source', 'source-stopped', 'source-unreachable', 'suppliers-full', 'offline', 'finding-route', 'no-direct-route', 'playing', 'warming-up', 'buffering'];
   function groupDelay(snapshot = {}) {
     const c=snapshot.commonStart;
-    if(c?.enabled===true&&c.state==='pending')return {seconds:null,label:'Checking group delay'};
+    if(c?.enabled===true&&c.state==='pending')return {seconds:null,label:c.reason==='waiting-for-first-viewer'?'Ready for your mates':'Checking group delay'};
     const selected=c?.enabled===true&&['selected','fallback'].includes(c.state)&&Number.isInteger(c.delaySeconds)&&c.delaySeconds>=30&&c.delaySeconds<=300?c.delaySeconds:null;
     const seconds=selected??snapshot.config?.delay;
     return {seconds:Number.isFinite(seconds)?seconds:null,label:seconds===300?'5-minute group delay':Number.isFinite(seconds)?seconds+'-second group delay':'Checking group delay'};
@@ -25,7 +25,8 @@
     if ((joined && source === 'stopped' && !path) || snapshot.sourceEnded === true && !snapshot.config) return result('source-stopped', 'The shared screen has stopped.', joined ? 'You’re still in the room. Chat while your host restarts; the same invitation works.' : 'This video share has ended. Ask your host for a room invitation to follow future shares.', 'neutral', true);
     if (joined && source === 'unreachable' && !path) return result('source-unreachable', 'No recent update from the host.', 'Your room and chat are still open. We’re checking the shared screen and will reconnect when it is available.', 'warning', true);
     const target = snapshot.targetProgramTime;
-    if(snapshot.config&&snapshot.commonStart?.enabled===true&&snapshot.commonStart.state==='pending')return result('warming-up','Checking group delay','You can chat while we prepare the picture.','neutral',true);
+    if(snapshot.config&&snapshot.commonStart?.enabled===true&&snapshot.commonStart.state==='pending')return result('warming-up',snapshot.commonStart.reason==='waiting-for-first-viewer'?'Ready for your mates':'Checking group delay',snapshot.commonStart.reason==='waiting-for-first-viewer'?'Send your invitation whenever you’re ready. We’ll check the group delay when someone joins.':'You can chat while we prepare the picture.','neutral',true);
+    if(snapshot.config&&Number.isFinite(snapshot.commonStart?.startRemainingSeconds)&&snapshot.commonStart.startRemainingSeconds>0)return result('warming-up','Starting together','Your picture is getting ready for the shared start. Chat stays open.','neutral',true);
     if (snapshot.config && snapshot.clockReady === true && Number.isFinite(target) && target < 0) return result('warming-up', 'Time to get everyone settled.', 'The picture starts together after the group delay. You can chat while you wait.', 'neutral', true);
     if (path && snapshot.config && snapshot.clockReady === true && Number.isFinite(target) && target >= 0 && ['starting', 'rebuffering', 'recovering'].includes(snapshot.playbackAdaptivePhase)) return result('buffering', 'Building a smoother picture…', 'Saving a little more video before restarting. You can keep chatting while it fills.', 'neutral', true);
     const availability = snapshot.transport?.availability;

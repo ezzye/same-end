@@ -159,7 +159,7 @@
     if(intentionalAdaptiveWait&&['picture-stalled','picture-unavailable','connection-slow'].includes(S.failure)){clearProblem();render();}
     if(!snap.clockReady&&!completed&&!knownSourceWait){if(Date.now()-S.started>90000)fail('picture-unavailable');else if(Date.now()-S.started>15000&&!S.failure)fail('connection-slow');}
     if(S.failure==='chat-unavailable'&&window.SameEndSocial?.snapshot().connected)clearProblem();
-    if(snap.commonStart?.enabled===true&&snap.commonStart.state==='pending'){S.phase='waiting-for-group';mark('group-wait-start');if(!['chat-unavailable','browser-feature','video-decode','invitation-incomplete','app-error'].includes(S.failure))clearProblem();render();return;}
+    if(snap.commonStart?.enabled===true&&(snap.commonStart.state==='pending'||snap.commonStart.startRemainingSeconds>0)){S.phase='waiting-for-group';mark('group-wait-start');if(!['chat-unavailable','browser-feature','video-decode','invitation-incomplete','app-error'].includes(S.failure))clearProblem();render();return;}
     const commonDelay=window.SameEndRoomStatus?.groupDelay?.(snap)?.seconds??snap.config.delay;
     const viewerDelay=Number.isFinite(snap.initialDelay?.selectedDelaySeconds)?snap.initialDelay.selectedDelaySeconds:commonDelay;
     const target=snap.clockReady?(Number.isFinite(snap.effectiveTargetProgramTime)?snap.effectiveTargetProgramTime:(Date.now()+snap.offset-snap.config.epoch)/1000-viewerDelay):null;

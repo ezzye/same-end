@@ -153,12 +153,15 @@ export function initialDelayPageProbe(options) {
       }
       peakFrequency = index * audioContext.sampleRate / analyser.fftSize;
     }
-    const elapsed = s.config ? (Date.now() + (s.offset || 0) - s.config.epoch) / 1000 : null;
+    // Compare programme positions against the same monotonic source clock used by
+    // playback. Date.now may be adjusted during a long simulator test.
+    const sourceNow = Number.isFinite(s.sourceClockNowMs) ? s.sourceClockNowMs : Date.now() + (s.offset || 0);
+    const elapsed = s.config ? (sourceNow - s.config.epoch) / 1000 : null;
     const sourceAge = Number.isFinite(elapsed) && Number.isFinite(s.programTime) ? elapsed - s.programTime : null;
     const social = window.SameEndSocial?.snapshot();
     const chats = [...document.querySelectorAll('.club-message p')].map(p => p.textContent).filter(t => /^initial-delay-chat-/.test(t));
     for (const text of chats) if (!telemetry.chatReceipts.some(row => row.text === text)) telemetry.chatReceipts.push({ text, at: Date.now() });
-    return { at: Date.now(), elapsed, sourceAge, initialDelay: s.initialDelay ?? null,
+    return { at: Date.now(), elapsed, sourceAge, wallSourceClockDeltaSeconds: (Date.now() + (s.offset || 0) - sourceNow) / 1000, initialDelay: s.initialDelay ?? null,
       ...(options.commonStart ? { commonStart:s.commonStart ?? null, sharedTarget:s.sharedTargetProgramTime, signedTarget:s.signedTargetProgramTime } : {}),
       config: s.config && Object.fromEntries(['id','epoch','delay','sourceId','sourceEpoch','programId','mediaProfile',...(options.commonStart ? ['commonStartVersion'] : [])].map(k => [k, s.config[k]])),
       programTime: s.programTime, target: s.targetProgramTime, viewerTarget: s.viewerTargetProgramTime, effectiveTarget: s.effectiveTargetProgramTime,

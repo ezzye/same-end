@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { VerifiedHlsCache, createVerifiedLoader, HLS_BASE, cachePath, Player } from '../hls-player.js';
 import { NativePlayer, cacheResponse } from '../hls-native.js';
+import Hls from 'hls.js';
+import { AdaptivePlayout } from '../adaptive-playout.js';
 const bytes = text => new TextEncoder().encode(text).buffer;
 const media = (seq=0) => '#EXTM3U\n#EXT-X-TARGETDURATION:2\n#EXT-X-MEDIA-SEQUENCE:'+seq+'\n#EXT-X-MAP:URI="init.mp4"\n'+Array.from({length:6},(_,i)=>'#EXTINF:2,\ns'+(i+seq)+'.m4s\n').join('');
 function bundle(seq=0,start=0) { return {start:start+10,duration:2,playlistStart:start,files:[{path:'master.m3u8',bytes:bytes('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=100000\nvideo.m3u8\n')},{path:'video.m3u8',bytes:bytes(media(seq))},{path:'init.mp4',bytes:bytes('init')},...Array.from({length:6},(_,i)=>({path:'s'+(i+seq)+'.m4s',bytes:bytes('segment'+(i+seq))}))]}; }
@@ -103,4 +105,39 @@ test('native first attach cannot use timing tolerance to outrun the precise-hint
  const h=nativeStartFixture({fragmentDuration:1.9999});h.add(3);
  assert(h.cache.contiguousAhead(h.origin)<6);h.p.start();assert.equal(h.loads.length,0,'5.9997 seconds cannot produce the required six-second precise hint');
  h.add(4);h.p.start();assert.equal(h.loads.length,1);assert.match(h.loads[0],/PRECISE=YES/);
+});
+
+test('paused committed MSE startup keeps its verified media anchor across raw sliding playlist reloads and accepts real timing corrections',()=>{
+ const c=new VerifiedHlsCache();c.add(bundle(45,90.0874));
+ const handlers=new Map(),loads=[],hls={on(event,fn){const rows=handlers.get(event)||[];rows.push(fn);handlers.set(event,rows)},startLoad(...args){loads.push(args)}};
+ const emit=(event,data)=>{for(const fn of handlers.get(event)||[])fn(event,data)};
+ const p=Object.create(Player.prototype),target=95.9922,video={currentTime:5.9048,paused:true,readyState:2,seeking:false,
+  buffered:{length:1,start:()=>0,end:()=>12}};
+ Object.assign(p,{video,cache:c,hls,target,closed:false,origin:null,programmeAnchor:null,presented:null,
+  adaptive:new AdaptivePlayout(),startupPreparation:{target,reserve:6},startupHold:true});
+ p.bindProgrammeTimeline();
+ const parsed={url:HLS_BASE+'s45.m4s',start:0,startPTS:0};
+ emit(Hls.Events.LEVEL_UPDATED,{details:{fragments:[parsed]}});
+ emit(Hls.Events.LEVEL_LOADED,{details:{fragments:[parsed]}});
+ emit(Hls.Events.FRAG_BUFFERED,{frag:parsed});
+ assert.equal(p.commitStartup(target,6),true);assert.equal(video.paused,true);
+ assert(Math.abs(p.programTime()-target)<1e-8);assert.equal(p.adaptive.position,target);
+ assert.equal(loads.length,1);
+ // A refreshed window begins ten programme seconds earlier. Its raw start=0
+ // is a playlist parser coordinate, not the existing paused MSE coordinate.
+ c.add(bundle(40,80.0871));
+ const raw={url:HLS_BASE+'s40.m4s',start:0};
+ emit(Hls.Events.LEVEL_LOADED,{details:{fragments:[raw]}});
+ assert(Math.abs(p.programTime()-target)<1e-8,'raw LEVEL_LOADED must not shift the paused picture ten seconds backwards');
+ emit(Hls.Events.LEVEL_UPDATED,{details:{fragments:[raw]}});
+ assert(Math.abs(p.programTime()-target)<1e-8,'an unparsed refresh without the anchored fragment cannot replace its clock');
+ const aligned={url:parsed.url,start:0,startPTS:0};
+ emit(Hls.Events.LEVEL_UPDATED,{details:{fragments:[{...raw,start:-10},aligned]}});
+ assert(Math.abs(p.origin-90.0871)<1e-8);assert(Math.abs(p.programTime()-95.9919)<1e-8);
+ // A real parsed-media timing correction must still change the mapping, even
+ // while paused; this is not a permanent freeze of the first origin value.
+ emit(Hls.Events.LEVEL_PTS_UPDATED,{frag:{url:parsed.url,start:1.5,startPTS:1.5}});
+ assert(Math.abs(p.origin-88.5871)<1e-8);assert.equal(p.adaptive.position,target);
+ const before=p.origin;emit(Hls.Events.FRAG_BUFFERED,{frag:{url:'https://external.invalid/s45.m4s',start:0}});
+ assert.equal(p.origin,before,'only the verified local programme namespace can anchor media time');
 });
