@@ -77,3 +77,12 @@ test('authenticated adaptive recovery clears stale picture overlays but preserve
  snap.sourceReachable=true;snap.peers[0].ready=false;ctx.observe();assert.equal(S.failure,'picture-stalled','an unauthenticated route is insufficient');
  snap.peers[0].ready=true;snap.clockReady=false;ctx.observe();assert.equal(S.failure,'picture-stalled','unconfirmed source time is insufficient');
 });
+
+test('client delivery is safely retained through the opt-in host report round trip',async()=>{
+ const core=await readFile(new URL('../diagnostics-core.js',import.meta.url),'utf8');
+ const ctx=createContext({URLSearchParams,Uint8Array,Date,Math,JSON,setTimeout(){},setInterval(){},navigator:{userAgent:''},location:{hash:''},document:{getElementById(){return null}},addEventListener(){}});ctx.window=ctx;runInContext(core,ctx);runInContext(code,ctx);
+ const cd={state:'observing',confidence:'medium',classification:'live',capacityKnown:false,sourceBitrateBps:1000000,deliveredGoodputBps:1200000,reserveSeconds:290,baselineDelaySeconds:300,baselineReserveFraction:290/300,recommendation:{status:'unvalidated-candidate',reason:'observed-live-age-plus-gap-reserve',candidateInitialDelaySeconds:10,candidateReserveSeconds:6,applied:false,validated:false,extraDelayFixesSustainedDeficit:false},url:'PRIVATE-CLIENT',peer:'PRIVATE-CLIENT',sdp:'PRIVATE-CLIENT'};
+ const once=ctx.SameEndInviteCheck.cleanReport({joining:{clientDelivery:cd}}),twice=ctx.SameEndInviteCheck.cleanReport(once);assert.equal(twice.joining.clientDelivery.deliveredGoodputBps,1200000);assert.equal(twice.joining.clientDelivery.baselineReserveFraction,290/300);assert.equal(twice.joining.clientDelivery.recommendation.applied,false);assert.equal(twice.joining.clientDelivery.capacityKnown,false);assert(!JSON.stringify(twice).includes('PRIVATE-CLIENT'));
+ const hostile=ctx.SameEndInviteCheck.cleanReport({joining:{clientDelivery:{...cd,recommendation:{status:'PRIVATE-CLIENT',reason:'PRIVATE-CLIENT',applied:true,candidateInitialDelaySeconds:0}}}}).joining.clientDelivery;assert.equal(hostile.recommendation.status,null);assert.equal(hostile.recommendation.reason,null);assert.equal(hostile.recommendation.applied,null);assert.equal(hostile.recommendation.candidateInitialDelaySeconds,null);
+ assert.equal(ctx.SameEndInviteCheck.cleanReport({}).joining.clientDelivery,null);
+});

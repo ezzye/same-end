@@ -28,6 +28,22 @@
     const bounded = (value, max) => typeof value === "number" && Number.isFinite(value) ? Math.min(max, Math.max(0, Math.floor(value))) : null;
     return { discoveryResets: bounded(x.discoveryResets, 86400), bootstrapRetries: bounded(x.bootstrapRetries, 86400), resetState: pick(x.resetState, ["idle", "scheduled", "renewing", "renewed", "unsupported", "failed"]), resetProblem: pick(x.resetProblem, ["discovery-adapter-unavailable", "discovery-renewal-failed", "discovery-session-ended"]), retryInSeconds: bounded(x.retryInSeconds, 60) };
   }
+  function safeClientDelivery(x) {
+    if (!x || typeof x !== "object") return null;
+    const o = {
+      state: pick(x.state,["insufficient-data","observing","constrained","risk","stale","suspended","offline","clock-unknown","path-absent"]),
+      confidence: pick(x.confidence,["none","low","medium"]), classification:pick(x.classification,["unknown","live","catchup"]),
+      capacityKnown:x.capacityKnown===false?false:null
+    };
+    const limits={sourceBitrateBps:1e9,deliveredGoodputBps:1e9,activeTransferGoodputBps:1e10,deliveryToStreamRatio:10000,signedProgressSeconds:3600,gapMeanSeconds:3600,gapStddevSeconds:3600,gapP95Seconds:3600,sourceToVerifiedAgeP95Seconds:86400,reserveSeconds:3600,decoderAheadSeconds:600,extraDelaySeconds:600,baselineDelaySeconds:3600,reserveCoverage:1,baselineReserveFraction:1,deficitSeconds:3600,routeAgeSeconds:86400,lastProgressAgeSeconds:86400,observationSeconds:3600,recordCount:128,sampleCount:64};
+    for(const [key,max]of Object.entries(limits))o[key]=typeof x[key]==="number"&&Number.isFinite(x[key])?Math.max(0,Math.min(max,x[key])):null;
+    for(const key of ["sourceAgeTrendSecondsPerSecond","reserveTrendSecondsPerSecond"])o[key]=typeof x[key]==="number"&&Number.isFinite(x[key])?Math.max(-1000,Math.min(1000,x[key])):null;
+    for(const key of ["recordCount","sampleCount"])if(o[key]!==null)o[key]=Math.floor(o[key]);
+    const r=x.recommendation&&typeof x.recommendation==="object"?x.recommendation:{};
+    const bounded=(v,max)=>typeof v==="number"&&Number.isFinite(v)&&v>=6&&v<=max?v:null;
+    o.recommendation={status:pick(r.status,["insufficient-data","unvalidated-candidate","catchup","insufficient-throughput"]),reason:pick(r.reason,["observed-delivery-deficit","observed-delay-exceeds-bound","historical-catchup-does-not-establish-startup","observed-live-age-plus-gap-reserve","need-fresh-live-observations","insufficient-data","stale","suspended","offline","clock-unknown","path-absent"]),candidateInitialDelaySeconds:bounded(r.candidateInitialDelaySeconds,420),candidateReserveSeconds:bounded(r.candidateReserveSeconds,60),applied:r.applied===false?false:null,validated:r.validated===false?false:null,extraDelayFixesSustainedDeficit:r.extraDelayFixesSustainedDeficit===false?false:null};
+    return o;
+  }
   function safeState(x) {
     x = x && typeof x === "object" ? x : {};
     const o = {};
@@ -44,6 +60,7 @@
     o.supplierHealth = pick(x.supplierHealth, enums.health);
     o.sourceAudio = pick(x.sourceAudio, enums.audio);
     o.networkRecovery = safeNetworkRecovery(x.networkRecovery);
+    o.clientDelivery = safeClientDelivery(x.clientDelivery);
     o.playbackMode = pick(x.playbackMode, enums.playbackMode);
     o.playbackFallbackReason = x.playbackFallbackReason === null ? null : pick(x.playbackFallbackReason, enums.playbackFallbackReason);
     if (x.mediaDiagnostics && typeof x.mediaDiagnostics === "object") {
@@ -206,7 +223,7 @@
     if (!this.session || this.session.endedAt) return this.summary();
     const d = snapshot.delivery || {}, r = snapshot.recovery || {}, p = playerFacts || {}, env = environment || {};
     const network = snapshot.network || snapshot.transport?.network || {};
-    const state = safeState({ networkRecovery: { discoveryResets: network.discoveryResets, bootstrapRetries: network.bootstrapRetries, resetState: network.resetState, resetProblem: network.resetProblem, retryInSeconds: Number.isFinite(network.retryAt) ? Math.ceil((network.retryAt - this.now()) / 1000) : null }, role: snapshot.role, delay: cfg?.delay, programTime: snapshot.programTime, targetProgramTime: snapshot.targetProgramTime, effectiveTargetProgramTime:snapshot.effectiveTargetProgramTime,extraDelaySeconds:snapshot.playbackExtraDelaySeconds,adaptivePhase:snapshot.playbackAdaptivePhase,bufferGoalSeconds:snapshot.mediaDiagnostics?.playback?.bufferGoalSeconds,rebufferCount:snapshot.mediaDiagnostics?.playback?.rebufferCount,adaptiveSeekCount:snapshot.mediaDiagnostics?.playback?.adaptiveSeekCount, drift: snapshot.drift, reserveSeconds: snapshot.reserveSeconds, bufferedSeconds: snapshot.bufferedSeconds, received: snapshot.received, sentBytes: snapshot.sentBytes, stalls: snapshot.stalls, recovery: r.state, recoveryCount: r.recoveries, attempts: r.attempts, reason: r.reason, sourceReachable: snapshot.sourceReachable, sourceEnded: snapshot.sourceEnded, supplierHealth: snapshot.supplierHealth, sourceAudio: snapshot.sourceAudio?.status, clockReady: snapshot.clockReady, clockOffsetMs: snapshot.offset, playbackMode: snapshot.playbackMode, playbackFallbackReason: snapshot.playbackFallbackReason, mediaErrorCode: snapshot.mediaErrorCode, mediaDiagnostics: snapshot.mediaDiagnostics, aggregateMbps: d.measured === true ? d.deliveredMbps : null, pendingBytes: Array.isArray(d.peers) ? d.peers.reduce((a, p2) => a + (count(p2?.pendingBytes) || 0), 0) : null, oldestPendingMs: Array.isArray(d.peers) ? d.peers.reduce((a, p2) => Math.max(a, count(p2?.oldestPendingMs) || 0), 0) : null, congestedChildren: Array.isArray(d.peers) ? d.peers.filter((p2) => p2?.health === "congested").length : null, measuredChildren: Array.isArray(d.peers) ? d.peers.filter((p2) => p2?.measured === true).length : null, relayLimit: d.relayLimit, forwardingCount: Array.isArray(d.peers) ? d.peers.length : null, controlFailures: env.controlFailures, chatMessageCount: env.chatMessageCount, queue: Array.isArray(snapshot.peers) ? snapshot.peers.reduce((a, q) => a + (Number.isFinite(q?.queued) ? q.queued : Number.isFinite(q?.queuedBytes) ? q.queuedBytes : 0), 0) : null, peerCount: Array.isArray(snapshot.peers) ? snapshot.peers.length : null, ready: p.ready, paused: p.paused, muted: p.muted, volume: p.volume, decodedFrames: p.decodedFrames, droppedFrames: p.droppedFrames, playbackBlocked: p.playbackBlocked, visible: env.visible, online: env.online });
+    const state = safeState({ clientDelivery:snapshot.clientDelivery, networkRecovery: { discoveryResets: network.discoveryResets, bootstrapRetries: network.bootstrapRetries, resetState: network.resetState, resetProblem: network.resetProblem, retryInSeconds: Number.isFinite(network.retryAt) ? Math.ceil((network.retryAt - this.now()) / 1000) : null }, role: snapshot.role, delay: cfg?.delay, programTime: snapshot.programTime, targetProgramTime: snapshot.targetProgramTime, effectiveTargetProgramTime:snapshot.effectiveTargetProgramTime,extraDelaySeconds:snapshot.playbackExtraDelaySeconds,adaptivePhase:snapshot.playbackAdaptivePhase,bufferGoalSeconds:snapshot.mediaDiagnostics?.playback?.bufferGoalSeconds,rebufferCount:snapshot.mediaDiagnostics?.playback?.rebufferCount,adaptiveSeekCount:snapshot.mediaDiagnostics?.playback?.adaptiveSeekCount, drift: snapshot.drift, reserveSeconds: snapshot.reserveSeconds, bufferedSeconds: snapshot.bufferedSeconds, received: snapshot.received, sentBytes: snapshot.sentBytes, stalls: snapshot.stalls, recovery: r.state, recoveryCount: r.recoveries, attempts: r.attempts, reason: r.reason, sourceReachable: snapshot.sourceReachable, sourceEnded: snapshot.sourceEnded, supplierHealth: snapshot.supplierHealth, sourceAudio: snapshot.sourceAudio?.status, clockReady: snapshot.clockReady, clockOffsetMs: snapshot.offset, playbackMode: snapshot.playbackMode, playbackFallbackReason: snapshot.playbackFallbackReason, mediaErrorCode: snapshot.mediaErrorCode, mediaDiagnostics: snapshot.mediaDiagnostics, aggregateMbps: d.measured === true ? d.deliveredMbps : null, pendingBytes: Array.isArray(d.peers) ? d.peers.reduce((a, p2) => a + (count(p2?.pendingBytes) || 0), 0) : null, oldestPendingMs: Array.isArray(d.peers) ? d.peers.reduce((a, p2) => Math.max(a, count(p2?.oldestPendingMs) || 0), 0) : null, congestedChildren: Array.isArray(d.peers) ? d.peers.filter((p2) => p2?.health === "congested").length : null, measuredChildren: Array.isArray(d.peers) ? d.peers.filter((p2) => p2?.measured === true).length : null, relayLimit: d.relayLimit, forwardingCount: Array.isArray(d.peers) ? d.peers.length : null, controlFailures: env.controlFailures, chatMessageCount: env.chatMessageCount, queue: Array.isArray(snapshot.peers) ? snapshot.peers.reduce((a, q) => a + (Number.isFinite(q?.queued) ? q.queued : Number.isFinite(q?.queuedBytes) ? q.queuedBytes : 0), 0) : null, peerCount: Array.isArray(snapshot.peers) ? snapshot.peers.length : null, ready: p.ready, paused: p.paused, muted: p.muted, volume: p.volume, decodedFrames: p.decodedFrames, droppedFrames: p.droppedFrames, playbackBlocked: p.playbackBlocked, visible: env.visible, online: env.online });
     this.session.counts.observations++;
     const prev = this.lastState;
     if (prev) {
@@ -294,10 +311,15 @@
       if (!id) return null;
       const events = Array.isArray(x.events) ? x.events.slice(-12).map((e) => ({ atSeconds: num(e && e.atSeconds), type: pick(e && e.type, ["recovery", "supplier-change", "source-audio", "visibility", "online", "app-error", "mark"]), value: safeEventValue(e || {}) })).filter((e) => e.type && e.value) : [];
       const o = { version: 1, reportId: id, castTag: hashTag(x.castTag), durationSeconds: count(x.durationSeconds), samplesDropped: count(x.samplesDropped) || 0, eventsDropped: count(x.eventsDropped) || 0, finish: pick(x.finish, enums.finish), counts: { observations: num(x.counts?.observations) || 0, supplierChanges: num(x.counts?.supplierChanges) || 0, marks: num(x.counts?.marks) || 0, errors: num(x.counts?.errors) || 0 }, lastStatus: safeState(x.lastStatus), events };
+      // Host snapshots have a separate 4 KiB ceiling. Preserve the session and
+      // essential current measurements rather than losing it to added detail.
+      if(o.lastStatus.clientDelivery){const d=o.lastStatus.clientDelivery,compact={};for(const key of ["state","confidence","classification","capacityKnown","sourceBitrateBps","deliveredGoodputBps","deliveryToStreamRatio","reserveSeconds","baselineDelaySeconds","baselineReserveFraction","decoderAheadSeconds","extraDelaySeconds","gapP95Seconds","recommendation"])compact[key]=d[key];o.lastStatus.clientDelivery=compact;}
+      o.summaryDetailsReduced=x.summaryDetailsReduced===true;
+      while(o.events.length&&JSON.stringify(o).length>4096){o.events.shift();o.eventsDropped++;o.summaryDetailsReduced=true;}
       return JSON.stringify(o).length <= 4096 ? o : null;
     } catch (_) {
       return null;
     }
   }
-  root.SameEndDiagnosticsCore = { Collector, cleanSummary, safeMediaDiagnostics, assessMediaDiagnostics };
+  root.SameEndDiagnosticsCore = { Collector, cleanSummary, safeMediaDiagnostics, assessMediaDiagnostics, safeClientDelivery };
 })(typeof window !== "undefined" ? window : globalThis);
