@@ -1,0 +1,20 @@
+/* Synthetic read-only snapshot presentation; media acceptance is a separate test. */
+import assert from 'node:assert/strict';
+import http from 'node:http';
+import {readFile,mkdir,writeFile} from 'node:fs/promises';
+const {chromium}=await import(process.env.SAMEEND_PLAYWRIGHT||process.env.HOME+'/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright/index.mjs');
+const root=new URL('../',import.meta.url),config=JSON.parse(await readFile(new URL('public-config.json',root),'utf8')),html=(await readFile(new URL('dist/watch.html',root),'utf8')).replaceAll(config.apiBase,'');
+const output=new URL('privatework/client-delivery-ui/',root);await mkdir(output,{recursive:true});
+const server=http.createServer((req,res)=>{if(req.url==='/sw.js')return res.writeHead(404).end();if(req.url==='/fixtures.json')return res.writeHead(200,{'content-type':'application/json'}).end('{"fixtures":[]}');res.writeHead(200,{'content-type':'text/html'}).end(html)});await new Promise(r=>server.listen(0,'127.0.0.1',r));
+const browser=await chromium.launch({channel:'chrome',headless:true});
+try{
+ const page=await browser.newPage({viewport:{width:1280,height:900}}),errors=[],requests=[];page.on('pageerror',e=>errors.push(e.message));await page.route('https://**',route=>{requests.push(route.request().url());route.abort()});
+ await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForFunction(()=>window.PrivateCast&&document.getElementById('client-delivery-details'));
+ await page.evaluate(()=>{const original=PrivateCast.snapshot(),client={state:'observing',confidence:'medium',classification:'live',capacityKnown:false,sourceBitrateBps:1000000,deliveredGoodputBps:1200000,reserveSeconds:290,baselineDelaySeconds:300,baselineReserveFraction:290/300,decoderAheadSeconds:12,gapP95Seconds:2.2,recommendation:{status:'unvalidated-candidate',candidateInitialDelaySeconds:9,candidateReserveSeconds:6,applied:false,validated:false,reason:'observed-live-age-plus-gap-reserve'},secret:'PRIVATE-UI'};window.uiSnapshot={...original,config:{id:'owned-ui',epoch:Date.now()-330000,delay:300},role:'viewer',clockReady:true,targetProgramTime:30,sourceReachable:true,clientDelivery:client};PrivateCast.snapshot=()=>uiSnapshot;dispatchEvent(new Event('sameend:castchange'))});
+ const panel=page.locator('#client-delivery-details');await page.waitForFunction(()=>!document.getElementById('client-delivery-details').hidden);assert.equal(await panel.getAttribute('open'),null);
+ await page.locator('#settings').evaluate(x=>x.open=true);await panel.locator('summary').click();assert.match(await panel.innerText(),/1.20 Mbps/);assert.match(await panel.innerText(),/1.00 Mbps/);assert.match(await panel.innerText(),/97%/);assert.match(await panel.innerText(),/9.0 s · not applied/);assert(!(await panel.innerText()).includes('PRIVATE-UI'));
+ for(const width of [1280,390]){await page.setViewportSize({width,height:900});await panel.scrollIntoViewIfNeeded();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:new URL('panel-'+width+'.png',output).pathname})}
+ await page.evaluate(()=>{uiSnapshot.clientDelivery.state='constrained';uiSnapshot.clientDelivery.recommendation.status='insufficient-throughput';dispatchEvent(new Event('sameend:castchange'))});assert.match(await panel.innerText(),/More delay cannot fix a sustained shortfall/);
+ await page.evaluate(()=>{uiSnapshot.clientDelivery=null;dispatchEvent(new Event('sameend:castchange'))});assert.equal(await panel.isVisible(),false);assert.deepEqual(errors,[]);assert.deepEqual(requests,[]);
+ await writeFile(new URL('result.json',output),JSON.stringify({pass:true,scope:'Synthetic snapshot UI only',collapsed:true,viewports:[1280,390],shadowLabel:true,deficitWarning:true,hiddenAfterLeave:true,pageErrors:errors,externalRequests:requests},null,2));console.log('PASS: collapsed read-only client metrics, shadow/deficit copy, privacy and desktop/mobile fit.');
+}finally{await browser.close();await new Promise(r=>server.close(r))}

@@ -18,7 +18,7 @@ function sliceBetween(start, end) {
   return engine.slice(from, to).trim();
 }
 
-function harness(overrides = {}) {
+function harness(overrides = {}, Estimator = null) {
   const sent = [];
   const state = {
     config:{id:'cast-1',epoch:nowValue-60000,delay:10,mime:'video/webm',segmentVersion:2,sourceId:'source-1',sourceEpoch:0,programId:'match-1'},
@@ -26,7 +26,7 @@ function harness(overrides = {}) {
     offset:125,clockReady:false,peers:new Map(),sourceReachable:true,role:'viewer',
     recovery:{state:'idle'}, ...overrides
   };
-  const window = {};
+  const window = Estimator ? {SameEndClientDelivery:{Estimator}} : {};
   const ctx = {
     window, state, sent, SameEndHLS:{decodeBundle}, crypto:webcrypto, enc, TextEncoder, TextDecoder, Uint8Array, ArrayBuffer,
     Number, Math, JSON, Set, Map, Promise, Error, Date, Buffer,
@@ -60,6 +60,7 @@ function harness(overrides = {}) {
     hashLine.replace('const hash=','globalThis.hash=')
   ].join('\n'),ctx);
   for (const [start,end] of [
+    ['function resetClientDelivery()', 'function deliverySnapshot()'],
     ['function receipt(', 'function resumeAfter()'],
     ['function resumeAfter()', 'function maintainDelivery()'],
     ['function maintainDelivery()', 'const enc='],
@@ -67,6 +68,7 @@ function harness(overrides = {}) {
     ['function cleanCache()', 'async function acceptSegment('],
     ['async function acceptSegment(', 'async function waitBuffer(']
   ]) vm.runInContext(sliceBetween(start,end),ctx);
+  ctx.resetClientDelivery();
   return {ctx,state,sent};
 }
 
@@ -275,4 +277,80 @@ test('expanding child lag replays only newly earlier media and retains the live 
  assert.deepEqual(forwarded,[1,2]);assert.equal(peer.lastSentSeq,3);
  await ctx.handleControl(peer,{type:'hello',cast:'cast-1',deliveryVersion:1,playbackLagSeconds:20,resumeAfter:-1});ctx.stageWindow();ctx.stageWindow();
  assert.deepEqual(forwarded,[1,2,0]);assert.equal(peer.lastSentSeq,3,'replay does not masquerade as new source progress');
+});
+
+
+class ClientEstimatorSpy {
+ constructor(now){this.now=now;this.observations=[];this.samples=[];this.resets=0;}
+ observe(value){this.observations.push(value);}
+ sample(value){this.samples.push(value);return this.snapshot();}
+ resetRoute(){this.resets++;}
+ snapshot(){return {state:'warming',confidence:'none',observations:this.observations.length};}
+}
+
+test('client observations require verified unique upstream media and use local receive timestamps',async()=>{
+ const {ctx,state}=harness({clockReady:true},ClientEstimatorSpy),meter=state.clientDelivery;
+ const supplier={id:'up',direction:'up',deliveryVersion:0,highestSeq:-1};state.peers.set('up',supplier);state.supplier={id:'up'};
+ const piece=await signedPiece(ctx,{});
+ const forged={...piece.meta,sig:'invalid'};
+ await assert.rejects(()=>ctx.acceptSegment(forged,piece.buf,supplier,nowValue-100));assert.equal(meter.observations.length,0);
+ await ctx.acceptSegment(piece.meta,piece.buf,supplier,nowValue-100);
+ assert.equal(meter.observations.length,1);
+ assert.deepEqual({...meter.observations[0]},{seq:1,size:4,durationMs:2000,programStartMs:nowValue,receiveStartedAtMs:nowValue-100,verifiedAtMs:nowValue,sourceNowMs:nowValue+125});
+ await ctx.acceptSegment(piece.meta,piece.buf,supplier,nowValue-50);assert.equal(meter.observations.length,1,'replays never count twice');
+ const local=await signedPiece(ctx,{seq:2});await ctx.acceptSegment(local.meta,local.buf,null,nowValue-100);assert.equal(meter.observations.length,1,'locally produced bytes are not network delivery');
+ const noTiming=await signedPiece(ctx,{seq:3});noTiming.meta.receiveStartedAtMs=nowValue-100000;await ctx.acceptSegment(noTiming.meta,noTiming.buf,supplier);assert.equal(meter.observations.length,1,'sender metadata cannot invent receive timing');
+ const closed=await signedPiece(ctx,{seq:4});supplier.closed=true;await ctx.acceptSegment(closed.meta,closed.buf,supplier,nowValue-10);assert.equal(meter.observations.length,1,'old closed suppliers cannot contaminate replacement-route estimates');
+});
+
+test('client estimator is optional for legacy harnesses and is recreated per cast; sources have none',()=>{
+ const legacy=harness();assert.equal(legacy.ctx.clientDeliverySnapshot(),null);legacy.ctx.maintainDelivery();
+ const {ctx,state}=harness({},ClientEstimatorSpy),previous=state.clientDelivery;
+ ctx.resetClientDelivery();assert.notEqual(state.clientDelivery,previous);assert.equal(state.clientDeliverySourceEndMs,null);assert.equal(state.clientDeliveryRoute,null);
+ state.role='source';ctx.resetClientDelivery();assert.equal(state.clientDelivery,null);assert.equal(ctx.clientDeliverySnapshot(),null);
+ assert.match(engine,/state\.config=config;state\.role=role;resetClientDelivery\(\)/,'cast initialization owns a fresh estimator');
+});
+
+test('client samples keep reserve, decoder headroom, signed source age and route confidence separate',()=>{
+ const {ctx,state}=harness({clockReady:true,playbackStarted:true,supplier:{id:'relay'},trail:['source','relay']},ClientEstimatorSpy),meter=state.clientDelivery;
+ ctx.document={visibilityState:'visible'};ctx.navigator={onLine:true};ctx.$=()=>({paused:false});state.player={facts:()=>({playableAheadSeconds:3,extraDelaySeconds:7})};state.clientDeliverySourceEndMs=nowValue-1000;
+ ctx.maintainDelivery();const sample=meter.samples.at(-1);
+ assert.deepEqual({...sample},{nowMs:nowValue,baselineDelaySeconds:10,reserveSeconds:5,decoderAheadSeconds:3,extraDelaySeconds:7,visible:true,online:true,clockReady:true,sourceReachable:true,playing:true,sourceAgeSeconds:1.125});
+ assert.equal(meter.resets,0);ctx.sampleClientDelivery();assert.equal(meter.resets,0,'routine samples retain confidence');
+ state.trail=['source','new-parent','relay'];ctx.sampleClientDelivery();assert.equal(meter.resets,1,'changed path resets even with same immediate supplier');
+ state.sourceReachable=false;ctx.sampleClientDelivery();assert.equal(meter.resets,2,'route loss clears confidence immediately');
+ state.sourceReachable=true;state.supplier={id:'replacement'};ctx.sampleClientDelivery();assert.equal(meter.resets,3);
+ ctx.document.visibilityState='hidden';ctx.navigator.onLine=false;ctx.sampleClientDelivery();assert.equal(meter.samples.at(-1).visible,false);assert.equal(meter.samples.at(-1).online,false);
+ state.clockReady=false;ctx.sampleClientDelivery();assert.equal(meter.samples.at(-1).sourceAgeSeconds,null);
+});
+
+test('incoming header records the local start outside sender metadata and binary assembly retains it',async()=>{
+ const {ctx}=harness();vm.runInContext(sliceBetween('async function handleControl(', 'function dropPeer('),ctx);
+ const peer={id:'up',direction:'up',ready:true};await ctx.handleControl(peer,{type:'segment',meta:{size:4,receiveStartedAtMs:7}});
+ assert.equal(peer.incoming.receiveStartedAtMs,nowValue);assert.equal(peer.incoming.meta.receiveStartedAtMs,7);
+ assert.match(engine,/acceptSegment\(a\.meta,joined\.buffer,p,a\.receiveStartedAtMs\)/,'assembled verified bytes retain the locally observed header time');
+});
+
+
+test('handover credits only the active supplier while retaining valid unique pieces from other open upstreams',async()=>{
+ const {ctx,state}=harness({clockReady:true},ClientEstimatorSpy),meter=state.clientDelivery;
+ const oldPeer={id:'old',direction:'up',deliveryVersion:1,highestSeq:-1},activePeer={id:'magnet:new',nodeId:'new',direction:'up',deliveryVersion:1,highestSeq:-1};
+ state.peers.set(oldPeer.id,oldPeer);state.peers.set(activePeer.id,activePeer);state.supplier={id:'old'};
+ const first=await signedPiece(ctx,{seq:1});await ctx.acceptSegment(first.meta,first.buf,oldPeer,nowValue-100);assert.equal(meter.observations.length,1);
+ state.supplier={id:'new'};ctx.sampleClientDelivery();assert.equal(meter.resets,1);
+ const oldUnique=await signedPiece(ctx,{seq:2});await ctx.acceptSegment(oldUnique.meta,oldUnique.buf,oldPeer,nowValue-100);
+ assert.equal(state.cache.length,2,'old-route media remains available for playback and forwarding');assert.equal(meter.observations.length,1,'an open old supplier cannot credit the new route');
+ const replacement=await signedPiece(ctx,{seq:3});await ctx.acceptSegment(replacement.meta,replacement.buf,activePeer,nowValue-100);
+ assert.equal(meter.observations.length,2,'magnet supplier node identity matches its prefixed peer-map entry');assert.equal(meter.observations.at(-1).seq,3);
+ state.supplier=null;const unassigned=await signedPiece(ctx,{seq:4});await ctx.acceptSegment(unassigned.meta,unassigned.buf,activePeer,nowValue-100);
+ assert.equal(state.cache.length,4);assert.equal(meter.observations.length,2,'no active supplier means no attributed rate observation');
+});
+
+
+test('client reserve remains unknown during countdown and becomes measurable at programme time zero',()=>{
+ const {ctx,state}=harness({clockReady:true},ClientEstimatorSpy),meter=state.clientDelivery;
+ state.config.delay=300;state.config.epoch=nowValue+state.offset-299000;state.player={facts:()=>({playableAheadSeconds:4})};ctx.verifiedReserve=()=>0;
+ ctx.sampleClientDelivery();assert.equal(ctx.effectiveProgramTime(),-1);assert.equal(meter.samples.at(-1).reserveSeconds,null,'countdown is not evidence of an empty playpoint reserve');assert.equal(meter.samples.at(-1).decoderAheadSeconds,4);
+ state.config.epoch-=1000;ctx.sampleClientDelivery();assert.equal(ctx.effectiveProgramTime(),0);assert.equal(meter.samples.at(-1).reserveSeconds,0,'a real empty playpoint remains measured zero');
+ state.clockReady=false;ctx.sampleClientDelivery();assert.equal(meter.samples.at(-1).reserveSeconds,null,'unclocked reserve is unknown');
 });
