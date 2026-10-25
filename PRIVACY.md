@@ -1,5 +1,7 @@
 # Privacy
 
+Same End is owned by **Unsigned Media Ltd**.
+
 Same End is designed for small groups with private invitations. It has no public room directory or in-app analytics. The static website and source code are public. Clubs and chat use a separate control service; video travels between the group's peers.
 
 ## Invitations and control
