@@ -7,10 +7,10 @@ It complements the observed-delivery estimator; it does not measure maximum ISP 
 
 This viewer-local admission policy is distinct from the newer
 [measured common-start policy](measured-common-start.md), which lets the source
-select a shorter baseline for everyone, including itself. That separate public
-flag, `SAMEEND_AUTOMATIC_COMMON_START`, remains **off by default pending platform
-acceptance**. Its 30–120-second common start is not enabled by the acceptance
-results recorded for viewer-local startup below.
+select a shorter baseline for everyone, including itself. That separate flag,
+`SAMEEND_AUTOMATIC_COMMON_START`, is now enabled by default following its own
+[controlled acceptance matrix](measured-common-start.md#acceptance-result). The
+viewer-local results below are distinct from those common-start tests.
 
 ## Two timelines
 
@@ -21,7 +21,7 @@ existing adaptive player can then retain additional local lag for smooth recover
 The source and other viewers can remain on that common baseline.
 
 In ordinary rooms the common baseline is the configured delay. In a new room
-using the gated common-start protocol it is the source-signed decision's delay;
+using the common-start protocol it is the source-signed decision's delay;
 the original configuration still retains 300 seconds for fallback and history.
 The host uses the decision too, so 300 seconds is not a universal minimum when
 that separate protocol is enabled.
@@ -53,16 +53,16 @@ preparation/recovery time; reports must show that difference honestly.
   to the room baseline. A new cast creates a new startup policy.
 
 If local admission fails, playback retains the established common baseline. That
-is five minutes in current public default rooms; it can be shorter after a valid
-source-signed common decision in an enabled test/review build. No finite initial
+is five minutes in fallback rooms; it is shorter after a valid source-signed
+common decision. No finite initial
 buffer can sustain an indefinitely insufficient delivery path.
 
 ## Joining an already decided common timeline
 
-For a supporting viewer joining a shortened common room after its start, the
+For a supporting viewer joining an established common room after its start, the
 source has already chosen the baseline. `prepareLateCommonJoin` waits until the
 source clock is known; it does not pin a target from an unconfirmed local clock.
-If the shared nominal target is more than one second into the programme, it
+Once the shared nominal target reaches actual retained signed media, it
 discards the unplayed decoder and calls `Policy.prepareCommonJoin` with the
 **current** shared target, selected reserve and captured source-clock value.
 
@@ -116,7 +116,7 @@ watching together. Those results remain prototype evidence only.
 Every viewer-local selected delay must be at least the **established common
 baseline**, with initial selection and later adaptive lag sharing a total
 60-second extra budget. Without a common-start decision this is the configured
-baseline, including the five-minute public default. With a valid shorter decision
+baseline, including the five-minute conservative fallback. With a valid shorter decision
 it is that source-selected baseline, which the host follows too. The separate
 one-minute rehearsal and full five-minute warm-up remain useful tests of their
 configured modes; neither establishes acceptance of the new common-start path.
@@ -130,7 +130,7 @@ paths, certificates, private room links and captured audio are not committed.
 ## Acceptance result and boundaries
 
 The results below cover viewer-local startup and its established-baseline modes.
-They do not establish acceptance of the separately gated source-selected common
+They do not establish acceptance of the separately tested source-selected common
 start or its new late-join admission path.
 
 Controlled Android16/Chrome133 emulator, iOS27 iPhone16 and iPad A16 simulators
@@ -157,7 +157,6 @@ networks, background OS suspension or a full match. Those remain device acceptan
 
 The new common-start protocol requires a supporting viewer and enough measured
 feedback before its 60-second capture deadline; a host starting alone retains
-the five-minute fallback. Old sessions never retime in place. After a reviewed
-release enables the feature, update the app and start a fresh share. Saved club
+the five-minute fallback. Old sessions never retime in place. Update the app and start a fresh share. Saved club
 and combined room invitations remain reusable across that restart; video-only
 magnets still identify one capture.

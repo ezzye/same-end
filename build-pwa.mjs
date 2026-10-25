@@ -66,7 +66,7 @@ let apiBase=process.env.SAME_END_API_BASE||'';
 try{if(!apiBase)apiBase=JSON.parse(await readFile(path.join(dir,'public-config.json'),'utf8')).apiBase||'';}catch(e){if(e.code!=='ENOENT')throw e;}
 if(process.env.SAME_END_LOCAL==='1')apiBase='';
 if(apiBase&&!/^https:\/\/[a-z0-9.-]+(?::[0-9]+)?$/.test(apiBase))throw Error('Use a public HTTPS API origin.');
-const runtime={apiBase,buildId:(process.env.CURRENT_DEPLOY_SHA||process.env.GITHUB_SHA)?.slice(0,12)||'local',automaticInitialDelay:process.env.SAMEEND_AUTOMATIC_INITIAL_DELAY!=='0',automaticCommonStart:process.env.SAMEEND_AUTOMATIC_COMMON_START==='1'};
+const runtime={apiBase,buildId:(process.env.CURRENT_DEPLOY_SHA||process.env.GITHUB_SHA)?.slice(0,12)||'local',automaticInitialDelay:process.env.SAMEEND_AUTOMATIC_INITIAL_DELAY!=='0',automaticCommonStart:process.env.SAMEEND_AUTOMATIC_COMMON_START!=='0'};
 const communityStyle=await readFile(path.join(dir,'community.css'),'utf8');
 const waitingStyle=await readFile(path.join(dir,'waiting.css'),'utf8');
 const communityRuntime=await readFile(path.join(dir,'community.js'),'utf8');

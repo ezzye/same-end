@@ -1,4 +1,4 @@
-# Measured common start: gated implementation
+# Measured common start
 
 This implementation can select one shorter **common** initial source delay for a
 new standard HLS room. The source uses that delay too. The authenticated room
@@ -6,9 +6,10 @@ configuration keeps `delay:300`; source epoch, programme identity and signed med
 timestamps are unchanged. The separate source-signed decision supplies the common
 playback baseline.
 
-The public build flag is **off by default**, pending the platform acceptance
-matrix. The implementation and unit checks do not establish physical-device,
-separate-network or full-match acceptance.
+The public build flag is **on by default** after the controlled platform
+acceptance matrix below. Build with `SAMEEND_AUTOMATIC_COMMON_START=0` for the
+conservative configured-delay mode. These controlled tests do not establish
+physical Apple-device, separate-network or full-match acceptance.
 
 ## Selection and the shared clock
 
@@ -136,9 +137,9 @@ viewer cannot delay the host or select a different common baseline. Chat remains
 immediate. Finite reserve cannot guarantee playback on a persistently inadequate
 route.
 
-For a shortened common decision received before first picture, the engine first
-waits for a confirmed source clock. If the current shared target is more than one
-programme second after the start, `prepareLateCommonJoin` discards the unplayed
+For a common decision received before first picture, the engine first waits
+for a confirmed source clock and actual retained signed media at the current
+shared target. `prepareLateCommonJoin` then discards the unplayed
 decoder and calls `initial-delay.js`'s `Policy.prepareCommonJoin` once, using that
 **current** shared target and the established reserve. It does not reuse an old
 programme-zero decoder or wait for catch-up delivery to become a 20-second live
@@ -179,21 +180,20 @@ sanitizer; it does not include the raw decision, signature or feedback rows.
 
 ## Controls and verification status
 
-`build-pwa.mjs` enables the public runtime option only when
-`SAMEEND_AUTOMATIC_COMMON_START=1`. Omission, or `=0`, leaves it off. When enabled,
+`build-pwa.mjs` enables the public runtime option by default. Build with
+`SAMEEND_AUTOMATIC_COMMON_START=0` to disable it. When enabled,
 only newly created standard HLS rooms configured for 300 seconds advertise
 `commonStartVersion:1`. Existing rooms and the 10/60-second rehearsal settings do
 not acquire this protocol in place. There is no ordinary room control that
 silently enables it.
 
-After a reviewed release enables the protocol, update the app and start a fresh
-share; an existing capture never retimes in place. The saved club and combined
+Update the app and start a fresh share; an existing capture never retimes in place. The saved club and combined
 room invitations remain the same across sharing restarts. Raw video-only magnets
 remain specific to the capture they identify. At least one supporting viewer
 must join and contribute enough fresh measured feedback before the new capture's
 60-second deadline; otherwise that capture retains its 300-second fallback.
 
-The local unit-suite snapshot recorded **414 tests passing, zero failing**. This
+The local unit-suite snapshot recorded **442 tests passing, zero failing**. This
 covers the broader application and includes the common-start policy and actual
 engine-slice integration checks. Focused checks include real ECDSA tampering,
 one-time adoption, source/viewer shared targets, stale asynchronous work,
@@ -213,11 +213,9 @@ The UI test covers synthetic presentation lifecycle only. The common-start
 platform harness enables the feature inside its isolated test pages, uses real
 signed HLS over WebRTC, and can pace application receive callbacks for steady,
 slow, bursty and below-stream scenarios. That pacing is not a measurement of a
-physical connection. The platform acceptance matrix is still pending at this
-documentation checkpoint. Do not treat a passing unit suite, a test harness or an
-individual local run as Android, iPhone, iPad, Windows, separate-network,
-background-recovery, sound-output or full-match acceptance. Keep the public flag
-off until the required platform evidence is reviewed.
+physical connection. The acceptance result below records the completed platform evidence. A passing
+unit suite alone does not establish separate-network, background-recovery,
+physical-device sound output or full-match acceptance.
 
 ### Late join and early uncertainty corrections
 
@@ -234,3 +232,45 @@ A small growing delivery backlog also withholds permission to accelerate before
 the stronger sustained-deficit threshold is crossed. This is uncertainty, not a
 claim that a twenty-second observation proves maximum link capacity. Healthy
 flat-age and noisy sustainable-burst observations retain separate regression checks.
+
+
+## Acceptance result
+
+Controlled tests selected a **30–50-second common baseline**, including the host,
+with at least 120 seconds of overlapping moving picture for host, viewer and a
+later viewer in each healthy case. Encrypted chat was checked during startup,
+playback and late joining. The selected common baseline remained immutable;
+healthy maximum measured group gaps stayed below ten seconds. Application receive
+queues paced real received signed HLS over actual WebRTC; they simulated steady,
+1.25x sustainable slow, and bursty delivery rather than measuring physical access
+link capacity.
+
+| Platform | Completed common-start cases | Sound evidence |
+| --- | --- | --- |
+| Android 16 / Chrome 133 emulator | Steady, slow, bursty; independently bursty late join | Changing decoded chirps measured on all three roles |
+| iPhone 16 / iOS 27 simulator | Default MSE steady; native HLS bursty | Scoped generated-audio captures: 63.27 s default, 125.82 s native; intentional page-mute cuts verified |
+| iPad A16 / iPadOS 27 simulator | Native HLS slow; default MSE bursty on final rebased build | Scoped generated-audio captures: 127.53 s native, 127.89 s default; intentional page-mute cuts verified |
+| MSI Windows 11 / Chrome 155 and Edge 156 | Steady, slow, bursty; actual 300-second fallback followed by 120 s playback | Changing decoded chirps measured through a capture-stream tee, without rerouting the production element |
+
+The iOS process captures explicitly scoped the owned simulator's generated test
+output, without microphone or system-mix capture. Capture PCM durations above
+120 seconds reflect the observed capture clock; they do not turn a 63-second
+sample into 120-second sound proof. Windows and Android analyser evidence proves
+decoded signal, not physical loudspeaker output.
+
+Separate 95-second 0.95x and 0.65x sustained-deficit tests refused acceleration,
+retained the signed 300-second fallback and kept chat working. They do not claim
+endless playback on a path whose delivery stays below source bitrate. The full
+Windows fallback case verifies real playback after the complete five-minute wait.
+
+Earlier prototype runs that left late viewers about 56 seconds behind, native
+first-frame jumps and an ended test-audio tee are retained as failed/superseded
+evidence, not included in acceptance. Pending native viewers now retain a
+negative warm-up playback window until the shared clock is due. The native player
+also waits for contiguous verified reserve sufficient for its existing standard
+precise-start playlist hint before first attachment. This avoids long-paused early
+AVPlayer attachment; it does not rewrite signed timestamps or add another format.
+
+Older physical iPads/iPhones, other OS versions, real mobile networks, OS-level
+background suspension and a full match remain separate device acceptance. The
+native HLS start hint follows [RFC 8216 section 4.3.5.2](https://datatracker.ietf.org/doc/html/rfc8216#section-4.3.5.2).
