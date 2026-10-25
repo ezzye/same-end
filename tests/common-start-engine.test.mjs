@@ -411,7 +411,9 @@ test('v2 host and viewer use the signed shared clock but neither starts its new 
   const source = await selectLateV2Source(), d = source.state.commonStart.decision;
   const viewer = harness({ version: 2, cacheHeadroom: true }), parent = viewer.peer('parent');
   viewer.tick(898000); actualCache(viewer, 898, 920); viewer.state.supplier = { id: parent.id }; viewer.state.lastReceivedAt = epoch + 920000;
+  Object.assign(parent, { highestSeq: 459, lastProgressAt: epoch + 919000 });
   await viewer.ctx.handleCommonHello(parent, hello(viewer, d));
+  assert.equal(parent.highestSeq, 459); assert.equal(parent.lastProgressAt, epoch + 919000, 'short selection preserves live supplier progress');
   assert.equal(viewer.ctx.nominalProgramTime(), source.ctx.nominalProgramTime());
   assert.equal(viewer.ctx.scheduledCommonStart(), true);
   const sourceSyncs = source.trace.filter(row => row[0] === 'sync').length;
@@ -501,4 +503,39 @@ test('v2 asynchronous old-source verification cannot adopt into a replacement ca
   const parent = h.peer('parent'), task = h.ctx.handleCommonHello(parent, hello(h, await decision(h)));
   await entered.promise; h.state.config = { ...h.state.config, id: 'replacement-v2' }; h.ctx.resetCommonStart(); gate.release(); await task;
   assert.equal(h.state.commonStart.decision, null); assert.equal(h.state.commonStart.conflict, false);
+});
+
+test('v2 pending bootstrap ignores stale sixty-second hints and first adoption clears hints before real bounded recovery resumes', async () => {
+  const h = harness({ role: 'source', version: 2, cacheHeadroom: true }); h.tick(878000); actualCache(h, 600, 900);
+  const child = h.peer('child', 'down'); Object.assign(child, { playbackLagSeconds: 60, announcedPlaybackLag: 60 });
+  h.ctx.stageWindow();
+  const bootstrap = h.enqueued.filter(row => row.peer === child.id).map(row => row.seq * 2);
+  assert(bootstrap.length > 0); assert(bootstrap.every(programme => programme + 2 >= 896), 'an unplayed hint must not turn live bootstrap into sixty seconds of history');
+  child.commonReports = []; h.ctx.advanceCommonStart(); h.tick(20000); actualCache(h, 600, 920);
+  child.commonReports = [{ id: child.id, report: h.report() }]; h.ctx.advanceCommonStart(); await h.signingDone();
+  assert.equal(h.state.commonStart.decision.delaySeconds, 30);
+  assert.equal(child.playbackLagSeconds, 0); assert.equal(child.announcedPlaybackLag, 0);
+  h.tick(12000); h.enqueued.length = 0;
+  await h.ctx.handleControl(child, hello(h, undefined, { deliveryVersion: 1, playbackLagSeconds: 1e9, resumeAfter: -1 }));
+  assert.equal(child.playbackLagSeconds, 60, 'after a signed clock, genuine adaptive recovery may still use the bounded lag allowance');
+  assert(h.enqueued.some(row => row.peer === child.id && row.seq * 2 < h.ctx.nominalProgramTime() - 50));
+  assert(h.enqueued.every(row => row.peer !== child.id || row.seq * 2 + 2 >= h.ctx.nominalProgramTime() - 64));
+});
+
+test('v2 pending upstream hellos advertise zero rather than an unplayed clock difference, with recovery expansion restored after adoption', async () => {
+  const h = harness({ version: 2 }), parent = h.peer('parent'); h.tick(898000); actualCache(h, 898, 920);
+  Object.assign(parent, { playbackLagSeconds: 60, announcedPlaybackLag: 60 });
+  h.ctx.stageWindow(); h.ctx.broadcastCommonHello();
+  const pending = h.sent.filter(row => row.peer === parent.id && row.message.type === 'hello');
+  assert(pending.length > 0); assert(pending.every(row => row.message.playbackLagSeconds === 0));
+  await h.ctx.handleCommonHello(parent, hello(h, await decision(h, { issuedAt: epoch + 920000, startsAt: epoch + 932000,
+    programmeTime: 902, observationStartedAt: epoch + 900000 })));
+  assert.equal(parent.playbackLagSeconds, 0); assert.equal(parent.announcedPlaybackLag, 0);
+  h.tick(12000); h.ctx.advanceCommonStart();
+  h.state.initialDelayPolicy.state = 'committed'; h.state.commonStart.joinCheckPending = false;
+  h.state.player.adaptive.everPlayed = true; h.state.playbackStarted = true;
+  h.state.player.getPlaybackTarget = nominal => nominal - 100;
+  h.sent.length = 0; h.ctx.stageWindow();
+  const expansion = h.sent.find(row => row.peer === parent.id && row.message.type === 'hello');
+  assert(expansion); assert.equal(expansion.message.playbackLagSeconds, 60); assert.equal(parent.announcedPlaybackLag, 60);
 });
