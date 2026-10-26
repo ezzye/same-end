@@ -1,6 +1,7 @@
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { Conflict } from './store.mjs';
 import { payloadFor, validateSubscription } from './push.mjs';
+import {createAnalytics} from './analytics.mjs';
 
 export const LIMITS = Object.freeze({requestBytes: 65536, stateBytes: 32768, messageBytes: 12288, reportBytes: 12288, reports: 30, events: 30, subscriptions: 50, chatSeconds: 86400, clubSeconds: 400 * 86400});
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -51,6 +52,7 @@ function cursorCount(cursor, id) {
 const equalHash = (a, b) => HASH.test(a || '') && HASH.test(b || '') && timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'));
 
 export function createApi({store, push, now = Date.now, allowedOrigins = ['https://www.sameend.com']} = {}) {
+  const analytics = createAnalytics({store, now});
   async function rate(key, limit, milliseconds) {
     const time = now(), bucket = Math.floor(time / milliseconds);
     try { await store.consume(`${key}:${bucket}`, limit, expiry((bucket + 1) * milliseconds, 3600)); }
@@ -269,6 +271,19 @@ export function createApi({store, push, now = Date.now, allowedOrigins = ['https
     try {
       if (origin && !allowedOrigins.includes(origin)) fail(403, 'origin_not_allowed', 'Open Same End from its usual address.');
       const method = event.requestContext?.http?.method || event.httpMethod;
+      const path = event.rawPath || event.path || '';
+      const query = event.queryStringParameters || {};
+      if (path === '/v1/analytics/events') {
+        if (method !== 'POST') fail(405, 'method_not_allowed', 'That analytics action is not available.');
+        if (Object.keys(query).length || Object.keys(event.multiValueQueryStringParameters || {}).length || event.rawQueryString) fail(400, 'invalid_metadata', 'That analytics request is not valid.');
+        if (headers.authorization) fail(400, 'invalid_metadata', 'That analytics request is not valid.');
+        const rawEvent = event.isBase64Encoded ? Buffer.from(event.body || '', 'base64') : Buffer.from(event.body || '');
+        if (rawEvent.length > 256) fail(413, 'payload_too_large', 'That analytics event is too large.');
+        if (!/^application\/json(?:;|$)/i.test(headers['content-type'] || '')) fail(415, 'json_required', 'Send this event as JSON.');
+        let payload; try { payload = JSON.parse(rawEvent.toString('utf8')); } catch { fail(400, 'invalid_json', 'That analytics event could not be read.'); }
+        try { return reply(200, await analytics.collect(payload, origin, allowedOrigins, event.requestContext?.http?.sourceIp)); }
+        catch (e) { if (e.status) fail(e.status, e.code, e.message); throw e; }
+      }
       if (method === 'OPTIONS') return reply(204, null);
       const raw = event.isBase64Encoded ? Buffer.from(event.body || '', 'base64') : Buffer.from(event.body || '');
       if (raw.length > LIMITS.requestBytes) fail(413, 'payload_too_large', 'That club update is too large.');
@@ -278,7 +293,6 @@ export function createApi({store, push, now = Date.now, allowedOrigins = ['https
         try { body = JSON.parse(raw.toString('utf8')); } catch { fail(400, 'invalid_json', 'That club update could not be read.'); }
         if (!object(body)) fail(400, 'invalid_json', 'That club update could not be read.');
       }
-      const path = event.rawPath || event.path || '', query = event.queryStringParameters || {};
       const auth = headers.authorization?.match(/^Bearer ([A-Za-z0-9_-]+)$/);
       // Hash IP addresses into short-lived quota buckets; never store raw network addresses.
       const ip = hash(`${Math.floor(now() / DAY)}/${event.requestContext?.http?.sourceIp || 'local'}`);

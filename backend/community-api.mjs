@@ -1,5 +1,6 @@
 import {createHash, randomUUID, timingSafeEqual} from 'node:crypto';
 import {Conflict} from './store.mjs';
+import {createAnalytics} from './analytics.mjs';
 
 // Deliberately finite pilot capacity. Lifetime counters fail closed even if TTL
 // removes data before an operator reviews capacity; they never create unlimited partitions.
@@ -91,6 +92,7 @@ function contentInput(body, time) {
 }
 
 export function createCommunityApi({store, now = Date.now, allowedOrigins = ['https://www.sameend.com'], adminAuth = {}, fanAuth = {}, localAdminTokenHash} = {}) {
+  const analytics = createAnalytics({store, now});
   if (!store) throw new Error('A persistent store is required');
   // Explicit injection is confined to the isolated runner. Lambda and any configured
   // production issuer disable it, regardless of whether a caller accidentally passes it.
@@ -538,6 +540,11 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
     else permission = 'admin';
     const actor = staff(event, token, permission);
     if (method !== 'GET') { await rate('staff-global', 200, 60000); await rate(`staff-${digest(actor.id).slice(0, 2)}`, 60, 60000); }
+    if (path === '/admin/analytics' && method === 'GET') {
+      const days = query.days === undefined ? 7 : Number(query.days);
+      if (![7, 30, 90].includes(days) || String(days) !== String(query.days === undefined ? 7 : query.days)) fail(400, 'invalid_days', 'Choose 7, 30, or 90 days.');
+      return analytics.summary(days);
+    }
     if (path === '/admin/feedback' && method === 'GET') return page(await collection('FEEDBACK#', COMMUNITY_LIMITS.feedback), query.cursor, 'admin:feedback', feedbackView);
     let match = path.match(/^\/admin\/feedback\/([a-f0-9-]+)$/i);
     if (match && method === 'POST') {
