@@ -274,6 +274,14 @@ export function createApi({store, push, now = Date.now, allowedOrigins = ['https
       const path = event.rawPath || event.path || '';
       const query = event.queryStringParameters || {};
       if (path === '/v1/analytics/events') {
+        if (method === 'OPTIONS') {
+          if (!origin || !allowedOrigins.includes(origin)) fail(403, 'origin_not_allowed', 'Open Same End from its usual address.');
+          if (headers['access-control-request-method']?.toUpperCase() !== 'POST') fail(405, 'method_not_allowed', 'That analytics action is not available.');
+          const requestedHeaders = (headers['access-control-request-headers'] || '').split(',').map(value => value.trim().toLowerCase()).filter(Boolean);
+          if (requestedHeaders.some(value => value !== 'content-type')) fail(400, 'invalid_metadata', 'That analytics request is not valid.');
+          if (Object.keys(query).length || Object.keys(event.multiValueQueryStringParameters || {}).length || event.rawQueryString) fail(400, 'invalid_metadata', 'That analytics request is not valid.');
+          return reply(204, null);
+        }
         if (method !== 'POST') fail(405, 'method_not_allowed', 'That analytics action is not available.');
         if (Object.keys(query).length || Object.keys(event.multiValueQueryStringParameters || {}).length || event.rawQueryString) fail(400, 'invalid_metadata', 'That analytics request is not valid.');
         if (headers.authorization) fail(400, 'invalid_metadata', 'That analytics request is not valid.');

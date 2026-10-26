@@ -16,12 +16,32 @@ function fixture() {
     const response = await api.handler({rawPath: '/v1/analytics/events', requestContext: {http: {method: options.method || 'POST', sourceIp: options.ip || '203.0.113.7'}}, headers, body: options.raw ?? JSON.stringify(payload), isBase64Encoded: options.b64, queryStringParameters: options.query});
     return {...response, json: JSON.parse(response.body || 'null')};
   };
+  const preflight = async (headers = {}) => {
+    const response = await api.handler({rawPath: '/v1/analytics/events', requestContext: {http: {method: 'OPTIONS', sourceIp: '203.0.113.7'}}, headers: {'access-control-request-method': 'POST', 'access-control-request-headers': 'content-type', ...headers}});
+    return {...response, json: JSON.parse(response.body || 'null')};
+  };
   const admin = async (role = 'admin', days = '7') => {
     const response = await community.handler({rawPath: '/v1/community/admin/analytics', requestContext: {http: {method: 'GET'}, authorizer: {jwt: {claims: {iss: issuer, aud: clientId, token_use: 'id', sub: 'staff', exp: time / 1000 + 1000, 'cognito:groups': [`sameend-${role}`]}}}}, headers: {origin: 'https://sameend.test'}, queryStringParameters: {days}});
     return {...response, json: JSON.parse(response.body)};
   };
-  return {store, collect, admin, advance: n => {time += n;}};
+  return {store, collect, preflight, admin, advance: n => {time += n;}};
 }
+
+test('analytics browser preflight allows the first-party JSON POST without writes', async () => {
+  const f = fixture();
+  const preflight = await f.preflight({origin: 'https://sameend.test'});
+  assert.equal(preflight.statusCode, 204);
+  assert.equal(preflight.headers['access-control-allow-origin'], 'https://sameend.test');
+  assert.match(preflight.headers['access-control-allow-methods'], /POST/);
+  assert.match(preflight.headers['access-control-allow-headers'], /content-type/i);
+  assert.equal(f.store.items.size, 0, 'OPTIONS does not create analytics or rate-limit rows');
+  assert.equal((await f.collect({v: 1, event: 'page_view'})).statusCode, 200);
+  assert.equal((await f.store.get('ANALYTICS#2026-10-25', 'COUNTERS')).page_view, 1);
+  assert.equal((await f.preflight({origin: 'https://evil.test'})).statusCode, 403);
+  assert.equal((await f.preflight()).statusCode, 403, 'missing Origin fails closed');
+  assert.equal((await f.preflight({origin: 'https://sameend.test', 'access-control-request-method': 'PUT'})).statusCode, 405);
+  assert.equal((await f.preflight({origin: 'https://sameend.test', 'access-control-request-headers': 'authorization'})).statusCode, 400);
+});
 
 test('analytics accepts only strict low-data events and writes aggregate rows without identifiers', async () => {
   const f = fixture();
