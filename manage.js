@@ -83,6 +83,7 @@ async function boot() {
     apiBase = api.href.replace(/\/$/, '') + '/v1/community';
   } catch { $('session').textContent = 'Staff API is not configured'; $('signin-help').textContent = 'An administrator needs to configure this staff desk.'; return; }
   let requestedThread = '';
+  let pageActive = true, lifecycle = 0;
   let auth, token = '', expiry = 0, expiryTimer, groups = [], localReview = false, section = '', epoch = 0, authRedirectInProgress = false, mfaSetup = null;
   function message(value = '', error = false) { $('notice').textContent = value; $('notice').dataset.error = String(error); }
   function resetSession(note = 'Signed out', {preservePkce = false} = {}) {
@@ -90,12 +91,29 @@ async function boot() {
     if(!preservePkce)sessionStorage.removeItem(PKCE_KEY);
     mfaSetup?.cancel(); $('desk').hidden = true; $('panel').replaceChildren(); $('sections').replaceChildren(); $('signin').hidden = false; $('signout').hidden = true; $('session').textContent = note;
   }
+  function assertActive(expected = lifecycle) {
+    if (!pageActive || expected !== lifecycle) throw new Error('The staff desk was closed. Sign in again.');
+  }
+  // Register before configuration or OAuth awaits. A parked page cannot resume
+  // an old callback, and BFCache restoration always starts with an empty desk.
+  window.addEventListener('pagehide', () => {
+    pageActive = false; lifecycle++;
+    resetSession('Signed out', {preservePkce: authRedirectInProgress});
+    authRedirectInProgress = false;
+  });
+  window.addEventListener('pageshow', event => {
+    if (event.persisted) { lifecycle++; pageActive = true; resetSession('Signed out'); message(); }
+  });
   async function request(path, {method = 'GET', body, publicRequest = false} = {}) {
+    assertActive(); const requestLifecycle = lifecycle;
     if (!publicRequest && (!token || expiry <= Date.now())) { resetSession('Session ended'); throw new Error('Your session ended. Sign in again.'); }
     const requestEpoch = epoch;
     const response = await fetch(`${apiBase}${path}`, {method, cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', headers: {...(!publicRequest ? {Authorization: `Bearer ${token}`} : {}), ...(body !== undefined ? {'Content-Type': 'application/json'} : {})}, ...(body !== undefined ? {body: JSON.stringify(body)} : {})});
+    assertActive(requestLifecycle);
     if (!publicRequest && requestEpoch !== epoch) throw new Error('The session changed. Sign in again.');
     let payload; try { payload = await response.json(); } catch { throw new Error('The service returned an unreadable response. Try again.'); }
+    assertActive(requestLifecycle);
+    if (!publicRequest && requestEpoch !== epoch) throw new Error('The session changed. Sign in again.');
     if (!response.ok) {
       if (response.status === 401 && !publicRequest) resetSession('Session ended');
       if (response.status === 409) throw new Error('Someone changed this record. Refresh and review the latest version before saving.');
@@ -115,6 +133,7 @@ async function boot() {
   function details(label, value) { const el = node('details', undefined, 'details'); el.append(node('summary', label), node('pre', typeof value === 'string' ? value : JSON.stringify(value, null, 2))); return el; }
   const version = record => { if (!Number.isInteger(record?.version) || record.version < 0) throw new Error('This record has no edit version. Refresh after the service has been updated.'); return record.version; };
   function activateSession(newToken, metadata, review = false) {
+    assertActive();
     token = newToken; expiry = metadata.expiresAt; groups = metadata.groups; localReview = review; epoch++;
     $('signin').hidden = true; $('desk').hidden = false; $('signout').hidden = false;
     $('session').textContent = review ? 'Local review · test credential · 30 minutes' : `Signed in · ${groups.map(role => role.slice(8)).join(', ')} · until ${date(expiry)}`;
@@ -128,6 +147,7 @@ async function boot() {
     if (auth && !wasReview) { const url = new URL('/logout', auth.domain); url.search = new URLSearchParams({client_id: auth.clientId, logout_uri: auth.redirectUri}); location.assign(url.href); }
   });
   async function show(key) {
+    assertActive();
     if (!allowedPanels(groups).includes(key)) throw new Error('This section is not available for your staff role.');
     section = key; const thisEpoch = ++epoch; message(); $('section-title').textContent = PANELS[key][0]; $('panel').replaceChildren(node('p', 'Loading…', 'muted'));
     document.querySelectorAll('#sections button').forEach(control => control.setAttribute('aria-current', String(control.dataset.section === key)));
@@ -177,11 +197,31 @@ async function boot() {
     if (requestedThread) { const id = requestedThread; requestedThread = ''; await openThread(id); }
     async function openThread(id) {
       const thisEpoch = ++epoch; const data = await request(`/admin/threads/${encodeURIComponent(id)}`); if (thisEpoch !== epoch) return;
-      container.replaceChildren(actions(button('← Back to threads', () => show('forum')))); const thread = data.thread;
-      const posts = node('div', undefined, 'cards'); container.append(posts);
+      container.replaceChildren(actions(button('← Back to threads', () => show('forum')))); let thread = data.thread;
+      const replyStatus = node('p', undefined, 'muted'); replyStatus.setAttribute('role', 'status');
+      const posts = node('div', undefined, 'cards'); container.append(replyStatus, posts);
+      const replies = new Map(); let cursor = null, replyCount = 0;
       function post(item) { const el = card(); if (item.id === thread.id) el.append(node('h2', thread.title)); el.append(node('p', `${item.authorName || item.authorId} · ${date(item.createdAt)}${item.hidden ? ' · Hidden' : ''}${item.deleted ? ' · Author deleted' : ''}`, 'meta'), node('p', item.deleted ? 'The author deleted this post. Its text cannot be restored.' : item.text, 'body')); el.append(details('Member ID for participation review', item.authorId)); if (item.id === thread.id) el.append(node('p', thread.locked ? 'Thread locked' : 'Replies open', 'badge')); if (!item.deleted || item.id === thread.id) el.append(moderationControls(item, thread, () => openThread(id))); return el; }
-      posts.append(post(thread)); (data.replies || []).forEach(item => posts.append(post(item))); let cursor = data.cursor;
-      const more = button('Load more replies', async () => { const next = await request(`/admin/threads/${encodeURIComponent(id)}?cursor=${encodeURIComponent(cursor)}`); if (thisEpoch !== epoch) return; (next.replies || []).forEach(item => posts.append(post(item))); cursor = next.cursor; more.hidden = !cursor; }); more.hidden = !cursor; container.append(actions(more));
+      function mergePage(page) {
+        if (thisEpoch !== epoch) return;
+        if (page.thread) thread = page.thread;
+        const incoming = Array.isArray(page.replies) ? page.replies : [];
+        const incomingIds = new Set(incoming.map(item => item.id));
+        for (const replyId of page.pageReplyIds || []) if (!incomingIds.has(replyId)) replies.delete(replyId);
+        for (const item of incoming) if (typeof item.id === 'string' && item.id !== thread.id) replies.set(item.id, item);
+        cursor = page.cursor || null;
+        replyCount = Number.isSafeInteger(page.replyCount) ? page.replyCount : Number.isSafeInteger(thread.replyCount) ? thread.replyCount : replies.size;
+        const loaded = [...replies.values()].sort((a, b) => (Number(a.createdAt) || 0) - (Number(b.createdAt) || 0) || a.id.localeCompare(b.id));
+        posts.replaceChildren(post(thread), ...loaded.map(post));
+        replyStatus.textContent = `${loaded.length} loaded replies · ${cursor ? 'More replies available. Showing loaded replies in time order.' : 'All reply pages loaded.'} Thread count: ${replyCount}, including removed replies.`;
+      }
+      mergePage(data);
+      const more = button('Load more replies', async () => {
+        if (!cursor || thisEpoch !== epoch) return;
+        const next = await request(`/admin/threads/${encodeURIComponent(id)}?cursor=${encodeURIComponent(cursor)}`);
+        if (thisEpoch !== epoch) return;
+        mergePage(next); more.hidden = !cursor;
+      }); more.hidden = !cursor; container.append(actions(more));
     }
   }
   // Team starter discussions ship with the site and are posted as the labelled "Same End team".
@@ -279,7 +319,8 @@ async function boot() {
   $('hosted-signin').addEventListener('click', () => run($('hosted-signin'), async () => {
     if (!auth) throw new Error('Secure staff sign-in is not configured for this address.');
     mfaSetup?.cancel();
-    const transaction = await makePkce(); sessionStorage.setItem(PKCE_KEY, JSON.stringify({...transaction, createdAt: Date.now(), redirectUri: auth.redirectUri}));
+    const signInLifecycle = lifecycle; assertActive(signInLifecycle);
+    const transaction = await makePkce(); assertActive(signInLifecycle); sessionStorage.setItem(PKCE_KEY, JSON.stringify({...transaction, createdAt: Date.now(), redirectUri: auth.redirectUri}));
     const url = new URL('/oauth2/authorize', auth.domain); url.search = new URLSearchParams({response_type: 'code', client_id: auth.clientId, redirect_uri: auth.redirectUri, scope: 'openid email aws.cognito.signin.user.admin', state: transaction.state, nonce: transaction.nonce, code_challenge: transaction.challenge, code_challenge_method: 'S256'});
     authRedirectInProgress=true;
     try{location.assign(url.href);}catch(error){authRedirectInProgress=false;sessionStorage.removeItem(PKCE_KEY);throw error;}
@@ -293,8 +334,10 @@ async function boot() {
     const credential = $('review-token').value.trim(); $('review-token').value = ''; if (!local || !credential) throw new Error('Enter the explicitly configured local review credential.');
     await activateSession(credential, {groups: STAFF_ROLES, expiresAt: Date.now() + 1800000}, true);
   }); });
+  const callbackLifecycle = lifecycle;
   try {
     const config = await request('/config', {publicRequest: true});
+    assertActive(callbackLifecycle);
     try { auth = validateAuthConfiguration(config.adminAuth, location.href); $('hosted-signin').disabled = false; $('session').textContent = 'Signed out';
       mfaSetup=createStaffMfa({auth,container:$('staff-mfa'),onComplete:()=>{message('Your authenticator is ready. Choose “Sign in securely”, then use a fresh code from your app.');$('session').textContent='Authenticator ready';$('hosted-signin').disabled=false;$('hosted-signin').focus();},onCancel:()=>{$('hosted-signin').disabled=!auth;}});
       $('finish-mfa').hidden=!auth.enrollmentClientId;
@@ -306,10 +349,12 @@ async function boot() {
       if (!auth) throw new Error('Staff sign-in configuration is unavailable. Start again at the secure staff address.');
       const transaction = validatePkceTransaction(raw, callback.state, auth.redirectUri);
       const response = await fetch(`${auth.domain}/oauth2/token`, {method: 'POST', credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: new URLSearchParams({grant_type: 'authorization_code', client_id: auth.clientId, redirect_uri: auth.redirectUri, code: callback.code, code_verifier: transaction.verifier})});
+      assertActive(callbackLifecycle);
       if (!response.ok) throw new Error('Sign-in could not be completed. Start again.'); const result = await response.json();
+      assertActive(callbackLifecycle);
       const metadata=result.id_token?inspectIdToken(result.id_token,auth,transaction.nonce):null;
       if(typeof result.access_token!=='string')throw new Error('Sign-in did not return the information needed to check your authenticator. Start again.');
-      const registered=await checkStaffMfa(auth,result.access_token);
+      const registered=await checkStaffMfa(auth,result.access_token); assertActive(callbackLifecycle);
       if(!registered){
         const setupToken=result.access_token;delete result.access_token;delete result.id_token;delete result.refresh_token;
         message('Finish setting up your authenticator before opening management.');$('session').textContent='Authenticator setup required';await mfaSetup.begin(setupToken);
@@ -319,10 +364,5 @@ async function boot() {
         await activateSession(result.id_token,metadata);
       }
     }
-  } catch (error) { message(error.message || 'Staff sign-in could not be loaded. Reload to try again.', true); }
-  // Unloading clears credentials naturally. A back/forward-cache restoration must sign in again.
-  window.addEventListener('pagehide', () => {
-    resetSession('Signed out',{preservePkce:authRedirectInProgress});
-    authRedirectInProgress=false;
-  });
+  } catch (error) { if (pageActive && callbackLifecycle === lifecycle) message(error.message || 'Staff sign-in could not be loaded. Reload to try again.', true); }
 }

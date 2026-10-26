@@ -17,6 +17,8 @@ const push=createPushTransport({publicKey:process.env.VAPID_PUBLIC_KEY,privateKe
 const allowedOrigins=[`http://localhost:${webPort}`,`http://127.0.0.1:${webPort}`];
 const api=createApi({store,push,allowedOrigins});
 const community=createCommunityApi({store,allowedOrigins,fanAuth,localAdminTokenHash:process.env.SAME_END_LOCAL_ADMIN_TOKEN_HASH||''});
+// Explicit local fixture bootstrap; production migrations are operator-owned.
+await community.backfillListings({dryRun:false,paceMs:0});
 const server=http.createServer(async(req,res)=>{
  let size=0;const chunks=[];for await(const chunk of req){size+=chunk.length;if(size>LIMITS.requestBytes){res.writeHead(413,{'content-type':'application/json'}).end(JSON.stringify({code:'payload_too_large'}));return;}chunks.push(chunk);}
  const url=new URL(req.url,'http://localhost'),target=url.pathname.startsWith('/v1/community/')?community:api;

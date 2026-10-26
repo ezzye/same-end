@@ -6,6 +6,21 @@ import {zipSync} from 'fflate';
 import {transform,build} from 'esbuild';
 const dir=path.dirname(fileURLToPath(import.meta.url)), out=path.join(dir,'dist');
 const browserTargets=['es2017','safari12.1','ios12.2','chrome80','edge80','firefox78'];
+// Hash final script bytes, including inert bundles activated later by the engine.
+// A meta policy travels with saved HTML; framing protection still needs an HTTP header.
+function secureStaticHtml(document) {
+  const hashes = new Set();
+  for (const [, attributes, source] of document.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
+    if (!source.trim() || /\bsrc\s*=|id=["']webtorrent-license["']|type=["']application\/json["']/i.test(attributes)) continue;
+    hashes.add("'sha256-" + createHash('sha256').update(source.replace(/\r\n?/g, '\n')).digest('base64') + "'");
+  }
+  const localConnections = process.env.SAME_END_LOCAL === '1' ? ' http://localhost:* http://127.0.0.1:* http://[::1]:* ws://localhost:* ws://127.0.0.1:* ws://[::1]:*' : '';
+  const policy = ["default-src 'self'", "script-src 'self' " + [...hashes].join(' '), "script-src-attr 'none'", "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob:", "media-src 'self' blob:", "worker-src 'self' blob:", "child-src 'self' blob:", "connect-src 'self' https: wss:" + localConnections, "object-src 'none'", "base-uri 'none'", "frame-src 'none'", "form-action 'self'"].join('; ');
+  const charset = /<meta\s+charset=["'][^"']+["']\s*\/?>/i;
+  if (!charset.test(document)) throw Error('A protected static page needs an early charset declaration.');
+  return document.replace(charset, match => match + '\n<meta http-equiv="Content-Security-Policy" content="' + policy + '">');
+}
+
 await mkdir(out,{recursive:true});
 let html=await readFile(path.join(dir,'app.html'),'utf8');
 const legacyTorrent=await readFile(path.join(dir,'vendor/webtorrent-legacy.js'),'utf8');
@@ -137,9 +152,9 @@ addEventListener('load',joinFromURL);addEventListener('hashchange',joinFromURL);
 // app; fan identity/drafts mount only after DOMContentLoaded/user activation.
 html=html.replace('<script id="same-end-browser-ui">','<script id="same-end-community">'+communityRuntime+'\n'+waitingRuntime+'</script><script id="same-end-browser-ui">');
 const management=(await readFile(path.join(dir,'manage.html'),'utf8')).replace('__SAME_END_CONFIG__',JSON.stringify(runtime).replace(/</g,'\\u003c'));
-await writeFile(path.join(out,'manage.html'),management);
+await writeFile(path.join(out,'manage.html'),secureStaticHtml(management));
 // The account callback is intentionally outside the offline service-worker shell.
-for(const file of ['fan-signin.html','fan-signin.css'])await writeFile(path.join(out,file),await readFile(path.join(dir,file)));
+for(const file of ['fan-signin.html','fan-signin.css']) { const contents=await readFile(path.join(dir,file),'utf8'); await writeFile(path.join(out,file),file.endsWith('.html')?secureStaticHtml(contents):contents); }
 await writeFile(path.join(out,'fan-signin.js'),(await transform(await readFile(path.join(dir,'fan-signin.js'),'utf8'),{loader:'js',target:browserTargets})).code);
 await writeFile(path.join(out,'manage.css'),await readFile(path.join(dir,'manage.css')));
 // Staff-only starter discussions; validated JSON, published through the authenticated staff desk.
@@ -162,6 +177,7 @@ for(const [,attributes,source] of inlineScripts){
   const result=await transform(source,{loader:'js',target:browserTargets});
   html=html.replace(source,()=>result.code);
 }
+html=secureStaticHtml(html);
 await writeFile(path.join(out,'index.html'),html);
 await writeFile(path.join(out,'watch.html'),html);
 await writeFile(path.join(out,'fixtures.json'),JSON.stringify(fixtures));

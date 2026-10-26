@@ -186,16 +186,16 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
           if (committed && equal(committed.legacyClaimHash, legacyHash)) return profile(await accountFan(principal));
           fail(409, 'legacy_identity_unavailable', 'That browser identity cannot be linked.');
         }
-      } else {
-        await limited('identities', COMMUNITY_LIMITS.identities);
       }
+      // A public browser identity must never consume capacity reserved for a verified account.
+      await limited('identities-verified', COMMUNITY_LIMITS.identities);
       const fanId = current?.id || randomUUID();
       const linked = row(`FAN#${fanId}`, current ? {...current, accountKey: principal.key} : {id: fanId, accountKey: principal.key, name, forumMember: false, status: 'active', blockedMemberIds: [], feedbackCount: 0, createdAt: now()});
       delete linked.tokenHash;
       // Account mappings and reverse bindings have no content TTL. The hash of a
       // consumed secret permits same-account retry only; it never authorizes reads.
       const mapping = {pk: PK, sk, fanId, rev: randomUUID(), createdAt: now(), ...(legacyHash && {legacyClaimHash: legacyHash})};
-      await store.transact([put(mapping), put(linked, current), ...(credential ? [{delete: true, key: {pk: PK, sk: credential.sk}, condition: cond(credential)}] : [cap('identities', COMMUNITY_LIMITS.identities)])]);
+      await store.transact([put(mapping), put(linked, current), ...(credential ? [{delete: true, key: {pk: PK, sk: credential.sk}, condition: cond(credential)}] : []), cap('identities-verified', COMMUNITY_LIMITS.identities)]);
       return profile(linked);
     });
   }
@@ -239,63 +239,124 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
     if (!active(post) || (!admin && (post.hidden || post.deleted || viewer.blockedMemberIds?.includes(post.authorId)))) fail(404, 'post_not_found', 'This post is unavailable.');
     return {parent, post};
   }
-  async function scores(prefix, maximum) { return new Map((await collection(prefix, maximum)).map(x => [x.postId, x.score || 0])); }
-  async function myVotes(viewer, prefix = '') {
-    if (!viewer || viewer.guest) return new Map();
-    return new Map((await collection(`VOTE#${viewer.id}#${prefix}`, COMMUNITY_LIMITS.votes)).filter(x => x.value === 1).map(x => [x.postId, 1]));
-  }
   function hot(row, score) {
     const hours = Math.max(0, now() - row.createdAt) / 3600000;
     return (score + (row.replyCount || 0) * 0.5 + 1) / Math.pow(hours + 2, 1.5);
   }
+  // Ordered same-table rows keep public requests independent of total forum size.
+  // Hot is a decay score captured on thread activity, rather than a live full scan.
+  const indexPrefix = (category, sort) => `TLIST#${category}#${sort}#`;
+  const desc = (n, width = 17) => (10n ** BigInt(width) - 1n - BigInt(Math.max(0, Math.round(n)))).toString().padStart(width, '0');
+  function listingKeys(current, score) {
+    if (current.hidden || current.deleted || !active(current)) return [];
+    const orders = {new: desc(current.createdAt), top: `${desc(score)}#${desc(current.replyCount || 0)}#${desc(current.createdAt)}`, hot: `${desc(hot(current, score) * 1e12)}#${desc(current.createdAt)}`};
+    return ['all', current.category].flatMap(category => SORTS.map(sort => `${indexPrefix(category, sort)}${orders[sort]}#${current.id}`));
+  }
+  async function listingChanges(current, scoreOverride) {
+    const before = await get(`TSUM#${current.id}`), score = scoreOverride ?? (await get(`TSCORE#${current.id}`))?.score ?? 0;
+    const keys = listingKeys(current, score), previous = new Set(before?.indexKeys || []), next = new Set(keys);
+    const view = {...summary(current), score};
+    const value = {pk: PK, sk: `TSUM#${current.id}`, ...view, sourceRev: current.rev, indexKeys: keys, expiresAt: current.expiresAt, rev: randomUUID()};
+    const ops = [put(value, before), ...[...previous].filter(sk => !next.has(sk)).map(sk => ({delete: true, key: {pk: PK, sk}})), ...keys.map(sk => ({put: {pk: PK, sk, id: current.id, expiresAt: current.expiresAt}}))];
+    const wasVisible = !!before?.indexKeys?.length, visible = !!keys.length;
+    for (const category of ['all', current.category]) {
+      ops.push({key: {pk: PK, sk: `TLISTMETA#${category}`}, add: {count: Number(visible) - Number(wasVisible)}, set: {latest: now()}});
+    }
+    return ops;
+  }
+  function listingCursor(value, scope, prefix) {
+    if (!value) return '';
+    if (typeof value !== 'string' || value.length > 600 || !/^[A-Za-z0-9_-]+$/.test(value)) fail(400, 'invalid_cursor', 'Refresh this list.');
+    try {
+      const decoded = JSON.parse(Buffer.from(value, 'base64url').toString());
+      if (decoded.scope !== scope || typeof decoded.after !== 'string' || !decoded.after.startsWith(prefix) || decoded.after.length > 220 || Buffer.from(JSON.stringify(decoded)).toString('base64url') !== value) throw new Error();
+      return decoded.after;
+    } catch { fail(400, 'invalid_cursor', 'Refresh this list.'); }
+  }
   async function listThreads(query, admin, viewer) {
     const category = query.category === undefined || query.category === 'all' ? undefined : one(query.category, CATEGORIES.map(x => x.id));
-    const rows = (await collection('THREAD#', COMMUNITY_LIMITS.threads)).filter(x => (!category || x.category === category) && (admin || !x.hidden && !x.deleted && !viewer.blockedMemberIds?.includes(x.authorId)));
-    const scope = `${admin ? 'admin' : viewer.id}:threads:${category || '*'}`;
-    if (query.sort === undefined) return page(rows, query.cursor, scope, summary);
-    const sort = one(query.sort, SORTS), score = await scores('TSCORE#', COMMUNITY_LIMITS.threads), votes = await myVotes(viewer);
-    const ranked = rows.map(x => ({row: x, score: score.get(x.id) || 0}));
-    const order = {
-      new: (a, b) => b.row.createdAt - a.row.createdAt,
-      top: (a, b) => b.score - a.score || (b.row.replyCount || 0) - (a.row.replyCount || 0) || b.row.createdAt - a.row.createdAt,
-      hot: (a, b) => hot(b.row, b.score) - hot(a.row, a.score) || b.row.createdAt - a.row.createdAt,
-    }[sort];
-    ranked.sort(order);
-    let offset = 0;
-    const sortedScope = `${scope}:${sort}`;
-    if (query.cursor) {
-      if (typeof query.cursor !== 'string' || query.cursor.length > 400 || !/^[A-Za-z0-9_-]+$/.test(query.cursor)) fail(400, 'invalid_cursor', 'Refresh this list.');
-      try { const decoded = JSON.parse(Buffer.from(query.cursor, 'base64url').toString()); if (decoded.scope !== sortedScope || !Number.isSafeInteger(decoded.offset) || decoded.offset < 0) throw new Error(); offset = decoded.offset; } catch { fail(400, 'invalid_cursor', 'Refresh this list.'); }
+    if (admin) {
+      const scope = `admin:threads:${category || '*'}`, after = listingCursor(query.cursor, scope, 'THREAD#');
+      const rows = await store.query(PK, {from: after ? `${after}\u0000` : 'THREAD#', to: 'THREAD#\uffff', limit: 40});
+      const items = []; let scanned = 0;
+      for (const current of rows) {
+        scanned++;
+        if (active(current) && (!category || current.category === category)) items.push(summary(current));
+        if (items.length === COMMUNITY_LIMITS.page) break;
+      }
+      const more = scanned < rows.length || rows.length === 40;
+      return {items, cursor: more && scanned ? Buffer.from(JSON.stringify({scope, after: rows[scanned - 1].sk})).toString('base64url') : null};
     }
-    const selected = ranked.slice(offset, offset + COMMUNITY_LIMITS.page), next = offset + selected.length;
-    return {
-      items: selected.map(x => ({...summary(x.row), score: x.score, myVote: votes.get(x.row.id) || 0})),
-      cursor: next < ranked.length ? Buffer.from(JSON.stringify({scope: sortedScope, offset: next})).toString('base64url') : null,
-      total: ranked.length, latest: rows.reduce((n, x) => Math.max(n, x.updatedAt || x.createdAt || 0), 0),
-    };
+    if ((await get('TLISTREADY'))?.schema !== 1) fail(503, 'forum_index_not_ready', 'The forum is being prepared. Try again shortly.');
+    const sort = query.sort === undefined ? 'new' : one(query.sort, SORTS), prefix = indexPrefix(category || 'all', sort), scope = `${viewer.id}:indexed:${category || 'all'}:${sort}`;
+    const after = listingCursor(query.cursor, scope, prefix);
+    // One fixed-size batch even when every candidate is blocked/expired. A cursor
+    // may accompany an empty page; never walk the complete index in a request.
+    const candidates = await store.query(PK, {from: after ? `${after}\u0000` : prefix, to: `${prefix}\uffff`, limit: 40});
+    const items = []; let scanned = 0;
+    for (const candidate of candidates) {
+      scanned++;
+      const current = await get(`TSUM#${candidate.id}`);
+      if (!active(current) || !current.indexKeys?.includes(candidate.sk) || current.hidden || current.deleted || viewer.blockedMemberIds?.includes(current.authorId)) continue;
+      const {pk, sk, rev, sourceRev, indexKeys, expiresAt, ...view} = current;
+      const vote = viewer.guest ? null : await get(`VOTE#${viewer.id}#${current.id}#${current.id}`);
+      items.push({...view, myVote: active(vote) && vote.value === 1 ? 1 : 0});
+      if (items.length === COMMUNITY_LIMITS.page) break;
+    }
+    const more = scanned < candidates.length || candidates.length === 40;
+    const meta = await get(`TLISTMETA#${category || 'all'}`);
+    return {items, cursor: more && scanned ? Buffer.from(JSON.stringify({scope, after: candidates[scanned - 1].sk})).toString('base64url') : null, total: meta?.count || 0, latest: meta?.latest || 0};
   }
   async function readThread(threadId, query, admin, viewer) {
-    const current = await thread(threadId, admin, viewer), all = await collection(`REPLY#${threadId}#`, COMMUNITY_LIMITS.replies);
-    if (admin) {
-      const result = page(all, query.cursor, `admin:replies:${threadId}`, postView);
-      return {thread: threadView(current), replies: result.items, cursor: result.cursor};
-    }
-    // Members and guests receive the whole bounded conversation in time order, as a tree.
-    const removed = x => x.hidden ? 'hidden' : x.deleted ? 'deleted' : viewer.blockedMemberIds?.includes(x.authorId) ? 'blocked' : null;
-    const children = new Map(); for (const x of all) { const key = x.parentId || threadId; if (!children.has(key)) children.set(key, []); children.get(key).push(x); }
-    const keep = new Map(), visit = x => { if (keep.has(x.id)) return keep.get(x.id); keep.set(x.id, false); const value = !removed(x) || (children.get(x.id) || []).some(visit); keep.set(x.id, value); return value; };
-    const score = await scores(`RSCORE#${threadId}#`, COMMUNITY_LIMITS.replies), votes = await myVotes(viewer, `${threadId}#`), threadScore = (await get(`TSCORE#${threadId}`))?.score || 0;
-    const byId = new Map(all.map(x => [x.id, x]));
-    const replies = all.filter(visit).sort((a, b) => a.createdAt - b.createdAt || (a.sk < b.sk ? -1 : 1))
-      .map(x => {
-        const reason = removed(x), view = reason ? placeholder(x, reason) : postView(x);
-        if (view.replyToName) {
-          const target = x.replyToId && byId.get(x.replyToId);
-          if (!target || removed(target)) delete view.replyToName;
+    const current = await thread(threadId, admin, viewer), prefix = `REPLY#${threadId}#`;
+    const scope = admin ? `admin:replies:${threadId}` : `${viewer.id}:reply-page:${threadId}`;
+    const after = listingCursor(query.cursor, scope, prefix);
+    const candidates = await store.query(PK, {from: after ? `${after}\u0000` : prefix, to: `${prefix}\uffff`, limit: COMMUNITY_LIMITS.page});
+    const pageReplyIds = candidates.map(x => x.id);
+    const cursor = candidates.length === COMMUNITY_LIMITS.page ? Buffer.from(JSON.stringify({scope, after: candidates.at(-1).sk})).toString('base64url') : null;
+    if (admin) return {thread: threadView(current), replies: candidates.filter(active).map(postView), cursor, pageReplyIds, replyCount: current.replyCount};
+    const removed = x => !active(x) ? 'deleted' : x.hidden ? 'hidden' : x.deleted ? 'deleted' : viewer.blockedMemberIds?.includes(x.authorId) ? 'blocked' : null;
+    const cache = new Map(candidates.map(x => [x.id, x]));
+    const find = async replyId => {
+      if (!cache.has(replyId)) cache.set(replyId, await get(`${prefix}${replyId}`));
+      return cache.get(replyId);
+    };
+    const kept = new Map(), pageIds = new Set(pageReplyIds);
+    for (const candidate of candidates) {
+      if (removed(candidate)) continue;
+      kept.set(candidate.id, candidate);
+      let parentId = candidate.parentId;
+      // Posting limits depth to four. Even malformed historical ancestry cannot
+      // cause an unbounded walk, cycle, or whole-conversation lookup here.
+      for (let depth = 0; parentId && depth < MAX_DEPTH - 1; depth++) {
+        const parent = await find(parentId);
+        if (!parent) {
+          kept.set(parentId, {id: parentId, threadId, parentId: null, depth: Math.max(1, (candidate.depth || 1) - depth - 1), createdAt: candidate.createdAt, deleted: true});
+          break;
         }
-        return {...view, score: score.get(x.id) || 0, myVote: votes.get(x.id) || 0};
-      });
-    return {thread: {...threadView(current), score: threadScore, myVote: votes.get(threadId) || 0}, replies, cursor: null};
+        kept.set(parent.id, parent);
+        parentId = parent.parentId;
+      }
+    }
+    const replies = [];
+    for (const item of [...kept.values()].sort((a, b) => a.createdAt - b.createdAt || (a.id < b.id ? -1 : 1))) {
+      const reason = removed(item);
+      if (!pageIds.has(item.id) || reason) {
+        // Ancestors supply tree structure only. Their text/names are returned
+        // when their own source page is fetched, subject to fresh privacy checks.
+        replies.push({id: item.id, threadId, parentId: item.parentId || null, depth: item.depth || 1, createdAt: item.createdAt, context: true, text: '', authorId: null, authorName: '', ...(reason && {[reason]: true})});
+        continue;
+      }
+      const view = postView(item);
+      if (view.replyToName) {
+        const target = item.replyToId && await find(item.replyToId);
+        if (!target || removed(target)) delete view.replyToName;
+      }
+      const tally = await get(`RSCORE#${threadId}#${item.id}`), vote = viewer.guest ? null : await get(`VOTE#${viewer.id}#${threadId}#${item.id}`);
+      replies.push({...view, score: active(tally) ? tally.score || 0 : 0, myVote: active(vote) && vote.value === 1 ? 1 : 0});
+    }
+    const threadScore = (await get(`TSCORE#${threadId}`))?.score || 0, threadVote = viewer.guest ? null : await get(`VOTE#${viewer.id}#${threadId}#${threadId}`);
+    return {thread: {...threadView(current), score: threadScore, myVote: active(threadVote) && threadVote.value === 1 ? 1 : 0}, replies, cursor, pageReplyIds, replyCount: current.replyCount};
   }
   async function route(method, path, query, body, token, event, ipSlot) {
     const accountRoute = path === '/member' || path.startsWith('/member/');
@@ -373,9 +434,10 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
         const index = await get(`FEEDBACKID#${recordId}`);
         if (index) fail(409, 'feedback_conflict', 'Create a new feedback item.');
         if ((current.feedbackCount || 0) >= COMMUNITY_LIMITS.feedbackPerFan) fail(429, 'feedback_limit', 'This pilot identity has reached its feedback limit.');
-        await limited('feedback', COMMUNITY_LIMITS.feedback);
-        const feedback = row(sk, {...value, status: 'received', response: '', createdAt: now(), updatedAt: now()}), updated = row(current.sk, {...current, feedbackCount: (current.feedbackCount || 0) + 1});
-        await store.transact([put(feedback), put(row(`FEEDBACKID#${recordId}`, {feedbackSk: sk})), put(updated, current), cap('feedback', COMMUNITY_LIMITS.feedback)]); return feedbackView(feedback);
+        const capacity = current.accountKey ? 'feedback-verified' : 'feedback';
+        await limited(capacity, COMMUNITY_LIMITS.feedback);
+        const feedback = row(sk, {...value, capacityPool: capacity, status: 'received', response: '', createdAt: now(), updatedAt: now()}), updated = row(current.sk, {...current, feedbackCount: (current.feedbackCount || 0) + 1});
+        await store.transact([put(feedback), put(row(`FEEDBACKID#${recordId}`, {feedbackSk: sk})), put(updated, current), cap(capacity, COMMUNITY_LIMITS.feedback)]); return feedbackView(feedback);
       });
     }
     if (path === '/threads' && method === 'POST') {
@@ -389,7 +451,7 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
         if (existing) fail(409, 'post_conflict', 'Create a new conversation.');
         await limited('threads', COMMUNITY_LIMITS.threads);
         const current = row(`THREAD#${threadId}`, {...value, authorId: currentFan.id, authorName: currentFan.name, locked: false, hidden: false, deleted: false, replyCount: 0, createdAt: now(), updatedAt: now()});
-        await store.transact([put(current), put(currentFan, currentFan), cap('threads', COMMUNITY_LIMITS.threads)]); return threadView(current);
+        await store.transact([put(current), put(currentFan, currentFan), cap('threads', COMMUNITY_LIMITS.threads), ...await listingChanges(current)]); return threadView(current);
       });
     }
     let match = path.match(/^\/threads\/([a-f0-9-]+)$/i);
@@ -413,7 +475,7 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
           else { parentId = parent.id; depth = parentDepth + 1; }
         }
         const reply = row(`REPLY#${threadId}#${replyId}`, {id: replyId, threadId, parentId, depth, ...(replyToName && {replyToName}), ...(replyToId && {replyToId}), text, authorId: currentFan.id, authorName: currentFan.name, hidden: false, deleted: false, createdAt: now()}), updated = row(current.sk, {...current, replyCount: current.replyCount + 1, updatedAt: now()});
-        await store.transact([put(reply), put(updated, current), ...(parent ? [put(parent, parent)] : []), put(currentFan, currentFan)]); return postView(reply);
+        await store.transact([put(reply), put(updated, current), ...(parent ? [put(parent, parent)] : []), put(currentFan, currentFan), ...await listingChanges(updated)]); return postView(reply);
       });
     }
     if (path === '/votes' && method === 'POST') {
@@ -421,14 +483,14 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
       if (body.value !== 0 && body.value !== 1) fail(400, 'invalid_vote', 'Choose like or remove your like.');
       return retry(async () => {
         const currentFan = await resolveViewer(true);
-        await targetPost(threadId, postId, false, currentFan);
+        const {parent: voteThread} = await targetPost(threadId, postId, false, currentFan);
         const voteSk = `VOTE#${currentFan.id}#${threadId}#${postId}`, scoreSk = postId === threadId ? `TSCORE#${threadId}` : `RSCORE#${threadId}#${postId}`;
         const vote = await get(voteSk), tally = await get(scoreSk), before = active(vote) ? vote.value : 0, score = tally?.score || 0;
         if (before === body.value) return {threadId, postId, score, myVote: before};
         if (!vote) await limited('votes', COMMUNITY_LIMITS.votes);
         const nextScore = Math.max(0, score + body.value - before);
         // Scores live beside posts, so liking never changes a post version used by author or moderator edits.
-        await store.transact([put(row(scoreSk, {postId, threadId, score: nextScore}), tally), put(row(voteSk, {postId, threadId, value: body.value}), vote), put(currentFan, currentFan), ...(vote ? [] : [cap('votes', COMMUNITY_LIMITS.votes)])]);
+        await store.transact([put(row(scoreSk, {postId, threadId, score: nextScore}), tally), put(row(voteSk, {postId, threadId, value: body.value}), vote), put(currentFan, currentFan), ...(vote ? [] : [cap('votes', COMMUNITY_LIMITS.votes)]), ...(postId === threadId ? [put(voteThread, voteThread), ...await listingChanges(voteThread, nextScore)] : [])]);
         return {threadId, postId, score: nextScore, myVote: body.value};
       });
     }
@@ -453,7 +515,7 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
         if (post.authorId !== currentFan.id) fail(403, 'post_owner_required', 'Only the author can delete this post.');
         if (post.deleted) return {ok: true};
         const updated = row(post.sk, {...post, text: '', ...(postId === threadId && {title: '[Deleted]'}), deleted: true, updatedAt: now()});
-        await store.transact([put(updated, post), put(currentFan, currentFan), ...(postId !== threadId ? [{put: parent, condition: cond(parent)}] : [])]); return {ok: true};
+        await store.transact([put(updated, post), put(currentFan, currentFan), ...(postId !== threadId ? [{put: parent, condition: cond(parent)}] : await listingChanges(updated))]); return {ok: true};
       });
     }
     if (path === '/blocks' && method === 'POST') {
@@ -498,7 +560,7 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
       return adminWrite(actor, 'thread.publish', threadId, '', async () => {
         await limited('threads', COMMUNITY_LIMITS.threads);
         const current = row(`THREAD#${threadId}`, {...value, authorId: TEAM_ID, authorName: TEAM_NAME, staff: true, locked: false, hidden: false, deleted: false, replyCount: 0, createdAt: now(), updatedAt: now()});
-        return {ops: [put(current), cap('threads', COMMUNITY_LIMITS.threads)], result: {...threadView(current), created: true}};
+        return {ops: [put(current), cap('threads', COMMUNITY_LIMITS.threads), ...await listingChanges(current)], result: {...threadView(current), created: true}};
       });
     }
     match = path.match(/^\/admin\/threads\/([a-f0-9-]+)$/i);
@@ -511,7 +573,7 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
         expected(body, post);
         if (action === 'restore' && post.deleted) fail(409, 'post_deleted', 'Author-deleted text cannot be restored.');
         const updated = row(post.sk, {...post, ...(['lock', 'unlock'].includes(action) ? {locked: action === 'lock'} : {hidden: action === 'hide'}), updatedAt: now()});
-        return {ops: [put(updated, post), ...(postId !== threadId ? [{put: parent, condition: cond(parent)}] : [])], result: {ok: true}};
+        return {ops: [put(updated, post), ...(postId !== threadId ? [{put: parent, condition: cond(parent)}] : await listingChanges(updated))], result: {ok: true}};
       });
     }
     if (path === '/admin/reports' && method === 'GET') return page(await collection('REPORT#', COMMUNITY_LIMITS.reports), query.cursor, 'admin:reports', reportView);
@@ -607,5 +669,50 @@ export function createCommunityApi({store, now = Date.now, allowedOrigins = ['ht
       return reply(503, {code: 'service_unavailable', error: 'The community service is temporarily unavailable. Try again shortly.'});
     }
   }
-  return {handler};
+  // These maintenance methods are explicit operator APIs and have no HTTP routes.
+  // Dry runs never mutate rows, counters, forum visibility, or readiness.
+  async function backfillListings({dryRun = true, paceMs = 2000} = {}) {
+    if (!Number.isSafeInteger(paceMs) || paceMs < 0 || paceMs > 10000) throw new Error('Invalid backfill pacing');
+    const threads = await collection('THREAD#', COMMUNITY_LIMITS.threads + 1);
+    if (threads.length > COMMUNITY_LIMITS.threads) throw new Error('Thread capacity exceeds supported migration bound');
+    const report = {checked: threads.length, visible: threads.filter(x => !x.hidden && !x.deleted).length, dryRun};
+    if (dryRun) return report;
+    for (const original of threads) {
+      await retry(async () => {
+        const current = await get(original.sk);
+        if (active(current)) await store.transact([put(current, current), ...await listingChanges(current)]);
+      });
+      if (paceMs) await new Promise(resolve => setTimeout(resolve, paceMs));
+    }
+    // Verify every surviving thread, including hidden/deleted ones. All application
+    // writers preserve these indexes atomically, so concurrent new writes are safe.
+    const verified = await collection('THREAD#', COMMUNITY_LIMITS.threads + 1);
+    for (const current of verified) {
+      const indexed = await get(`TSUM#${current.id}`);
+      if (!indexed || indexed.sourceRev !== current.rev || !!indexed.indexKeys.length !== (!current.hidden && !current.deleted)) throw new Error('Forum index changed during verification; rerun backfill');
+      for (const sk of indexed.indexKeys) if ((await get(sk))?.id !== current.id) throw new Error('Forum index verification failed');
+    }
+    const ready = await get('TLISTREADY');
+    await store.put({pk: PK, sk: 'TLISTREADY', schema: 1, verifiedAt: now(), checked: verified.length, rev: randomUUID()}, cond(ready));
+    return {...report, verified: verified.length, ready: true};
+  }
+  async function reconcileCapacity({dryRun = true} = {}) {
+    const names = ['identities', 'identities-verified', 'feedback', 'feedback-verified'];
+    const before = await Promise.all(names.map(name => get(`COUNT#${name}`)));
+    const fanRows = await store.query(PK, {from: 'FAN#', to: 'FAN#\uffff', limit: COMMUNITY_LIMITS.identities * 2 + 1});
+    const feedbackRows = await store.query(PK, {from: 'FEEDBACK#', to: 'FEEDBACK#\uffff', limit: COMMUNITY_LIMITS.feedback * 2 + 1});
+    // Check the unfiltered result: expired rows awaiting TTL deletion must never
+    // hide a later active record and make recovery silently undercount capacity.
+    if (fanRows.length > COMMUNITY_LIMITS.identities * 2 || feedbackRows.length > COMMUNITY_LIMITS.feedback * 2) throw new Error('Capacity recovery exceeds supported bound; wait for TTL cleanup and review');
+    const fans = fanRows.filter(active), feedback = feedbackRows.filter(active);
+    const accounts = new Set(fans.filter(x => x.accountKey).map(x => x.id));
+    const counts = {'identities': fans.filter(x => !x.accountKey).length, 'identities-verified': accounts.size, 'feedback': 0, 'feedback-verified': 0};
+    for (const record of feedback) counts[record.capacityPool || (accounts.has(record.ownerId) ? 'feedback-verified' : 'feedback')]++;
+    const report = {dryRun, before: Object.fromEntries(names.map((name, i) => [name, before[i]?.count || 0])), proposed: counts};
+    if (!dryRun) {
+      await store.transact(names.map((name, i) => ({put: {pk: PK, sk: `COUNT#${name}`, count: counts[name]}, condition: before[i] ? {attribute: 'count', equals: before[i].count} : {absent: true}})));
+    }
+    return report;
+  }
+  return {handler, backfillListings, reconcileCapacity};
 }

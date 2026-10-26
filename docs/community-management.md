@@ -78,3 +78,48 @@ Gateway claim-shape reference: the [AWS-owned REST migration sample](https://git
 ## Waiting introduction
 
 The initial buffering screen includes the previously reviewed 24-second ElevenLabs Jamie introduction, a static SVG and the script as a transcript. The original script is `assets/same-end-intro.txt`; the recording is mono AAC at 24 kbit/s, 76,381 bytes, and the build enforces a 100 KB ceiling. It is a static file outside the eager app-shell cache, requested only after Play. Hiding the guide, hiding/leaving the page, or picture readiness pauses and releases it. The newer keep-the-picture-visible recovery behavior is preserved. Staff-managed text/quiz/sponsor cards remain under optional reading; the editor accepts no arbitrary media URLs or uploads.
+
+## Alpha security migration: ordered listings and separate capacity pools
+
+Public thread lists use same-table ordered pointer rows (`TLIST#`), public summaries (`TSUM#`) and small category counts (`TLISTMETA#`). Each request examines at most 40 pointers and summaries, returns at most 20 visible summaries, and reads personal votes only for those returned summaries. No public request falls back to loading all thread bodies. New and Top have exact ordered keys. Hot stores the existing age-decay score at thread activity: creation, thread likes, replies and thread moderation refresh that thread's score. It is an activity snapshot, not a continuously recomputed wall-clock ranking. An operator backfill refreshes all Hot scores. Cursor ordering can move when threads receive activity; refresh begins a fresh view. A heavily blocked/expired batch can return an empty page with a continuation cursor. Keep following the explicit Load more cursor. Counts are category-wide and may temporarily include expired records pending maintenance; blocks affect the returned items.
+
+Thread/source versions stay unchanged by index maintenance. Index maintenance and application thread mutations commit atomically. Hidden/deleted threads have no public pointers; moderator source access remains available. Staff thread lists also examine a fixed 40-source batch rather than scanning every source row. A missing `TLISTREADY` schema-1 marker returns `503 forum_index_not_ready` for public lists until the operator completes verified backfill. Local development and the isolated account fixture explicitly bootstrap their own local index; Lambda never runs maintenance automatically.
+
+Unsigned browser identities retain the bounded existing `COUNT#identities` / `COUNT#feedback` pools. Verified profiles and new verified feedback use independent `COUNT#identities-verified` / `COUNT#feedback-verified` pools, each bounded at 1,000. Claiming a legacy identity preserves its ID, suspension, feedback receipts and credentials rules while allocating verified capacity. Existing legacy feedback remains in its original pool when its stored capacity marker says so. This split prevents unsigned traffic from exhausting verified capacity. Per-fan feedback remains bounded at 30. Public routes cannot reset capacity.
+
+Before making the deployment publicly available, the AWS operator must perform this explicit migration using the deployed matching source and the correct existing table, with authorised table credentials:
+
+```js
+import {DynamoDBStore} from './store.mjs';
+import {createCommunityApi} from './community-api.mjs';
+if (!process.env.TABLE_NAME) throw new Error('Choose the existing table explicitly');
+const maintenance = createCommunityApi({store: new DynamoDBStore(process.env.TABLE_NAME)});
+// Read-only by default. Output counts only; never print source rows or credentials.
+console.log(await maintenance.reconcileCapacity());
+console.log(await maintenance.backfillListings());
+```
+
+Review those counts against the intended pilot inventory. Then, in the same operator-owned context, explicitly apply:
+
+```js
+console.log(await maintenance.reconcileCapacity({dryRun: false}));
+console.log(await maintenance.backfillListings({dryRun: false}));
+```
+
+Capacity reconciliation accounts for existing account-bound profiles and old feedback before allocating the new verified pools. It conditionally replaces all four counters together, rejecting concurrent allocations rather than overwriting them. It does not remove or update users, suspensions, feedback, post text, source versions, content retention or settings. Expired records can be excluded from recovered capacity, but are not deleted. It fails closed if unfiltered record counts exceed its supported 2,000-record bound; review/wait for ordinary TTL cleanup instead of accepting a partial count. Review and rerun after a conflict; do not force a counter write.
+
+Backfill rereads each source and uses conditional transactions, checks every surviving source and pointer, then writes readiness only after verification. It is safe to rerun after interruption. The default two-second pause between source transactions limits migration pressure on the shared pilot table; do not set `paceMs: 0` against production. A verification conflict leaves initial readiness unset; rerun after reviewing the conflict. There is no HTTP maintenance route.
+
+After apply, verify guest New/Top/Hot and every category, existing discussions across successive pages, hidden-content exclusion, member blocks, likes/replies/moderation, own feedback history and staff source views. Confirm `reconcileCapacity()` reports the applied values, and record only counts and IDs needed for acceptance. Deployment, successful migration, public gateway checks and device acceptance are separate outcomes.
+
+### Bounded reply pages
+
+Guest, member and staff thread reads now query 20 reply source rows at a time using a cursor tied to the thread and viewer scope. Pages follow stable reply-ID order; each returned page's visible replies are arranged by creation time. The 500-reply source cap and existing source content are unchanged. `pageReplyIds` lists the raw source IDs examined, including removed rows; `replyCount` retains the source thread count. A full 20-row batch provides a continuation cursor, so an exact multiple may require one final empty page. Hidden/expired-only batches can also be empty with a cursor. No reply, score or vote collection is scanned in full for a thread read.
+
+To retain the tree across pages, a member/guest response may include up to three ancestor placeholders per visible source reply, at most 60 ancestor source reads for a 20-row page. These ancestors have `context: true`, structural IDs/depth/time, empty text and names, and no author ID. Hidden/deleted/blocked flags survive redaction. The ancestor's complete visible text is available when its own source page is loaded. Flattened reply-to names receive a separate bounded privacy check. Scores and personal votes use targeted reads only for the page's visible source replies, plus the thread itself. Context rows carry no score or personal vote.
+
+Clients merge pages by reply ID, replace a context row when its own visible source page arrives, and retain all previously loaded source pages. A refreshed page uses `pageReplyIds` to remove text that is now omitted/redacted. A hidden/deleted/blocked context row must replace any previously loaded author/text immediately. The public client revalidates one loaded page per polling interval in rotation, so a large discussion does not multiply background request load. Moderation changes on older loaded pages appear when their page is next revalidated. If a refreshed page boundary changes, the public client discards later cached pages and follows the new continuation so lexical inserts cannot leave a gap. Authoritative thread-not-found/forum-closed responses clear the cached view immediately. Refresh discussion immediately discards the accumulated pages and loads a fresh first page. Any client must refresh all loaded page cursors before treating its entire accumulated view as current; refreshing only the first page does not refresh moderation on older pages. Reply sorting over an incomplete loaded set must clearly state that scope, and Load more must remain available until the cursor is absent. Thread counts include removed source rows and need not equal visible comment counts.
+
+These bounded operations reduce request amplification; they do not establish sustained public-load resilience. The shared pilot table remains capped at 100 read units/second and 50 write units/second, with five Lambda invocations and an API stage configured for 20 requests/second. Community application limits are 3,000 requests/minute globally and 300/minute per daily network shard, using 64 fixed shards. These are abuse/cost boundaries, not a promise that expensive reply pages can sustain those rates. Ancestor reads still consume capacity on the shared table. Monitor throttling and separately validate a permitted real pilot workload before expanding capacity or audience.
+
+The local operator wrapper is `backend/maintain-community.mjs` (excluded from the application bundle). It requires an explicit AWS region, `TABLE_NAME`, and an identical `--table` argument. Run with no `--apply` for a dry run; add `--apply` only for the reviewed mutation. It reserves a new private report before mutation, snapshots thread source IDs/versions/hashes before and after each apply phase, and fails for review if any source changes. Standard output contains status/counts and the private report path; it never prints source text, identities or feedback. Production backfill pacing is fixed at 2,000 ms per thread. An interrupted apply may have safely committed capacity/index work; inspect its private report and rerun rather than forcing readiness or overwriting counters.
