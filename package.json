@@ -8,7 +8,7 @@
   "scripts": {
     "start": "node serve.mjs",
     "build": "node build-pwa.mjs",
-    "test": "node --test tests/local-test-tls.test.mjs tests/native-mp4.test.mjs tests/capture-startup.test.mjs tests/persistent-room-engine.test.mjs tests/backup-protocol.test.mjs tests/magnet-recovery.test.mjs tests/magnet-discovery.test.mjs tests/pwa-shell.test.mjs tests/media-player.test.mjs tests/source-audio.test.mjs tests/delivery-health.test.mjs tests/client-delivery.test.mjs tests/initial-delay.test.mjs tests/common-start.test.mjs tests/common-start-engine.test.mjs tests/delivery-engine.test.mjs tests/diagnostics-core.test.mjs tests/rehearsal-metrics.test.mjs tests/invite-report.test.mjs tests/room-status.test.mjs tests/adaptive-playout.test.mjs backend/test/control.test.mjs tests/fixture-feed.test.mjs tests/reader-core.test.mjs tests/reader-worker.test.mjs tests/legacy-browser.test.mjs tests/hls-protocol.test.mjs tests/hls-loader.test.mjs tests/hls-worker.test.mjs tests/waiting-core.test.mjs tests/waiting-audio.test.mjs tests/community-polling.test.mjs backend/test/community.test.mjs backend/test/community-infrastructure.test.mjs backend/test/local-file-store.test.mjs backend/test/staff-mfa.test.mjs backend/test/staff-roundtrip.test.mjs backend/test/alpha-security.test.mjs tests/transport-security.test.mjs",
+    "test": "node --test tests/local-test-tls.test.mjs tests/native-mp4.test.mjs tests/capture-startup.test.mjs tests/persistent-room-engine.test.mjs tests/backup-protocol.test.mjs tests/magnet-recovery.test.mjs tests/magnet-discovery.test.mjs tests/pwa-shell.test.mjs tests/media-player.test.mjs tests/source-audio.test.mjs tests/delivery-health.test.mjs tests/client-delivery.test.mjs tests/initial-delay.test.mjs tests/common-start.test.mjs tests/common-start-engine.test.mjs tests/delivery-engine.test.mjs tests/diagnostics-core.test.mjs tests/rehearsal-metrics.test.mjs tests/invite-report.test.mjs tests/room-status.test.mjs tests/adaptive-playout.test.mjs backend/test/control.test.mjs tests/fixture-feed.test.mjs tests/reader-core.test.mjs tests/reader-worker.test.mjs tests/legacy-browser.test.mjs tests/hls-protocol.test.mjs tests/hls-loader.test.mjs tests/hls-worker.test.mjs tests/waiting-core.test.mjs tests/waiting-audio.test.mjs tests/community-polling.test.mjs backend/test/community.test.mjs backend/test/community-infrastructure.test.mjs backend/test/local-file-store.test.mjs backend/test/staff-mfa.test.mjs backend/test/staff-roundtrip.test.mjs backend/test/alpha-security.test.mjs tests/transport-security.test.mjs tests/analytics-core.test.mjs backend/test/analytics.test.mjs",
     "test:social": "node tests/social-browser.test.mjs",
     "refresh:fixtures": "node scripts/update-fixtures.mjs",
     "build:vendor": "node scripts/build-vendor.mjs",
@@ -55,7 +55,8 @@
     "test:layout": "node tests/responsive-layout-browser.test.mjs",
     "test:alpha-security": "node --test tests/alpha-browser-security.test.mjs tests/static-security.test.mjs",
     "test:community-pagination": "node tests/community-pagination-browser.test.mjs",
-    "test:install": "node tests/install-browser.test.mjs"
+    "test:install": "node tests/install-browser.test.mjs",
+    "test:privacy": "node tests/privacy-browser.test.mjs"
   },
   "engines": {
     "node": ">=20"

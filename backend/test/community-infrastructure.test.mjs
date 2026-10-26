@@ -136,8 +136,13 @@ test('fan and staff preflight bypass JWT only for OPTIONS on their exact base an
     assert.deepEqual(protectedRoute.AuthorizationScopes, protectedName.startsWith('Fan') ? [FAN_SCOPE] : undefined);
   }
   const explicitlyUnauthenticated = Object.values(r).filter(resource => resource.Type === 'AWS::ApiGatewayV2::Route' && resource.Properties.AuthorizationType === 'NONE');
-  assert.equal(explicitlyUnauthenticated.length, 4);
-  assert.ok(explicitlyUnauthenticated.every(resource => resource.Properties.RouteKey.startsWith('OPTIONS ')), 'no application method may bypass JWT');
+  assert.equal(explicitlyUnauthenticated.length, 5);
+  const publicAnalytics = r.AnalyticsEventsRoute.Properties;
+  assert.equal(publicAnalytics.RouteKey, 'POST /v1/analytics/events');
+  assert.equal(publicAnalytics.AuthorizationType, 'NONE');
+  assert.equal(publicAnalytics.AuthorizerId, undefined); assert.equal(publicAnalytics.AuthorizationScopes, undefined);
+  assert.deepEqual(publicAnalytics.ApiId, {Ref: 'Api'}); assert.deepEqual(publicAnalytics.Target, r.Route.Properties.Target);
+  assert.ok(explicitlyUnauthenticated.filter(resource => !resource.Properties.RouteKey.startsWith('OPTIONS ')).every(resource => resource.Properties.RouteKey === 'POST /v1/analytics/events' && resource.Properties.AuthorizationType === 'NONE'), 'only the explicit analytics event route bypasses JWT');
   assert.deepEqual(r.Route, template.Resources.Route, 'public private-room routes remain unchanged');
 });
 
@@ -185,7 +190,7 @@ test('ID token presentation rejects wrong purpose, issuer, audience, nonce, expi
   assert.deepEqual(inspectIdToken(jwt(claims), auth, transaction.nonce, now).groups, ['sameend-support']);
   for (const changes of [{token_use: 'access'}, {iss: 'https://evil.example'}, {aud: 'another-client'}, {nonce: 'wrong'}, {exp: now / 1000 - 1}, {iat: now / 1000 + 100}, {'cognito:groups': ['sameend-fan']}]) assert.throws(() => inspectIdToken(jwt({...claims, ...changes}), auth, transaction.nonce, now));
   assert.throws(() => inspectIdToken('not.a.token', auth, transaction.nonce, now));
-  assert.deepEqual(allowedPanels(['sameend-support']), ['feedback']); assert.deepEqual(allowedPanels(['sameend-editor']), ['content']); assert.equal(allowedPanels(['sameend-admin']).length, 7); assert.deepEqual(allowedPanels([]), []);
+  assert.deepEqual(allowedPanels(['sameend-support']), ['feedback']); assert.deepEqual(allowedPanels(['sameend-editor']), ['content']); assert.deepEqual(allowedPanels(['sameend-moderator']), ['forum', 'reports', 'members']); assert.equal(allowedPanels(['sameend-admin']).length, 8); assert.deepEqual(allowedPanels([]), []);
 });
 
 test('OAuth callback parameters are scrubbed before their values can be used', () => {

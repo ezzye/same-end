@@ -3,7 +3,7 @@
 import {checkStaffMfa,createStaffMfa} from './staff-mfa.js';
 export const PKCE_KEY = 'sameend.staff.pkce.v1';
 export const STAFF_ROLES = ['sameend-admin', 'sameend-support', 'sameend-moderator', 'sameend-editor'];
-const PANELS = {feedback: ['Feedback', 'sameend-support'], forum: ['Forum', 'sameend-moderator'], reports: ['Reports', 'sameend-moderator'], members: ['Members', 'sameend-moderator'], content: ['Waiting content', 'sameend-editor'], settings: ['Settings', 'sameend-admin'], audit: ['Audit trail', 'sameend-admin']};
+const PANELS = {feedback: ['Feedback', 'sameend-support'], forum: ['Forum', 'sameend-moderator'], reports: ['Reports', 'sameend-moderator'], members: ['Members', 'sameend-moderator'], content: ['Waiting content', 'sameend-editor'], settings: ['Settings', 'sameend-admin'], audit: ['Audit trail', 'sameend-admin'], analytics: ['Analytics', 'sameend-admin']};
 export function isLoopback(hostname) { return ['localhost', '127.0.0.1', '[::1]', '::1'].includes(hostname); }
 export function allowedPanels(groups) { return Object.keys(PANELS).filter(key => groups.includes('sameend-admin') || groups.includes(PANELS[key][1])); }
 export function base64url(bytes) { return btoa(String.fromCharCode(...new Uint8Array(bytes))).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', ''); }
@@ -152,7 +152,7 @@ async function boot() {
     section = key; const thisEpoch = ++epoch; message(); $('section-title').textContent = PANELS[key][0]; $('panel').replaceChildren(node('p', 'Loading…', 'muted'));
     document.querySelectorAll('#sections button').forEach(control => control.setAttribute('aria-current', String(control.dataset.section === key)));
     const container = node('div'); $('panel').replaceChildren(container);
-    try { await ({feedback, forum, reports, members, content, settings, audit}[key])(container, thisEpoch); } catch (error) { if (thisEpoch === epoch) { container.replaceChildren(node('p', 'This section could not load. Use Refresh to try again.', 'empty')); throw error; } }
+    try { await ({feedback, forum, reports, members, content, settings, audit, analytics}[key])(container, thisEpoch); } catch (error) { if (thisEpoch === epoch) { container.replaceChildren(node('p', 'This section could not load. Use Refresh to try again.', 'empty')); throw error; } }
   }
   async function listing(container, path, render, scopeEpoch, query = '') {
     const cards = node('div', undefined, 'cards'); container.append(cards); let cursor; let loaded = false;
@@ -309,6 +309,34 @@ async function boot() {
     const code = field('Set or rotate pilot joining code', 'input', '', {type: 'password', autoComplete: 'new-password', maxLength: 128, placeholder: 'Leave blank to keep the current code'});
     el.append(node('h2', 'Forum pilot'), node('p', item.hasJoinCode ? 'A joining code is configured. It cannot be retrieved here.' : 'Set a joining code before enabling the forum.', 'muted'), enabled.wrapper, code.wrapper, node('p', 'Rotating the joining code affects future joins. Existing members keep their membership.', 'muted'));
     const save = node('button', 'Save settings'); el.append(save); el.addEventListener('submit', event => { event.preventDefault(); run(save, async () => { const body = {forumEnabled: enabled.input.checked, expectedVersion: version(item)}; if (code.input.value.trim()) body.joinCode = code.input.value.trim(); await request('/admin/settings', {method: 'POST', body}); code.input.value = ''; await show('settings'); message('Forum settings saved. Share any new pilot code privately with intended members.'); }); }); container.append(el);
+  }
+  async function analytics(container, scopeEpoch) {
+    const intro = node('p', 'Optional, opted-in activity counts. These are actions and page loads, not unique people or a complete measure of all usage. No room, viewer or chat details are recorded.', 'muted');
+    const period = selectField('Period', [['7', 'Last 7 days'], ['30', 'Last 30 days'], ['90', 'Last 90 days']], '7');
+    const results = node('div', undefined, 'analytics-results');
+    container.append(intro, period.wrapper, results);
+    let revision = 0;
+    async function load() {
+      const thisRevision = ++revision;
+      results.replaceChildren(node('p', 'Loading daily totals…', 'muted'));
+      try {
+        const data = await request('/admin/analytics?days=' + period.input.value);
+        if (scopeEpoch !== epoch || thisRevision !== revision) return;
+        const rows = Array.isArray(data.days) ? data.days : [];
+        const metrics = [['page_view', 'Page loads'], ['share_started', 'Sharing starts'], ['invitation_copied', 'Room invitation copies']];
+        const totals = metrics.map(([key]) => rows.reduce((sum, row) => sum + (Number.isSafeInteger(row[key]) && row[key] >= 0 ? row[key] : 0), 0));
+        const summary = node('p', metrics.map(([, label], i) => label + ': ' + totals[i].toLocaleString()).join(' · '), 'analytics-summary');
+        const table = node('table'); table.className = 'analytics-table';
+        const caption = node('caption', 'Daily opted-in activity · UTC'); table.append(caption);
+        const head = node('thead'), header = node('tr');
+        ['Day (UTC)', ...metrics.map(([, label]) => label)].forEach(label => { const th = node('th', label); th.scope = 'col'; header.append(th); }); head.append(header); table.append(head);
+        const body = node('tbody');
+        for (const row of rows) { const tr = node('tr'); tr.append(node('td', row.day)); for (const [key] of metrics) tr.append(node('td', Number.isSafeInteger(row[key]) && row[key] >= 0 ? row[key].toLocaleString() : '0')); body.append(tr); }
+        table.append(body); const wrapper = node('div', undefined, 'analytics-scroll'); wrapper.append(table);
+        results.replaceChildren(summary, ...(totals.every(value => value === 0) ? [node('p', 'No opted-in activity has been recorded for this period.', 'empty')] : []), wrapper, node('p', 'Daily totals expire after 90 days; expired records are excluded. Refused visits, blocked requests and repeated actions limited by abuse controls are not included. No visitor IDs or journey stitching are used.', 'muted'));
+      } catch (error) { if (scopeEpoch === epoch && thisRevision === revision) results.replaceChildren(node('p', error.message || 'Analytics could not load. Use Refresh to retry.', 'empty')); }
+    }
+    period.input.addEventListener('change', load); await load();
   }
   async function audit(container, scopeEpoch) {
     container.append(node('p', 'Staff actions, targets and times. Credentials, feedback text and private room details do not belong in this log.', 'muted'));

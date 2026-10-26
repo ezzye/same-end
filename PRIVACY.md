@@ -2,7 +2,19 @@
 
 Same End is owned by **Unsigned Media Ltd**.
 
-Same End is designed for small groups with private invitations. It has no public room directory or in-app analytics. The static website and source code are public. Clubs and chat use a separate control service; video travels between the group's peers.
+Same End is designed for small groups with private invitations. It has no public room directory. Optional first-party analytics are off unless a visitor opts in. The static website and source code are public. Clubs and chat use a separate control service; video travels between the group's peers.
+
+## Browser storage and optional analytics
+
+The core room/chat app does not set cookies. It uses browser storage for saved access and settings, and an offline app-shell cache. Account sign-in is separate: the hosted sign-in provider may retain a session cookie. Declining optional analytics does not block rooms, chat or account features.
+
+The **Privacy choices** banner offers equally prominent **Allow analytics** and **No thanks** controls. No analytics request is sent until a valid opt-in is present. The browser stores this purpose-specific choice for 180 days; an expired, missing or unavailable choice keeps analytics off. The same **Privacy choices** control lets a visitor withdraw or change it. Withdrawal stops new requests in open tabs; already delivered daily totals cannot be attributed back to a visitor and removed individually. If a browser cannot save the choice, analytics stay off.
+
+With permission, the app sends only a fixed event name: page load, successful sharing start, or room-invitation copy. There are no visitor IDs, per-person histories, names, room/club identifiers, invitations, source URLs, query strings, fragments, chat, account tokens, referrers or device details in the analytics payload. Saved file copies do not send analytics. Declined activity is not queued or replayed after permission changes. There is no advertising, cross-site tracking or third-party analytics script.
+
+The existing AWS-hosted control service combines accepted events immediately into daily UTC action counts and expires the totals after 90 days, with expiry checks excluding them from reports. Database TTL cleanup is eventual and existing backup retention also applies. It stores no individual event log. Only administrators can read a 7-, 30- or 90-day summary. These are opted-in action counts, not unique people, reliable conversion journeys or a complete count of all visits. Network failures, blocked requests and abuse caps can lower the totals.
+
+As with normal service requests, infrastructure receives network metadata. Separate security counters use a daily hash of the network address with an expiry at the following UTC day plus one hour; they cap submissions and are not added to the analytics totals as identities. The service has a finite daily event cap. No new provider, analytics account or public telemetry stream is introduced.
 
 ## Invitations and control
 
