@@ -25,7 +25,7 @@ let api=startAPI();const web=spawn(process.execPath,['serve.mjs'],{cwd:root,env:
 async function waitServer(){for(let i=0;i<120;i++){try{const r=await fetch(apiOrigin+'/v1/community/config');if(r.ok)return;}catch{}await new Promise(r=>setTimeout(r,50));}throw Error('Local community API did not start.');}
 async function stop(child){if(child.exitCode!==null)return;const done=new Promise(resolve=>child.once('exit',resolve));child.kill('SIGTERM');await done;}
 const external=[],errors=[],threadReads=[];let browser;
-const threadId=randomUUID(),rootId='00000000-0000-4000-8000-000000000099',nestedId='00000000-0000-4000-8000-000000000001',topLevelIds=[];
+const threadId=randomUUID(),otherThreadId=randomUUID(),rootId='00000000-0000-4000-8000-000000000099',nestedId='00000000-0000-4000-8000-000000000001',topLevelIds=[];
 const marker=i=>`Pagination fixture reply ${String(i).padStart(2,'0')}`;
 async function request(pathname,{method='GET',body}={}){const response=await fetch(apiOrigin+'/v1/community/member'+pathname,{method,headers:{authorization:'Bearer fixture-account-alice','content-type':'application/json',origin},...(body?{body:JSON.stringify(body)}:{})});let json;try{json=await response.json()}catch{}assert.ok(response.ok,`${method} ${pathname} failed (${response.status} ${json?.code||'no code'})`);return json;}
 async function seen(page,locator){await locator.waitFor({state:'visible',timeout:10000});}
@@ -46,6 +46,7 @@ try{
  // Join through the browser, then seed the actual API with an ordered 45-reply thread.
  await page.goto(origin+'/');await join(page);
  await request('/threads',{method:'POST',body:{id:threadId,category:'general',title:'Forty-five reply pagination fixture',text:'A private local thread for page and merge checks.',spoiler:false}});
+ await request('/threads',{method:'POST',body:{id:otherThreadId,category:'general',title:'Second held-reply target thread',text:'A second private thread for the navigation race check.',spoiler:false}});
  // Seed source rows while the local API is stopped: its real per-fan write cap
  // is 20/minute, while this read fixture deliberately needs 45 source rows.
  await stop(api);let fixtureStore=await LocalFileStore.open(apiEnv.SAME_END_LOCAL_STATE_FILE);
@@ -81,7 +82,14 @@ try{
  const deletedId=topLevelIds[0],deletedText=marker(2);assert.ok(domIds.includes(deletedId));await request('/posts/delete',{method:'POST',body:{threadId,postId:deletedId,expectedVersion:1}});
  await page.getByRole('button',{name:'Refresh discussion',exact:true}).click();await waitThreadReadCount(4);const refreshed=threadReads[3];assert.ok(refreshed.pageReplyIds.includes(deletedId),'refresh should still account for the source row examined');assert.ok(!refreshed.replies.some(r=>r.id===deletedId&&!r.context),'deleted leaf must be omitted from refreshed visible rows');
  await page.waitForFunction(id=>!document.getElementById('ff-c-'+id),deletedId);assert.equal(await page.getByText(deletedText,{exact:true}).count(),0,'refetch removes the previously loaded deleted reply text');assert.equal(await page.getByText(marker(44),{exact:true}).count(),0,'reset to first page drops rows from old later pages');assert.equal(await page.getByRole('button',{name:'Load more comments',exact:true}).count(),1,'refetched first page retains its continuation');
+ // Hold A's real reply request, navigate to B, then release the response.
+ const delayedText='Delayed reply from A must not appear in B.';let releaseReply,heldRequestResolve;const releaseGate=new Promise(resolve=>releaseReply=resolve),heldRequest=new Promise(resolve=>heldRequestResolve=resolve);
+ await page.route(`**/api/v1/community/member/threads/${threadId}/replies`,async route=>{if(route.request().method()==='POST'&&route.request().postData()?.includes(delayedText)){heldRequestResolve();await releaseGate;}return route.continue();});
+ await page.locator('#ff-comment-box').fill(delayedText);await page.getByRole('button',{name:'Comment',exact:true}).click();await heldRequest;
+ await page.getByRole('button',{name:'All discussions',exact:true}).click();await page.getByRole('button',{name:/Second held-reply target thread/}).click();await seen(page,page.getByRole('heading',{name:'Second held-reply target thread',exact:true}));assert.equal(await page.getByText(delayedText,{exact:true}).count(),0);
+ const sentReply=page.waitForResponse(response=>response.request().method()==='POST'&&new URL(response.url()).pathname.endsWith(`/threads/${threadId}/replies`),{timeout:15000});releaseReply();assert.ok((await sentReply).ok());await page.waitForTimeout(100);assert.equal(await page.getByText(delayedText,{exact:true}).count(),0,'late A response must not add A reply to B');assert.equal(await page.locator('#ff-comments .ff-c').count(),0,'B retains its own empty comment list');assert.equal((await request(`/threads/${threadId}`)).replyCount,46,'the held response still commits to A on the server');
+ await page.getByRole('button',{name:'All discussions',exact:true}).click();const beforeReopen=threadReads.length;await page.getByRole('button',{name:/Forty-five reply pagination fixture/}).click();await waitThreadReadCount(beforeReopen+1);await seen(page,page.getByRole('heading',{name:'Forty-five reply pagination fixture',exact:true}));
  await page.route(`**/api/v1/community/member/threads/${threadId}*`,route=>route.request().method()==='GET'?route.fulfill({status:404,contentType:'application/json',body:JSON.stringify({code:'thread_not_found'})}):route.continue());
  await page.getByRole('button',{name:'Refresh discussion',exact:true}).click();await seen(page,page.getByText('This discussion is no longer available.',{exact:true}));assert.equal(await rowIds(page).count(),0,'authoritative thread_not_found clears all previously loaded reply pages');
- assert.deepEqual(errors,[]);assert.deepEqual(external,[]);console.log('PASS: three bounded reply pages; unique source IDs; generic no-action context; context replaced by full ancestor row; refresh drops deleted and prior-page content.');
+ assert.deepEqual(errors,[]);assert.deepEqual(external,[]);console.log('PASS: three bounded reply pages; unique IDs; context merges to full row; reset removes stale data; thread_not_found clears cache; late reply response stays with origin thread.');
 } finally {await browser?.close();await stop(api);await stop(web);await rm(temp,{recursive:true,force:true});}
