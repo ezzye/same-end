@@ -108,6 +108,8 @@ node --test tests/backup-protocol.test.mjs tests/magnet-recovery.test.mjs
 
 The installed PWA can reopen its app shell offline. Live clubs, chat, reminders, joining and incoming video still need connectivity and available services or peers.
 
+On phones and tablets, **Install** in the header opens the available Android browser prompt or concise installation instructions. In Safari on iPhone/iPad, use Share → Add to Home Screen → Add (leave Open as Web App on when shown). In Android Chrome, use Install app or Add to Home screen from the browser menu if no prompt is offered. Installation is optional; phones watch and chat, while computers share tabs. Keep the original private invitation: the installed app’s fixed start page does not embed a room key. Already-installed app windows hide the header Install button. Run `npm run test:install` for the isolated Chromium/WebKit UI checks; native installation acceptance is separate.
+
 ## Keep the circle private
 
 Member and room invitations are bearer links: anyone with one can forward it. There is no per-person admission, approval or revocation list. Ending and replacing a room rotates that room's access; it does not revoke the separate club invitation. To replace club access, create a new club and share it with the intended people. **Forget club on this browser** removes local saved access, not other members or server records.

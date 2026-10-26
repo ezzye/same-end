@@ -54,7 +54,8 @@
     "test:accounts": "node tests/fan-auth-browser.test.mjs && node tests/community-browser.test.mjs",
     "test:layout": "node tests/responsive-layout-browser.test.mjs",
     "test:alpha-security": "node --test tests/alpha-browser-security.test.mjs tests/static-security.test.mjs",
-    "test:community-pagination": "node tests/community-pagination-browser.test.mjs"
+    "test:community-pagination": "node tests/community-pagination-browser.test.mjs",
+    "test:install": "node tests/install-browser.test.mjs"
   },
   "engines": {
     "node": ">=20"
