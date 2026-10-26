@@ -276,16 +276,52 @@
       .finally(() => { state.list.loading = false; updateSummary(); if (state.ui.open && !state.thread) render(); if (state.ui.open) markSeen(); });
   }
   function openThread(id, keepScroll) {
-    state.thread = { id, data: null, loading: true, collapsed: new Set(), expanded: new Set(), shown: TOP_PREVIEW };
+    state.thread = { id, data: null, pages: [], optimistic: new Map(), deferred: new Set(), generation: 0, pollPage: 0, loading: true, collapsed: new Set(), expanded: new Set(), shown: TOP_PREVIEW };
     state.replyTo = null; state.pending = 0; state.menuFor = null; render();
     if (!keepScroll) $('fan-forum').scrollIntoView({ behavior: 'smooth', block: 'start' });
     return loadThread();
   }
+  function threadQuery(t, cursor) { return '/threads/' + encodeURIComponent(t.id) + (cursor ? '?cursor=' + encodeURIComponent(cursor) : ''); }
+  function mergeThread(t, thread) {
+    const full = new Map(), context = new Map(), removed = new Set();
+    for (const page of t.pages) {
+      const returned = new Set((page.data.replies || []).filter(r => !r.context).map(r => r.id));
+      for (const id of page.data.pageReplyIds || []) if (!returned.has(id)) removed.add(id);
+      for (const r of page.data.replies || []) {
+        if (r.context) { context.set(r.id, r); if (r.hidden || r.deleted || r.blocked) removed.add(r.id); }
+        else full.set(r.id, r);
+      }
+    }
+    for (const [id, r] of t.optimistic) if (!full.has(id)) full.set(id, r);
+    for (const id of removed) { full.delete(id); t.optimistic.delete(id); }
+    const replies = new Map(context);
+    for (const [id, r] of full) if (!t.deferred.has(id)) replies.set(id, r);
+    t.data = { thread: thread || t.data.thread, replies: [...replies.values()], cursor: t.pages.at(-1)?.data.cursor || null,
+      replyCount: (thread || t.data.thread).replyCount || 0 };
+  }
+  function threadFailure(t, error) {
+    if (error.code === 'forum_closed') state.closed = true;
+    if (error.code === 'thread_not_found' || error.code === 'forum_closed') {
+      t.data = null; t.pages = []; t.optimistic.clear(); t.deferred.clear(); state.pending = 0;
+    }
+    t.error = error.message;
+  }
   function loadThread() {
     const t = state.thread; if (!t) return Promise.resolve();
-    return read('/threads/' + encodeURIComponent(t.id)).then(data => { if (state.thread === t) { t.data = data; t.next = null; t.loading = false; t.error = ''; state.pending = 0; } })
-      .catch(e => { if (state.thread === t) { t.loading = false; t.error = e.message; } })
-      .finally(() => { if (state.thread === t) render(); });
+    const generation = ++t.generation; t.loading = true; t.loadingMore = false;
+    return read(threadQuery(t)).then(data => { if (state.thread === t && generation === t.generation) {
+      t.pages = [{cursor: null, data}]; t.optimistic.clear(); t.deferred.clear(); t.pollPage = 0;
+      mergeThread(t, data.thread); t.loading = false; t.error = ''; state.pending = 0;
+    } }).catch(e => { if (state.thread === t && generation === t.generation) { t.loading = false; threadFailure(t, e); } })
+      .finally(() => { if (state.thread === t && generation === t.generation) render(); });
+  }
+  function moreComments() {
+    const t = state.thread; if (!t || !t.data?.cursor || t.loading || t.loadingMore) return;
+    const cursor = t.data.cursor, generation = t.generation; t.loadingMore = true; t.error = ''; render();
+    return read(threadQuery(t, cursor)).then(data => { if (state.thread === t && generation === t.generation && t.data?.cursor === cursor) {
+      t.pages.push({cursor, data}); mergeThread(t, data.thread); t.shown = Math.max(t.shown, t.data.replies.length);
+    } }).catch(e => { if (state.thread === t && generation === t.generation) threadFailure(t, e); })
+      .finally(() => { if (state.thread === t && generation === t.generation) { t.loadingMore = false; render(); } });
   }
 
   // ---------- auto-refresh: only while the section is open and the page is visible ----------
@@ -294,16 +330,20 @@
     clearTimeout(state.timer); if (!state.ui.open || !state.inView || document.hidden) return;
     const t = state.thread, mine = id => member() && id === state.me.id;
     let check = Promise.resolve();
-    if (t && t.data) check = read('/threads/' + encodeURIComponent(t.id)).then(data => {
-      if (state.thread !== t || !t.data) return;
-      const known = new Set(t.data.replies.map(r => r.id)), fresh = (data.replies || []).filter(r => !known.has(r.id) && !mine(r.authorId)).length;
-      // Like counts refresh quietly; new comments wait until the reader asks for them.
-      const scores = new Map((data.replies || []).map(r => [r.id, r.score]));
-      for (const r of t.data.replies) if (scores.has(r.id)) r.score = scores.get(r.id);
-      t.data.thread.score = data.thread.score; t.data.thread.replyCount = data.thread.replyCount;
-      if (fresh) { state.pending = fresh; t.next = data; }
-      updateScores(); updateLive();
-    });
+    if (t && t.data && !t.loading && !t.loadingMore && !t.polling) {
+      // Revalidate one loaded page per interval, keeping request cost bounded.
+      const pageIndex = t.pollPage++ % t.pages.length, generation = t.generation, pageSnapshot = t.pages[pageIndex]; t.polling = true;
+      check = read(threadQuery(t, pageSnapshot.cursor)).then(data => {
+        if (state.thread !== t || generation !== t.generation || t.pages[pageIndex] !== pageSnapshot) return;
+        const known = new Set(t.data.replies.map(r => r.id));
+        for (const r of data.replies || []) if (!r.context && !known.has(r.id) && !mine(r.authorId)) t.deferred.add(r.id);
+        // A newly inserted reply can shift the page boundary. Rebase the
+        // continuation chain so no old boundary permanently skips a reply.
+        if (t.pages[pageIndex].data.cursor !== data.cursor) t.pages.splice(pageIndex + 1);
+        t.pages[pageIndex].data = data; mergeThread(t, data.thread);
+        state.pending = t.deferred.size; render();
+      }).catch(e => { if (state.thread === t && generation === t.generation) { threadFailure(t, e); render(); } throw e; }).finally(() => { t.polling = false; });
+    }
     else if (!t) check = read(listQuery('new')).then(data => {
       const known = new Set(state.list.items.map(x => x.id)), fresh = (data.items || []).filter(x => !known.has(x.id) && !mine(x.authorId)).length;
       if (Number.isFinite(data.total)) state.list.total = data.total;
@@ -321,7 +361,7 @@
     const slot = $('ff-live'); if (!slot) return;
     replace(slot, state.pending ? button([icon('up'), (state.thread ? plural(state.pending, 'new comment') : plural(state.pending, 'new discussion')) + ' · Show'], () => {
       const t = state.thread;
-      if (t && t.next) { t.data = t.next; t.next = null; state.pending = 0; render(); } else { state.pending = 0; refreshList(true); }
+      if (t && t.data) { t.deferred.clear(); mergeThread(t); state.pending = 0; render(); } else { state.pending = 0; refreshList(true); }
     }, 'ff-live-pill') : null);
   }
 
@@ -454,28 +494,32 @@
       el('div', { className: 'ff-meta' }, [el('span', { className: 'ff-tag ff-tag-' + thread.category, text: categoryLabel(thread.category) }), avatar(thread.authorName, true), el('span', { className: 'ff-author', text: thread.authorName }), teamBadge(thread), stamp(thread.createdAt), thread.locked ? el('span', { className: 'ff-badge', text: 'Locked' }) : null]),
       el('h3', { className: 'ff-post-title fc-thread-title', text: thread.title }),
       el('p', { className: 'ff-post-text', text: thread.text }),
-      el('div', { className: 'ff-c-actions' }, [likeButton(thread.id, thread), el('span', { className: 'ff-count' }, [icon('comment'), plural(visibleCount(replies), 'comment')]), moreMenu(thread, thread.id)]),
+      el('div', { className: 'ff-c-actions' }, [likeButton(thread.id, thread), el('span', { className: 'ff-count' }, [icon('comment'), plural(thread.replyCount || 0, 'comment')]), moreMenu(thread, thread.id)]),
       inlineTools(thread, thread.id),
     ]);
-    const sort = el('div', { className: 'ff-sorts', role: 'group', 'aria-label': 'Sort comments' }, [['top', 'Top'], ['new', 'Newest']].map(([id, label]) =>
+    const sort = el('div', { className: 'ff-sorts', role: 'group', 'aria-label': 'Sort loaded comments' }, [['top', 'Top'], ['new', 'Newest']].map(([id, label]) =>
       button(label, () => { state.ui.commentSort = id; saveUI(); render(); }, 'ff-sort', { 'aria-pressed': String(state.ui.commentSort === id) })));
     const composer = thread.locked ? el('p', { className: 'ff-note', text: 'This discussion is locked. New comments are closed.' }) : member() ? replyForm(thread.id, null) : identityBar();
     const tree = buildTree(replies), roots = sortRoots(tree.get(null) || []), shown = roots.slice(0, t.shown);
     return [back, post, composer,
-      el('div', { className: 'ff-comments-head' }, [el('strong', { text: plural(visibleCount(replies), 'comment') }), sort]),
+      el('div', { className: 'ff-comments-head' }, [el('strong', { text: plural(thread.replyCount || 0, 'comment') }), sort]),
+      t.data.cursor ? el('p', { className: 'ff-note', text: 'Showing ' + plural(visibleCount(replies), 'loaded comment') + '. Top and Newest sort the comments loaded so far.' }) : null,
+      button('Refresh discussion', () => loadThread(), 'ff-btn ff-ghost', { disabled: t.loading }),
       el('div', { id: 'ff-live', className: 'ff-live' }),
       roots.length ? el('div', { className: 'ff-comments' }, shown.map(r => comment(r, tree, thread))) : emptyState('No comments yet.', member() ? 'Get the conversation going.' : 'Join the conversation to add the first comment.'),
-      roots.length > t.shown ? button('Show ' + Math.min(TOP_PREVIEW, roots.length - t.shown) + ' more comments', () => { t.shown += TOP_PREVIEW; render(); }, 'ff-btn ff-more-list') : null];
+      roots.length > t.shown ? button('Show ' + Math.min(TOP_PREVIEW, roots.length - t.shown) + ' more comments', () => { t.shown += TOP_PREVIEW; render(); }, 'ff-btn ff-more-list') : null,
+      t.data.cursor ? button(t.loadingMore ? 'Loading comments…' : 'Load more comments', moreComments, 'ff-btn ff-more-list', { disabled: t.loadingMore || t.loading }) : null,
+      t.error ? el('p', { className: 'ff-error', text: t.error }) : null];
   }
-  const visibleCount = replies => replies.filter(r => !r.deleted && !r.hidden && !r.blocked).length;
+  const visibleCount = replies => replies.filter(r => !r.context && !r.deleted && !r.hidden && !r.blocked).length;
   function buildTree(replies) { const map = new Map(); for (const r of replies) { const k = r.parentId || null; if (!map.has(k)) map.set(k, []); map.get(k).push(r); } return map; }
   function sortRoots(list) { return list.slice().sort(state.ui.commentSort === 'new' ? (a, b) => b.createdAt - a.createdAt : (a, b) => (b.score || 0) - (a.score || 0) || a.createdAt - b.createdAt); }
   function descendants(id, tree) { let n = 0; for (const c of tree.get(id) || []) n += 1 + descendants(c.id, tree); return n; }
   function comment(r, tree, thread) {
-    const t = state.thread, children = tree.get(r.id) || [], collapsed = t.collapsed.has(r.id), removed = r.deleted || r.hidden || r.blocked, mine = member() && r.authorId === state.me.id;
+    const t = state.thread, children = tree.get(r.id) || [], collapsed = t.collapsed.has(r.id), removed = r.context || r.deleted || r.hidden || r.blocked, mine = member() && r.authorId === state.me.id;
     const toggle = button(collapsed ? '+' : '−', () => { if (collapsed) t.collapsed.delete(r.id); else t.collapsed.add(r.id); render(); }, 'ff-collapse', { 'aria-expanded': String(!collapsed), 'aria-label': (collapsed ? 'Expand' : 'Collapse') + ' comment' + (r.authorName ? ' by ' + r.authorName : '') });
     const head = el('div', { className: 'ff-c-head' }, [
-      el('span', { className: 'ff-author', text: removed ? (r.deleted ? '[deleted]' : r.hidden ? '[removed]' : '[hidden]') : r.authorName }),
+      el('span', { className: 'ff-author', text: removed ? (r.deleted ? '[deleted]' : r.hidden ? '[removed]' : r.blocked ? '[hidden]' : 'Earlier comment') : r.authorName }),
       !removed && r.authorId === thread.authorId ? el('span', { className: 'ff-op', title: 'Started this discussion', text: 'OP' }) : null,
       !removed && mine ? el('span', { className: 'ff-you', text: 'You' }) : null,
       stamp(r.createdAt), toggle,
@@ -483,7 +527,7 @@
     ]);
     const body = [head];
     if (!collapsed) {
-      body.push(removed ? el('p', { className: 'ff-c-text ff-removed', text: r.deleted ? 'This comment was deleted by its author.' : r.hidden ? 'This comment was removed by a moderator.' : 'You blocked this fan.' })
+      body.push(removed ? el('p', { className: 'ff-c-text ff-removed', text: r.deleted ? 'This comment was deleted by its author.' : r.hidden ? 'This comment was removed by a moderator.' : r.blocked ? 'You blocked this fan.' : 'Load more comments to read this earlier reply.' })
         : el('p', { className: 'ff-c-text' }, [r.replyToName ? el('span', { className: 'ff-mention', text: '@' + r.replyToName + ' ' }) : null, r.text]));
       if (!removed) {
         body.push(el('div', { className: 'ff-c-actions' }, [likeButton(thread.id, r, true),
@@ -502,7 +546,7 @@
         el('div', { className: 'ff-children-list' }, visible.map(c => comment(c, tree, thread)).concat(open ? [] : [button('View ' + plural(ordered.length - CHILD_PREVIEW, 'more reply'), () => { t.expanded.add(r.id); render(); }, 'ff-view-more')])),
       ]);
     }
-    return el('div', { className: 'ff-c fc-reply' + (collapsed ? ' ff-c-collapsed' : '') + (mine ? ' ff-c-mine' : ''), 'data-depth': String(r.depth || 1), id: 'ff-c-' + r.id }, [
+    return el('div', { className: 'ff-c fc-reply' + (r.context ? ' ff-c-context' : '') + (collapsed ? ' ff-c-collapsed' : '') + (mine ? ' ff-c-mine' : ''), 'data-depth': String(r.depth || 1), 'data-context': String(!!r.context), id: 'ff-c-' + r.id }, [
       el('div', { className: 'ff-c-row' }, [avatar(removed ? '' : r.authorName), el('div', { className: 'ff-c-body' }, body)]), kids]);
   }
   function replyForm(threadId, parent) {
@@ -512,12 +556,13 @@
     let replyId = null; box.addEventListener('input', () => { replyId = null; });
     box.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); box.form.requestSubmit(); } });
     return el('form', { className: 'ff-reply' + (parent ? ' ff-reply-nested' : '') + (box.value ? ' ff-active' : ''), on: { submit: e => {
-      e.preventDefault(); const text = box.value.trim(); if (!text || state.busy) return; replyId = replyId || uuid(); state.busy = true; status('Posting…');
+      e.preventDefault(); const originThread = state.thread, generation = originThread?.generation; const text = box.value.trim(); if (!text || state.busy) return; replyId = replyId || uuid(); state.busy = true; status('Posting…');
       memberRequest('/threads/' + encodeURIComponent(threadId) + '/replies', 'POST', { id: replyId, text, ...(parent && { parentId: parent.id }) }, true).then(reply => {
         if (box.value.trim() === text) { box.value = ''; state.drafts.delete(key); } state.replyTo = null; status('');
         const t = state.thread;
-        if (t && t.data) {
-          t.data.replies = t.data.replies.filter(x => x.id !== reply.id).concat([{ ...reply, score: 0, myVote: 0 }]);
+        if (t === originThread && t.id === threadId && t.generation === generation && t.data) {
+          t.optimistic.set(reply.id, { ...reply, score: 0, myVote: 0 });
+          t.data.thread.replyCount = (t.data.thread.replyCount || 0) + 1; mergeThread(t);
           if (parent) { t.collapsed.delete(parent.id); t.expanded.add(parent.id); if (reply.parentId && reply.parentId !== parent.id) t.expanded.add(reply.parentId); }
           else t.shown += 1;
         }

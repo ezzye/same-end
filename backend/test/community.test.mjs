@@ -27,7 +27,7 @@ function fixture(options = {}) {
     assert.equal(response.statusCode, 200, JSON.stringify(response.json));
     return {id: fanId, token, profile: response.json};
   }
-  async function enable() { const before = await admin('GET', '/settings'); return admin('POST', '/settings', {forumEnabled: true, joinCode: 'pilot-rules-2026', expectedVersion: before.json.version}); }
+  async function enable() { await api.backfillListings({dryRun: false, paceMs: 0}); const before = await admin('GET', '/settings'); return admin('POST', '/settings', {forumEnabled: true, joinCode: 'pilot-rules-2026', expectedVersion: before.json.version}); }
   async function account(name = 'Fan', legacy) {
     const who = {account: randomUUID()}, response = await request('POST', '/member/identity', {name, ...(legacy && {legacyToken: legacy.token})}, who);
     assert.equal(response.statusCode, 200, JSON.stringify(response.json));

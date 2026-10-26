@@ -4,7 +4,7 @@ import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, QueryCom
 export class Conflict extends Error { constructor() { super('Conditional write failed'); this.name = 'Conflict'; } }
 const copy = x => x === undefined ? undefined : structuredClone(x);
 const keyOf = x => `${x.pk}\u0000${x.sk}`;
-const valid = (item, c) => !c || (c.absent ? !item : c.exists ? !!item : c.lt !== undefined ? !item || item[c.attribute] < c.lt : item?.[c.attribute] === c.equals);
+const valid = (item, c) => !c || (c.absent ? !item : c.exists ? !!item : c.missing ? !!item && item[c.attribute] === undefined : c.lt !== undefined ? !item || item[c.attribute] < c.lt : item?.[c.attribute] === c.equals);
 
 // Only local development and isolated tests use this in-process store.
 export class MemoryStore {
@@ -43,6 +43,7 @@ function conditionExpression(condition, names, values) {
   names['#condition'] = condition.absent || condition.exists ? 'pk' : condition.attribute;
   if (condition.absent) return 'attribute_not_exists(#condition)';
   if (condition.exists) return 'attribute_exists(#condition)';
+  if (condition.missing) { names['#present'] = 'pk'; return 'attribute_exists(#present) AND attribute_not_exists(#condition)'; }
   values[':condition'] = condition.lt ?? condition.equals;
   return condition.lt !== undefined ? 'attribute_not_exists(#condition) OR #condition < :condition' : '#condition = :condition';
 }

@@ -217,13 +217,19 @@ export function createApi({store, push, now = Date.now, allowedOrigins = ['https
       let subscription; try { subscription = validateSubscription(body.subscription); } catch { fail(400, 'invalid_subscription', 'This browser reminder service is not supported.'); }
       await rate(`subscribe:${id}:${ip}`, 10, 60000);
       const subId = hash(`${id}/${subscription.endpoint}`), key = {pk, sk: `SUB#${subId}`};
-      const item = {...key, id: subId, clientId: body.clientId, subscription, eventIds: body.eventIds, expiresAt: expiry(time, 90 * 86400)};
-      const existing = await store.get(pk, key.sk);
-      if (!existing) {
+      const item = {...key, rev: randomUUID(), id: subId, clientId: body.clientId, subscription, eventIds: body.eventIds, expiresAt: expiry(time, 90 * 86400)};
+      // Every update is conditional. A concurrent delete must not resurrect a row
+      // without allocating its capacity again; competing creates retry the same path.
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const existing = await store.get(pk, key.sk);
+        if (existing) {
+          try {
+            await store.put(item, existing.rev ? {attribute: 'rev', equals: existing.rev} : {attribute: 'rev', missing: true});
+            return {id: subId};
+          } catch (e) { if (!(e instanceof Conflict)) throw e; continue; }
+        }
         const counter = await store.get(pk, 'SUBCOUNT');
         if (counter?.count >= LIMITS.subscriptions) {
-          // DynamoDB TTL deletion is asynchronous. Reconcile capacity using a revision
-          // so a simultaneous registration/removal cannot be overwritten.
           const registered = await store.query(pk, {from: 'SUB#', to: 'SUB#\uffff', limit: 51});
           for (const sub of registered.filter(s => s.expiresAt <= time / 1000)) await deleteSubscription(id, sub.id);
           const snapshot = await store.get(pk, 'SUBCOUNT');
@@ -233,13 +239,15 @@ export function createApi({store, push, now = Date.now, allowedOrigins = ['https
             catch (e) { if (!(e instanceof Conflict)) throw e; }
           }
         }
+        try {
+          await store.transact([{put: item, condition: {absent: true}}, {key: {pk, sk: 'SUBCOUNT'}, add: {count: 1, rev: 1}, set: {expiresAt: expiry(time, LIMITS.clubSeconds)}, condition: {attribute: 'count', lt: LIMITS.subscriptions}}]);
+          return {id: subId};
+        } catch (e) {
+          if (!(e instanceof Conflict)) throw e;
+          if (!await store.get(pk, key.sk)) fail(429, 'subscription_limit', 'This pilot club has reached its device reminder limit.');
+        }
       }
-      if (existing) await store.put(item);
-      else {
-        try { await store.transact([{put: item, condition: {absent: true}}, {key: {pk, sk: 'SUBCOUNT'}, add: {count: 1, rev: 1}, set: {expiresAt: expiry(time, LIMITS.clubSeconds)}, condition: {attribute: 'count', lt: LIMITS.subscriptions}}]); }
-        catch (e) { if (e instanceof Conflict) { if (await store.get(pk, key.sk)) await store.put(item); else fail(429, 'subscription_limit', 'This pilot club has reached its device reminder limit.'); } else throw e; }
-      }
-      return {id: subId};
+      fail(409, 'subscription_changed', 'Reminder settings changed. Try again.');
     }
     if (suffix === '/subscriptions' && method === 'DELETE') {
       if (!HASH.test(body.id)) fail(400, 'invalid_subscription', 'Choose this device reminder subscription.');

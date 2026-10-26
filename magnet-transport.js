@@ -88,7 +88,7 @@ import WebTorrent from './vendor/webtorrent.min.js';
     _status(){ return this.getStatus(); }
     async _cryptoKey(key){ return crypto.subtle.importKey('raw',key,{name:'HMAC',hash:'SHA-256'},false,['sign','verify']); }
     async _mac(text){ return new Uint8Array(await crypto.subtle.sign('HMAC',this.hmac,encoder.encode(text))); }
-    async _client(){ if(!this.client){this.client=new WebTorrent({dht:false,maxConns:12,tracker:{announce:this.trackers,rtcConfig:{iceServers:STUN},getAnnounceOpts:()=>({numwant:4})}});this.client.on('error',e=>this._fail(e));} return this.client; }
+    async _client(){ if(!this.client){this.client=new WebTorrent({dht:false,webSeeds:false,maxConns:12,tracker:{announce:this.trackers,rtcConfig:{iceServers:STUN},getAnnounceOpts:()=>({numwant:4})}});this.client.on('error',e=>this._fail(e));} return this.client; }
     _resetNetwork(phase){this.nextResetAt=0;this.resetFailures=0;this.lastTrackerReply=0;this.lastDiscoveryReset=0;this.networkStarted=Date.now();this.lastReannounce=Date.now();this.network={phase,problem:null,trackerCount:this.trackers.length,stunServerCount:STUN.length,relayConfigured:false,discoveryResets:0,resetState:'idle',resetProblem:null,bootstrapRetries:this.bootstrapRetries,retryAt:null,reannounces:0,trackerReplies:0,warnings:0,peerAttempts:0,peerErrors:0,monitoredPeers:0,iceConnected:0,iceFailed:0,hostCandidates:0,reflexiveCandidates:0};}
     _watchDiscovery(t){
       const current=()=>!this.closed&&this.torrent===t;
@@ -253,6 +253,8 @@ import WebTorrent from './vendor/webtorrent.min.js';
     async _message(s,buf){
       if(this.closed||!this.wires.has(s.wire))return;
       if(!buf?.length)throw Error('Invalid private cast control message.');
+      // Bound untrusted frames before text decoding or ArrayBuffer copying.
+      if(buf.length>65537){s.wire.destroy();throw Error('Private cast frame exceeds 64 KB.');}
       const kind=buf[0], body=buf.subarray(1);
       if(kind===1){if(s.auth)s.lastSeen=Date.now();if(s.auth&&s.adapter)s.adapter.onmessage?.({data:decoder.decode(body)});return;}
       if(kind===2){if(s.auth)s.lastSeen=Date.now();if(s.auth&&s.adapter)s.adapter.onmessage?.({data:body.buffer.slice(body.byteOffset,body.byteOffset+body.byteLength)});return;}
