@@ -327,10 +327,10 @@ body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 /* The picture sets the row height; the chat fills it and scrolls inside. */
 @media(min-width:761px){@supports (contain:size){.room .social-watch-layout.has-live-chat>.club-chat-shell{contain:size;height:auto;max-height:none;min-height:430px;align-self:stretch}}}
 
-/* Phones: the picture stays pinned while the chat fills the rest of the screen. */
+/* Phone chat sizing; the page stays in normal flow below the picture. */
 @media(max-width:760px){
  .room:not(.room-expanded):not(.is-browser-fullscreen) .social-watch-layout.has-live-chat{display:block}
- .room:not(.room-expanded):not(.is-browser-fullscreen) .social-watch-layout.has-live-chat>.stage{position:-webkit-sticky;position:sticky;top:0;z-index:6;border-radius:10px;box-shadow:0 8px 16px -10px #000c}
+ .room:not(.room-expanded):not(.is-browser-fullscreen) .social-watch-layout.has-live-chat>.stage{border-radius:10px}
  .room:not(.room-expanded):not(.is-browser-fullscreen) .social-watch-layout.has-live-chat>.club-chat-shell{margin-top:10px;height:440px;height:max(340px,calc(100vh - 56vw - 112px));height:max(340px,calc(100svh - 56vw - 112px))}
  body.room-active.room-mates-ready .topbar{min-height:48px;margin-bottom:6px}
  body.room-active.room-mates-ready .topbar .brand{font-size:20px}
@@ -370,3 +370,65 @@ body.host-lobby .footer,body.watch-intent:not(.room-active) .footer{order:4}
 body.host-lobby .stage-empty,body.watch-intent:not(.room-active) .stage-empty{justify-content:center;text-align:center}
 #room-lobby-invite{margin:12px 0;gap:8px}
 @media(max-width:760px){#room-share-again{display:none!important}}
+
+/* Picture and its controls are one column; chat never pushes its buttons away. */
+.room-picture-column{min-width:0}
+.room .social-watch-layout{align-items:start}
+.room .room-picture-column .room-social-actions{display:flex;flex-wrap:wrap;align-items:center;margin:10px 0 8px;gap:8px}
+.room .room-social-actions p:empty{display:none}
+.room .room-controls{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.room .room-social-actions button,.room .room-controls button{min-height:40px;padding:8px 11px;line-height:1.25}
+.room .room-sound-help{font-size:12px;line-height:1.4;margin:6px 0}
+.room .room-status{font-size:11px;line-height:1.4;margin-top:6px}
+@media(min-width:761px){
+ .room:not(.room-expanded):not(.is-browser-fullscreen) .social-watch-layout.has-live-chat>.club-chat-shell{height:clamp(320px,60vh,600px);max-height:600px;min-height:0;align-self:start}
+ @supports(contain:size){.room:not(.room-expanded):not(.is-browser-fullscreen) .social-watch-layout.has-live-chat>.club-chat-shell{contain:size;height:auto;max-height:none;min-height:280px;align-self:stretch}}
+}
+/* Full room keeps both columns in the available screen, with its controls visible. */
+.room.room-expanded .room-picture-column,.room.is-browser-fullscreen .room-picture-column{display:flex;flex-direction:column;min-height:0;height:100%;overflow:auto}
+.room.room-expanded .room-picture-column>.stage,.room.is-browser-fullscreen .room-picture-column>.stage{flex:1 1 0;min-height:100px}
+.room.room-expanded .room-picture-column>:not(.stage),.room.is-browser-fullscreen .room-picture-column>:not(.stage){flex-shrink:0}
+@media(max-width:760px){
+ .room:not(.room-expanded):not(.is-browser-fullscreen) .room-picture-column>.stage:not(.has-wait-content){border-radius:10px}
+ .room:not(.room-expanded):not(.is-browser-fullscreen) .social-watch-layout.has-live-chat>.club-chat-shell{height:clamp(280px,48vh,430px);height:clamp(280px,48svh,430px);min-height:0;margin-top:12px}
+ .room .club-chat-shell .club-messages{min-height:0}
+ .room .room-social-actions button,.room .room-controls button{min-height:44px;font-size:12px}
+ .room .room-header{align-items:flex-start}
+ .room .room-meta{max-width:100%;flex-wrap:wrap}
+ .room .friend-badge{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+ .room .room-title{white-space:normal}
+ .room #room-lobby-invite{margin:8px 0}
+ .room #stop{margin-left:0}
+ .room.is-browser-fullscreen .room-picture-column,.room.room-expanded .room-picture-column{min-height:0}
+}
+@media(max-height:500px) and (min-width:600px){
+ .room.is-browser-fullscreen .social-watch-layout.has-live-chat,.room.room-expanded .social-watch-layout.has-live-chat{grid-template-columns:minmax(0,1fr) minmax(220px,32%);grid-template-rows:minmax(0,1fr)}
+}
+@supports(height:100dvh){.room.room-expanded,.room.is-browser-fullscreen{height:100dvh}}
+/* Avoid a second separator and a padded empty block around the footer action. */
+.footer .fc-footer-access{margin:0;padding:0;border:0}
+@media(max-width:700px){
+ .footer{padding-top:16px}
+ .footer .settings{margin-top:14px}
+ .footer-note{margin-top:14px!important}
+ .room .club-chat-shell .club-nick-edit{min-height:28px}
+}
+.room.room-expanded .social-watch-layout,.room.is-browser-fullscreen .social-watch-layout{align-items:stretch}
+.room.room-expanded .social-watch-layout>.club-chat-shell,.room.is-browser-fullscreen .social-watch-layout>.club-chat-shell{align-self:stretch;height:100%;max-height:100%;min-height:0}
+@media(max-width:760px){
+ .room.room-expanded .social-watch-layout.has-live-chat,.room.is-browser-fullscreen .social-watch-layout.has-live-chat{grid-template-rows:minmax(0,1fr) minmax(250px,48vh);grid-template-rows:minmax(0,1fr) minmax(250px,48svh)}
+ .room.room-expanded .room-sound-help,.room.is-browser-fullscreen .room-sound-help{display:none}
+}
+@media(max-height:500px) and (min-width:600px){
+ .room.room-expanded .social-watch-layout.has-live-chat,.room.is-browser-fullscreen .social-watch-layout.has-live-chat{grid-template-rows:minmax(0,1fr)}
+}
+.room.room-expanded .room-picture-column>.stage.has-wait-content,.room.is-browser-fullscreen .room-picture-column>.stage.has-wait-content{min-height:160px}
+@media(max-width:760px){
+ .room.room-expanded .stage-empty,.room.is-browser-fullscreen .stage-empty{padding:10px}
+ .room.room-expanded .empty-icon,.room.is-browser-fullscreen .empty-icon{display:none}
+ .room.room-expanded .stage-empty strong,.room.is-browser-fullscreen .stage-empty strong{font-size:17px;letter-spacing:-.3px}
+ .room.room-expanded .stage-empty p,.room.is-browser-fullscreen .stage-empty p{font-size:11px;margin-top:6px}
+}
+/* Join-only devices do not reserve a card for unsupported tab sharing. */
+body.phone-viewer #quick-room.flow{grid-template-columns:1fr}
+body.phone-viewer #quick-room .start-card{display:none}

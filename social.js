@@ -369,7 +369,7 @@
     if (!inRoom) { document.querySelector('.social-watch-layout')?.classList.remove('has-live-chat'); const home = $('club-chat-home'); if (home && chatPanel.parentNode !== home) home.append(chatPanel); return; }
     const stage = document.querySelector('#watch-room .stage'); if (!stage) return;
     let wrapper = stage.closest('.social-watch-layout');
-    if (!wrapper) { wrapper = element('div', 'social-watch-layout'); stage.before(wrapper); wrapper.append(stage); }
+    if (!wrapper) { const picture = stage.closest('.room-picture-column') || stage; wrapper = element('div', 'social-watch-layout'); picture.before(wrapper); wrapper.append(picture); }
     if (chatPanel.parentNode !== wrapper) wrapper.append(chatPanel);
     wrapper.classList.toggle('has-live-chat', !chatPanel.hidden);
   }

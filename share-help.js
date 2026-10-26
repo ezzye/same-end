@@ -5,7 +5,7 @@
  // Desktop-mode iPhones and iPads can identify as Macintosh. Keep touch Apple devices join-only.
  const phone=/iPhone|iPad|iPod|Android.*Mobile|Windows Phone|IEMobile|BlackBerry|BB10|Opera Mini/i.test(ua)||navigator.userAgentData?.mobile===true||(/Macintosh|Mac OS X/.test(ua)&&navigator.maxTouchPoints>1);
  const phoneMessage='Start a cast on a computer.';
- if(phone){const capture=document.getElementById('capture'),demo=document.getElementById('demo');if(capture){capture.disabled=true;capture.hidden=true;}if(demo){demo.disabled=true;demo.title=phoneMessage;}}
+ if(phone){document.body.classList.add('phone-viewer');const capture=document.getElementById('capture'),demo=document.getElementById('demo');if(capture){capture.disabled=true;capture.hidden=true;}if(demo){demo.disabled=true;demo.title=phoneMessage;}}
  const mac=/Macintosh|Mac OS X/.test(ua)&&!(/iPhone|iPad|iPod/.test(ua)||navigator.maxTouchPoints>1);
  const applicable=mac&&/Chrome\/|Edg\//.test(ua);
  let seen=false,panel;

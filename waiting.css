@@ -2,3 +2,27 @@
 
 /* The optional welcome sits beneath the live buffer status. */
 .stage.has-wait-content{min-height:445px}.sameend-wait{gap:13px}.sameend-wait [hidden]{display:none!important}.sameend-wait .wait-heading{position:sticky;top:0;z-index:1;background:#062e20;padding-bottom:7px}.sameend-wait .wait-guide{background:#f4f6e9;color:#123f2e;border-radius:12px;padding:17px}.sameend-wait .wait-graphic{display:block;width:min(100%,430px);height:auto;margin:0 auto 9px;color:#20664c}.sameend-wait .wait-guide .wait-tag{color:#456349;font-size:10px}.sameend-wait .wait-guide h4{font-size:20px;line-height:1.2;margin:4px 0 7px;color:#0d3e2b}.sameend-wait .wait-guide-copy>p{font-size:13px;line-height:1.4;margin:0 0 12px;color:#49624b}.sameend-wait .wait-audio-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.sameend-wait #wait-listen{background:#155b43;border-color:#155b43;color:white;min-height:42px;font-size:13px;padding:10px 14px}.sameend-wait #wait-listen:hover{background:#0a3f2c}.sameend-wait #wait-audio-status{font-size:11px;line-height:1.4;color:#4c664f;flex:1;min-width:120px}.sameend-wait #wait-audio-progress{display:block;width:100%;height:7px;accent-color:#226b4e;margin:13px 0 4px}.sameend-wait .wait-transcript{margin-top:13px;font-size:12px;line-height:1.5}.sameend-wait .wait-transcript summary{cursor:pointer;font-weight:650;color:#345e40;padding:4px 0}.sameend-wait .wait-transcript p{margin:8px 0 0;color:#3c5941;font-size:12px}.sameend-wait .wait-reading{font-size:12px;border-top:1px solid #456653;padding-top:8px}.sameend-wait .wait-reading>summary{cursor:pointer;font-weight:650;padding:3px 0;color:#d7e9c5}.sameend-wait .wait-reading .wait-story{margin-top:10px}.sameend-wait .wait-reading #wait-next{margin-top:8px}.sameend-wait .wait-actions{margin-top:0}.sameend-wait .wait-actions button{min-height:38px}.sameend-wait summary:focus-visible{outline:3px solid #ed6252;outline-offset:3px}@media(max-width:650px){.stage.has-wait-content{min-height:470px}.sameend-wait .wait-guide{padding:13px}.sameend-wait .wait-guide h4{font-size:18px}.sameend-wait .wait-graphic{margin-bottom:6px}.sameend-wait .wait-actions{gap:6px}.sameend-wait .wait-actions button{flex:initial;padding:7px 9px}.sameend-wait #wait-audio-status{min-width:120px}}
+
+/* Outside full room the guide belongs to the page, with no hidden audio controls. */
+.room:not(.room-expanded):not(.is-browser-fullscreen) .stage.has-wait-content{aspect-ratio:auto;min-height:0;max-height:none}
+.room:not(.room-expanded):not(.is-browser-fullscreen) .stage.has-wait-content>video{position:absolute;inset:0;width:100%;height:100%}
+.room:not(.room-expanded):not(.is-browser-fullscreen) .stage.has-wait-content>.sameend-wait{position:relative;inset:auto;overflow:visible;padding:16px;gap:12px}
+.room:not(.room-expanded):not(.is-browser-fullscreen) .sameend-wait .wait-heading{position:static;padding-bottom:0}
+.sameend-wait .wait-graphic{width:min(100%,330px);margin:0 auto 8px}
+.sameend-wait .wait-guide{padding:14px}
+.sameend-wait .wait-guide h4{font-size:18px}
+@media(min-width:1000px){
+ .room:not(.room-expanded):not(.is-browser-fullscreen) .wait-guide{display:grid;grid-template-columns:minmax(150px,.8fr) minmax(0,1.2fr);column-gap:18px;align-items:center}
+ .room:not(.room-expanded):not(.is-browser-fullscreen) .wait-guide .wait-graphic{grid-column:1;grid-row:1 / span 4;width:100%;margin:0}
+ .room:not(.room-expanded):not(.is-browser-fullscreen) .wait-guide .wait-guide-copy,.room:not(.room-expanded):not(.is-browser-fullscreen) .wait-guide .wait-audio-row,.room:not(.room-expanded):not(.is-browser-fullscreen) .wait-guide progress,.room:not(.room-expanded):not(.is-browser-fullscreen) .wait-guide .wait-transcript{grid-column:2;min-width:0}
+}
+@media(max-width:760px){
+ .room:not(.room-expanded):not(.is-browser-fullscreen) .stage.has-wait-content>.sameend-wait{padding:13px;gap:10px}
+ .sameend-wait .wait-graphic{width:min(100%,280px)}
+ .sameend-wait #wait-listen{min-height:44px}
+ .sameend-wait .wait-actions button,.sameend-wait summary{min-height:40px}
+ .sameend-wait .wait-actions{gap:6px}
+ .sameend-wait .wait-actions button{flex:1 1 auto}
+}
+@media(max-width:760px){.sameend-wait .wait-reading>summary,.sameend-wait .wait-transcript>summary{padding:10px 0;line-height:1.4}}
+.room.room-expanded .sameend-wait .wait-heading,.room.is-browser-fullscreen .sameend-wait .wait-heading{position:static}
