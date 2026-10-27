@@ -16,6 +16,8 @@ Validation: `npm run build`, `npm test`, and `SAME_END_LOCAL=1 npm run build && 
 
 Open [Same End](https://www.sameend.com/watch.html) in Safari, Chrome or Edge. The compatibility player supports MP4 viewing on phones, tablets and computers; see the device targets and evidence below. There is no account or extension to install. Installing the app is optional. The standalone [guide](test-guide.html) can be saved and shared as an HTML file.
 
+[Inside Same End: illustrated network, protocol and playback guide](docs/network-and-playback.html) — a standalone, offline HTML guide with topology diagrams, formation/recovery algorithms, packaging, shared clocks, buffering and worked bandwidth figures. Download the HTML to read it in a browser.
+
 ## Make match day a regular thing
 
 1. Choose **Create your club**, give it a name and pick your colours. The club is saved on this browser.
