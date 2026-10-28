@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-10-27",
-  "fetchedAt": "2026-10-27T09:47:24.395Z",
-  "dataHash": "ee96c765350407da590eaf92f84995f00f30f95ee49a866066fd61afa6a4b9d5",
+  "checkedAt": "2026-10-28",
+  "fetchedAt": "2026-10-28T10:32:54.304Z",
+  "dataHash": "89dec9b84d2265bb66508bc116104de5af634f20bab681c8297f20107ab5a29f",
   "timezone": "UTC",
   "provider": "TheSportsDB",
   "providerApi": "v1",
@@ -43,36 +43,6 @@
       "status": "scheduled"
     },
     {
-      "id": "thesportsdb-2606325",
-      "provider": "TheSportsDB",
-      "providerEventId": "2606325",
-      "providerTeamIds": [
-        "134374",
-        "133604"
-      ],
-      "home": "Fleetwood Town",
-      "away": "Arsenal",
-      "title": "Fleetwood Town v Arsenal",
-      "competition": "EFL Cup",
-      "startsAt": 1793131200000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2606325",
-      "checkedAt": "2026-10-27",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "United Kingdom",
-          "channel": "Sky Sports Football",
-          "providerChannelId": "8648"
-        },
-        {
-          "country": "France",
-          "channel": "BeIn Sports HD 2 France",
-          "providerChannelId": "30"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
       "id": "thesportsdb-2607177",
       "provider": "TheSportsDB",
       "providerEventId": "2607177",
@@ -86,7 +56,7 @@
       "competition": "EFL Cup",
       "startsAt": 1793215800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2607177",
-      "checkedAt": "2026-10-27",
+      "checkedAt": "2026-10-28",
       "status": "scheduled",
       "tv": [
         {
@@ -116,7 +86,7 @@
       "competition": "EFL Cup",
       "startsAt": 1793216700000,
       "sourceUrl": "https://www.thesportsdb.com/event/2606321",
-      "checkedAt": "2026-10-27",
+      "checkedAt": "2026-10-28",
       "status": "scheduled",
       "tv": [
         {
@@ -146,7 +116,7 @@
       "competition": "EFL Cup",
       "startsAt": 1793216700000,
       "sourceUrl": "https://www.thesportsdb.com/event/2606324",
-      "checkedAt": "2026-10-27",
+      "checkedAt": "2026-10-28",
       "status": "scheduled",
       "tv": [
         {
@@ -176,7 +146,7 @@
       "competition": "EFL Cup",
       "startsAt": 1793216700000,
       "sourceUrl": "https://www.thesportsdb.com/event/2606320",
-      "checkedAt": "2026-10-27",
+      "checkedAt": "2026-10-28",
       "status": "scheduled",
       "tv": [
         {
@@ -206,7 +176,7 @@
       "competition": "EFL Cup",
       "startsAt": 1793217600000,
       "sourceUrl": "https://www.thesportsdb.com/event/2606322",
-      "checkedAt": "2026-10-27",
+      "checkedAt": "2026-10-28",
       "status": "scheduled",
       "tv": [
         {
@@ -236,7 +206,7 @@
       "competition": "EFL Cup",
       "startsAt": 1793303100000,
       "sourceUrl": "https://www.thesportsdb.com/event/2606323",
-      "checkedAt": "2026-10-27",
+      "checkedAt": "2026-10-28",
       "status": "scheduled",
       "tv": [
         {
@@ -277,7 +247,7 @@
       "competition": "English Premier League",
       "startsAt": 1793449800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494084",
-      "checkedAt": "2026-10-27",
+      "checkedAt": "2026-10-28",
       "status": "scheduled",
       "tv": [
         {
@@ -307,7 +277,7 @@
       "competition": "English Premier League",
       "startsAt": 1793458800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494089",
-      "checkedAt": "2026-10-27",
+      "checkedAt": "2026-10-28",
       "status": "scheduled",
       "tv": [
         {
@@ -337,7 +307,7 @@
       "competition": "English Premier League",
       "startsAt": 1793458800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494087",
-      "checkedAt": "2026-10-27",
+      "checkedAt": "2026-10-28",
       "status": "scheduled",
       "tv": [
         {
@@ -367,7 +337,7 @@
       "competition": "English Premier League",
       "startsAt": 1793458800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494086",
-      "checkedAt": "2026-10-27",
+      "checkedAt": "2026-10-28",
       "status": "scheduled",
       "tv": [
         {
@@ -397,7 +367,7 @@
       "competition": "English Premier League",
       "startsAt": 1793458800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494081",
-      "checkedAt": "2026-10-27",
+      "checkedAt": "2026-10-28",
       "status": "scheduled",
       "tv": [
         {
@@ -427,7 +397,7 @@
       "competition": "English Premier League",
       "startsAt": 1793467800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494083",
-      "checkedAt": "2026-10-27",
+      "checkedAt": "2026-10-28",
       "status": "scheduled",
       "tv": [
         {
@@ -464,6 +434,36 @@
       "sourceUrl": "https://www.premierleague.com/en/news/4688862/fixture-amendments-for-premier-league-matches-in-october-and-november",
       "checkedAt": "2026-10-21",
       "status": "scheduled"
+    },
+    {
+      "id": "thesportsdb-2494082",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494082",
+      "providerTeamIds": [
+        "133602",
+        "133604"
+      ],
+      "home": "Liverpool",
+      "away": "Arsenal",
+      "title": "Liverpool v Arsenal",
+      "competition": "English Premier League",
+      "startsAt": 1793550600000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494082",
+      "checkedAt": "2026-10-28",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "Iceland",
+          "channel": "Stöð 2 Sport IS",
+          "providerChannelId": "7941"
+        },
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        }
+      ],
+      "tvCoverage": "partial"
     },
     {
       "id": "fixture-10",
