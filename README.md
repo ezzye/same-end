@@ -8,7 +8,7 @@
 
 Same End brings a small group of mates into the same private viewing room. One person shares a permitted browser tab from a computer; the others open an invitation to watch and chat. Save a club, plan the next match and add it to your calendar. Send the invitation in your existing WhatsApp group and keep your match-day circle together.
 
-**The video travels between participants’ devices.** A separate service handles encrypted room state and chat. Private rooms need no account, extension or app installation; the optional public fan forum has its own account and pilot membership. The ordinary build keeps the existing media version 2 path; version 3 resilience is opt-in for review and has not been deployed.
+**The video travels between participants’ devices.** A separate service handles encrypted room state and chat. Private rooms need no account, extension or app installation; the optional public fan forum has its own account and pilot membership. Release builds use resilient version-3 media: independent audio and a 360p default, with optional 480p. The ordinary local build retains version-2 capture for compatibility checks.
 
 ## See it in action
 
@@ -54,9 +54,9 @@ New shares can choose a **30–120-second common delay** from fresh delivery obs
 
 ## How it works
 
-This diagram includes the opt-in resilience test build. The default `npm run build` remains on media version 2; `npm run build:resilience` or `SAMEEND_RESILIENT_DELIVERY=1 npm run build` enables version 3 for newly started shares. Updated clients, including the ordinary version 2 build, can still read version 1/2 invitations; older clients must refresh before opening a version 3 room.
+This diagram includes the resilience release. Both publishing workflows use `npm run build:resilience`; the ordinary local `npm run build` retains media version 2. `SAMEEND_RESILIENT_DELIVERY=1 npm run build` also enables version 3 for new shares. Updated clients, including the ordinary version 2 build, can still read version 1/2 invitations; older clients must refresh before opening a version 3 room.
 
-Same End combines standard media formats with a custom live transport over WebRTC data channels. WebTorrent helps introduce peers; an ordinary torrent client cannot play this live transport. The opt-in resilience test build adds a metadata-only room coordinator and prepares an optional operator-run edge TURN fallback. It has not been deployed; no edge machine is selected, and the control cloud does not relay media.
+Same End combines standard media formats with a custom live transport over WebRTC data channels. WebTorrent helps introduce peers; an ordinary torrent client cannot play this live transport. The resilience build adds a metadata-only room coordinator and an optional operator-run edge TURN fallback. The selected Mac edge host is supervised and assessed separately; only fresh admissible health enables credentials. The control cloud does not relay media.
 
 ```mermaid
 flowchart LR
@@ -167,7 +167,7 @@ Early versions restarted small WebM/MP4 recordings and tried to join the clips. 
 | Common start, adaptive buffering and supplier recovery | Long, real matches and recovery from real interruptions |
 | Opt-in analytics and role-protected staff tools | Automatic switching between independent sources and make-before-break media handover are not implemented |
 
-The live frontend remains on its existing media path; the new resilience frontend is preserved in PR #50. The metadata backend was updated on 29 October, preserving deployed keys. A real-time fixed five-minute local P2P check passed audio fallback, video recovery and a healthy second viewer; it does not establish physical 5G or full-match acceptance. This Mac was selected for edge TURN, and external UDP/TLS plus bidirectional diagnostic relay checks passed, but persistent supervision, renewal and full router verification remain unfinished. The test relay is stopped and cloud TURN URLs disabled at the budget handoff. No cloud programme-media relay is used.
+The release workflow selects version-3 media. Local qualification covers automatic audio downgrade/video return and an actual five-minute delayed P2P session while another viewer keeps decoding. The selected Mac's TURN software has passed external UDP/TLS and small bidirectional diagnostic relay checks. These are distinct from physical 5G, native Safari sound, long-match reliability and owner acceptance. The edge route is advertised only when fresh machine health and supervised router/certificate checks permit it; an unavailable edge does not add a cloud media relay. Updated clients read version 1/2, while older clients must refresh before reading version 3. Make-before-break handover is not implemented.
 
 ## When something doesn't work
 

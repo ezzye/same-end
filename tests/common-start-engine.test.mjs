@@ -220,14 +220,25 @@ test('supplier departure during verification and a decision after first picture 
 });
 
 test('host signing completion from a superseded cast cannot resurrect its decision', async () => {
-  const gate = deferred(), entered = deferred();
-  const h = harness({ role: 'source', subtle: { async sign(...args) { entered.release(); await gate.promise; return webcrypto.subtle.sign(...args); } } });
+  const gate = deferred(), entered = deferred(), signed = deferred();
+  const bounded = promise => { let timer; return Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(Error('source signing did not complete in time')), 5000); })]).finally(() => clearTimeout(timer)); };
+  const h = harness({ role: 'source', subtle: { async sign(...args) {
+    entered.release(); await gate.promise;
+    const signature = await webcrypto.subtle.sign(...args);
+    signed.release({ signature, data: args[2] }); return signature;
+  } } });
   const child = h.peer('child', 'down'); child.commonReports = [{ id: 'child', report: h.report() }];
-  h.ctx.advanceCommonStart(); await entered.promise;
+  h.ctx.advanceCommonStart(); await bounded(entered.promise);
   const previous = h.state.commonStart; h.state.config = { ...h.state.config, id: 'replacement-cast' }; h.ctx.resetCommonStart();
-  gate.release();
-  for (let i = 0; previous.signing && i < 100; i++) await new Promise(resolve => setImmediate(resolve));
-  assert.equal(previous.signing, false); assert.equal(h.state.commonStart.decision, null);
+  const sentBefore = h.sent.length; gate.release();
+  // Wait for real WebCrypto completion; a fixed number of event-loop turns can
+  // finish before its worker is scheduled under CI load.
+  const result = await bounded(signed.promise);
+  assert.equal(await webcrypto.subtle.verify({name:'ECDSA',hash:'SHA-256'}, key.publicKey, result.signature, result.data), true);
+  const deadline = performance.now() + 5000;
+  while (previous.signing && performance.now() < deadline) await new Promise(resolve => setTimeout(resolve, 2));
+  assert.equal(previous.signing, false); assert.equal(previous.decision, null);
+  assert.equal(h.state.commonStart.decision, null); assert.equal(h.sent.length, sentBefore);
 });
 
 test('modern forwarding follows common delay; legacy children retain the configured history and local lag stays bounded', async () => {

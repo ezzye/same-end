@@ -1,3 +1,4 @@
+import {realpathSync} from 'node:fs';
 import {readFile} from 'node:fs/promises';
 import {cpus, totalmem} from 'node:os';
 import {createServer} from 'node:http';
@@ -86,7 +87,16 @@ async function scrapeAllocations(url) {
   } catch { return {allocations: null, metricError: true}; }
 }
 
-export async function sampleHost({metricsUrl, networkInterface} = {}, previous = {}) {
+export async function supervisorHealthy(file, time = now()) {
+  if (file === undefined) return true;
+  try {
+    if (typeof file !== 'string' || !file) return false;
+    const s = JSON.parse(await readFile(file, 'utf8'));
+    return s.ok === true && Number.isFinite(s.checkedAtMs) && s.checkedAtMs <= time && Number.isFinite(s.expiresAtMs) && s.expiresAtMs > time && s.expiresAtMs - s.checkedAtMs <= 600000 && Array.isArray(s.reasons) && s.reasons.length === 0;
+  } catch { return false; }
+}
+
+export async function sampleHost({metricsUrl, networkInterface, supervisorStatusPath} = {}, previous = {}) {
   const sampledAtMs = now();
   const cpu = cpuTotals(cpus());
   let txBytes = null, networkIdentity = null;
@@ -94,6 +104,7 @@ export async function sampleHost({metricsUrl, networkInterface} = {}, previous =
   else if (process.platform === 'darwin') { const sample = await sampleMacNetworkCounter({interfaceName: networkInterface}); txBytes = sample?.txBytes ?? null; networkIdentity = sample?.identity ?? null; }
   const memoryAvailableRatio = await memoryRatio();
   const allocation = await scrapeAllocations(metricsUrl);
+  if (!await supervisorHealthy(supervisorStatusPath, sampledAtMs)) allocation.metricError = true;
   const elapsedSeconds = previous.sampledAtMs ? (sampledAtMs - previous.sampledAtMs) / 1000 : 0;
   const networkTxMbps = txBytes !== null && Number.isFinite(previous.txBytes) && networkIdentity && previous.networkIdentity === networkIdentity && elapsedSeconds > 0 && txBytes >= previous.txBytes
     ? (txBytes - previous.txBytes) * 8 / elapsedSeconds / 1_000_000 : null;
@@ -187,4 +198,4 @@ async function run(argv = process.argv.slice(2)) {
   process.on('SIGTERM', () => { clearTimeout(timer); server?.close(); process.exit(0); });
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) run().catch(error => { process.stderr.write(`${error.message}\n`); process.exitCode = 1; });
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) run().catch(error => { process.stderr.write(`${error.message}\n`); process.exitCode = 1; });

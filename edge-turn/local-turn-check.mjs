@@ -1,3 +1,4 @@
+import {realpathSync} from 'node:fs';
 /* Loopback-only, short-lived TURN REST allocation preflight. Never logs credentials. */
 import {createSocket} from 'node:dgram';
 import {createHash, createHmac, randomBytes, timingSafeEqual} from 'node:crypto';
@@ -44,4 +45,4 @@ async function main(){
  const lines=(await readFile(file,'utf8')).split(/\r?\n/),values={};for(const line of lines){const match=/^\s*(static-auth-secret|listening-port)\s*=\s*([^\s#]+)\s*$/.exec(line);if(match){if(values[match[1]])throw Error('Duplicate TURN setting');values[match[1]]=match[2];}}
  const result=await checkLocalTurn({port:Number(values['listening-port']),secret:values['static-auth-secret']});console.log(JSON.stringify(result));
 }
-if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))main().catch(()=>{console.error('Local TURN preflight failed.');process.exitCode=1;});
+if(process.argv[1]&&realpathSync(process.argv[1])===fileURLToPath(import.meta.url))main().catch(()=>{console.error('Local TURN preflight failed.');process.exitCode=1;});
