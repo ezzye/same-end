@@ -213,3 +213,22 @@ test('common start report preserves selected and fallback delays without decisio
  assert(!JSON.stringify(report).includes('PRIVATE-DECISION'));assert(!('issuedAt' in safe));
  const summary=c.summary();assert.equal(summary.lastStatus.commonStart.delaySeconds,30);
 });
+test('audio-only mode retains safe fields without diagnosing frozen video',()=>{
+ const {c,observe,advance}=setup();
+ const sample={mediaMode:'audio',leafOnly:true,mediaDiagnostics:{delivery:{requiredPiecePresent:true},playback:{decodedFrames:0,srcChanges:1}}};
+ observe({...sample,targetProgramTime:1},{ready:4,paused:false,muted:false,volume:0.7,decodedFrames:0,playbackBlocked:false},{visible:true});advance(5000);
+ observe({...sample,targetProgramTime:6},{ready:4,paused:false,muted:false,volume:0.7,decodedFrames:0,playbackBlocked:false},{visible:true});
+ const report=c.report();assert.equal(report.status.mediaMode,'audio');assert.equal(report.status.leafOnly,true);assert.equal(report.status.muted,false);assert.equal(report.status.volume,0.7);
+ const window={};vm.runInNewContext(source,{window,globalThis:window,Uint8Array,Math,Date,JSON});
+ assert.equal(window.SameEndDiagnosticsCore.assessMediaDiagnostics(report.status,report.samples).findings.some(f=>f.code==='no-frame-growth'),false);
+ assert.equal(window.SameEndDiagnosticsCore.assessMediaDiagnostics(report.status,report.samples).state,'unknown');
+ advance(5000);observe({mediaMode:'private-identifier',leafOnly:'yes'});const safe=c.report();assert.equal(safe.status.mediaMode,null);assert.equal(safe.status.leafOnly,null);
+});
+test('diagnostics collector reads v3 sound element and video frame counts independently',async()=>{
+ const ui=await readFile(new URL('../diagnostics-ui.js',import.meta.url),'utf8');const start=ui.indexOf('  function tick()'),end=ui.indexOf('  function render()',start);assert.ok(start>=0&&end>start);
+ const video={muted:true,paused:true,readyState:1,volume:0,getVideoPlaybackQuality:()=>({totalVideoFrames:123,droppedVideoFrames:2})};
+ const audio={muted:false,paused:false,readyState:4,volume:0.8};let observed;const snap={config:{segmentVersion:3},mediaMode:'audio'};
+ const context={window:{PrivateCast:{snapshot:()=>snap}},document:{visibilityState:'visible',querySelector:()=>audio},navigator:{onLine:true},$:()=>video,collector:{observe:(s,p)=>observed=p},enabled:true,render(){},lastCast:null,hashedCast:null,crypto:{},TextEncoder};vm.createContext(context);vm.runInContext(ui.slice(start,end),context);context.tick();
+ assert.equal(observed.muted,false);assert.equal(observed.paused,false);assert.equal(observed.ready,4);assert.equal(observed.volume,0.8);assert.equal(observed.decodedFrames,123);
+ snap.config.segmentVersion=2;context.tick();assert.equal(observed.muted,true);assert.equal(observed.ready,1);
+});

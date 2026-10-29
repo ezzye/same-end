@@ -6,7 +6,7 @@ import { createCommunityApi } from './community-api.mjs';
 
 const store = new DynamoDBStore(process.env.TABLE_NAME);
 const push = createPushTransport({publicKey: process.env.VAPID_PUBLIC_KEY, privateKey: process.env.VAPID_PRIVATE_KEY, subject: 'https://www.sameend.com'});
-const api = createApi({store, push});
+const api = createApi({store, push, edgeTurn: {urls: (process.env.EDGE_TURN_URLS || '').split(',').map(x => x.trim()).filter(Boolean), secret: process.env.EDGE_TURN_SECRET, healthSecret: process.env.EDGE_TURN_HEALTH_SECRET, policy: {reportTtlMs: 15000, uplinkBudgetMbps: Number(process.env.EDGE_TURN_UPLINK_MBPS) || null, allocationLimit: Number(process.env.EDGE_TURN_ALLOCATION_LIMIT) || null}}});
 const community = createCommunityApi({store,adminAuth:{issuer:process.env.COMMUNITY_ADMIN_ISSUER||'',clientId:process.env.COMMUNITY_ADMIN_CLIENT_ID||'',domain:process.env.COMMUNITY_ADMIN_DOMAIN||'',redirectUri:process.env.COMMUNITY_ADMIN_REDIRECT_URI||'',enrollmentClientId:process.env.COMMUNITY_ENROLLMENT_CLIENT_ID||''},fanAuth:{issuer:process.env.COMMUNITY_FAN_ISSUER||'',clientId:process.env.COMMUNITY_FAN_CLIENT_ID||'',domain:process.env.COMMUNITY_FAN_DOMAIN||'',redirectUri:process.env.COMMUNITY_FAN_REDIRECT_URI||'',scope:process.env.COMMUNITY_FAN_SCOPE||'sameend-community/use'}});
 export async function handler(event) {
   // EventBridge invokes this directly. No HTTP route can invoke the scheduler branch.

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.sameend.edge-turn-supervisor</string>
+  <key>ProgramArguments</key><array>
+    <string>/ABSOLUTE/PATH/TO/node</string>
+    <string>/ABSOLUTE/PATH/TO/STABLE/RUNTIME/edge-turn/mac-supervisor.mjs</string>
+    <string>--config</string><string>/ABSOLUTE/PATH/TO/PRIVATE/supervisor.json</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>/ABSOLUTE/PATH/TO/PRIVATE/supervisor.log</string>
+  <key>StandardErrorPath</key><string>/ABSOLUTE/PATH/TO/PRIVATE/supervisor-error.log</string>
+</dict></plist>

@@ -1,0 +1,24 @@
+# Preparation template for a later operator-selected Linux host.
+# Replace every path/user/command placeholder, inspect hardening against that host,
+# and install/enable only after operator approval. This file is not enabled by this repo.
+[Unit]
+Description=Same End edge TURN capacity health agent
+After=network-online.target coturn.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=turnagent
+Group=turnagent
+WorkingDirectory=/opt/same-end
+EnvironmentFile=/etc/same-end/edge-turn-health.env
+ExecStart=/usr/bin/node /opt/same-end/edge-turn/agent.mjs --config /etc/same-end/edge-turn.json --serve
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

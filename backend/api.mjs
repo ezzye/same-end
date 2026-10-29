@@ -2,6 +2,8 @@ import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { Conflict } from './store.mjs';
 import { payloadFor, validateSubscription } from './push.mjs';
 import {createAnalytics} from './analytics.mjs';
+import {createCoordinator} from './coordinator.mjs';
+import {createEdgeTurnCredentials, createEdgeHealthHandler, getEdgeHealth} from './edge-turn.mjs';
 
 export const LIMITS = Object.freeze({requestBytes: 65536, stateBytes: 32768, messageBytes: 12288, reportBytes: 12288, reports: 30, events: 30, subscriptions: 50, chatSeconds: 86400, clubSeconds: 400 * 86400});
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -51,8 +53,10 @@ function cursorCount(cursor, id) {
 }
 const equalHash = (a, b) => HASH.test(a || '') && HASH.test(b || '') && timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'));
 
-export function createApi({store, push, now = Date.now, allowedOrigins = ['https://www.sameend.com']} = {}) {
+export function createApi({store, push, now = Date.now, allowedOrigins = ['https://www.sameend.com'], edgeTurn = {}} = {}) {
   const analytics = createAnalytics({store, now});
+  const coordinate = createCoordinator({store, now});
+  const edgeHealth = edgeTurn.healthSecret ? createEdgeHealthHandler({secret: edgeTurn.healthSecret, policy: edgeTurn.policy, store, now}) : null;
   async function rate(key, limit, milliseconds) {
     const time = now(), bucket = Math.floor(time / milliseconds);
     try { await store.consume(`${key}:${bucket}`, limit, expiry((bucket + 1) * milliseconds, 3600)); }
@@ -129,6 +133,22 @@ export function createApi({store, push, now = Date.now, allowedOrigins = ['https
       try { await store.transact([{put: club, condition: {absent: true}}, ...jobsFor(body.id, events, time).map(put => ({put}))]); }
       catch (e) { if (e instanceof Conflict) fail(409, 'club_exists', 'That club already exists. Open its saved invitation.'); throw e; }
       return {id: club.id, version: 1, updatedAt: time};
+    }
+    const coordinatorMatch = path.match(/^\/v1\/clubs\/([0-9a-f-]+)\/(coordinator|ice)$/i);
+    if (coordinatorMatch) {
+      const [, id, action] = coordinatorMatch;
+      await authorised(id, token);
+      if (action === 'ice' && method === 'GET') {
+        await rate(`ice:${id}:${ip}`, 600, 60000);
+        if (!edgeHealth || !(await getEdgeHealth({store, policy: edgeTurn.policy, now})).allowNew) return {iceServers: [], expiresAt: null};
+        return createEdgeTurnCredentials({...edgeTurn, nowMs: now(), ttlSeconds: 60});
+      }
+      if (action === 'coordinator' && method === 'POST') {
+        await rate(`coordinator:${id}:${ip}`, 1200, 60000);
+        try { return await coordinate(id, body); }
+        catch (e) { if (e.status) fail(e.status, e.code, e.message); throw e; }
+      }
+      fail(405, 'method_not_allowed', 'That club action is not available.');
     }
     const reportMatch = path.match(/^\/v1\/clubs\/([0-9a-f-]+)\/reports$/i);
     if (reportMatch && (method === 'POST' || method === 'GET')) {
@@ -273,6 +293,14 @@ export function createApi({store, push, now = Date.now, allowedOrigins = ['https
       const method = event.requestContext?.http?.method || event.httpMethod;
       const path = event.rawPath || event.path || '';
       const query = event.queryStringParameters || {};
+      if (path === '/v1/edge-health') {
+        if (method !== 'POST') fail(405, 'method_not_allowed', 'That action is not available.');
+        const rawBody = event.isBase64Encoded ? Buffer.from(event.body || '', 'base64') : Buffer.from(event.body || '');
+        if (rawBody.length > 2048) fail(413, 'payload_too_large', 'That update is too large.');
+        if (!edgeHealth) fail(503, 'edge_unavailable', 'Edge health is not configured.');
+        const result = await edgeHealth.submit({signature: headers['x-edge-signature'], timestamp: headers['x-edge-timestamp'], rawBody});
+        return reply(result.status, result.body);
+      }
       if (path === '/v1/analytics/events') {
         if (method === 'OPTIONS') {
           if (!origin || !allowedOrigins.includes(origin)) fail(403, 'origin_not_allowed', 'Open Same End from its usual address.');

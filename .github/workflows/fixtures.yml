@@ -42,7 +42,7 @@ jobs:
             git push origin HEAD:main
           fi
           echo "CURRENT_DEPLOY_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
-      - run: npm run build
+      - run: npm run build:resilience
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

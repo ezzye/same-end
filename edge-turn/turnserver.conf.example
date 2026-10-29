@@ -1,0 +1,22 @@
+# Preparation example only. Select and approve a host, public DNS/address,
+# certificate/key paths, ports and quotas before using any coturn configuration.
+# Values below are conservative placeholders and intentionally do not start coturn.
+realm=turn.example.invalid
+fingerprint
+lt-cred-mech
+use-auth-secret
+# Supply the shared secret at runtime through a protected secret-manager-generated
+# config/DB entry. Do not rely on ordinary environment-variable expansion.
+# Never place the TURN REST shared secret in source control or client config.
+# Enable only after a chosen host has TLS material and an approved network plan.
+# listening-port=3478
+# tls-listening-port=5349
+# cert=/protected/path/fullchain.pem
+# pkey=/protected/path/privatekey.pem
+# prometheus
+# prometheus-address=127.0.0.1
+# prometheus-port=9641
+# user-quota=4
+# total-quota=64
+# max-bps=2000000
+# bps-capacity=20000000
