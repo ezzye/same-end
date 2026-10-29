@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-10-28",
-  "fetchedAt": "2026-10-28T10:32:54.304Z",
-  "dataHash": "89dec9b84d2265bb66508bc116104de5af634f20bab681c8297f20107ab5a29f",
+  "checkedAt": "2026-10-29",
+  "fetchedAt": "2026-10-29T10:52:05.573Z",
+  "dataHash": "b871f80ee703f9879f320e1513c13c732a5bec2959d0758cfc337c7d7f63bc3e",
   "timezone": "UTC",
   "provider": "TheSportsDB",
   "providerApi": "v1",
@@ -43,156 +43,6 @@
       "status": "scheduled"
     },
     {
-      "id": "thesportsdb-2607177",
-      "provider": "TheSportsDB",
-      "providerEventId": "2607177",
-      "providerTeamIds": [
-        "133613",
-        "133619"
-      ],
-      "home": "Manchester City",
-      "away": "Brighton and Hove Albion",
-      "title": "Manchester City v Brighton and Hove Albion",
-      "competition": "EFL Cup",
-      "startsAt": 1793215800000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2607177",
-      "checkedAt": "2026-10-28",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "France",
-          "channel": "BeIn Sports Max 6",
-          "providerChannelId": "3186"
-        },
-        {
-          "country": "Slovenia",
-          "channel": "Arena Sport 2 SI",
-          "providerChannelId": "2406"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
-      "id": "thesportsdb-2606321",
-      "provider": "TheSportsDB",
-      "providerEventId": "2606321",
-      "providerTeamIds": [
-        "133600",
-        "133632"
-      ],
-      "home": "Fulham",
-      "away": "Crystal Palace",
-      "title": "Fulham v Crystal Palace",
-      "competition": "EFL Cup",
-      "startsAt": 1793216700000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2606321",
-      "checkedAt": "2026-10-28",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "Serbia",
-          "channel": "Arena Sport 5 RS",
-          "providerChannelId": "2385"
-        },
-        {
-          "country": "Canada",
-          "channel": "DAZN Canada",
-          "providerChannelId": "8663"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
-      "id": "thesportsdb-2606324",
-      "provider": "TheSportsDB",
-      "providerEventId": "2606324",
-      "providerTeamIds": [
-        "133603",
-        "134355"
-      ],
-      "home": "Sunderland",
-      "away": "Brentford",
-      "title": "Sunderland v Brentford",
-      "competition": "EFL Cup",
-      "startsAt": 1793216700000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2606324",
-      "checkedAt": "2026-10-28",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "Serbia",
-          "channel": "Arena Sport 8 RS",
-          "providerChannelId": "2389"
-        },
-        {
-          "country": "Qatar",
-          "channel": "BeIN Sports 5 Qatar",
-          "providerChannelId": "8519"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
-      "id": "thesportsdb-2606320",
-      "provider": "TheSportsDB",
-      "providerEventId": "2606320",
-      "providerTeamIds": [
-        "134301",
-        "133601"
-      ],
-      "home": "Bournemouth",
-      "away": "Aston Villa",
-      "title": "Bournemouth v Aston Villa",
-      "competition": "EFL Cup",
-      "startsAt": 1793216700000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2606320",
-      "checkedAt": "2026-10-28",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "Slovenia",
-          "channel": "Arena Sport 4 SI",
-          "providerChannelId": "2408"
-        },
-        {
-          "country": "Finland",
-          "channel": "Viaplay 3 Urheilu",
-          "providerChannelId": "8106"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
-      "id": "thesportsdb-2606322",
-      "provider": "TheSportsDB",
-      "providerEventId": "2606322",
-      "providerTeamIds": [
-        "133602",
-        "133610"
-      ],
-      "home": "Liverpool",
-      "away": "Chelsea",
-      "title": "Liverpool v Chelsea",
-      "competition": "EFL Cup",
-      "startsAt": 1793217600000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2606322",
-      "checkedAt": "2026-10-28",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "United Kingdom",
-          "channel": "ITV",
-          "providerChannelId": "6330"
-        },
-        {
-          "country": "United Kingdom",
-          "channel": "ITVX",
-          "providerChannelId": "6339"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
       "id": "thesportsdb-2606323",
       "provider": "TheSportsDB",
       "providerEventId": "2606323",
@@ -206,7 +56,7 @@
       "competition": "EFL Cup",
       "startsAt": 1793303100000,
       "sourceUrl": "https://www.thesportsdb.com/event/2606323",
-      "checkedAt": "2026-10-28",
+      "checkedAt": "2026-10-29",
       "status": "scheduled",
       "tv": [
         {
@@ -247,7 +97,7 @@
       "competition": "English Premier League",
       "startsAt": 1793449800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494084",
-      "checkedAt": "2026-10-28",
+      "checkedAt": "2026-10-29",
       "status": "scheduled",
       "tv": [
         {
@@ -277,7 +127,7 @@
       "competition": "English Premier League",
       "startsAt": 1793458800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494089",
-      "checkedAt": "2026-10-28",
+      "checkedAt": "2026-10-29",
       "status": "scheduled",
       "tv": [
         {
@@ -307,7 +157,7 @@
       "competition": "English Premier League",
       "startsAt": 1793458800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494087",
-      "checkedAt": "2026-10-28",
+      "checkedAt": "2026-10-29",
       "status": "scheduled",
       "tv": [
         {
@@ -337,7 +187,7 @@
       "competition": "English Premier League",
       "startsAt": 1793458800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494086",
-      "checkedAt": "2026-10-28",
+      "checkedAt": "2026-10-29",
       "status": "scheduled",
       "tv": [
         {
@@ -367,13 +217,43 @@
       "competition": "English Premier League",
       "startsAt": 1793458800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494081",
-      "checkedAt": "2026-10-28",
+      "checkedAt": "2026-10-29",
       "status": "scheduled",
       "tv": [
         {
           "country": "Iceland",
           "channel": "Stöð 2 Sport 3 IS",
           "providerChannelId": "7943"
+        },
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2494085",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494085",
+      "providerTeamIds": [
+        "133613",
+        "133619"
+      ],
+      "home": "Manchester City",
+      "away": "Brighton and Hove Albion",
+      "title": "Manchester City v Brighton and Hove Albion",
+      "competition": "English Premier League",
+      "startsAt": 1793458800000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494085",
+      "checkedAt": "2026-10-29",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "Iceland",
+          "channel": "Stöð 2 Sport 2 IS",
+          "providerChannelId": "7942"
         },
         {
           "country": "India",
@@ -397,7 +277,7 @@
       "competition": "English Premier League",
       "startsAt": 1793467800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494083",
-      "checkedAt": "2026-10-28",
+      "checkedAt": "2026-10-29",
       "status": "scheduled",
       "tv": [
         {
@@ -425,6 +305,36 @@
       "status": "scheduled"
     },
     {
+      "id": "thesportsdb-2494088",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494088",
+      "providerTeamIds": [
+        "133601",
+        "133600"
+      ],
+      "home": "Aston Villa",
+      "away": "Fulham",
+      "title": "Aston Villa v Fulham",
+      "competition": "English Premier League",
+      "startsAt": 1793476800000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494088",
+      "checkedAt": "2026-10-29",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "United Kingdom",
+          "channel": "Sky Sports Premier League",
+          "providerChannelId": "8647"
+        },
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
       "id": "fixture-9",
       "home": "Liverpool",
       "away": "Arsenal",
@@ -449,7 +359,7 @@
       "competition": "English Premier League",
       "startsAt": 1793550600000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494082",
-      "checkedAt": "2026-10-28",
+      "checkedAt": "2026-10-29",
       "status": "scheduled",
       "tv": [
         {
