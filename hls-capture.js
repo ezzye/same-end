@@ -13,27 +13,27 @@ const DELIVERY_TIMEOUT_MS = 3000, MAX_DELIVERY_SAMPLES = 150;
 const VIDEO = { codec: 'avc', bitrate: 1500000, keyFrameInterval: 2, hardwareAcceleration: 'prefer-software' };
 const AUDIO = { codec: 'aac', bitrate: 96000 };
 
-export async function canCapture(stream) {
+export async function canCapture(stream, { audioOnly = false } = {}) {
   try {
-    if (typeof MediaStream === 'undefined' || typeof VideoEncoder === 'undefined') return false;
+    if (typeof MediaStream === 'undefined' || (!audioOnly && typeof VideoEncoder === 'undefined')) return false;
     const video = stream?.getVideoTracks()[0], audio = stream?.getAudioTracks()[0];
     if ((!stream || audio) && typeof AudioEncoder === 'undefined') return false;
-    if (stream && (!video || video.readyState !== 'live' || (audio && audio.readyState !== 'live'))) return false;
+    if (stream && ((!audioOnly && (!video || video.readyState !== 'live')) || (audioOnly && !audio) || (audio && audio.readyState !== 'live'))) return false;
     const settings = video?.getSettings() || {};
     const audioSettings = audio?.getSettings() || {};
     const supported = await Promise.all([
-      canEncodeVideo('avc', { width: settings.width || 1280, height: settings.height || 720, bitrate: VIDEO.bitrate, frameRate: settings.frameRate || 25, latencyMode: 'realtime', hardwareAcceleration: VIDEO.hardwareAcceleration }),
+      audioOnly ? true : canEncodeVideo('avc', { width: settings.width || 1280, height: settings.height || 720, bitrate: VIDEO.bitrate, frameRate: settings.frameRate || 25, latencyMode: 'realtime', hardwareAcceleration: VIDEO.hardwareAcceleration }),
       !stream || audio ? canEncodeAudio('aac', { numberOfChannels: audioSettings.channelCount || 2, sampleRate: audioSettings.sampleRate || 48000, bitrate: AUDIO.bitrate }) : true,
     ]);
     return supported.every(Boolean);
   } catch { return false; }
 }
 
-export async function createCapture(stream, { epoch, bitrate = VIDEO.bitrate, onBatch, onError, now = Date.now } = {}) {
+export async function createCapture(stream, { epoch, bitrate = VIDEO.bitrate, audioBitrate = AUDIO.bitrate, audioOnly = false, videoOnly = false, onBatch, onError, now = Date.now } = {}) {
   if (!Number.isFinite(epoch) || epoch < 0) throw new TypeError('Capture epoch must be Unix milliseconds.');
   if (!Number.isInteger(bitrate) || bitrate <= 0) throw new TypeError('Capture bitrate must be a positive integer.');
   if (typeof onBatch !== 'function') throw new TypeError('Capture needs an onBatch callback.');
-  if (!await canCapture(stream)) throw new Error('Continuous H.264/AAC capture is unavailable in this browser.');
+  if (!await canCapture(stream, { audioOnly })) throw new Error('Continuous H.264/AAC capture is unavailable in this browser.');
   const stats = { status: 'starting', epoch, startupOffsetSeconds: null, videoPackets: 0, audioPackets: 0, videoEncoderConfigurations: 0, audioEncoderConfigurations: 0, batches: 0, segments: 0, pendingBytes: 0, peakPendingBytes: 0, retainedFiles: 0, peakDeliverySamples: 0, end: 0 };
   const snapshots = new Map(), pending = new Map(), segmentInfo = new Map(), playlists = new Map(), firstPackets = new Map();
   let resolveReady, rejectReady, output, closing, failure, firstSample = false, lastFiles = [], lastInterval, rejectFailure, delivering = false, deliverySamples = 0;
@@ -42,7 +42,8 @@ export async function createCapture(stream, { epoch, bitrate = VIDEO.bitrate, on
   ready.catch(() => {});
   const failureSignal = new Promise((resolve, reject) => { rejectFailure = reject; });
   failureSignal.catch(() => {});
-  const tracks = [stream.getVideoTracks()[0], stream.getAudioTracks()[0]].filter(Boolean);
+  const videoTrack = audioOnly ? null : stream.getVideoTracks()[0], audioTrack = videoOnly ? null : stream.getAudioTracks()[0];
+  const tracks = [videoTrack, audioTrack].filter(Boolean);
   const listeners = [];
   const clear = () => {
     listeners.splice(0).forEach(([track, listener]) => track.removeEventListener('ended', listener));
@@ -103,8 +104,15 @@ export async function createCapture(stream, { epoch, bitrate = VIDEO.bitrate, on
     let playlist = playlists.get(info.n);
     if (!playlist) {
       const first = Math.min(...info.tracks.map(track => firstPackets.get(track.type)).filter(Number.isFinite));
-      if (!Number.isFinite(first)) throw new Error('HLS playlist has no initial encoded timestamp.');
-      playlist = { next: first + stats.startupOffsetSeconds, timings: new Map() }; playlists.set(info.n, playlist);
+      // Audio-only output may publish an empty playlist before its first packet.
+      if (!Number.isFinite(first)) {
+        if (text.split('\n').some(line => line.startsWith('#EXTINF:'))) throw new Error('HLS playlist has no initial encoded timestamp.');
+        playlist = { next: null, timings: new Map() }; playlists.set(info.n, playlist);
+      } else { playlist = { next: first + stats.startupOffsetSeconds, timings: new Map() }; playlists.set(info.n, playlist); }
+    }
+    if (playlist.next === null) {
+      const first = Math.min(...info.tracks.map(track => firstPackets.get(track.type)).filter(Number.isFinite));
+      if (Number.isFinite(first) && Number.isFinite(stats.startupOffsetSeconds)) playlist.next = first + stats.startupOffsetSeconds;
     }
     const entries = []; let duration;
     for (const line of text.split('\n')) {
@@ -114,6 +122,7 @@ export async function createCapture(stream, { epoch, bitrate = VIDEO.bitrate, on
         if (Math.round(duration) > 2) throw new Error('Generated HLS segment exceeded the two-second target duration.');
         let timing = playlist.timings.get(line);
         if (!timing) {
+          if (!Number.isFinite(playlist.next)) throw new Error('HLS playlist has no initial encoded timestamp.');
           timing = { start: playlist.next, duration }; playlist.timings.set(line, timing); playlist.next += duration;
         }
         const file = pending.get(line); if (file) Object.assign(file, timing);
@@ -123,7 +132,7 @@ export async function createCapture(stream, { epoch, bitrate = VIDEO.bitrate, on
     const keep = new Set(entries);
     for (const path of playlist.timings.keys()) if (!keep.has(path)) { playlist.timings.delete(path); segmentInfo.delete(path); }
     if (playlist.timings.size > WINDOW) throw new Error('Generated HLS window exceeded its bound.');
-    return entries.length ? playlist.timings.get(entries[0]).start : playlist.next;
+    return entries.length ? playlist.timings.get(entries[0]).start : playlist.next ?? 0;
   }
   const format = new HlsOutputFormat({
     segmentFormat: new CmafOutputFormat(), live: true, targetDuration: 2, maxLiveSegmentCount: WINDOW,
@@ -157,14 +166,16 @@ export async function createCapture(stream, { epoch, bitrate = VIDEO.bitrate, on
       } catch (error) { fail(error); throw error; }
     },
   })) });
-  const video = new MediaStreamVideoTrackSource(tracks[0], { ...VIDEO, bitrate,
-    onEncodedSample: observedSample, onEncodedPacket: encoded('video'),
-    onEncoderConfig() { stats.videoEncoderConfigurations++; },
-  }, { timestampBase: 'synced-zero', frameRate: null });
-  output.addVideoTrack(video);
-  const sources = [video];
-  if (tracks[1]) {
-    const audio = new MediaStreamAudioTrackSource(tracks[1], { ...AUDIO,
+  const sources = [];
+  if (videoTrack) {
+    const video = new MediaStreamVideoTrackSource(videoTrack, { ...VIDEO, bitrate,
+      onEncodedSample: observedSample, onEncodedPacket: encoded('video'),
+      onEncoderConfig() { stats.videoEncoderConfigurations++; },
+    }, { timestampBase: 'synced-zero', frameRate: null });
+    output.addVideoTrack(video); sources.push(video);
+  }
+  if (audioTrack) {
+    const audio = new MediaStreamAudioTrackSource(audioTrack, { ...AUDIO, bitrate: audioBitrate,
       onEncodedSample: observedSample, onEncodedPacket: encoded('audio'),
       onEncoderConfig() { stats.audioEncoderConfigurations++; },
     }, { timestampBase: 'synced-zero' });

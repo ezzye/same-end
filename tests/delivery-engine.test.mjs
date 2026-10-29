@@ -44,6 +44,8 @@ function harness(overrides = {}, Estimator = null, InitialDelayPolicy = null) {
     magnetTransport:null
   };
   vm.createContext(ctx);
+  // The extracted legacy engine paths now call guarded v3 helpers. Load the actual helpers; the v2 fixture keeps their v3 branches inactive.
+  vm.runInContext(engine.slice(engine.indexOf('function resilient('),engine.indexOf('function stageResilient(')),ctx);
   vm.runInContext(deliveryCode,ctx);
   ctx.SameEndDelivery=ctx.window.SameEndDelivery;
   const b64Line=engine.split('\n').find(line=>line.startsWith('const b64='));
@@ -309,7 +311,7 @@ test('client estimator is optional for legacy harnesses and is recreated per cas
  const {ctx,state}=harness({},ClientEstimatorSpy),previous=state.clientDelivery;
  ctx.resetClientDelivery();assert.notEqual(state.clientDelivery,previous);assert.equal(state.clientDeliverySourceEndMs,null);assert.equal(state.clientDeliveryRoute,null);
  state.role='source';ctx.resetClientDelivery();assert.equal(state.clientDelivery,null);assert.equal(ctx.clientDeliverySnapshot(),null);
- assert.match(engine,/state\.config=config;state\.role=role;resetClientDelivery\(\)/,'cast initialization owns a fresh estimator');
+ assert.match(engine,/state\.config=config;state\.role=role;[^\n]*?resetClientDelivery\(\)/,'cast initialization owns a fresh estimator');
 });
 
 test('client samples keep reserve, decoder headroom, signed source age and route confidence separate',()=>{

@@ -41,7 +41,7 @@ async function main() {
   if (state.stackName !== stackName || state.region !== region) throw new Error('Private deployment state belongs to a different stack or region');
   await writeFile(stateFile, JSON.stringify(state, null, 2), {mode: 0o600}); await chmod(stateFile, 0o600);
   const staging = path.join(privateDir, 'package'); await rm(staging, {recursive: true, force: true}); await mkdir(staging, {mode: 0o700});
-  for (const name of ['index.mjs', 'api.mjs', 'community-api.mjs', 'analytics.mjs', 'store.mjs', 'push.mjs', 'reminders.mjs', 'package.json', 'package-lock.json']) await copyFile(path.join(here, name), path.join(staging, name));
+  for (const name of ['index.mjs', 'api.mjs', 'coordinator.mjs', 'edge-turn.mjs', 'community-api.mjs', 'analytics.mjs', 'store.mjs', 'push.mjs', 'reminders.mjs', 'package.json', 'package-lock.json']) await copyFile(path.join(here, name), path.join(staging, name));
   await exec('npm', ['ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], {cwd: staging, maxBuffer: 1024 * 1024});
   const zip = path.join(privateDir, 'control.zip'); await rm(zip, {force: true});
   await exec('/usr/bin/zip', ['-qr', zip, '.'], {cwd: staging, maxBuffer: 1024 * 1024});

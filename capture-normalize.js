@@ -5,8 +5,9 @@
   const WIDTH = 1280, HEIGHT = 720, FRAME_US = 40000, MAX_INPUT_PIXELS = 3840 * 2160;
   const COLOR = { matrix: 'rgb', primaries: 'bt709', transfer: 'iec61966-2-1', fullRange: true };
   const friendlyError = () => new Error('The shared picture could not be prepared. Please stop sharing and try again.');
-  function normalize(stream, { onError } = {}) {
-    const stats = { status: 'starting', frames: 0, meanMs: 0, maxMs: 0, resized: 0, dropped: 0, errors: 0, targetFrameRate: 25 };
+  function normalize(stream, { onError, width: WIDTH = 1280, height: HEIGHT = 720, frameRate = 25 } = {}) {
+    const FRAME_US = 1000000 / frameRate;
+    const stats = { status: 'starting', frames: 0, meanMs: 0, maxMs: 0, resized: 0, dropped: 0, errors: 0, targetFrameRate: frameRate };
     const input = stream.getVideoTracks()[0];
     const supported = !!(input && root.MediaStreamTrackProcessor && root.MediaStreamTrackGenerator && root.VideoFrame?.prototype?.copyTo && root.OffscreenCanvas);
     if (!supported) {

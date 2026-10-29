@@ -13,7 +13,9 @@ export const template = {
   Parameters: {
     ArtifactBucket: {Type: 'String'}, ArtifactKey: {Type: 'String'},
     VapidPublicKey: {Type: 'String', AllowedPattern: '[A-Za-z0-9_-]{87}'},
-    VapidPrivateKey: {Type: 'String', NoEcho: true, AllowedPattern: '[A-Za-z0-9_-]{43}'}
+    VapidPrivateKey: {Type: 'String', NoEcho: true, AllowedPattern: '[A-Za-z0-9_-]{43}'},
+    EdgeTurnUrls: {Type: 'String', Default: ''}, EdgeTurnSecret: {Type: 'String', Default: '', NoEcho: true},
+    EdgeTurnHealthSecret: {Type: 'String', Default: '', NoEcho: true}, EdgeTurnUplinkMbps: {Type: 'Number', Default: 0, MinValue: 0}, EdgeTurnAllocationLimit: {Type: 'Number', Default: 0, MinValue: 0}
   },
   Resources: {
     Clubs: {Type: 'AWS::DynamoDB::Table', DeletionPolicy: 'Retain', UpdateReplacePolicy: 'Retain', Properties: {
@@ -32,7 +34,7 @@ export const template = {
     Control: {Type: 'AWS::Lambda::Function', DependsOn: ['Logs'], Properties: {
       FunctionName: sub('${AWS::StackName}-control'), Runtime: 'nodejs24.x', Handler: 'index.handler', Architectures: ['arm64'],
       MemorySize: 256, Timeout: 90, ReservedConcurrentExecutions: 5, Role: attr('RuntimeRole', 'Arn'),
-      Code: {S3Bucket: ref('ArtifactBucket'), S3Key: ref('ArtifactKey')}, Environment: {Variables: {TABLE_NAME: ref('Clubs'), VAPID_PUBLIC_KEY: ref('VapidPublicKey'), VAPID_PRIVATE_KEY: ref('VapidPrivateKey')}}
+      Code: {S3Bucket: ref('ArtifactBucket'), S3Key: ref('ArtifactKey')}, Environment: {Variables: {TABLE_NAME: ref('Clubs'), VAPID_PUBLIC_KEY: ref('VapidPublicKey'), VAPID_PRIVATE_KEY: ref('VapidPrivateKey'), EDGE_TURN_URLS: ref('EdgeTurnUrls'), EDGE_TURN_SECRET: ref('EdgeTurnSecret'), EDGE_TURN_HEALTH_SECRET: ref('EdgeTurnHealthSecret'), EDGE_TURN_UPLINK_MBPS: ref('EdgeTurnUplinkMbps'), EDGE_TURN_ALLOCATION_LIMIT: ref('EdgeTurnAllocationLimit')}}
     }},
     Api: {Type: 'AWS::ApiGatewayV2::Api', Properties: {Name: sub('${AWS::StackName}-api'), ProtocolType: 'HTTP', CorsConfiguration: {AllowOrigins: ['https://www.sameend.com'], AllowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], AllowHeaders: ['authorization', 'content-type'], MaxAge: 600}}},
     Integration: {Type: 'AWS::ApiGatewayV2::Integration', Properties: {ApiId: ref('Api'), IntegrationType: 'AWS_PROXY', IntegrationUri: attr('Control', 'Arn'), PayloadFormatVersion: '2.0', TimeoutInMillis: 15000}},

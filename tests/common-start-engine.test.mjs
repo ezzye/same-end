@@ -62,6 +62,8 @@ function harness({ role = 'viewer', subtle = webcrypto.subtle, nativeMinimum = 4
     enqueue: (p, piece) => enqueued.push({ peer: p.id, seq: piece.meta.seq }),
     stallOutgoing: null, resumeAfter: () => -1 };
   vm.createContext(ctx);
+  // The extracted legacy engine paths now call guarded v3 helpers. Load the actual helpers; the v2 fixture keeps their v3 branches inactive.
+  vm.runInContext(engine.slice(engine.indexOf('function resilient('),engine.indexOf('function stageResilient(')),ctx);
   vm.runInContext(commonCode + '\n' + initialCode, ctx);
   vm.runInContext(engine.split('\n').find(line => line.startsWith('function isHlsConfig(')), ctx);
   for (const [start, end] of [

@@ -4,11 +4,11 @@
 
 <p align="center"><a href="https://www.sameend.com/watch.html">Try Same End</a> · <a href="https://www.youtube.com/watch?v=Ip8fAT8b8Go">Watch the 81-second film</a> · <a href="#how-it-works">How it works</a> · <a href="CONTRIBUTING.md">Contribute</a></p>
 
-<p align="center"><a href="https://github.com/ezzye/same-end/actions/workflows/checks.yml"><img src="https://github.com/ezzye/same-end/actions/workflows/checks.yml/badge.svg" alt="Build and test checks"></a><br><a href="LICENSE">MIT licensed</a> · Early alpha · Direct peer-to-peer video</p>
+<p align="center"><a href="https://github.com/ezzye/same-end/actions/workflows/checks.yml"><img src="https://github.com/ezzye/same-end/actions/workflows/checks.yml/badge.svg" alt="Build and test checks"></a><br><a href="LICENSE">MIT licensed</a> · Early alpha · Peer-to-peer media by default</p>
 
 Same End brings a small group of mates into the same private viewing room. One person shares a permitted browser tab from a computer; the others open an invitation to watch and chat. Save a club, plan the next match and add it to your calendar. Send the invitation in your existing WhatsApp group and keep your match-day circle together.
 
-**The video travels between participants’ devices.** A separate service handles encrypted room state and chat. Private rooms need no account, extension or app installation; the optional public fan forum has its own account and pilot membership.
+**The video travels between participants’ devices.** A separate service handles encrypted room state and chat. Private rooms need no account, extension or app installation; the optional public fan forum has its own account and pilot membership. The ordinary build keeps the existing media version 2 path; version 3 resilience is opt-in for review and has not been deployed.
 
 ## See it in action
 
@@ -54,7 +54,9 @@ New shares can choose a **30–120-second common delay** from fresh delivery obs
 
 ## How it works
 
-Same End combines standard media formats with a custom live transport over WebRTC data channels. WebTorrent helps introduce peers; an ordinary torrent client cannot play this live transport.
+This diagram includes the opt-in resilience test build. The default `npm run build` remains on media version 2; `npm run build:resilience` or `SAMEEND_RESILIENT_DELIVERY=1 npm run build` enables version 3 for newly started shares. Updated clients, including the ordinary version 2 build, can still read version 1/2 invitations; older clients must refresh before opening a version 3 room.
+
+Same End combines standard media formats with a custom live transport over WebRTC data channels. WebTorrent helps introduce peers; an ordinary torrent client cannot play this live transport. The opt-in resilience test build adds a metadata-only room coordinator and prepares an optional operator-run edge TURN fallback. It has not been deployed; no edge machine is selected, and the control cloud does not relay media.
 
 ```mermaid
 flowchart LR
@@ -63,20 +65,24 @@ flowchart LR
   P --> A["Mate A<br/>Verify, buffer, play"]
   P --> B["Mate B<br/>Verify, buffer, play"]
   A --> C["Mate C<br/>Verify, buffer, play"]
-  T["Tracker + STUN<br/>Discovery of direct peer routes"] -.-> H
+  T["Tracker + STUN<br/>Direct-route discovery"] -.-> H
   T -.-> A
-  R["Control service<br/>Encrypted room state + chat; no video"] <-.-> H
+  CO["Room coordinator<br/>Short-lived route and cache metadata"] -.-> A
+  EDGE["Optional operator edge TURN<br/>Only if configured and healthy"] -.-> H
+  EDGE -.-> A
+  R["Control service<br/>Encrypted room state + chat; no media"] <-.-> H
   R <-.-> A
 ```
 
 1. **Capture and package.** A capable desktop browser captures the tab you select. Mediabunny continuously encodes H.264 video and AAC audio into standard HLS playlists and roughly two-second CMAF segments.
-2. **Sign and distribute.** The source signs bounded envelopes containing the media. Direct WebRTC data channels carry them to viewers; authenticated peers can forward the original bytes. Each supplying laptop has a two-viewer downstream ceiling. The diagram illustrates a route, not certified group capacity.
+2. **Sign and distribute.** The source signs bounded envelopes containing the media. Direct WebRTC data channels carry them to viewers; authenticated peers can forward the original bytes. The browser transport caps a desktop source at two downstream viewers; the metadata coordinator gives each non-source peer at most one recommended child. The diagram illustrates a route, not certified group capacity.
 3. **Verify and play.** Viewers verify signatures before adding media to bounded in-memory caches. hls.js reads the cache, or native Safari HLS uses a private service-worker bridge. The site server does not serve live video, and the app does not persist it to disk.
 4. **Share a timeline and recover.** The host selects one common playback baseline. Peers can search for another supplier after a connection fails, preserving verified media and room context. A buffer cannot create future picture after the source disappears.
+5. **Use a fallback only when available.** Direct peer routes remain the default. A separate operator-designated edge TURN server is an optional connectivity fallback; the coordinator returns short-lived credentials only while its signed capacity report is fresh and admits new sessions. TURN carries media only on that selected edge server. The app does not use a cloud media relay. No edge host has been chosen or deployed in this branch, and direct or TURN routing cannot promise seamless playback.
 
-**P2P-only has a real trade-off:** there is no TURN or cloud video relay fallback. Some mobile networks, routers, VPNs and firewalls prevent a direct connection even when the website and chat work.
+The room coordinator stores only short-lived metadata: participant route reports, reservations, and the media time ranges and renditions each peer says it has cached. Reports expire after 15 seconds. A recommendation is a hint, not proof of bandwidth: unknown outgoing capacity is labelled provisional and must not be read as a measured link. Authenticated direct peer links still establish the actual transfer.
 
-Go deeper: [illustrated network and playback guide](docs/network-and-playback.html), [HLS architecture](docs/standard-hls.md), [common-start policy](docs/measured-common-start.md), [delivery and recovery](docs/delivery-recovery.md), [direct-route limits](docs/direct-peer-discovery.md).
+Go deeper: [resilient delivery design and current status](docs/resilient-delivery.md), [illustrated network and playback guide](docs/network-and-playback.html), [HLS architecture](docs/standard-hls.md), [common-start policy](docs/measured-common-start.md), [delivery and recovery](docs/delivery-recovery.md), [direct-route limits](docs/direct-peer-discovery.md), [edge TURN preparation](docs/edge-turn.md).
 
 ### What runs where
 
@@ -84,7 +90,8 @@ Go deeper: [illustrated network and playback guide](docs/network-and-playback.ht
 | --- | --- | --- |
 | Browser app / optional PWA | Room UI, capture, playback, clubs and chat | [app.html](app.html), [engine.js](engine.js), [social.js](social.js) |
 | Media pipeline | Encoding, envelopes and cache-backed playback | [hls-capture.js](hls-capture.js), [hls-protocol.js](hls-protocol.js), [hls-player.js](hls-player.js) |
-| Peer transport | Discovery, direct transfer and forwarding | [magnet-transport.js](magnet-transport.js), [delivery-health.js](delivery-health.js) |
+| Peer transport | Direct discovery, transfer and forwarding; optional edge TURN credentials | [magnet-transport.js](magnet-transport.js), [delivery-health.js](delivery-health.js) |
+| Room coordinator | Expiring route reports, cache-range metadata and reservations; no media | [coordinator-client.js](coordinator-client.js), [backend/coordinator.mjs](backend/coordinator.mjs) |
 | Control service | Club/chat storage, reminders, separate forum/feedback and staff tools | [backend/](backend/), [API contract](social-contract.md) |
 | Static host | Built app, guides and public assets | [build-pwa.mjs](build-pwa.mjs), [Pages workflow](.github/workflows/pages.yml) |
 
@@ -158,9 +165,9 @@ Early versions restarted small WebM/MP4 recordings and tried to join the clips. 
 | Continuous HLS/CMAF over signed direct delivery | Physical-device playback and audible sound across OS/browser combinations |
 | Saved invitations, encrypted room chat and club planning | Different-home and mobile-network reliability |
 | Common start, adaptive buffering and supplier recovery | Long, real matches and recovery from real interruptions |
-| Opt-in analytics and role-protected staff tools | Automatic switching between independent sources remains protocol groundwork |
+| Opt-in analytics and role-protected staff tools | Automatic switching between independent sources and make-before-break media handover are not implemented |
 
-Build passes, browser simulations and deployment answer different questions. They do not prove universal device support, seamless recovery or full-match reliability. New shares use HLS; older invitations can retain the legacy clip player.
+The resilience test build is opt-in and prepared for review in this branch; it is not live in the deployed app. The latest local checkpoint has 545 passing unit checks, including 126 backend checks, and focused media checks. A controlled three-context, 10-second room scenario passed with automatic audio downgrade/recovery, 50 metadata requests, 20-second coordinator-outage wait (the coordinator report TTL is 15 seconds) and no HTTP media requests; the 300-second delay scenario is still running. No deployment has been performed. These checks do not prove physical-device or different-home support, zero-outage recovery or full-match reliability. The opt-in build emits signed media version 3 for new shares; updated clients also read version 1/2, while older clients need refreshing before they can read version 3. No make-before-break media handover is implemented.
 
 ## When something doesn't work
 

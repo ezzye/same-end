@@ -1,0 +1,15 @@
+{
+  "intervalMs": 5000,
+  "localHealthPort": 9642,
+  "metricsUrl": "http://127.0.0.1:9641/metrics",
+  "reportUrl": "",
+  "policy": {
+    "reportTtlMs": 15000,
+    "cpuBusyLimit": 0.9,
+    "minimumMemoryAvailableRatio": 0.1,
+    "uplinkBudgetMbps": null,
+    "uplinkHeadroomRatio": 0.8,
+    "allocationLimit": null,
+    "allocationHeadroomRatio": 0.9
+  }
+}

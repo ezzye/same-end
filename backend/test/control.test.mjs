@@ -379,3 +379,34 @@ test('maximum owner rescheduling stays below DynamoDB transaction item and size 
   const result = await f.request('PUT', '', {expectedVersion: 1, state: envelope(LIMITS.stateBytes), events: events.map(e => ({...e, startsAt: e.startsAt + 3600000, notifyAt: e.notifyAt + 3600000}))}, f.write);
   assert.equal(result.statusCode, 200); assert.equal(Math.max(...counts), 61); assert.ok(Math.max(...sizes) < 4 * 1024 * 1024);
 });
+
+test('coordinator and ICE require a club capability', async () => {
+  const f = fixture(); await f.create();
+  const report = {role:'source',leafOnly:false,clockReady:true,sourceReachable:true,trail:[],parentId:null,children:[],relayLimit:1,sourceAgeSeconds:0,reserveSeconds:0,requestedRenditions:['audio'],cache:[{rendition:'audio',start:0,end:1,firstSeq:0,lastSeq:1}],outgoingMbps:1,queueBytes:0};
+  const body={action:'report',cast:'cast',nodeId:'source',seq:1,report};
+  assert.equal((await f.request('POST','/coordinator',body,'')).statusCode,401);
+  assert.equal((await f.request('GET','/ice',undefined,'')).statusCode,401);
+  const result=await f.request('POST','/coordinator',body);
+  assert.equal(result.statusCode,200); assert.ok(result.json.leaseToken);
+  const ice=await f.request('GET','/ice'); assert.equal(ice.statusCode,200); assert.deepEqual(ice.json.iceServers,[]);
+});
+
+test('signed fresh edge health gates credential issuance', async () => {
+  const f=fixture(); await f.create(); const secret='a'.repeat(32), time=f.now();
+  const policy={reportTtlMs:15000,uplinkBudgetMbps:100,allocationLimit:100};
+  const api=createApi({store:f.store,push:f.push,now:f.now,edgeTurn:{urls:['turn:edge.example.com:3478'],secret:'b'.repeat(32),healthSecret:secret,policy}});
+  const request=async(method,path,body,headers={})=>api.handler({rawPath:path,headers,body:body||'',requestContext:{http:{method,sourceIp:'local'}}});
+  const ice=async()=>JSON.parse((await request('GET',`/v1/clubs/${f.id}/ice`,'',{authorization:`Bearer ${f.read}`})).body);
+  assert.deepEqual((await ice()).iceServers,[]);
+  const body=JSON.stringify({sampledAtMs:time,cpuBusyRatio:0.1,memoryAvailableRatio:0.8,networkTxMbps:1,allocations:1});
+  const signature=createHmac('sha256',secret).update(`${time}.`).update(body).digest('hex');
+  const headers={'x-edge-timestamp':String(time),'x-edge-signature':signature};
+  assert.equal((await request('POST','/v1/edge-health',body,headers)).statusCode,200);
+  assert.equal((await ice()).iceServers.length,1);
+  assert.equal((await request('POST','/v1/edge-health',body,headers)).statusCode,409);
+  f.advance(1); const pressure=JSON.stringify({sampledAtMs:f.now(),cpuBusyRatio:0.99,memoryAvailableRatio:0.8,networkTxMbps:1,allocations:1});
+  const pressureHeaders={'x-edge-timestamp':String(f.now()),'x-edge-signature':createHmac('sha256',secret).update(`${f.now()}.`).update(pressure).digest('hex')};
+  assert.equal((await request('POST','/v1/edge-health',pressure,pressureHeaders)).statusCode,200);
+  assert.deepEqual((await ice()).iceServers,[],'fresh constrained health stops issuing new credentials');
+  f.advance(15001); assert.deepEqual((await ice()).iceServers,[]);
+});

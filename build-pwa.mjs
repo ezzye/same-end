@@ -81,6 +81,8 @@ html=html.replace(/(<script id="common-start-module">)[\s\S]*?(<\/script>)/,(_,a
 const clientDeliveryUI=await readFile(path.join(dir,'client-delivery-ui.js'),'utf8');
 html=html.replace(/(<script id="client-delivery-ui-module">)[\s\S]*?(<\/script>)/,(_,a,b)=>a+clientDeliveryUI+b);
 for(const [id,file]of [['share-help-module','share-help.js'],['diagnostics-core','diagnostics-core.js'],['session-diagnostics-ui','diagnostics-ui.js']]){const body=await readFile(path.join(dir,file),'utf8'),pattern=new RegExp('(<script id="'+id+'">)[\\s\\S]*?(</script>)');if(!pattern.test(html))throw Error('Missing test diagnostics slot.');html=html.replace(pattern,(_,a,b)=>a+body+b);}
+const resilienceModules=(await Promise.all(['resilience-wire.js','resilience-policy.js','resilience-pacing.js','coordinator-client.js'].map(name=>readFile(path.join(dir,name),'utf8')))).join('\n');
+html=html.replace('<script id="cast-engine">','<script id="resilience-modules">'+resilienceModules+'</script><script id="cast-engine">');
 const engine=await readFile(path.join(dir,'engine.js'),'utf8');
 html=html.replace(/(<script id="cast-engine">)[\s\S]*?(<\/script>)/,(_,a,b)=>a+engine+b);
 
@@ -89,7 +91,7 @@ let apiBase=process.env.SAME_END_API_BASE||'';
 try{if(!apiBase)apiBase=JSON.parse(await readFile(path.join(dir,'public-config.json'),'utf8')).apiBase||'';}catch(e){if(e.code!=='ENOENT')throw e;}
 if(process.env.SAME_END_LOCAL==='1')apiBase='';
 if(apiBase&&!/^https:\/\/[a-z0-9.-]+(?::[0-9]+)?$/.test(apiBase))throw Error('Use a public HTTPS API origin.');
-const runtime={apiBase,buildId:(process.env.CURRENT_DEPLOY_SHA||process.env.GITHUB_SHA)?.slice(0,12)||'local',automaticInitialDelay:process.env.SAMEEND_AUTOMATIC_INITIAL_DELAY!=='0',automaticCommonStart:process.env.SAMEEND_AUTOMATIC_COMMON_START!=='0'};
+const runtime={apiBase,resilientDelivery:process.argv.includes('--resilient-delivery')||process.env.SAMEEND_RESILIENT_DELIVERY==='1',buildId:(process.env.CURRENT_DEPLOY_SHA||process.env.GITHUB_SHA)?.slice(0,12)||'local',automaticInitialDelay:process.env.SAMEEND_AUTOMATIC_INITIAL_DELAY!=='0',automaticCommonStart:process.env.SAMEEND_AUTOMATIC_COMMON_START!=='0'};
 const communityStyle=await readFile(path.join(dir,'community.css'),'utf8');
 const waitingStyle=await readFile(path.join(dir,'waiting.css'),'utf8');
 const communityRuntime=(await readFile(path.join(dir,'fan-auth.js'),'utf8'))+'\n'+await readFile(path.join(dir,'community.js'),'utf8');
