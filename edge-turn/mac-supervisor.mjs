@@ -6,6 +6,7 @@ import {promisify} from 'node:util';
 import {X509Certificate, createPrivateKey, createPublicKey} from 'node:crypto';
 import {connect} from 'node:tls';
 import {isIP} from 'node:net';
+import {networkInterfaces} from 'node:os';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {routerClient} from './upnp-mappings.mjs';
@@ -31,16 +32,20 @@ async function verifyTls(c,expectedFingerprint){
 }
 export const supervisorTiming = {statusTtlMs: TTL, mappingLeaseSeconds: LEASE};
 export function legoArgs(c){return ['run','--path',c.acmePath,'--cert.name','same-end-edge','--domains',c.expectedPublicIPv4,'--profile','shortlived','--http','--http.address',':8080','--accept-tos','--account-id','same-end-edge','--no-random-sleep'];}
-const defaults={router:routerClient,readCertificate,verifyTls,atomic,now:()=>Date.now(),issue:async c=>{await runFile(c.legoPath,legoArgs(c),{timeout:180000,maxBuffer:65536});},reload:async c=>{const value=(await readFile(c.coturnPidFile,'utf8')).trim();if(!/^[1-9]\d*$/.test(value))throw Error('Invalid coturn PID');process.kill(Number(value),'SIGUSR2');}};
+const defaults={interfaces:networkInterfaces,router:routerClient,readCertificate,verifyTls,atomic,now:()=>Date.now(),issue:async c=>{await runFile(c.legoPath,legoArgs(c),{timeout:180000,maxBuffer:65536});},reload:async c=>{const value=(await readFile(c.coturnPidFile,'utf8')).trim();if(!/^[1-9]\d*$/.test(value))throw Error('Invalid coturn PID');process.kill(Number(value),'SIGUSR2');}};
 export async function supervisorCycle(c, overrides={}){
  const a={...defaults,...overrides}, now=a.now();let reasons=[];
  const status=async ok=>a.atomic(c.statusPath,JSON.stringify({ok,checkedAtMs:now,expiresAtMs:now+TTL,reasons})+'\n');
  // Invalidate any previous success while a potentially slow renewal is running.
  reasons=['check-in-progress'];await status(false);reasons=[];
  try{
-  validate(c);const router=a.router(c.router);
+  validate(c);
+  const interfaces=a.interfaces();
+  if (!interfaces || !Object.values(interfaces).some(entries => Array.isArray(entries) && entries.some(entry => entry.family === 'IPv4' && !entry.internal && entry.address === c.router.localAddress))) throw Error('local-ip-not-assigned');
+  const router=a.router(c.router);
   if(await router.externalAddress()!==c.expectedPublicIPv4)throw Error('public-ip-mismatch-or-unknown');
-  for(const mapping of c.mappings)await router.ensure(mapping,LEASE);
+  if (typeof router.ensureAll === 'function') await router.ensureAll(c.mappings,LEASE);
+  else for(const mapping of c.mappings)await router.ensure(mapping,LEASE);
   const pendingPath=c.statusPath+'.renewal-pending';
   let pending=false, challengeRemoved=false;
   try { await readFile(pendingPath); pending=true; } catch(e) { if(e.code!=='ENOENT') throw e; }

@@ -60,7 +60,9 @@ A certificate for the public IP was issued through HTTP-01. The temporary extern
 
 ## Mac prerequisite supervisor
 
-`mac-supervisor.mjs` maintains only explicitly configured UPnP mappings, each with a one-hour lease. It refuses mappings owned by another service, checks the router's external IPv4 against the configured address, verifies the certificate and its matching key, and checks the live loopback TLS listener with public CA validation, the IP identity and the expected leaf. Router timeouts and unverifiable state are unhealthy; an IP change does not change cloud configuration. This check is separate from capacity measurements and does not establish external reachability.
+`mac-supervisor.mjs` maintains only explicitly configured UPnP mappings, each with a one-hour lease. The configured local IPv4 must still belong to a non-internal interface on this Mac. It refuses mappings owned by another service, checks the router's external IPv4 against the configured address, verifies the certificate and its matching key, and checks the live loopback TLS listener with public CA validation, the IP identity and the expected leaf. Router timeouts and unverifiable state are unhealthy; an IP change does not change cloud configuration. This check is separate from capacity measurements and does not establish external reachability.
+
+The mapping batch reads one bounded inventory before any writes, checks ownership for the entire requested set, renews the mappings serially, then reads one final inventory to verify them. SOAP requests are serialized and spaced by at least 100 milliseconds. Renewing 19 existing mappings takes 59 requests in the regression fixture, avoiding repeated full scans when a router rejects a direct lookup. A failed batch can leave some owned rules renewed; it does not report success or attempt to remove unrelated rules. UPnP provides no conditional write, so another controller changing a rule between the inventory and write remains a cross-process race. Inventory size, response bytes, timeouts and mapping count are bounded.
 
 Create a private, mode `0600` JSON file with absolute paths (examples are placeholders):
 
