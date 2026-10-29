@@ -21,7 +21,12 @@ export function routerClient({controlUrl,gatewayAddress,localAddress,description
  function exclusive(fn){const task=operationChain.catch(()=>{}).then(fn);operationChain=task;return task;}
  function checked(m){if(!m||!['UDP','TCP'].includes(m.protocol)||!Number.isInteger(m.external)||!Number.isInteger(m.internal)||m.external<1||m.external>65535||m.internal<1024||m.internal>65535)throw Error('Invalid relay port mapping');return m;}
  function lease(seconds){if(!Number.isInteger(seconds)||seconds<60||seconds>7200)throw Error('Invalid mapping lease');}
- const item=t=>({client:field(t,'NewInternalClient'),internal:Number(field(t,'NewInternalPort')),description:field(t,'NewPortMappingDescription'),enabled:field(t,'NewEnabled')==='1'});
+ // UPnP WANIPConnection:1 defines zero as a static mapping. This service
+ // requires a finite lease; zero or an absent/malformed value is not evidence
+ // of a bounded lifetime and is therefore not accepted as healthy.
+ const duration=t=>{const text=field(t,'NewLeaseDuration');if(typeof text!=='string'||!/^\d{1,10}$/.test(text))return null;const n=Number(text);return Number.isSafeInteger(n)&&n<=0xffffffff?n:null;};
+ const item=t=>({client:field(t,'NewInternalClient'),internal:Number(field(t,'NewInternalPort')),description:field(t,'NewPortMappingDescription'),enabled:field(t,'NewEnabled')==='1',leaseSeconds:duration(t)});
+ const enough=v=>Number.isInteger(v?.leaseSeconds)&&v.leaseSeconds>=900;
  async function inventory(){
   const rows=[];
   for(let index=0;index<128;index++){
@@ -38,12 +43,12 @@ export function routerClient({controlUrl,gatewayAddress,localAddress,description
  function matching(rows,m){return rows.filter(v=>v.external===m.external&&v.protocol===m.protocol);}
  return{
   async ensureAll(mappings,seconds=3600){return exclusive(async()=>{
-   if(!Array.isArray(mappings)||!mappings.length||mappings.length>64)throw Error('Invalid relay mapping set');lease(seconds);const ids=new Set();
+   if(!Array.isArray(mappings)||!mappings.length||mappings.length>64)throw Error('Invalid relay mapping set');lease(seconds);if(seconds<=900)throw Error('Mapping lease cannot cover the required headroom');const ids=new Set();
    for(const m of mappings){checked(m);const k=m.protocol+':'+m.external;if(ids.has(k))throw Error('Duplicate relay port mapping');ids.add(k);}
-   const before=await inventory();for(const m of mappings){const found=matching(before,m);if(found.length>1||found.some(v=>!owned(v,m)))throw Error('An existing port mapping belongs to another service');}
-   // Renew only explicitly owned mappings, serially, at the requested bounded lease.
-   for(const m of mappings)await add(m,seconds);
-   const after=await inventory();for(const m of mappings){const found=matching(after,m);if(found.length!==1||!owned(found[0],m)||!found[0].enabled)throw Error('Relay mapping could not be verified');}
+   const before=await inventory();for(const m of mappings){const found=matching(before,m);if(found.length>1||found.some(v=>!owned(v,m)))throw Error('An existing port mapping belongs to another service');if(found.some(v=>v.leaseSeconds===null||v.leaseSeconds===0))throw Error('Relay mapping lease could not be verified as finite');}
+   // Keep an already sufficient lease; renew missing, disabled or near-expiry entries.
+   for(const m of mappings){const [current]=matching(before,m);if(!current||!current.enabled||!enough(current))await add(m,seconds);}
+   const after=await inventory();for(const m of mappings){const found=matching(after,m);if(found.length!==1||!owned(found[0],m)||!found[0].enabled||!enough(found[0]))throw Error('Relay mapping could not be verified');}
    return true;
   });},
   async ensure(m,seconds=3600){return exclusive(async()=>{checked(m);lease(seconds);const before=await get(m);if(before&&!owned(before,m))throw Error('An existing port mapping belongs to another service');await add(m,seconds);const after=await get(m);if(!owned(after,m)||!after.enabled)throw Error('Relay mapping could not be verified');return true;});},
