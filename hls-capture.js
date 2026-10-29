@@ -13,7 +13,7 @@ const DELIVERY_TIMEOUT_MS = 3000, MAX_DELIVERY_SAMPLES = 150;
 const VIDEO = { codec: 'avc', bitrate: 1500000, keyFrameInterval: 2, hardwareAcceleration: 'prefer-software' };
 const AUDIO = { codec: 'aac', bitrate: 96000 };
 
-export async function canCapture(stream, { audioOnly = false } = {}) {
+export async function canCapture(stream, { audioOnly = false, width, height, frameRate, bitrate = VIDEO.bitrate, audioBitrate = AUDIO.bitrate } = {}) {
   try {
     if (typeof MediaStream === 'undefined' || (!audioOnly && typeof VideoEncoder === 'undefined')) return false;
     const video = stream?.getVideoTracks()[0], audio = stream?.getAudioTracks()[0];
@@ -22,18 +22,18 @@ export async function canCapture(stream, { audioOnly = false } = {}) {
     const settings = video?.getSettings() || {};
     const audioSettings = audio?.getSettings() || {};
     const supported = await Promise.all([
-      audioOnly ? true : canEncodeVideo('avc', { width: settings.width || 1280, height: settings.height || 720, bitrate: VIDEO.bitrate, frameRate: settings.frameRate || 25, latencyMode: 'realtime', hardwareAcceleration: VIDEO.hardwareAcceleration }),
-      !stream || audio ? canEncodeAudio('aac', { numberOfChannels: audioSettings.channelCount || 2, sampleRate: audioSettings.sampleRate || 48000, bitrate: AUDIO.bitrate }) : true,
+      audioOnly ? true : canEncodeVideo('avc', { width: width || settings.width || 1280, height: height || settings.height || 720, bitrate, frameRate: frameRate || settings.frameRate || 25, latencyMode: 'realtime', hardwareAcceleration: VIDEO.hardwareAcceleration }),
+      !stream || audio ? canEncodeAudio('aac', { numberOfChannels: audioSettings.channelCount || 2, sampleRate: audioSettings.sampleRate || 48000, bitrate: audioBitrate }) : true,
     ]);
     return supported.every(Boolean);
   } catch { return false; }
 }
 
-export async function createCapture(stream, { epoch, bitrate = VIDEO.bitrate, audioBitrate = AUDIO.bitrate, audioOnly = false, videoOnly = false, onBatch, onError, now = Date.now } = {}) {
+export async function createCapture(stream, { epoch, bitrate = VIDEO.bitrate, audioBitrate = AUDIO.bitrate, audioOnly = false, videoOnly = false, width, height, frameRate, onBatch, onError, now = Date.now } = {}) {
   if (!Number.isFinite(epoch) || epoch < 0) throw new TypeError('Capture epoch must be Unix milliseconds.');
   if (!Number.isInteger(bitrate) || bitrate <= 0) throw new TypeError('Capture bitrate must be a positive integer.');
   if (typeof onBatch !== 'function') throw new TypeError('Capture needs an onBatch callback.');
-  if (!await canCapture(stream, { audioOnly })) throw new Error('Continuous H.264/AAC capture is unavailable in this browser.');
+  if (!await canCapture(stream, { audioOnly, width, height, frameRate, bitrate, audioBitrate })) throw new Error('Continuous H.264/AAC capture is unavailable in this browser.');
   const stats = { status: 'starting', epoch, startupOffsetSeconds: null, videoPackets: 0, audioPackets: 0, videoEncoderConfigurations: 0, audioEncoderConfigurations: 0, batches: 0, segments: 0, pendingBytes: 0, peakPendingBytes: 0, retainedFiles: 0, peakDeliverySamples: 0, end: 0 };
   const snapshots = new Map(), pending = new Map(), segmentInfo = new Map(), playlists = new Map(), firstPackets = new Map();
   let resolveReady, rejectReady, output, closing, failure, firstSample = false, lastFiles = [], lastInterval, rejectFailure, delivering = false, deliverySamples = 0;

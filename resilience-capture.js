@@ -7,8 +7,8 @@ export async function createResilientCapture(inputStream, { epoch, now = Date.no
   if (!Array.isArray(selectedRenditions) || selectedRenditions.some(name => !['audio', 'v360', 'v480'].includes(name)) || !selectedRenditions.some(name => name === 'v360' || name === 'v480')) throw new Error('Select at least one supported video rendition.');
   const definitions = [
     { name: 'audio', audioOnly: true, audioBitrate: 64000 },
-    { name: 'v360', width: 640, height: 360, bitrate: 400000, videoOnly: true },
-    { name: 'v480', width: 854, height: 480, bitrate: 700000, videoOnly: true },
+    { name: 'v360', width: 640, height: 360, frameRate: 25, bitrate: 400000, videoOnly: true },
+    { name: 'v480', width: 854, height: 480, frameRate: 25, bitrate: 700000, videoOnly: true },
   ].filter(definition => definition.name === 'audio' || selectedRenditions.includes(definition.name));
   const stats = { status: 'starting', renditions: {} }, renditions = {}, owned = [], normalizers = [], producers = [];
   let closed = false, audioContext, silentSource;

@@ -57,7 +57,18 @@ export class ResilientPlayer {
     if (this.closed) return { waiting: true, drift: null, playing: false };
     this.target = target; this.audio.startupHold = this.startupHold;
     const result = this.audio.sync(target); this.trySwitch();
-    if (this.videoPlayer) { this.videoPlayer.startupHold = this.startupHold; this.videoPlayer.sync(this.audio.programTime() ?? target); }
+    if (this.videoPlayer) {
+      this.videoPlayer.startupHold = this.startupHold;
+      const audioTime = this.audio.programTime(), videoTime = this.videoPlayer.programTime(), controller = this.videoPlayer.adaptive;
+      // Each renderer can independently add playout delay after startup or an
+      // underflow. Keep picture tied to the audible clock: ask its existing
+      // bounded recovery path to realign only when verified media is available.
+      // Audio is never paused while the picture waits for a seekable window.
+      if (!this.startupHold && Number.isFinite(audioTime) && Number.isFinite(videoTime) && Math.abs(audioTime - videoTime) > .8 && controller?.everPlayed && this.videoPlayer.cache.contiguousAhead(audioTime) >= controller.bufferGoalSeconds) {
+        controller.position = audioTime; controller.phase = 'recovering';
+      }
+      this.videoPlayer.sync(audioTime ?? target);
+    }
     this.blocked = this.audio.blocked; return result;
   }
   programTime() { return this.audio.programTime(); }
@@ -106,7 +117,8 @@ export class ResilientPlayer {
   get startupPreparation() { return this.audio.startupPreparation; }
   facts() {
     const audio = this.audio.facts(), video = this.videoPlayer?.facts() || null;
-    const selected = this.pendingMode || this.mode, pictureReady = this.mode !== 'audio' && !!this.videoPlayer && this.video.readyState >= 2 && !this.video.seeking && !this.video.paused;
+    const selected = this.pendingMode || this.mode, audioTime = this.audio.programTime(), videoTime = this.videoPlayer?.programTime();
+    const pictureReady = this.mode !== 'audio' && !!this.videoPlayer && this.video.readyState >= 2 && !this.video.seeking && !this.video.paused && Number.isFinite(audioTime) && Number.isFinite(videoTime) && Math.abs(audioTime - videoTime) <= 1;
     return { ...audio, pictureReady, awaitingPicture: selected !== 'audio' && (!!this.pendingMode || !pictureReady), actualMode: this.mode === 'audio' ? 'audio' : pictureReady ? this.mode : 'waiting-picture', decodedFrames: video?.decodedFrames ?? null, droppedFrames: video?.droppedFrames ?? null, width: video?.width ?? 0, height: video?.height ?? 0, presentedFrameTime: video?.presentedFrameTime ?? null, mediaMode: this.mode, pendingMode: this.pendingMode, audio, video };
   }
   close() { if (this.closed) return; this.closed = true; this.audio.close(); this.audioElement.remove(); this.videoPlayer?.close(); this.queues.v360.length = this.queues.v480.length = 0; }

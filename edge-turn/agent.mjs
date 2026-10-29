@@ -3,6 +3,7 @@ import {cpus, totalmem} from 'node:os';
 import {createServer} from 'node:http';
 import {pathToFileURL} from 'node:url';
 import {assessEdgeCapacity, parseCoturnMetrics} from '../backend/edge-turn.mjs';
+import {readMacMemoryPressure, sampleMacNetworkCounter} from './macos-sampler.mjs';
 
 const now = () => Date.now();
 const cpuTotals = list => list.reduce((out, cpu) => {
@@ -31,6 +32,7 @@ async function linuxTxBytes() {
 }
 
 async function memoryRatio() {
+  if (process.platform === 'darwin') return readMacMemoryPressure();
   if (process.platform !== 'linux') return null;
   try {
     const text = await readFile('/proc/meminfo', 'utf8');
@@ -39,28 +41,65 @@ async function memoryRatio() {
   } catch { return null; }
 }
 
+
+function isLoopbackMetricsUrl(value) {
+  if (typeof value !== 'string' || !value) return false;
+  try {
+    const url = new URL(value);
+    return ['http:', 'https:'].includes(url.protocol) && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) &&
+      !url.username && !url.password && !url.hash;
+  } catch { return false; }
+}
+
+function validateReportAck(data, sample) {
+  if (!data || typeof data !== 'object' || !['healthy', 'constrained', 'unknown', 'stale'].includes(data.state) ||
+      typeof data.allowNew !== 'boolean' || data.allowNew !== (data.state === 'healthy') ||
+      data.sampledAtMs !== sample.sampledAtMs || !Number.isFinite(data.expiresAtMs) || data.expiresAtMs <= now() ||
+      !Array.isArray(data.reasons) || data.reasons.length > 20 || data.reasons.some(x => typeof x !== 'string' || x.length > 80)) {
+    throw new Error('Coordinator returned an invalid capacity health acknowledgement');
+  }
+  return {state: data.state, allowNew: data.allowNew, sampledAtMs: data.sampledAtMs, expiresAtMs: data.expiresAtMs, reasons: data.reasons, metrics: data.metrics || null};
+}
+
+function validateRemoteConfig(config, args) {
+  if (config.reportUrl === undefined || config.reportUrl === '') return;
+  let reportUrl;
+  try { reportUrl = new URL(config.reportUrl); } catch { throw new Error('reportUrl must be the deployed coordinator HTTPS health endpoint'); }
+  if (reportUrl.protocol !== 'https:' || reportUrl.username || reportUrl.password || reportUrl.hash || reportUrl.search) throw new Error('reportUrl must use HTTPS without embedded credentials or fragments');
+  if (!isLoopbackMetricsUrl(config.metricsUrl)) throw new Error('metricsUrl must point to a local coturn exporter on loopback');
+  if (config.networkInterface !== undefined && !/^en\d+$/.test(config.networkInterface)) throw new Error('networkInterface must be a physical macOS en interface name');
+  const p = config.policy, secret = process.env.EDGE_TURN_HEALTH_SECRET;
+  if (!args.dryRun && (typeof secret !== 'string' || secret.length < 24)) throw new Error('EDGE_TURN_HEALTH_SECRET must contain at least 24 characters when reportUrl is configured');
+  if (!args.dryRun && (!(Number.isFinite(p.uplinkBudgetMbps) && p.uplinkBudgetMbps > 0) || !Number.isSafeInteger(p.allocationLimit) || p.allocationLimit <= 0)) throw new Error('Remote health reporting requires a positive uplinkBudgetMbps and positive safe-integer allocationLimit');
+  for (const [name, value] of [['cpuBusyLimit', p.cpuBusyLimit ?? 0.9], ['minimumMemoryAvailableRatio', p.minimumMemoryAvailableRatio ?? 0.1], ['uplinkHeadroomRatio', p.uplinkHeadroomRatio ?? 0.8], ['allocationHeadroomRatio', p.allocationHeadroomRatio ?? 0.9]]) {
+    if (!Number.isFinite(value) || value < 0 || value > 1 || (name.endsWith('HeadroomRatio') && value === 0)) throw new Error(`Invalid capacity policy setting: ${name}`);
+  }
+}
+
 async function scrapeAllocations(url) {
   if (!url) return {allocations: null, metricError: true};
   try {
-    const response = await fetch(url, {signal: AbortSignal.timeout(1200)});
+    const response = await fetch(url, {redirect: 'error', signal: AbortSignal.timeout(1200)});
     if (!response.ok) return {allocations: null, metricError: true};
     const result = parseCoturnMetrics(await response.text());
     return {...result, metricError: result.allocations === null};
   } catch { return {allocations: null, metricError: true}; }
 }
 
-export async function sampleHost({metricsUrl} = {}, previous = {}) {
+export async function sampleHost({metricsUrl, networkInterface} = {}, previous = {}) {
   const sampledAtMs = now();
   const cpu = cpuTotals(cpus());
-  const txBytes = await linuxTxBytes();
+  let txBytes = null, networkIdentity = null;
+  if (process.platform === 'linux') { txBytes = await linuxTxBytes(); if (txBytes !== null) networkIdentity = 'linux:aggregate'; }
+  else if (process.platform === 'darwin') { const sample = await sampleMacNetworkCounter({interfaceName: networkInterface}); txBytes = sample?.txBytes ?? null; networkIdentity = sample?.identity ?? null; }
   const memoryAvailableRatio = await memoryRatio();
   const allocation = await scrapeAllocations(metricsUrl);
   const elapsedSeconds = previous.sampledAtMs ? (sampledAtMs - previous.sampledAtMs) / 1000 : 0;
-  const networkTxMbps = txBytes !== null && Number.isFinite(previous.txBytes) && elapsedSeconds > 0 && txBytes >= previous.txBytes
+  const networkTxMbps = txBytes !== null && Number.isFinite(previous.txBytes) && networkIdentity && previous.networkIdentity === networkIdentity && elapsedSeconds > 0 && txBytes >= previous.txBytes
     ? (txBytes - previous.txBytes) * 8 / elapsedSeconds / 1_000_000 : null;
   return {
     sample: {sampledAtMs, cpuBusyRatio: cpuRatio(previous.cpu, cpu), memoryAvailableRatio, networkTxMbps, ...allocation},
-    next: {sampledAtMs, cpu, txBytes}
+    next: {sampledAtMs, cpu, txBytes, networkIdentity}
   };
 }
 
@@ -84,6 +123,10 @@ async function run(argv = process.argv.slice(2)) {
     const policy = {reportTtlMs: 15_000, cpuBusyLimit: 0.9, minimumMemoryAvailableRatio: 0.1, uplinkBudgetMbps: 50, allocationLimit: 100};
     const result = assessEdgeCapacity({sample: report, config: policy});
     if (result.state !== 'healthy') throw new Error('Capacity policy self-test failed');
+    const ack = validateReportAck({state: 'healthy', allowNew: true, sampledAtMs: report.sampledAtMs, expiresAtMs: report.sampledAtMs + policy.reportTtlMs, reasons: []}, report);
+    let rejectedMismatch = false;
+    try { validateReportAck({...ack, sampledAtMs: report.sampledAtMs - 1}, report); } catch { rejectedMismatch = true; }
+    if (!ack.allowNew || !rejectedMismatch) throw new Error('Coordinator acknowledgement self-test failed');
     process.stdout.write(JSON.stringify({selftest: 'passed'}) + '\n');
     return;
   }
@@ -91,21 +134,26 @@ async function run(argv = process.argv.slice(2)) {
   const config = JSON.parse(await readFile(args.configPath, 'utf8'));
   if (!config || !config.policy || !Number.isInteger(config.intervalMs) || config.intervalMs < 1000 || config.intervalMs > 60000 ||
       !Number.isFinite(config.policy.reportTtlMs) || config.policy.reportTtlMs <= config.intervalMs + 5000) throw new Error('Config requires a policy, intervalMs from 1000 to 60000, and reportTtlMs greater than intervalMs plus 5000ms');
+  validateRemoteConfig(config, args);
   let previous = {}, latest = null, lastFailureMessage = null, timer = null;
   const report = async () => {
     const captured = await sampleHost(config, previous);
     previous = captured.next;
     const sample = captured.sample;
     const decision = assessEdgeCapacity({sample, config: config.policy});
-    latest = {sample, decision};
+    const awaitingAck = {state: 'unknown', allowNew: false, sampledAtMs: sample.sampledAtMs, expiresAtMs: sample.sampledAtMs + config.policy.reportTtlMs, reasons: ['awaiting-coordinator-ack']};
+    latest = {sample, localDecision: decision, decision: config.reportUrl && !args.dryRun ? awaitingAck : decision};
     if (config.reportUrl && !args.dryRun) {
       const secret = process.env.EDGE_TURN_HEALTH_SECRET;
       if (typeof secret !== 'string' || secret.length < 24) throw new Error('EDGE_TURN_HEALTH_SECRET is required when reportUrl is configured');
       const body = JSON.stringify(sample);
       const timestamp = String(sample.sampledAtMs);
       const signature = (await import('node:crypto')).createHmac('sha256', secret).update(`${timestamp}.`).update(body).digest('hex');
-      const response = await fetch(config.reportUrl, {method: 'POST', headers: {'content-type': 'application/json', 'x-edge-timestamp': timestamp, 'x-edge-signature': signature}, body, signal: AbortSignal.timeout(2000)});
+      const response = await fetch(config.reportUrl, {method: 'POST', redirect: 'error', headers: {'content-type': 'application/json', 'x-edge-timestamp': timestamp, 'x-edge-signature': signature}, body, signal: AbortSignal.timeout(2000)});
       if (!response.ok) throw new Error(`Health report rejected with status ${response.status}`);
+      let acknowledgement;
+      try { acknowledgement = await response.json(); } catch { throw new Error('Coordinator health acknowledgement was not valid JSON'); }
+      latest = {sample, localDecision: decision, decision: validateReportAck(acknowledgement, sample)};
     }
     return latest;
   };
@@ -117,7 +165,7 @@ async function run(argv = process.argv.slice(2)) {
     server = createServer((request, response) => {
       if (request.method !== 'GET' || request.url !== '/health') { response.writeHead(404).end(); return; }
       const expired=latest&&now()>=latest.decision.expiresAtMs;
-      const allowlisted = expired ? {state:'stale',allowNew:false,sampledAtMs:latest.decision.sampledAtMs,expiresAtMs:latest.decision.expiresAtMs,reasons:['report-expired']} : latest ? {state: latest.decision.state, allowNew: latest.decision.allowNew, sampledAtMs: latest.decision.sampledAtMs, expiresAtMs: latest.decision.expiresAtMs, reasons: latest.decision.reasons, metrics: latest.decision.metrics} : {state: 'unknown', allowNew: false};
+      const allowlisted = !config.reportUrl ? {state:'unknown',allowNew:false,sampledAtMs:latest?.sample.sampledAtMs??null,expiresAtMs:null,reasons:['health-report-not-configured']} : expired ? {state:'stale',allowNew:false,sampledAtMs:latest.decision.sampledAtMs,expiresAtMs:latest.decision.expiresAtMs,reasons:['report-expired']} : latest ? {state: latest.decision.state, allowNew: latest.decision.allowNew, sampledAtMs: latest.decision.sampledAtMs, expiresAtMs: latest.decision.expiresAtMs, reasons: latest.decision.reasons, metrics: latest.decision.metrics} : {state: 'unknown', allowNew: false};
       response.writeHead(200, {'content-type': 'application/json', 'cache-control': 'no-store'}).end(JSON.stringify(allowlisted));
     });
     server.listen(port, '127.0.0.1');

@@ -1,0 +1,17 @@
+=== memory_pressure -Q ===
+The system has 38654705664 (2359296 pages with a page size of 16384).
+System-wide memory free percentage: 48%
+=== route -n get default ===
+   route to: default
+      destination: default
+           gateway: 192.168.1.1
+         interface: en0
+=== networksetup -listallhardwareports ===
+Hardware Port: Wi-Fi
+Device: en0
+Ethernet Address: 82:cc:ea:39:53:a1
+=== netstat -ibn -I en0 -f link ===
+Name       Mtu   Network       Address            Ipkts Ierrs     Ibytes    Opkts Oerrs     Obytes  Coll
+en0        1500  <Link#14>   82:cc:ea:39:53:a1 208448626     0 206117290366 153035901     0 136367554294     0
+en0        1500  fe80::1893: fe80:e::1893:48bb 208448626     - 206117290366 153035901     - 136367554294     -
+en0        1500  192.168.1     192.168.1.228   208448626     - 206117290366 153035901     - 136367554294     -

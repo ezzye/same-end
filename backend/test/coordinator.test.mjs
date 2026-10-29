@@ -79,3 +79,11 @@ test('an unmeasured rooted viewer has only one provisional slot',async()=>{
  const item=await store.get('CLUB#club','COORD#cast1');assert.equal(item.nodes.relay.report.children[0].deliveredMbps,null);
  const viewer=await coord('club',report('viewer',base({leafOnly:true})));assert.ok(!viewer.recommendations.some(x=>x.nodeId==='relay'));
 });
+test('four concurrent peers renew across report intervals and expired leases can re-register',async()=>{
+ const {coord,advance}=setup();const ids=['root','a','b','c'];
+ const created=await Promise.all(ids.map(node=>coord('club',report(node,base(node==='root'?{role:'source',relayLimit:2}:{leafOnly:true})))));
+ advance(4000);const renewed=await Promise.all(ids.map((node,i)=>coord('club',report(node,base(node==='root'?{role:'source',relayLimit:2}:{leafOnly:true}),2,created[i].leaseToken))));
+ assert.ok(renewed.every((x,i)=>x.leaseToken===created[i].leaseToken));assert.ok(renewed.slice(1).every(x=>x.recommendations.some(r=>r.nodeId==='root')));
+ advance(15001);await assert.rejects(coord('club',report('a',base({leafOnly:true}),3,renewed[1].leaseToken)),{code:'coordinator_lease'});
+ const next=await coord('club',report('a',base({leafOnly:true})));assert.notEqual(next.leaseToken,created[1].leaseToken);
+});

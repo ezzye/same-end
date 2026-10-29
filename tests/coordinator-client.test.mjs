@@ -23,7 +23,7 @@ test('leaf and stale candidates do not receive offers',()=>{
 });
 test('edge refresh changes future offers while preserving existing connections',async()=>{
  const w=setup();let answer={expiresAt:Math.floor(Date.now()/1000)+60,iceServers:[{urls:'turn:edge.example:3478',username:'u',credential:'c'}]};
- const t=new w.CastMagnetTransport({getIceServers:async()=>answer});t.client={tracker:{}};const tracker={_rtcConfig:{}};t.torrent={discovery:{tracker}};t.network={};
+ const t=new w.CastMagnetTransport({getIceServers:async()=>answer});t.role='viewer';t.networkStarted=Date.now()-16000;t.refreshNetwork=()=>true;t.client={tracker:{}};const tracker={_rtcConfig:{}};t.torrent={discovery:{tracker}};t.network={};
  t._refreshIce();await new Promise(resolve=>setImmediate(resolve));assert.equal(tracker._rtcConfig.iceServers.length,3);assert.equal(t.network.relayConfigured,true);
  answer={iceServers:[]};t._refreshIce();await new Promise(resolve=>setImmediate(resolve));assert.equal(tracker._rtcConfig.iceServers.length,2);assert.equal(t.network.relayConfigured,false);
 });
@@ -40,9 +40,9 @@ test('coordinator report retains unknown child rate and maps measured health',as
 
 test('expired edge credentials are never used and provider failure restores STUN for new offers',async()=>{
  const w=setup();let answer={expiresAt:Math.floor(Date.now()/1000)-1,iceServers:[{urls:'turn:edge.example:3478',username:'u',credential:'c'}]};
- const t=new w.CastMagnetTransport({getIceServers:async()=>{if(answer===null)throw Error('unavailable');return answer;}});t.client={tracker:{}};const tracker={_rtcConfig:{}};t.torrent={discovery:{tracker}};t.network={};
+ const t=new w.CastMagnetTransport({getIceServers:async()=>{if(answer===null)throw Error('unavailable');return answer;}});t.role='viewer';t.networkStarted=Date.now()-16000;t.refreshNetwork=()=>true;t.client={tracker:{}};const tracker={_rtcConfig:{}};t.torrent={discovery:{tracker}};t.network={};
  t._refreshIce();await new Promise(resolve=>setImmediate(resolve));assert.equal(tracker._rtcConfig.iceServers.length,2);
- answer={expiresAt:Math.floor(Date.now()/1000)+60,iceServers:[{urls:'turn:edge.example:3478',username:'u',credential:'c'}]};t._refreshIce();await new Promise(resolve=>setImmediate(resolve));assert.equal(tracker._rtcConfig.iceServers.length,3);
+ answer={expiresAt:Math.floor(Date.now()/1000)+60,iceServers:[{urls:'turn:edge.example:3478',username:'u',credential:'c'}]};t.edgeRetryAt=0;t._refreshIce();await new Promise(resolve=>setImmediate(resolve));assert.equal(tracker._rtcConfig.iceServers.length,3);
  answer=null;t._refreshIce();await new Promise(resolve=>setImmediate(resolve));assert.equal(tracker._rtcConfig.iceServers.length,2);assert.equal(t.network.relayConfigured,false);
 });
 
@@ -70,4 +70,25 @@ test('legacy v2 source routes without a rendition catalogue or coordinator repor
  t.config={id:'legacy-cast',segmentVersion:2};t.role='viewer';t.sessionReady=true;t._send=()=>offers++;t._start();
  const wire={destroyed:false,extended(){}};const supplier={wire,auth:true,remote:{nodeId:'source',role:'source',trail:[],clockReady:true,downCount:0,relayLimit:2,health:{cache:[],sourceAgeSeconds:null}}};t.wires.set(wire,supplier);t._assign(supplier);
  assert.equal(created,0);assert.equal(offers,1);assert.equal(t.parentRequest,supplier);clearInterval(t.timer);
+});
+test('source and connected viewer do not fetch edge credentials',async()=>{
+ let calls=0;const w=setup(),t=new w.CastMagnetTransport({getIceServers:async()=>{calls++;return {iceServers:[]};}});t.client={tracker:{}};t.networkStarted=Date.now()-20000;t.role='source';t._refreshIce();await new Promise(r=>setImmediate(r));
+ t.role='viewer';t.parent={remote:{nodeId:'healthy'}};t._refreshIce();await new Promise(r=>setImmediate(r));assert.equal(calls,0);
+});
+test('stalled viewer enables one preferred edge URL, limits offers and restores direct mode without closing parent',async()=>{
+ const w=setup();let calls=0,resets=0;const t=new w.CastMagnetTransport({getStatus:()=>({nodeId:'self',clockReady:true}),getIceServers:async()=>{calls++;return {expiresAt:Math.floor(Date.now()/1000)+60,iceServers:[{urls:['turns:edge.example:443?transport=tcp','turn:edge.example:3478?transport=udp','turn:edge.example:3478?transport=tcp'],username:'u',credential:'c'}]};}});
+ const tracker={_rtcConfig:{},_trackers:[]};t.client={tracker:{}};t.torrent={discovery:{tracker}};t.network={};t.role='viewer';t.networkStarted=Date.now()-14000;t.refreshNetwork=reason=>{assert.equal(reason,'edge-fallback');resets++;return true;};
+ t._refreshIce();await new Promise(r=>setImmediate(r));assert.equal(calls,0);t.networkStarted=Date.now()-16000;t._refreshIce();await new Promise(r=>setImmediate(r));assert.equal(calls,1);assert.equal(resets,1);assert.equal(t.network.fallbackState,'active');assert.equal(tracker._rtcConfig.iceServers.length,3);assert.equal(tracker._rtcConfig.iceServers[2].urls,'turn:edge.example:3478?transport=udp');
+ const tracked={peers:{},setInterval(){},announce(o){this.last=o;}};tracker._trackers=[tracked];t._boundTrackerOffers(t.torrent.discovery);tracked.announce({numwant:4});assert.equal(tracked.last.numwant,1);tracked.peers.pending={_pc:{},destroy(){}};tracked.announce({numwant:4});assert.equal(tracked.last.numwant,0);delete tracked.peers.pending;
+ const wire={destroyed:false,extended(){},destroy(){this.destroyed=true;}},peer={wire,auth:true,direction:'up',remote:{nodeId:'root',role:'source',trail:[]}};t.wires.set(wire,peer);t.recovery={};t._open(peer);assert.equal(wire.destroyed,false);assert.equal(t.parent,peer);assert.equal(tracker._rtcConfig.iceServers.length,2);assert.equal(t.network.fallbackState,'direct');assert.equal(t.network.relayConfigured,false);
+});
+test('failed edge search rotates to TLS only after a cooldown',async()=>{
+ const w=setup();const urls=['turn:edge.example:3478?transport=udp','turns:edge.example:443?transport=tcp'];const t=new w.CastMagnetTransport({getIceServers:async()=>({expiresAt:Math.floor(Date.now()/1000)+60,iceServers:[{urls,username:'u',credential:'c'}]})});const tracker={_rtcConfig:{}};t.client={tracker:{}};t.torrent={discovery:{tracker}};t.network={};t.role='viewer';t.networkStarted=Date.now()-16000;t.refreshNetwork=()=>true;
+ t._refreshIce();await new Promise(r=>setImmediate(r));assert.equal(tracker._rtcConfig.iceServers[2].urls,urls[0]);t.edgeSince=Date.now()-30001;t._refreshIce();assert.equal(t.network.fallbackState,'cooldown');assert.equal(tracker._rtcConfig.iceServers.length,2);t._refreshIce();assert.equal(t.network.fallbackState,'cooldown');t.edgeRetryAt=0;t._refreshIce();await new Promise(r=>setImmediate(r));assert.equal(tracker._rtcConfig.iceServers[2].urls,urls[1]);
+});
+
+test('initial source client is STUN-only and does not request edge credentials',async()=>{
+ let calls=0,created;class Client{constructor(options){created=options;}on(){}}
+ const context={window:{},WebTorrent:Client,TextEncoder,TextDecoder,crypto:webcrypto,btoa,atob,URL,queueMicrotask,setTimeout,clearTimeout,setInterval,clearInterval};vm.createContext(context);vm.runInContext(transport,context);
+ const t=new context.window.CastMagnetTransport({getIceServers:()=>{calls++;return Promise.resolve(null);}});t.role='source';await t._client();assert.equal(calls,0);assert.equal(created.tracker.rtcConfig.iceServers.length,2);assert.equal(created.tracker.getAnnounceOpts().numwant,4);
 });

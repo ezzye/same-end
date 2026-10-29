@@ -9,7 +9,7 @@ function fixture(options = {}) {
   let time = 100000;
   const policy = new Policy({ now: () => time, ...options });
   let state = { playing: true, visible: true, online: true, sourceReachable: true, reserve: { audio: 12, v360: 12, v480: 12 }, lastAge: { audio: 1, v360: 1, v480: 1 }, availableRenditions: ['audio','v360','v480'] };
-  return { policy, tick(seconds, patch = {}) { time += seconds * 1000; state = { ...state, ...patch }; return policy.update({ ...state, nowMs: time }); }, record(rendition, seq, endOffset=0) { return policy.record({ rendition, seq, start: time - 2000 + endOffset, duration: 2000 }, 1000, time); }, get time() { return time; } };
+  return { policy, tick(seconds, patch = {}) { time += seconds * 1000; state = { ...state, ...patch }; return policy.update({ ...state, nowMs: time, playbackNowMs: Object.hasOwn(state, 'playbackNowMs') ? state.playbackNowMs : time }); }, record(rendition, seq, endOffset=0) { return policy.record({ rendition, seq, start: time - 2000 + endOffset, duration: 2000 }, 1000, time); }, get time() { return time; } };
 }
 const plain = v => JSON.parse(JSON.stringify(v));
 test('exports for browser and CommonJS; startup and sustained deficits with cooldown', () => {
@@ -47,20 +47,20 @@ test('video upgrade waits longer, tests target specifically, and preference can 
   assert.equal(f.tick(1).mode,'v480'); f.policy.setPreference('v360'); assert.equal(f.tick(1).mode,'v360');
 });
 
-test('five-minute delayed playout promotes only new, recently transferred pieces near the playhead', () => {
+test('five-minute delayed playout requires newly transferred pieces and playhead reserve', () => {
  const f=fixture({initialMode:'audio'});f.tick(13);const oldTarget=f.time-300000;
  f.policy.record({rendition:'v360',seq:1,start:oldTarget-2000,duration:2000},1000,f.time);
  f.tick(20,{playbackNowMs:f.time+20000-300000});assert.equal(f.policy.snapshot().probe,'v360');
  const target=f.time-300000;
- // A replay with the same key and two unrelated near-live pieces cannot pass.
+ // Replays do not count and fresh near-live pieces need playhead reserve.
  assert.equal(f.policy.record({rendition:'v360',seq:1,start:target-2000,duration:2000},1000,f.time),false);
  f.policy.record({rendition:'v360',seq:2,start:f.time-2000,duration:2000},1000,f.time);
  f.policy.record({rendition:'v360',seq:3,start:f.time-2000,duration:2000},1000,f.time);
- assert.equal(f.tick(1,{playbackNowMs:f.time+1000-300000}).mode,'audio');
+ assert.equal(f.tick(1,{playbackNowMs:f.time+1000-300000,reserve:{audio:12,v360:0}}).mode,'audio');
  f.policy.record({rendition:'v360',seq:4,start:target-2000,duration:2000},1000,f.time);
- assert.equal(f.tick(1,{playbackNowMs:f.time+1000-300000}).mode,'audio');
+ assert.equal(f.tick(1,{playbackNowMs:f.time+1000-300000,reserve:{audio:12,v360:0}}).mode,'audio');
  f.policy.record({rendition:'v360',seq:5,start:target,duration:2000},1000,f.time);
- assert.equal(f.tick(1,{playbackNowMs:f.time+1000-300000}).reason,'probe-verified');
+ assert.equal(f.tick(1,{playbackNowMs:f.time+1000-300000,reserve:{audio:12,v360:6}}).reason,'probe-verified');
 });
 test('unknown playhead and old receipts cannot authorize an upgrade', () => {
  const f=fixture({initialMode:'audio'});f.tick(13);f.tick(20,{playbackNowMs:null});
@@ -71,4 +71,20 @@ test('unknown playhead and old receipts cannot authorize an upgrade', () => {
  g.policy.record({rendition:'v360',seq:11,start:target,duration:2000},1000,g.time);
  assert.equal(g.tick(16,{playbackNowMs:target+16000}).mode,'audio');
  assert.equal(g.tick(4,{playbackNowMs:target+20000}).reason,'probe-failed');
+});
+
+test('five-minute delayed viewer with retained playhead reserve may probe newly transferred live video', () => {
+ const f=fixture({initialMode:'audio'});f.tick(13);f.tick(20,{playbackNowMs:f.time+20000-300000});
+ assert.equal(f.policy.snapshot().probe,'v360');
+ f.record('v360',10); f.record('v360',11);
+ assert.equal(f.tick(1,{playbackNowMs:null,reserve:{audio:12,v360:6}}).mode,'audio');
+ assert.equal(f.tick(1,{playbackNowMs:f.time+1000-300000,reserve:{audio:12,v360:0}}).mode,'audio');
+ const result=f.tick(1,{playbackNowMs:f.time+1000-300000,reserve:{audio:12,v360:6}});
+ assert.equal(result.mode,'v360');assert.equal(result.reason,'probe-verified');
+});
+test('absent playback position fails closed even with fresh live probe and sufficient nominal reserve', () => {
+ let t=1000000; const p=new Policy({now:()=>t,initialMode:'audio'}); const context={playing:true,visible:true,online:true,sourceReachable:true,reserve:{audio:12,v360:12},lastAge:{audio:1,v360:1},availableRenditions:['audio','v360']};
+ t+=13000;p.update({...context,nowMs:t});t+=20000;p.update({...context,nowMs:t});
+ p.record({rendition:'v360',seq:1,start:t-2000,duration:2000},100,t);p.record({rendition:'v360',seq:2,start:t-1000,duration:1000},100,t);
+ assert.equal(p.update({...context,nowMs:t+1000}).mode,'audio');
 });

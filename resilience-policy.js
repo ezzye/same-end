@@ -72,11 +72,15 @@
     if (this.probe) {
       var p = this.probe, pr = reserve[p.mode], pa = age[p.mode];
       if (available.indexOf(p.mode) < 0 || t - p.startedAt >= PROBE_MS) { this.probe = null; this.healthySince = null; this.cooldownUntil = t + COOLDOWN_MS; this.phase = 'cooldown'; this.reason = 'probe-failed'; return this.snapshot(); }
-      // Receipt freshness is measured against the current clock; media position
-      // is measured against the actual playhead, which may be minutes behind.
-      var hasPlayhead = Object.prototype.hasOwnProperty.call(context, 'playbackNowMs');
-      var target = hasPlayhead ? context.playbackNowMs : t;
-      var evidence = validNumber(target) ? this.records.filter(function (entry) { return entry.rendition === p.mode && entry.serial > p.recordSerial && entry.at >= p.startedAt && entry.at <= t && entry.at >= t - FRESH_MS && entry.end <= target + 5000 && entry.end >= target - FRESH_MS; }) : [];
+      // Fresh post-probe transfers can be near the playhead (a new viewer)
+      // or near live (a viewer whose earlier feed remains cached). A transfer
+      // never substitutes for verified reserve at the actual playhead.
+      var target = context.playbackNowMs;
+      var evidence = validNumber(target) ? this.records.filter(function (entry) {
+        var nearPlayhead = entry.end <= target + 5000 && entry.end >= target - FRESH_MS;
+        var nearLive = entry.end <= t + 5000 && entry.end >= t - FRESH_MS;
+        return entry.rendition === p.mode && entry.serial > p.recordSerial && entry.at >= p.startedAt && entry.at <= t && entry.at >= t - FRESH_MS && (nearPlayhead || nearLive);
+      }) : [];
       if (evidence.length >= 2 && validNumber(pr) && pr >= 5 && validNumber(pa) && pa <= 5) { move(this, p.mode, 'probe-verified'); return this.snapshot(); }
       this.phase = 'probing'; this.reason = 'awaiting-fresh-video'; return this.snapshot();
     }

@@ -11,7 +11,7 @@ import WebTorrent from './vendor/webtorrent.min.js';
     'wss://tracker.webtorrent.dev'
   ];
   const STUN=[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun.cloudflare.com:3478'}];
-  const JOIN_WAIT=90000, REANNOUNCE=15000;
+  const JOIN_WAIT=90000, REANNOUNCE=15000, EDGE_WAIT=15000, EDGE_ATTEMPT=30000, EDGE_COOLDOWN=5000;
   // Admission is checked server-side, and expired credentials must not be offered.
   const usableEdgeServers=answer=>{if(!answer||!Number.isFinite(answer.expiresAt)||answer.expiresAt*1000<=Date.now()+5000||!Array.isArray(answer.iceServers))return [];return answer.iceServers.filter(x=>x&&typeof x==='object'&&x.urls&&typeof x.username==='string'&&typeof x.credential==='string').slice(0,4);};
   const EXT = 'ut_privatecast';
@@ -28,7 +28,7 @@ import WebTorrent from './vendor/webtorrent.min.js';
 
   class MagnetTransport {
     constructor({getStatus=()=>({}),getCoordinatorReport=null,getIceServers=null,onSession=()=>{},onPeer=()=>{},onError=()=>{},onRecovery=()=>{},onTopology=()=>{},onProgress=()=>{},trackers=TRACKERS}={}) {
-      this.readStatus=getStatus; this.getCoordinatorReport=getCoordinatorReport;this.getIceServers=getIceServers;this.coordinator=null;this.coordinatorAt=0;this.coordinatorBusy=false;this.coordinatorAttempt=null;this.iceRefreshAt=0;this.iceRefreshBusy=false; this.onSession=onSession; this.onPeer=onPeer; this.onError=onError; this.onRecovery=onRecovery; this.onTopology=onTopology; this.onProgress=onProgress;
+      this.readStatus=getStatus; this.getCoordinatorReport=getCoordinatorReport;this.getIceServers=getIceServers;this.coordinator=null;this.coordinatorAt=0;this.coordinatorBusy=false;this.coordinatorAttempt=null;this.iceRefreshAt=0;this.iceRefreshBusy=false;this.edgeActive=false;this.edgeSince=0;this.edgeRetryAt=0;this.edgeIndex=0;this.edgeEpoch=0; this.onSession=onSession; this.onPeer=onPeer; this.onError=onError; this.onRecovery=onRecovery; this.onTopology=onTopology; this.onProgress=onProgress;
       this.trackers=Array.from(new Set(trackers.map(x=>{const u=new URL(x);if(u.protocol!=='wss:')throw Error('Trackers must use secure WebSocket.');return u.href;}))).slice(0,2);
       this.client=null; this.torrent=null; this.key=null; this.role=null; this.node=String((getStatus()||{}).nodeId||id()); this.label='Friend';
       this.config=null; this.closed=false; this.wires=new Map(); this.links=new Map(); this.timer=null; this.trail=[]; this.parent=null; this.parentRequest=null; this.down=0; this.clockReady=false;
@@ -94,20 +94,38 @@ import WebTorrent from './vendor/webtorrent.min.js';
     _status(){ return this.getStatus(); }
     async _cryptoKey(key){ return crypto.subtle.importKey('raw',key,{name:'HMAC',hash:'SHA-256'},false,['sign','verify']); }
     async _mac(text){ return new Uint8Array(await crypto.subtle.sign('HMAC',this.hmac,encoder.encode(text))); }
-    async _client(){ if(!this.client){let extra=[];try{const answer=await Promise.race([Promise.resolve(this.getIceServers?.()),new Promise(resolve=>setTimeout(()=>resolve(null),1500))]);extra=usableEdgeServers(answer);}catch{}this.client=new WebTorrent({dht:false,webSeeds:false,maxConns:12,tracker:{announce:this.trackers,rtcConfig:{iceServers:[...STUN,...extra]},getAnnounceOpts:()=>({numwant:4})}});if(this.network)this.network.relayConfigured=extra.length>0;this.client.on('error',e=>this._fail(e));} return this.client; }
-    _refreshIce(){
-      if(!this.getIceServers||this.iceRefreshBusy||!this.client)return;
-      this.iceRefreshBusy=true;this.iceRefreshAt=Date.now();const client=this.client;
-      Promise.resolve().then(()=>this.getIceServers()).then(answer=>{
-        if(this.closed||this.client!==client)return;
-        const extra=usableEdgeServers(answer);
-        const rtcConfig={iceServers:[...STUN,...extra]};
-        if(client.tracker&&typeof client.tracker==='object')client.tracker.rtcConfig=rtcConfig;
-        const tracker=this.torrent?.discovery?.tracker;if(tracker&&'_rtcConfig' in tracker)tracker._rtcConfig=rtcConfig;
-        if(this.network)this.network.relayConfigured=extra.length>0;
-      }).catch(()=>{if(this.closed||this.client!==client)return;const rtcConfig={iceServers:[...STUN]};if(client.tracker&&typeof client.tracker==='object')client.tracker.rtcConfig=rtcConfig;const tracker=this.torrent?.discovery?.tracker;if(tracker&&'_rtcConfig' in tracker)tracker._rtcConfig=rtcConfig;if(this.network)this.network.relayConfigured=false;}).finally(()=>{this.iceRefreshBusy=false;});
+    async _client(){ if(!this.client){this.client=new WebTorrent({dht:false,webSeeds:false,maxConns:12,tracker:{announce:this.trackers,rtcConfig:{iceServers:[...STUN]},getAnnounceOpts:()=>({numwant:this.edgeActive?1:4})}});this.client.on('error',e=>this._fail(e));} return this.client; }
+    _applyIce(extra){
+      const rtcConfig={iceServers:[...STUN,...extra]};if(this.client?.tracker&&typeof this.client.tracker==='object')this.client.tracker.rtcConfig=rtcConfig;
+      const tracker=this.torrent?.discovery?.tracker;if(tracker&&'_rtcConfig' in tracker)tracker._rtcConfig=rtcConfig;
+      if(this.network)this.network.relayConfigured=extra.length>0;
     }
-    _resetNetwork(phase){this.nextResetAt=0;this.resetFailures=0;this.lastTrackerReply=0;this.lastDiscoveryReset=0;this.networkStarted=Date.now();this.lastReannounce=Date.now();this.network={phase,problem:null,trackerCount:this.trackers.length,stunServerCount:STUN.length,relayConfigured:false,discoveryResets:0,resetState:'idle',resetProblem:null,bootstrapRetries:this.bootstrapRetries,retryAt:null,reannounces:0,trackerReplies:0,warnings:0,peerAttempts:0,peerErrors:0,monitoredPeers:0,iceConnected:0,iceFailed:0,hostCandidates:0,reflexiveCandidates:0};}
+    _stopEdge(state='direct'){
+      const wasActive=this.edgeActive;this.edgeEpoch++;this.edgeActive=false;this.edgeSince=0;this._applyIce([]);if(this.network)this.network.fallbackState=state;
+      // Retire only unconnected speculative offers; established application wires are untouched.
+      if(wasActive)for(const tracker of this.torrent?.discovery?.tracker?._trackers||[])for(const [key,peer] of Object.entries(tracker.peers||{})){
+        if(peer?._connected||['connected','completed'].includes(peer?._pc?.connectionState)||['connected','completed'].includes(peer?._pc?.iceConnectionState))continue;
+        clearTimeout(peer?.trackerTimeout);if(peer)peer.trackerTimeout=null;delete tracker.peers[key];try{if(peer&&!peer.destroyed)peer.destroy();}catch{}
+      }
+    }
+    _refreshIce(){
+      if(!this.getIceServers||this.iceRefreshBusy||!this.client||this.closed||this.role!=='viewer'||this.parent)return;
+      const time=Date.now(),waiting=this.sessionReady?(this.recovery?.startedAt||time):(this.networkStarted||time);
+      if(!this.edgeActive&&(time-waiting<EDGE_WAIT||time<this.edgeRetryAt))return;
+      if(this.edgeActive&&time-this.edgeSince>=EDGE_ATTEMPT){this._stopEdge('cooldown');this.edgeIndex++;this.edgeRetryAt=time+EDGE_COOLDOWN;return;}
+      this.iceRefreshBusy=true;this.iceRefreshAt=time;const client=this.client,epoch=this.edgeEpoch,alreadyActive=this.edgeActive;
+      if(this.network)this.network.fallbackState=alreadyActive?'active':'requesting';
+      Promise.resolve().then(()=>this.getIceServers()).then(answer=>{
+        if(this.closed||this.client!==client||this.parent||this.edgeEpoch!==epoch)return;
+        const candidates=usableEdgeServers(answer).flatMap(server=>(Array.isArray(server.urls)?server.urls:[server.urls]).filter(url=>typeof url==='string'&&/^turns?:/i.test(url)).map(url=>({urls:url,username:server.username,credential:server.credential})));
+        candidates.sort((a,b)=>{const order=url=>/^turns:/i.test(url)?1:/[?&]transport=tcp/i.test(url)?2:0;return order(a.urls)-order(b.urls);});
+        if(!candidates.length){this._stopEdge('unavailable');this.edgeRetryAt=Date.now()+EDGE_COOLDOWN;return;}
+        const wasActive=this.edgeActive;this.edgeActive=true;if(!wasActive)this.edgeSince=Date.now();this._applyIce([candidates[this.edgeIndex%candidates.length]]);
+        if(this.network)this.network.fallbackState='active';
+        if(!wasActive)this.refreshNetwork('edge-fallback');
+      }).catch(()=>{if(this.closed||this.client!==client||this.parent||this.edgeEpoch!==epoch)return;this._stopEdge('unavailable');this.edgeRetryAt=Date.now()+EDGE_COOLDOWN;}).finally(()=>{this.iceRefreshBusy=false;});
+    }
+    _resetNetwork(phase){this.nextResetAt=0;this.resetFailures=0;this.lastTrackerReply=0;this.lastDiscoveryReset=0;this.networkStarted=Date.now();this.lastReannounce=Date.now();this.network={phase,problem:null,trackerCount:this.trackers.length,stunServerCount:STUN.length,relayConfigured:false,fallbackState:'direct',discoveryResets:0,resetState:'idle',resetProblem:null,bootstrapRetries:this.bootstrapRetries,retryAt:null,reannounces:0,trackerReplies:0,warnings:0,peerAttempts:0,peerErrors:0,monitoredPeers:0,iceConnected:0,iceFailed:0,hostCandidates:0,reflexiveCandidates:0};}
     _watchDiscovery(t){
       const current=()=>!this.closed&&this.torrent===t;
       const observe=()=>{const d=t.discovery;if(!current()||!d||this.observedDiscovery===d)return;this.observedDiscovery=d;this._boundTrackerOffers(d);
@@ -124,6 +142,7 @@ import WebTorrent from './vendor/webtorrent.min.js';
     _boundTrackerOffers(discovery){
       // Tracker response intervals are untrusted scheduling hints. The pinned
       // browser tracker otherwise permits arbitrarily rapid offer allocation.
+      const owner=this;
       for(const tracker of discovery?.tracker?._trackers||[]){
         if(this.boundedTrackers.has(tracker)||typeof tracker.setInterval!=='function'||typeof tracker.announce!=='function')continue;
         this.boundedTrackers.add(tracker);const setInterval=tracker.setInterval,announce=tracker.announce;
@@ -135,8 +154,8 @@ import WebTorrent from './vendor/webtorrent.min.js';
               clearTimeout(peer.trackerTimeout);peer.trackerTimeout=null;delete this.peers[key];if(!peer.destroyed)peer.destroy();
             }
           }
-          const room=Math.max(0,12-Object.keys(this.peers||{}).length),requested=Number(options.numwant);
-          const count=Number.isFinite(requested)?Math.max(0,Math.min(4,Math.floor(requested))):4;
+          const room=Math.max(0,(owner.edgeActive?1:12)-Object.keys(this.peers||{}).length),requested=Number(options.numwant);
+          const limit=owner.edgeActive?1:4;const count=Number.isFinite(requested)?Math.max(0,Math.min(limit,Math.floor(requested))):limit;
           return announce.call(this,{...options,numwant:Math.min(room,count)});
         };
         // Apply the floor to the already-started tracker timer as well.
@@ -145,7 +164,7 @@ import WebTorrent from './vendor/webtorrent.min.js';
     }
     _refreshDiscovery(){
       if(this.closed||Date.now()-this.lastReannounce<REANNOUNCE||this.lastTrackerReply&&Date.now()-this.lastTrackerReply<REANNOUNCE)return false;const tracker=this.torrent?.discovery?.tracker;if(typeof tracker?.update!=='function')return false;this.lastReannounce=Date.now();
-      try{tracker.update({numwant:4});if(this.network)this.network.reannounces=Math.min(10000,this.network.reannounces+1);return true;}catch{if(this.network)this.network.warnings=Math.min(10000,this.network.warnings+1);return false;}
+      try{tracker.update({numwant:this.edgeActive?1:4});if(this.network)this.network.reannounces=Math.min(10000,this.network.reannounces+1);return true;}catch{if(this.network)this.network.warnings=Math.min(10000,this.network.warnings+1);return false;}
     }
     // Adapter for the pinned WebTorrent bundle: renew tracker sockets/offers,
     // retaining its descriptor store and all still-healthy application wires.
@@ -153,11 +172,11 @@ import WebTorrent from './vendor/webtorrent.min.js';
       if(this.resumeBootstrapWait){this.resumeBootstrapWait();return true;}
       if(this.closed||!this.torrent)return false;
       if(this.resetTimer||this.resetPromise)return true;
-      const allowed=['online','visible','network-change','recovery-stalled','tracker-stale','manual'];
+      const allowed=['online','visible','network-change','recovery-stalled','tracker-stale','manual','edge-fallback'];
       const cause=allowed.includes(reason)?reason:'network-change';
       const delay=Math.min(60000,Math.max(200,this.nextResetAt-Date.now())+Math.floor(Math.random()*500));
       if(this.network){this.network.resetState='scheduled';this.network.resetReason=cause;}
-      this.resetTimer=setTimeout(()=>{this.resetTimer=null;this.resetPromise=this._renewDiscovery().catch(()=>{}).finally(()=>{this.resetPromise=null;});},delay);
+      this.resetTimer=setTimeout(()=>{this.resetTimer=null;if(cause==='edge-fallback'&&(this.parent||!this.edgeActive))return;this.resetPromise=this._renewDiscovery().catch(()=>{}).finally(()=>{this.resetPromise=null;});},delay);
       return true;
     }
     _retireTrackerTimers(discovery){
@@ -355,7 +374,7 @@ import WebTorrent from './vendor/webtorrent.min.js';
     }
     _request(s,mine){const r=this.recovery;s.request=true;s.requestNonce=id();s.requestUntil=Date.now()+5000;this.parentRequest=s;r.attempts++;this.onRecovery({...r,recoveries:this.recoveries});this._send(s,{type:'_pc_offer',nonce:s.requestNonce,...mine});}
     _open(s){ if(s.opened)return;
-      if(s.direction==='up'){if(this.role==='source'||this.parent){s.wire.destroy();return;}this.parent=s;this.parentRequest=null;s.request=false;this.clockReady=true;if(this.everParent)this.recoveries++;this.everParent=true;this.recovery={...this.recovery,state:'connected',lastRecoveredAt:Date.now()};this._topology();this.onRecovery({...this.recovery,recoveries:this.recoveries});}
+      if(s.direction==='up'){if(this.role==='source'||this.parent){s.wire.destroy();return;}this.parent=s;this._stopEdge('direct');this.parentRequest=null;s.request=false;this.clockReady=true;if(this.everParent)this.recoveries++;this.everParent=true;this.recovery={...this.recovery,state:'connected',lastRecoveredAt:Date.now()};this._topology();this.onRecovery({...this.recovery,recoveries:this.recoveries});}
       else {if(this.down>=this._status().relayLimit){s.wire.destroy();return;}this.down++;}
       this.lastReject=null;s.opened=true;
       const owner=this,adapter={readyState:'open',get bufferedAmount(){const peers=owner.torrent?._peers;const all=typeof peers?.values==='function'?[...peers.values()]:peers&&typeof peers==='object'?Object.values(peers):[];const p=all.find(x=>x.wire===s.wire),channel=p?.conn?._channel;return Math.max(0,Number(channel?.bufferedAmount)||0)+Math.max(0,Number(p?.conn?.writableLength)||0)+Math.max(0,Number(s.wire?.writableLength)||0);},onopen:null,onmessage:null,onclose:null,onerror:null,send:data=>{if(!s.auth||s.wire.destroyed)throw Error('Peer connection is closed.'); const kind=typeof data==='string'?1:2,raw=kind===1?encoder.encode(data):new Uint8Array(data);if(raw.length>65536)throw Error('Peer packet exceeds 64 KB.');const frame=new Uint8Array(raw.length+1);frame[0]=kind;frame.set(raw,1);s.wire.extended(EXT,frame);},close:()=>{s.wire.destroy();}};
@@ -398,7 +417,7 @@ import WebTorrent from './vendor/webtorrent.min.js';
     }
     _fail(e){ if(!this.closed)this.onError(e instanceof Error?e:Error(String(e))); }
     async close(){this.bootstrapGeneration++;this.cancelBootstrapWait?.();this.bootstrapRetries=0;await this._closeSession();}
-    async _closeSession(){this.coordinator?.close();this.coordinator=null;this.coordinatorAttempt=null;this.coordinatorBusy=false;this.iceRefreshAt=0;this.iceRefreshBusy=false;this._retireTrackerTimers(this.torrent?.discovery);this.discoveryGeneration++;clearTimeout(this.resetTimer);this.resetTimer=null;this.closed=true;this.joinGeneration++;const cancel=this.pendingJoin;this.pendingJoin=null;cancel?.();this.observedDiscovery=null; clearInterval(this.timer); this.timer=null; for(const s of this.wires.values())try{s.wire.destroy();}catch{} this.wires.clear();this.links.clear();this.parent=null;this.parentRequest=null;this.down=0;this.sessionReady=false;this.failedSuppliers.clear();this.failures=0;this.recovery=null;this.recoveries=0;this.everParent=false; if(this.torrent&&!this.torrent.destroyed){try{await Promise.race([new Promise(resolve=>this.torrent.destroy({destroyStore:true},resolve)),new Promise(resolve=>setTimeout(resolve,1500))]);}catch{}} if(this.client&&!this.client.destroyed){try{await Promise.race([new Promise(resolve=>this.client.destroy(resolve)),new Promise(resolve=>setTimeout(resolve,1500))]);}catch{}} this.torrent=null;this.client=null;this.config=null;this.hmac=null;this.key=null; }
+    async _closeSession(){this.coordinator?.close();this.coordinator=null;this.coordinatorAttempt=null;this.coordinatorBusy=false;this.edgeEpoch++;this.edgeActive=false;this.edgeSince=0;this.edgeRetryAt=0;this.iceRefreshAt=0;this.iceRefreshBusy=false;this._retireTrackerTimers(this.torrent?.discovery);this.discoveryGeneration++;clearTimeout(this.resetTimer);this.resetTimer=null;this.closed=true;this.joinGeneration++;const cancel=this.pendingJoin;this.pendingJoin=null;cancel?.();this.observedDiscovery=null; clearInterval(this.timer); this.timer=null; for(const s of this.wires.values())try{s.wire.destroy();}catch{} this.wires.clear();this.links.clear();this.parent=null;this.parentRequest=null;this.down=0;this.sessionReady=false;this.failedSuppliers.clear();this.failures=0;this.recovery=null;this.recoveries=0;this.everParent=false; if(this.torrent&&!this.torrent.destroyed){try{await Promise.race([new Promise(resolve=>this.torrent.destroy({destroyStore:true},resolve)),new Promise(resolve=>setTimeout(resolve,1500))]);}catch{}} if(this.client&&!this.client.destroyed){try{await Promise.race([new Promise(resolve=>this.client.destroy(resolve)),new Promise(resolve=>setTimeout(resolve,1500))]);}catch{}} this.torrent=null;this.client=null;this.config=null;this.hmac=null;this.key=null; }
   }
   window.CastMagnetTransport=MagnetTransport;
 })();

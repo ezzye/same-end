@@ -82,16 +82,17 @@ function stageResilient(){
   const requested=(peer.requestedRenditions||['audio','v360']).filter(r=>state.config.renditions.includes(r));
   const pending=state.commonStart?.version===2&&!state.commonStart.decision&&peer.commonStartVersion===2;
   const childTime=pending?(now()+state.offset-state.config.epoch)/1000:scheduledCommonStart()?state.commonStart.decision.programmeTime:nominal;
-  const cutoff=state.config.epoch+(childTime-(pending?0:boundedPlaybackLag(peer.playbackLagSeconds)))*1000-4000;
-  const rate=requested.reduce((n,r)=>n+({audio:64000,v360:400000,v480:700000}[r]||0),0)/8;
+  const cutoff=state.config.epoch+(childTime-(pending?0:boundedPlaybackLag(peer.playbackLagSeconds)))*1000-4000,horizon=cutoff+24000;
+  const rate=requested.reduce((n,r)=>n+({v360:400000,v480:700000}[r]||0),0)/8;
   peer.pacer=peer.pacer||new window.SameEndResiliencePacing.Pacer({rate,now});peer.pacer.update(rate);
+  peer.audioPacer=peer.audioPacer||new window.SameEndResiliencePacing.Pacer({rate:8000,now});peer.audioPacer.update(8000);
   peer.sentByRendition=peer.sentByRendition||{};
   // Audio is staged first; at most one complete bundle/feed per maintenance pass.
   for(const rendition of ['audio','v360','v480']){
    if(!requested.includes(rendition)||peer.queued>512*1024)continue;
-   const piece=state.cache.find(s=>s.meta.rendition===rendition&&s.meta.start+s.meta.duration>=cutoff&&s.meta.seq>(peer.sentByRendition[rendition]??-1));
+   const piece=state.cache.find(s=>s.meta.rendition===rendition&&s.meta.start+s.meta.duration>=cutoff&&s.meta.start<=horizon&&s.meta.seq>(peer.sentByRendition[rendition]??-1));
    if(!piece)continue;
-   if(!peer.pacer.take(piece.buf.byteLength,rendition==='audio'))continue;
+   if(!(rendition==='audio'?peer.audioPacer:peer.pacer).take(piece.buf.byteLength))continue;
    enqueue(peer,piece);peer.sentByRendition[rendition]=piece.meta.seq;
   }
  }
