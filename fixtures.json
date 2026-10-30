@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-10-29",
-  "fetchedAt": "2026-10-29T10:52:05.573Z",
-  "dataHash": "b871f80ee703f9879f320e1513c13c732a5bec2959d0758cfc337c7d7f63bc3e",
+  "checkedAt": "2026-10-30",
+  "fetchedAt": "2026-10-30T10:51:23.617Z",
+  "dataHash": "3939d30a1f8d57b4bd70b0b65eb583ef6465de9d9198842548779996975e705a",
   "timezone": "UTC",
   "provider": "TheSportsDB",
   "providerApi": "v1",
@@ -43,36 +43,6 @@
       "status": "scheduled"
     },
     {
-      "id": "thesportsdb-2606323",
-      "provider": "TheSportsDB",
-      "providerEventId": "2606323",
-      "providerTeamIds": [
-        "133615",
-        "134777"
-      ],
-      "home": "Everton",
-      "away": "Newcastle United",
-      "title": "Everton v Newcastle United",
-      "competition": "EFL Cup",
-      "startsAt": 1793303100000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2606323",
-      "checkedAt": "2026-10-29",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "Slovenia",
-          "channel": "Arena Sport 1 SI",
-          "providerChannelId": "2405"
-        },
-        {
-          "country": "France",
-          "channel": "BeIn Sports HD 1 France",
-          "providerChannelId": "29"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
       "id": "fixture-7",
       "home": "Chelsea",
       "away": "Manchester United",
@@ -97,7 +67,7 @@
       "competition": "English Premier League",
       "startsAt": 1793449800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494084",
-      "checkedAt": "2026-10-29",
+      "checkedAt": "2026-10-30",
       "status": "scheduled",
       "tv": [
         {
@@ -127,7 +97,7 @@
       "competition": "English Premier League",
       "startsAt": 1793458800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494089",
-      "checkedAt": "2026-10-29",
+      "checkedAt": "2026-10-30",
       "status": "scheduled",
       "tv": [
         {
@@ -157,7 +127,7 @@
       "competition": "English Premier League",
       "startsAt": 1793458800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494087",
-      "checkedAt": "2026-10-29",
+      "checkedAt": "2026-10-30",
       "status": "scheduled",
       "tv": [
         {
@@ -187,7 +157,7 @@
       "competition": "English Premier League",
       "startsAt": 1793458800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494086",
-      "checkedAt": "2026-10-29",
+      "checkedAt": "2026-10-30",
       "status": "scheduled",
       "tv": [
         {
@@ -217,7 +187,7 @@
       "competition": "English Premier League",
       "startsAt": 1793458800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494081",
-      "checkedAt": "2026-10-29",
+      "checkedAt": "2026-10-30",
       "status": "scheduled",
       "tv": [
         {
@@ -247,7 +217,7 @@
       "competition": "English Premier League",
       "startsAt": 1793458800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494085",
-      "checkedAt": "2026-10-29",
+      "checkedAt": "2026-10-30",
       "status": "scheduled",
       "tv": [
         {
@@ -277,7 +247,7 @@
       "competition": "English Premier League",
       "startsAt": 1793467800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494083",
-      "checkedAt": "2026-10-29",
+      "checkedAt": "2026-10-30",
       "status": "scheduled",
       "tv": [
         {
@@ -318,7 +288,7 @@
       "competition": "English Premier League",
       "startsAt": 1793476800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494088",
-      "checkedAt": "2026-10-29",
+      "checkedAt": "2026-10-30",
       "status": "scheduled",
       "tv": [
         {
@@ -359,7 +329,7 @@
       "competition": "English Premier League",
       "startsAt": 1793550600000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494082",
-      "checkedAt": "2026-10-29",
+      "checkedAt": "2026-10-30",
       "status": "scheduled",
       "tv": [
         {
@@ -385,6 +355,36 @@
       "sourceUrl": "https://www.premierleague.com/en/news/4688862/fixture-amendments-for-premier-league-matches-in-october-and-november",
       "checkedAt": "2026-10-21",
       "status": "scheduled"
+    },
+    {
+      "id": "thesportsdb-2494080",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494080",
+      "providerTeamIds": [
+        "134777",
+        "133615"
+      ],
+      "home": "Newcastle United",
+      "away": "Everton",
+      "title": "Newcastle United v Everton",
+      "competition": "English Premier League",
+      "startsAt": 1793649600000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494080",
+      "checkedAt": "2026-10-30",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "Iceland",
+          "channel": "Stöð 2 Sport IS",
+          "providerChannelId": "7941"
+        },
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        }
+      ],
+      "tvCoverage": "partial"
     }
   ]
 }
