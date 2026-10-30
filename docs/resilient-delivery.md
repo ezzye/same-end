@@ -1,6 +1,6 @@
 # Resilient delivery: opt-in build and current evidence
 
-This note describes the reviewable resilience implementation in the current worktree. It is not live in the deployed app. Physical devices, separate homes, sustained real-match traffic, and full-match operation have not been accepted.
+This note describes the resilience implementation. The Pages deployment builds version 3 with `npm run build:resilience`; an ordinary local build still uses version 2. Physical-device reports and bounded generated tests do not establish separate-home, sustained real-match or full-match acceptance.
 
 ## Build gate and compatibility
 
@@ -39,7 +39,7 @@ Fresh transfer evidence is timed against the current clock, while video-piece po
 
 The transport requests bounded, clock-relevant cache ranges per rendition rather than replaying a large backlog. The room coordinator receives requested renditions, the needed media interval, and at most 12 reported cached ranges. It can recommend peers whose fresh report says they cover the requested interval, are rooted in the source path, and have a declared forwarding slot. These are scheduling hints; only an authenticated direct peer connection and signature-verified media establish delivery.
 
-A phone/tablet viewer can watch and chat but does not host capture or forward media. Desktop forwarding is bounded to two downstream viewers locally; coordinator recommendations allow at most one child for a non-source peer. These limits bound the protocol; they are not proof that a machine's CPU or uplink can sustain those rates.
+A phone/tablet viewer can watch and chat but does not host capture or forward media. The source has two declared downstream slots. In version 3, desktop viewers have at most one forwarding slot in both the local magnet transport and coordinator recommendations. These limits bound the protocol; they are not proof that a machine's CPU or uplink can sustain those rates.
 
 The recovery path retries supplier discovery while retaining verified cache and the shared room clock. It does not promise zero outage. Make-before-break media handover—establishing and verifying replacement media before removing the current supplier—is not implemented, so a handover can pause. No amount of local buffer can bridge loss of future source content indefinitely.
 
@@ -47,11 +47,23 @@ The connection report labels independent audio and video playback facts under `m
 
 `extraDelaySeconds` describes actual playhead lag behind the nominal room target. During a long outage it can exceed 60 seconds while playback waits for recoverable media. The requested recovery target is bounded to 60 seconds behind the nominal target; the actual playhead cannot reach that bound until suitable verified and decoder-ready media is available. The reported actual lag is therefore not capped to 60 seconds.
 
+## Diagnosing a fourth viewer
+
+**Connection help & report → Save report** includes current `joining.serving` and `joining.sending` facts even when a test recording was not started. Serving reports this device's effective forwarding limit, child count, available declared slots, leaf/root/clock status, recent source age, queue bytes and cached rendition names. It omits peer identities and cache programme positions. Sending reports measured acknowledged payload Mbps, child count and congested-child count. Unknown measurements remain null; zero remains a valid measured rate. Neither field measures internet uplink capacity or network overhead.
+
+The generated four-peer check runs after `npm run build:resilience`:
+
+```sh
+npm run test:four-peers
+```
+
+It fills the source's two slots with a desktop helper and a phone leaf, then permits a new viewer to discover only the helper. It also checks a later join after the helper selects 480p and stops receiving 360p. Acceptance requires signed media and a decoded picture through that helper while both source slots remain occupied. Discovery is deliberately controlled; this does not establish public-tracker introductions, Windows-to-Mac ICE, physical-device behavior, TURN or mobile handover.
+
 ## Metadata coordinator and optional edge TURN
 
 The room coordinator is separate from the WebTorrent tracker and carries no video or audio. It stores bounded, expiring metadata keyed by cast: a participant's role, clock/source reachability, parent/child topology, requested renditions, needed media interval, cached time ranges, queue size, optional outgoing-rate report, and declared relay limit. Reports and reservations live for 15 seconds. The coordinator client reports about every four seconds and renews its short lease; reservations expire with either participant's lease. At most 64 live nodes and five recommendations are retained for a cast.
 
-Outgoing delivery rate can be unknown. In that case, a source can be considered using its operator-declared slot, while a peer recommendation is labelled provisional. The coordinator does not treat an unknown value as measured capacity. Recommendation score, cache overlap, a declared slot or a fresh report does not prove internet uplink, sustained performance, successful ICE negotiation or useful delivery. The direct authenticated connection remains authoritative.
+Outgoing delivery rate measures recently acknowledged payload, not spare capacity. A measured zero can describe an idle supplier and does not by itself disqualify a free declared slot; source freshness, queue backlog, cache coverage, rooting and slot checks still apply. Outgoing delivery rate can be unknown. In that case, a source can be considered using its operator-declared slot, while a peer recommendation is labelled provisional. The coordinator does not treat an unknown value as measured capacity. Recommendation score, cache overlap, a declared slot or a fresh report does not prove internet uplink, sustained performance, successful ICE negotiation or useful delivery. The direct authenticated connection remains authoritative.
 
 The optional `/v1/clubs/:id/ice` path can return short-lived TURN REST credentials only when edge TURN URLs/secrets are configured and the latest signed edge-health state is fresh and admissible. The backend uses 60-second credentials. Without a healthy report, it returns no TURN credentials and the client continues with direct STUN/tracker discovery. If configured, TURN media traverses only the operator-designated edge coturn host. No machine has been chosen; no coturn service, DNS record, certificate, firewall rule or host-agent service is installed. The control cloud does not relay media. See [edge TURN preparation](edge-turn.md).
 

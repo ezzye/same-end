@@ -27,7 +27,9 @@ function rooted(nodes, nodeId) {
 }
 function eligible(nodes, reservations, caller, candidate) {
   const r=candidate.report, cr=caller.report;
-  if(candidate.nodeId===caller.nodeId || r.leafOnly || !r.relayLimit || !rooted(nodes,candidate.nodeId) || (r.outgoingMbps!==null && r.outgoingMbps<=0) || (r.sourceAgeSeconds!==null && r.sourceAgeSeconds>30) || r.queueBytes>2_000_000 || r.trail.includes(caller.nodeId)) return false;
+  // Recent acknowledged throughput measures usage. Zero can mean idle;
+  // declared slots, freshness, backlog and cache coverage govern admission.
+  if(candidate.nodeId===caller.nodeId || r.leafOnly || !r.relayLimit || !rooted(nodes,candidate.nodeId) || (r.sourceAgeSeconds!==null && r.sourceAgeSeconds>30) || r.queueBytes>2_000_000 || r.trail.includes(caller.nodeId)) return false;
   let n=candidate; const seen=new Set();
   while(n) { if(n.nodeId===caller.nodeId || seen.has(n.nodeId)) return false; seen.add(n.nodeId); n=n.report.parentId && nodes[n.report.parentId]; }
   if(!cr.requestedRenditions.every(want=>r.cache.some(c=>c.rendition===want && c.end>c.start && (!cr.neededRange || c.start<=cr.neededRange.start && c.end>=cr.neededRange.end)))) return false;

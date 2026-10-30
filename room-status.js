@@ -16,6 +16,7 @@
     const result = (code, title, detail, tone = 'neutral', waiting = false) => ({code, title, detail, tone, waiting, roomJoined: joined});
     const source = room.roomSource?.state;
     const path = snapshot.sourceReachable === true || snapshot.role === 'source' && snapshot.active === true;
+    const clockedPath = path && snapshot.clockReady === true;
     const moving = pictureMoving === undefined ? snapshot.ready >= 2 && snapshot.paused === false : pictureMoving === true;
     // Healthy buffered playback is stronger evidence than an expired owner lease
     // or the browser's best-effort online hint. Do not cover a working picture.
@@ -25,9 +26,9 @@
     if ((joined && source === 'stopped' && !path) || snapshot.sourceEnded === true && !snapshot.config) return result('source-stopped', 'The shared screen has stopped.', joined ? 'You’re still in the room. Chat while your host restarts; the same invitation works.' : 'This video share has ended. Ask your host for a room invitation to follow future shares.', 'neutral', true);
     if (joined && source === 'unreachable' && !path) return result('source-unreachable', 'No recent update from the host.', 'Your room and chat are still open. We’re checking the shared screen and will reconnect when it is available.', 'warning', true);
     const target = snapshot.targetProgramTime;
-    if(snapshot.config&&snapshot.commonStart?.enabled===true&&snapshot.commonStart.state==='pending')return result('warming-up',snapshot.commonStart.reason==='waiting-for-first-viewer'?'Ready for your mates':'Checking group delay',snapshot.commonStart.reason==='waiting-for-first-viewer'?'Send your invitation whenever you’re ready. We’ll check the group delay when someone joins.':'You can chat while we prepare the picture.','neutral',true);
-    if(snapshot.config&&Number.isFinite(snapshot.commonStart?.startRemainingSeconds)&&snapshot.commonStart.startRemainingSeconds>0)return result('warming-up','Starting together','Your picture is getting ready for the shared start. Chat stays open.','neutral',true);
-    if (snapshot.config && snapshot.clockReady === true && Number.isFinite(target) && target < 0) return result('warming-up', 'Time to get everyone settled.', 'The picture starts together after the group delay. You can chat while you wait.', 'neutral', true);
+    if(snapshot.config&&clockedPath&&snapshot.commonStart?.enabled===true&&snapshot.commonStart.state==='pending')return result('warming-up',snapshot.commonStart.reason==='waiting-for-first-viewer'?'Ready for your mates':'Checking group delay',snapshot.commonStart.reason==='waiting-for-first-viewer'?'Send your invitation whenever you’re ready. We’ll check the group delay when someone joins.':'You can chat while we prepare the picture.','neutral',true);
+    if(snapshot.config&&clockedPath&&Number.isFinite(snapshot.commonStart?.startRemainingSeconds)&&snapshot.commonStart.startRemainingSeconds>0)return result('warming-up','Starting together','Your picture is getting ready for the shared start. Chat stays open.','neutral',true);
+    if (snapshot.config && clockedPath && Number.isFinite(target) && target < 0) return result('warming-up', 'Time to get everyone settled.', 'The picture starts together after the group delay. You can chat while you wait.', 'neutral', true);
     if (path && snapshot.config && snapshot.clockReady === true && Number.isFinite(target) && target >= 0 && ['starting', 'rebuffering', 'recovering'].includes(snapshot.playbackAdaptivePhase)) return result('buffering', 'Building a smoother picture…', 'Saving a little more video before restarting. You can keep chatting while it fills.', 'neutral', true);
     const availability = snapshot.transport?.availability;
     if (!path && availability && (availability.lastReject === 'capacity-full' || availability.rootedSuppliers > 0 && availability.fullSuppliers === availability.rootedSuppliers && availability.eligibleSuppliers === 0)) return result('suppliers-full', 'A supplying connection is full.', 'We’re looking for another mate with room to share. You can stay and chat while we try.', 'warning');

@@ -62,7 +62,8 @@
     "build:resilience": "node build-pwa.mjs --resilient-delivery",
     "test:resilience-native": "node tests/resilience-native-bridge-browser.test.mjs",
     "test:source-preview": "node tests/source-preview-browser.test.mjs",
-    "test:turn-media": "node tests/turn-media-browser.test.mjs"
+    "test:turn-media": "node tests/turn-media-browser.test.mjs",
+    "test:four-peers": "node tests/four-peer-capacity-browser.test.mjs"
   },
   "engines": {
     "node": ">=20"
