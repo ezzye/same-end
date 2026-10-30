@@ -15,7 +15,7 @@ export function routerClient({controlUrl,gatewayAddress,localAddress,description
   const task=callChain.catch(()=>{}).then(async()=>{
    const wait=100-(Date.now()-lastStart);if(wait>0)await sleep(wait);lastStart=Date.now();
    const body='<?xml version="1.0"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><s:Body><u:'+action+' xmlns:u="'+service+'">'+Object.entries(args).map(([k,v])=>'<'+k+'>'+xml(v)+'</'+k+'>').join('')+'</u:'+action+'></s:Body></s:Envelope>';
-   const r=await fetch(url,{method:'POST',redirect:'error',headers:{connection:'close','content-type':'text/xml; charset="utf-8"',soapaction:'"'+service+'#'+action+'"'},body,signal:AbortSignal.timeout(3000)});const t=await responseText(r);const code=field(t,'errorCode');if(!r.ok||code){const e=Error('Router operation failed');e.code=Number(code)||r.status;throw e;}return t;
+   const r=await fetch(url,{method:'POST',redirect:'error',headers:{connection:'close','content-type':'text/xml; charset="utf-8"',soapaction:'"'+service+'#'+action+'"'},body,signal:AbortSignal.timeout(3000)});const t=await responseText(r);const code=field(t,'errorCode');if(!r.ok||code){const e=Error('Router operation failed');e.code=Number(code)||r.status;e.upnpCode=code&&/^\d+$/.test(code)?Number(code):null;throw e;}return t;
   });callChain=task;return task;
  }
  function exclusive(fn){const task=operationChain.catch(()=>{}).then(fn);operationChain=task;return task;}
@@ -30,14 +30,14 @@ export function routerClient({controlUrl,gatewayAddress,localAddress,description
  async function inventory(){
   const rows=[];
   for(let index=0;index<128;index++){
-   let t;try{t=await call('GetGenericPortMappingEntry',{NewPortMappingIndex:index});}catch(e){if(e.code===713||e.code===601)return rows;throw e;}
+   let t;try{t=await call('GetGenericPortMappingEntry',{NewPortMappingIndex:index});}catch(e){if(e.upnpCode===713)return rows;throw e;}
    const external=Number(field(t,'NewExternalPort')),protocol=field(t,'NewProtocol'),v=item(t),remote=field(t,'NewRemoteHost')||'';
    if(!Number.isInteger(external)||external<1||external>65535||!['UDP','TCP'].includes(protocol)||!v.client||!Number.isInteger(v.internal)||v.internal<1||v.internal>65535)throw Error('Router returned an invalid mapping inventory');
    rows.push({...v,external,protocol,remote});
   }
   throw Error('Router mapping list exceeded bound');
  }
- async function get(m){checked(m);try{const t=await call('GetSpecificPortMappingEntry',{NewRemoteHost:'',NewExternalPort:m.external,NewProtocol:m.protocol});return item(t);}catch(e){if(e.code===714)return null;if(e.code===501){const rows=await inventory(),matches=rows.filter(x=>x.external===m.external&&x.protocol===m.protocol);if(matches.length>1)throw Error('Ambiguous router mapping');return matches[0]||null;}throw e;}}
+ async function get(m){checked(m);try{const t=await call('GetSpecificPortMappingEntry',{NewRemoteHost:'',NewExternalPort:m.external,NewProtocol:m.protocol});return item(t);}catch(e){if(e.upnpCode===714)return null;if(e.upnpCode===501){const rows=await inventory(),matches=rows.filter(x=>x.external===m.external&&x.protocol===m.protocol);if(matches.length>1)throw Error('Ambiguous router mapping');return matches[0]||null;}throw e;}}
  const owned=(v,m)=>v&&v.client===localAddress&&v.internal===m.internal&&v.description===description&&(!v.remote||v.remote==='');
  const add=(m,seconds)=>call('AddPortMapping',{NewRemoteHost:'',NewExternalPort:m.external,NewProtocol:m.protocol,NewInternalPort:m.internal,NewInternalClient:localAddress,NewEnabled:1,NewPortMappingDescription:description,NewLeaseDuration:seconds});
  function matching(rows,m){return rows.filter(v=>v.external===m.external&&v.protocol===m.protocol);}
