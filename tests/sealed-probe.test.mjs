@@ -1,0 +1,7 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {generateProbeKeys,sealProbe,openProbe} from './helpers/sealed-probe.mjs';
+const payload={kind:'generated-same-end-test',mode:'magnet',invite:'synthetic-secret-token',expiresAt:12345};
+test('generated probe can be opened only by its recipient without exposing the token',()=>{const recipient=generateProbeKeys(),other=generateProbeKeys(),sealed=sealProbe(payload,recipient.publicSpkiBase64);assert.deepEqual(openProbe(sealed,recipient.privateKeyPem),payload);assert(!JSON.stringify(sealed).includes(payload.invite));assert.throws(()=>openProbe(sealed,other.privateKeyPem));});
+test('modified encrypted data, tag and context are rejected',()=>{const recipient=generateProbeKeys(),sealed=sealProbe(payload,recipient.publicSpkiBase64);for(const field of ['ciphertext','tag']){const altered={...sealed},bytes=Buffer.from(altered[field],'base64');bytes[0]^=1;altered[field]=bytes.toString('base64');assert.throws(()=>openProbe(altered,recipient.privateKeyPem));}assert.throws(()=>openProbe({...sealed,purpose:'other'},recipient.privateKeyPem));});
+test('handoff rejects oversized or non-test payloads and malformed envelopes',()=>{const recipient=generateProbeKeys();assert.throws(()=>sealProbe({kind:'real-room'},recipient.publicSpkiBase64));assert.throws(()=>sealProbe({...payload,data:'x'.repeat(128*1024)},recipient.publicSpkiBase64));const sealed=sealProbe(payload,recipient.publicSpkiBase64);assert.throws(()=>openProbe({...sealed,iv:'?'},recipient.privateKeyPem));});
