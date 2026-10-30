@@ -12,7 +12,7 @@ While the room prepares, the host can check the selected tab in the muted **Live
 
 New shares can choose 30–120 seconds of common delay after enough fresh observations; otherwise they keep five minutes. An interrupted viewer can add up to 60 seconds of local delay. Chat stays immediate. Read [measured start](measured-common-start.md), [buffering](adaptive-playback.md) and [sound](source-audio.md).
 
-For the advanced video-only file workflow, open **Room settings & help → Connect using a file instead** on a connected computer. **Make invitation file** prepares a connection; **Save invitation file** saves it. Your friend opens and accepts the file, saves a reply, and returns it for you to open and accept. If a file is already waiting for a reply, **Show invitation file** reopens it without making another connection. **Cancel pending invitation** releases that unused connection. Progress, errors and reasons that a new invitation is unavailable appear beside the button.
+For the advanced video-only file workflow, open **Room settings & help → Connect using a file instead** on a connected computer. **Make invitation file** prepares a connection; **Save invitation file** saves it. Your friend opens and accepts the file, saves a reply, and returns it for you to open and accept. If a file is already waiting for a reply, **Show invitation file** reopens it without making another connection. **Cancel pending invitation** releases that unused connection. Progress, errors and reasons that a new invitation is unavailable appear beside the button. File-import errors appear beside the file picker. After addressing the reason, you can choose the same file again; a successful import reveals the confirmation action.
 
 ## Save a club and plan a match
 

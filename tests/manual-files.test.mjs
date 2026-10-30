@@ -42,3 +42,20 @@ test('a full sender retains its admission limit with a visible explanation',()=>
 test('losing a free slot during discovery cannot publish a new invitation',async()=>{
  const h=setup({wait:true}),pending=h.ctx.makeInvite();await flush();h.ctx.relayLimit=()=>1;h.state.peers.set('existing',{id:'existing',direction:'down'});h.release();await assert.rejects(pending,/slots.*in use/);assert.equal(h.counts().opened,0);assert.equal(h.state.peers.has('manual-offer'),false);assert.equal(h.state.peers.has('existing'),true);
 });
+
+function fileHarness(){
+ const fields=new Map();const el=id=>{if(!fields.has(id))fields.set(id,{value:'',textContent:'',scrollIntoView(){this.scrolled=true}});return fields.get(id)};
+ const state={pending:null};let reject=true,reads=0;
+ const ctx={state,$:el,Error,String,readIncoming:async()=>{reads++;if(reject)throw Error('Leave your current cast before accepting another invitation.');state.pending={type:'offer'}}};vm.createContext(ctx);vm.runInContext(slice('async function readConnectionFile(e){','async function readIncoming(){'),ctx);
+ const file={size:40,text:async()=> 'synthetic offer'},input={files:[file],value:'same-file.castinvite'};
+ return {ctx,state,input,el,allow:()=>reject=false,reads:()=>reads};
+}
+test('a rejected import clears the selected file and reports the error next to the picker',async()=>{
+ const h=fileHarness();await assert.rejects(h.ctx.readConnectionFile({target:h.input}),/Leave your current cast/);assert.equal(h.input.value,'');assert.match(h.el('manual-file-status').textContent,/Could not open.*Leave your current cast/);assert.equal(h.state.pending,null);
+});
+test('the same file can be selected again after the failed cast has been left',async()=>{
+ const h=fileHarness();await assert.rejects(h.ctx.readConnectionFile({target:h.input}));h.allow();h.input.value='same-file.castinvite';await h.ctx.readConnectionFile({target:h.input});assert.equal(h.reads(),2);assert.equal(h.input.value,'');assert.match(h.el('manual-file-status').textContent,/Invitation opened/);assert.equal(h.el('confirm').scrolled,true);
+});
+test('size and read failures also clear the selection for another attempt',async()=>{
+ const h=fileHarness();h.input.files=[{size:100001,text:()=>{throw Error('must not read')}}];await assert.rejects(h.ctx.readConnectionFile({target:h.input}),/too large/);assert.equal(h.input.value,'');h.input.value='unreadable.castinvite';h.input.files=[{size:10,text:async()=>{throw Error('File could not be read')}}];await assert.rejects(h.ctx.readConnectionFile({target:h.input}),/could not be read/);assert.equal(h.input.value,'');assert.equal(h.reads(),0);
+});
