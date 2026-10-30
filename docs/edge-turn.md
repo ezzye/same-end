@@ -96,3 +96,5 @@ SAMEEND_TURN_AUTH_FILE=/absolute/protected/test-provider.json npm run test:turn-
 ```
 
 The check requires moving decoded video and increasing signed media pieces over a selected relay route, first on a relay-only join, then after a direct connection is deliberately closed and replacement connections are restricted to relay. It records the observed interruption and buffer reserve, with frame-counter resets handled separately. The local HTTPS/WSS tracker serves no media; generated media travels through WebRTC. Evidence is written under ignored `privatework/turn-media-browser/` without invitation links, addresses or secrets. Browser isolation and local TLS overrides are test-only. This is one-computer external-relay verification, not physical Wi-Fi/5G handover or audible-speaker acceptance; the production UI's club-token hookup is also separate.
+
+A direct-only control for the reporting adapter uses `SAMEEND_TURN_TEST_MODE=direct-baseline` with the same command. Passing that control establishes direct picture/route reporting only; it does not establish TURN availability.

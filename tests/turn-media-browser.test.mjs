@@ -4,6 +4,8 @@
  * The protected auth JSON contains {apiBase, clubId, readToken}; the harness
  * forwards authenticated ICE requests to the normal coordinator endpoint.
  * Alternatively set SAMEEND_TURN_TEST_ICE_FILE to a protected ICE response.
+ * SAMEEND_TURN_TEST_MODE=direct-baseline runs only a direct control and makes
+ * no TURN acceptance claim. SAMEEND_TURN_TEST_LABEL selects the evidence name.
  * The owner-only JSON file has the same shape as the authenticated ICE response:
  * {"expiresAt": <unix seconds>, "iceServers": [{"urls": ["turn:..."], "username": "...", "credential": "..."}]}.
  * It must remain valid throughout the test. Never print or save the file contents.
@@ -40,7 +42,8 @@ const {wsServer:WebSocketServer}=require(join(dirname(dirname(runtimePath)),'pla
 const html=await readFile(new URL('../dist/watch.html',import.meta.url),'utf8');
 const output=new URL('../privatework/turn-media-browser/',import.meta.url);await mkdir(output,{recursive:true});
 const label=process.env.SAMEEND_TURN_TEST_LABEL||'current';assert(/^[A-Za-z0-9_-]{1,40}$/.test(label),'Invalid evidence label.');
-const report={schema:1,startedAt:new Date().toISOString(),buildSHA256:createHash('sha256').update(html).digest('hex'),environment:{oneComputer:true,isolatedChromeContexts:true,externalTurn:true,generatedPicture:true,localTracker:true,privateIceFile:!authFile,authenticatedIceEndpoint:!!authFile,productionAppAuthenticationTested:false,physicalDevices:false,networkSwitchEmulated:true,physical5GTested:false},pass:false};
+const mode=process.env.SAMEEND_TURN_TEST_MODE||'full';assert(['full','direct-baseline'].includes(mode),'Invalid test mode.');
+const report={schema:1,startedAt:new Date().toISOString(),buildSHA256:createHash('sha256').update(html).digest('hex'),environment:{mode,oneComputer:true,isolatedChromeContexts:true,externalTurnTested:mode==='full',generatedPicture:true,localTracker:true,privateIceFile:!authFile,authenticatedIceEndpoint:!!authFile,productionAppAuthenticationTested:false,physicalDevices:false,networkSwitchEmulated:mode==='full',physical5GTested:false},pass:false};
 const relayDeadline=Number(process.env.SAMEEND_TURN_TEST_TIMEOUT_MS||150000);assert(Number.isFinite(relayDeadline)&&relayDeadline>=3000&&relayDeadline<=150000,'Relay deadline must be between 3000 and 150000 ms.');
 let origin,stage='server setup',errors=0;
 const server=https.createServer(createLocalTestTLS(),async(req,res)=>{
@@ -100,6 +103,12 @@ async function advance(p){const before=await snapshot(p);let last=before.frames,
 try{
  browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--autoplay-policy=no-user-gesture-required','--ignore-certificate-errors','--disable-background-timer-throttling','--disable-renderer-backgrounding']});
  stage='generated source';const source=await page('source',false);await source.evaluate(()=>PrivateCast.testing.startDemo({delay:10}));const invitation=await source.evaluate(()=>PrivateCast.testing.publishInvitation());
+ if(mode==='direct-baseline'){
+  stage='direct control';const viewer=await page('recovery',false),started=Date.now();await joinViewer(viewer,invitation);await picture(viewer,'direct',90000);report.directControl={joinToPictureMs:Date.now()-started,...await advance(viewer)};
+  const facts=await viewer.evaluate(()=>{const j=SameEndInviteCheck.report().joining;return {connectionMode:j.connectionMode,localCandidateType:j.network?.localCandidateType,remoteCandidateType:j.network?.remoteCandidateType,audioTrackIncluded:j.audioTrackIncluded,videoPiecesReceived:j.videoPiecesReceived};});
+  assert.equal(facts.connectionMode,'direct');assert(['host','srflx','prflx'].includes(facts.localCandidateType));assert(['host','srflx','prflx'].includes(facts.remoteCandidateType));assert.equal(facts.audioTrackIncluded,true);assert.equal(facts.videoPiecesReceived,true);report.directControl.safeReport=facts;assert.equal(errors,0,'Tracker and page error count must be zero.');report.pass=true;
+  console.log('PASS: generated picture and signed pieces advanced over an observed direct WebRTC route; TURN was not tested.');
+ }else{
  stage='relay-only initial join';const relay=await page('relay',true),joinAt=Date.now();await joinViewer(relay,invitation);await picture(relay,'relay',relayDeadline);report.relayOnly={joinToPictureMs:Date.now()-joinAt,...await advance(relay)};assert([report.relayOnly.localCandidateType,report.relayOnly.remoteCandidateType].includes('relay'));
  await relay.context().close();
  stage='direct baseline';const recovery=await page('recovery',false),directAt=Date.now();await joinViewer(recovery,invitation);await picture(recovery,'direct',90000);const baseline=await advance(recovery);report.recovery={directJoinToPictureMs:Date.now()-directAt,before:baseline};
@@ -108,5 +117,6 @@ try{
  await until(async()=>{const s=await snapshot(recovery),now=Date.now();samples++;if(Number.isFinite(s.reserveSeconds))minReserve=minReserve===null?s.reserveSeconds:Math.min(minReserve,s.reserveSeconds);if(s.frames<lastFrames)frameCounterResets++;else if(s.frames>lastFrames){longestGap=Math.max(longestGap,now-lastMovement);lastMovement=now;}lastFrames=s.frames;const relayFrameAdvanced=s.route==='relay'&&relayPreviousFrames!==null&&s.frames>relayPreviousFrames;relayPreviousFrames=s.route==='relay'?s.frames:null;return relayFrameAdvanced&&s.clockReady&&s.sourceReachable&&s.playing&&s.width>0&&s.height>0&&s.received>baseline.piecesAfter;},relayDeadline,'Relay picture did not recover in time.');
  report.recovery.relayPictureAfterFaultMs=Date.now()-faultAt;report.recovery.observation={samples,frameCounterResets,longestObservedNoFrameMs:Math.max(longestGap,Date.now()-lastMovement),minimumReserveSeconds:minReserve};report.recovery.after=await advance(recovery);assert([report.recovery.after.localCandidateType,report.recovery.after.remoteCandidateType].includes('relay'));assert.equal(errors,0,'Tracker and page error count must be zero.');report.pass=true;
  console.log('PASS: generated picture and signed pieces advanced through TURN on initial join and direct-to-relay recovery.');
+ }
 }catch(error){report.failedStage=stage;report.errorKind=String(error?.name||'Error').slice(0,40);console.error('FAIL: controlled TURN media test did not complete at stage: '+stage);process.exitCode=1;}
 finally{report.completedAt=new Date().toISOString();report.errorCount=errors;report.iceRequests=iceRequests;report.iceGranted=iceGranted;report.iceEmpty=iceEmpty;report.iceEndpointErrors=iceEndpointErrors;report.iceRequestErrors=iceRequestErrors;await writeFile(new URL('evidence-'+label+'.json',output),JSON.stringify(report,null,2));for(const c of contexts)await c.close().catch(()=>{});if(browser)await browser.close();for(const socket of tracker.clients)socket.terminate();await new Promise(resolve=>tracker.close(resolve));await new Promise(resolve=>server.close(resolve));}
