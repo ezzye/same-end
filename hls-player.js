@@ -283,6 +283,22 @@ export class Player {
     const actual = this.playheadTime(), decoderRanges = mediaRanges(v.buffered, this.origin), cacheRanges = this.cache.contiguousWindows();
     const action = this.adaptive.update({ nominal: target, actual, decoderRanges, cacheRanges, ready: v.readyState >= 2, seeking: v.seeking, underflow: this.starved || v.readyState < 2, now });
     this.target = this.adaptive.target(target, actual); this.cache.target = Math.max(0, this.target);
+    // A seek can restart loading, but it cannot repair a fatal HLS media error.
+    // Reset the media element first, and keep the fatal marker through cooldowns
+    // (or on older Hls builds without this API) so a seek cannot consume it.
+    let mediaErrorRecovered = false;
+    if (this.lastFatalType === Hls.ErrorTypes.MEDIA_ERROR && now - this.lastRecoveryAttempt >= 5000 && typeof this.hls.recoverMediaError === 'function') {
+      this.lastRecoveryAttempt = now;
+      this.hls.recoverMediaError();
+      this.lastFatalType = null;
+      mediaErrorRecovered = true;
+      v.pause();
+    }
+    const mediaErrorPending = this.lastFatalType === Hls.ErrorTypes.MEDIA_ERROR;
+    if (mediaErrorPending || mediaErrorRecovered) {
+      v.pause();
+      return { waiting: true, drift: action.drift, playing: false };
+    }
     if (!action.play) v.pause();
     if (action.seek !== null && this.origin !== null) {
       const local = Math.max(0, action.seek - this.origin);
@@ -300,8 +316,7 @@ export class Player {
       const missing = this.cache.contiguousAhead(this.target) >= this.adaptive.bufferGoalSeconds && headroomAt(decoderRanges, this.target) < this.adaptive.bufferGoalSeconds;
       if (this.lastFatalType || (this.adaptive.everPlayed && missing)) {
         this.lastRecoveryAttempt = now;
-        if (this.lastFatalType === Hls.ErrorTypes.MEDIA_ERROR && typeof this.hls.recoverMediaError === 'function') this.hls.recoverMediaError();
-        else { this.hls.stopLoad(); this.hls.startLoad(this.origin === null ? 0 : Math.max(0, this.target - this.origin)); }
+        this.hls.stopLoad(); this.hls.startLoad(this.origin === null ? 0 : Math.max(0, this.target - this.origin));
         this.lastFatalType = null;
       }
     }
