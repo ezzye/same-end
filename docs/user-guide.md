@@ -8,6 +8,8 @@ On a capable computer choose **Share a tab**, select authorized material and inc
 
 Choose **Invite your mates** and send the normal picture + chat invitation privately. You can invite mates and chat before sharing. If necessary choose **Retry video + chat invitation**; the video-only alternative is a separate explicit choice. Viewers may need **Turn my sound on**, which affects their own listening. The host’s source-silence warning checks a different part of the path. **Full room** keeps chat available beside/below the picture.
 
+While the room prepares, the host can check the selected tab in the muted **Live source preview**. The room shows a countdown once its start is scheduled. If playback pauses to rebuild its buffer, a small status below the picture shows progress when available.
+
 New shares can choose 30–120 seconds of common delay after enough fresh observations; otherwise they keep five minutes. An interrupted viewer can add up to 60 seconds of local delay. Chat stays immediate. Read [measured start](measured-common-start.md), [buffering](adaptive-playback.md) and [sound](source-audio.md).
 
 ## Save a club and plan a match

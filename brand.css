@@ -432,3 +432,10 @@ body.host-lobby .stage-empty,body.watch-intent:not(.room-active) .stage-empty{ju
 /* Join-only devices do not reserve a card for unsupported tab sharing. */
 body.phone-viewer #quick-room.flow{grid-template-columns:1fr}
 body.phone-viewer #quick-room .start-card{display:none}
+
+/* Host-only input check; group playback stays in the main stage. */
+.source-preview{margin-bottom:14px;padding:14px;border:1px solid #567562;border-radius:12px;color:#eff6e8}.source-preview-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.source-preview-heading strong{font-size:14px}.source-preview-heading button{min-height:36px;padding:6px 10px;color:#eff6e8!important;border-color:#78907e!important;font-size:12px}.source-preview p{margin:6px 0;color:#c3d2c4;font-size:12px;overflow-wrap:anywhere}.source-preview video{display:block;width:min(100%,480px);height:auto;aspect-ratio:16/9;object-fit:contain;background:#081a14;border-radius:8px;margin-top:10px}.source-preview video[hidden]{display:none!important}
+/* Keep the live input check recognizable without crowding group playback. */
+.room.room-expanded .source-preview,.room.is-browser-fullscreen .source-preview{margin-bottom:6px;padding:8px}
+.room.room-expanded .source-preview p,.room.is-browser-fullscreen .source-preview p{margin:2px 0}
+.room.room-expanded .source-preview video,.room.is-browser-fullscreen .source-preview video{width:auto;max-width:100%;height:70px;margin-top:4px}

@@ -17,7 +17,7 @@ function setup({joining=false}={}){
  const context={state,startingCapture:false,magnetBusy:joining,captureNormalizer:null,captureStats:null,lastNetworkCheck:null,lastJoinLink:null,
   window:{SameEndCapture:{normalize(input){normalizes++;assert.equal(input,stream);return{stream,ready,close(){closed++;}};}}},
   SameEndMedia:{recordingMime:()=> 'video/mp4',canPlay:()=>true},crypto:{randomUUID:()=> 'source-id',subtle:{generateKey:async()=>({publicKey:{},privateKey:{}}),exportKey:async()=>({})}},
-  now:()=>1700000000000,$:()=>({value:10}),checkPlatform(){},monitorSourceAudio(){},lifecycle(){},record(){},status(){},
+  now:()=>1700000000000,$:()=>({value:10}),checkPlatform(){},monitorSourceAudio(){},showSourcePreview(){},lifecycle(){},record(){},status(){},
   async init(config,role){if(state.config)throw Error('Another room is open');state.config=config;state.role=role;},
   async end(){ends++;state.active=false;state.config=null;}
  };

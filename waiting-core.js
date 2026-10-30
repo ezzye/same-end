@@ -32,29 +32,48 @@
     var positionGood=Number.isFinite(s.programTime)&&hasTarget&&Math.abs(s.programTime-target)<=4;
     // HAVE_CURRENT_DATA and the correct verified programme interval are the
     // readiness boundary, including a paused picture waiting for a sound tap.
-    var adaptive=typeof s.playbackAdaptivePhase==='string';
-    var ready=!!(cfg&&s.clockReady&&hasTarget&&target>=0&&s.ready>=2&&positionGood&&(!adaptive||s.playbackAdaptivePhase==='playing')&&((delivery&&delivery.requiredPiecePresent===true)||(adaptive&&s.paused===false)));
+    var adaptive=typeof s.playbackAdaptivePhase==='string', facts=s.mediaDiagnostics&&s.mediaDiagnostics.playback;
+    var pictureMissing=!!(facts&&facts.awaitingPicture===true||s.mediaMode==='audio');
+    var ready=!!(!pictureMissing&&cfg&&s.clockReady&&hasTarget&&target>=0&&s.ready>=2&&positionGood&&(!adaptive||s.playbackAdaptivePhase==='playing')&&((delivery&&delivery.requiredPiecePresent===true)||(adaptive&&s.paused===false)));
     var engaged=!!(cfg||s.joiningBusy||r.connected||r.watching);
-    if(!engaged||ready)return {visible:false,ready:ready,state:ready?'ready':'idle'};
+    if(!engaged)return {visible:false,ready:false,state:'idle'};
     var code=classification&&classification.code||'finding-route';
-    // The initial waiting content is not a recovery overlay. After a picture
-    // has appeared, leave it visible during local buffer/clock rebuilding.
-    // Source/network failure explanations still use their existing path.
-    if(session&&session.hasPlayed===true&&(s.sourceReachable===true||code==='warming-up'||code==='buffering'))return {visible:false,ready:false,state:'resuming'};
     var title=classification&&classification.title||'Finding your shared picture';
     var detail=classification&&classification.detail||'Your room stays open while we find the picture.';
-    var seconds=null;
-    if(cfg&&s.commonStart&&s.commonStart.enabled===true&&s.commonStart.state==='pending'){
-      code='warming-up';title=s.commonStart.reason==='waiting-for-first-viewer'?'Ready for your mates':'Checking group delay';detail=s.commonStart.reason==='waiting-for-first-viewer'?'Send your invitation whenever you’re ready. We’ll check the group delay when someone joins.':'You can chat while we prepare the picture.';
-    }else if(cfg&&s.commonStart&&Number.isFinite(s.commonStart.startRemainingSeconds)&&s.commonStart.startRemainingSeconds>0){
-      code='warming-up';title='Starting together';seconds=Math.ceil(s.commonStart.startRemainingSeconds);detail='Group start in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+'. Your chat stays open.';
-    }else if(cfg&&s.clockReady&&hasTarget&&target<0&&code!=='source-stopped'&&code!=='source-unreachable'){
-      code='warming-up';title='Building your match buffer';seconds=Math.ceil(-target);
+    var seconds=null,common=s.commonStart;
+    var commonPending=!!(cfg&&common&&common.enabled===true&&common.state==='pending');
+    var initialPending=!!(s.initialDelay&&s.initialDelay.enabled===true&&['observing','preparing'].indexOf(s.initialDelay.state)>=0);
+    var scheduled=cfg&&s.clockReady&&common&&Number.isFinite(common.startRemainingSeconds)&&common.startRemainingSeconds>0?common.startRemainingSeconds:null;
+    // Effective playback may already be preparing a positive programme target.
+    // A selected common start has its own actual deadline; never replace it with
+    // a negative-target estimate or predict an unresolved delay decision.
+    var groupTarget=Number.isFinite(s.viewerTargetProgramTime)?s.viewerTargetProgramTime:s.targetProgramTime;
+    if(!commonPending&&Number.isFinite(scheduled)&&code!=='source-stopped'&&code!=='source-unreachable'){
+      code='warming-up';title='Starting together';seconds=Math.ceil(scheduled);
+      detail='Group start in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+'. Your chat stays open.';
+    }else if(commonPending&&code!=='source-stopped'&&code!=='source-unreachable'){
+      code='warming-up';title=common.reason==='waiting-for-first-viewer'?'Ready for your mates':'Checking group delay';detail=common.reason==='waiting-for-first-viewer'?'Send your invitation whenever you’re ready. We’ll check the group delay when someone joins.':'You can chat while we prepare the picture.';
+    }else if(cfg&&s.clockReady&&!initialPending&&Number.isFinite(groupTarget)&&groupTarget<0&&code!=='source-stopped'&&code!=='source-unreachable'){
+      code='warming-up';title='Building your match buffer';seconds=Math.ceil(-groupTarget);
       detail='Group start in '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')+'. We’ll show the picture as soon as it’s ready.';
+    }else if(ready&&code!=='source-stopped'&&code!=='source-unreachable'){return {visible:false,ready:true,state:'ready'};
+    }else if(pictureMissing&&s.sourceReachable&&code!=='source-stopped'&&code!=='source-unreachable'){
+      code='buffering';title='Waiting for the picture';detail=cfg&&cfg.sourceAudioAvailable===false?'The room is rebuilding the picture.':'Sound can continue while the room rebuilds the picture.';
+    }else if(['starting','rebuffering','recovering'].indexOf(s.playbackAdaptivePhase)>=0&&s.sourceReachable&&code==='playing'){
+      code='buffering';title='Building a smoother picture';detail='The room is saving more media before the picture resumes.';
     }else if(cfg&&s.sourceReachable&&hasTarget&&target>=0&&code==='finding-route'){
       title='Preparing the picture';detail='Waiting for verified picture at the group’s current moment. Your chat stays open.';
     }
-    return {visible:true,ready:false,state:code,title:title,detail:detail,seconds:seconds,allowSponsor:code==='warming-up'&&seconds>0,canFetch:!!cfg&&s.sourceReachable===true};
+    var compact=!!(session&&(session.hasPicture===true||session.hasPlayed===true));
+    // A verified media reserve is a measurement, not a download time estimate.
+    // Do not show it before the target exists or after the source has stopped.
+    var reserve=delivery&&delivery.verifiedReserveSeconds,playback=s.mediaDiagnostics&&s.mediaDiagnostics.playback,goal=playback&&playback.bufferGoalSeconds;
+    if(seconds===null&&code!=='source-stopped'&&code!=='source-unreachable'&&cfg&&s.clockReady&&hasTarget&&target>=0&&Number.isFinite(reserve)&&reserve>=0){
+      detail+=' Verified media buffer: '+reserve.toFixed(1)+' seconds';
+      if(Number.isFinite(goal)&&goal>0)detail+=' (target '+goal.toFixed(1)+' seconds)';
+      detail+='.';
+    }
+    return {visible:true,ready:false,compact:compact,state:code,title:title,detail:detail,seconds:seconds,allowSponsor:!compact&&code==='warming-up'&&seconds>0,canFetch:!compact&&!!cfg&&s.sourceReachable===true};
   }
   root.SameEndWaitingCore={cleanPack:cleanPack,explain:explain,maxBytes:MAX_BYTES};
 })(typeof window==='undefined'?globalThis:window);
