@@ -393,6 +393,43 @@ function maintainDelivery(){
 const enc=new TextEncoder(), dec=new TextDecoder();
 const log=s=>{$('log').textContent=(new Date().toLocaleTimeString()+' '+s+'\n'+$('log').textContent).slice(0,6000);};
 const status=s=>{$('status').textContent=s;log(s);};
+// This is an input check on the host device, independent of delayed room playback.
+let sourcePreviewTimer=null;
+function clearSourcePreview(){
+ clearInterval(sourcePreviewTimer);sourcePreviewTimer=null;
+ const panel=$('source-preview'),video=$('source-preview-video');
+ if(!panel||!video)return;
+ video.onloadeddata=null;video.onerror=null;video.pause();video.srcObject=null;video.hidden=false;panel.hidden=true;
+ const toggle=$('source-preview-toggle');if(toggle){toggle.textContent='Hide preview';toggle.setAttribute('aria-expanded','true');}
+}
+function previewSourceLabel(track,kind){
+ if(kind==='demo')return 'Generated test picture';
+ const surface=track?.getSettings?.().displaySurface;
+ const name=surface==='browser'?'Shared tab':surface==='window'?'Shared window':surface==='monitor'?'Shared screen':'Shared source';
+ // Browser labels vary and can contain URLs, filesystem paths or opaque capture IDs.
+ // Only show an ordinary human-readable browser label, locally and as text.
+ const label=String(track?.label||'').replace(/[\x00-\x1f\x7f-\x9f\u202a-\u202e\u2066-\u2069]/g,' ').replace(/\s+/g,' ').trim();
+ const safe=surface==='browser'&&label.length>1&&label.length<=120&&/[A-Za-z]/.test(label)&&
+  !/(?:https?:|www\.|[\/@\\?#=]|\b[a-z0-9-]+\.(?:[a-z]{2,}|[0-9]{1,3})\b|\b[0-9a-f]{8}-[0-9a-f-]{20,}\b|\b[0-9a-f]{16,}\b|^[a-z0-9_+=-]{16,}$|\b[a-z0-9_-]{24,}\b|\b\d{10,}\b|^(?:screen|window|tab):\d)/i.test(label);
+ return safe?name+': '+label:name;
+}
+function showSourcePreview(stream,kind){
+ const panel=$('source-preview'),video=$('source-preview-video'),track=stream?.getVideoTracks?.()[0];
+ if(!panel||!video||!track)return;
+ clearSourcePreview();
+ const refreshLabel=()=>{$('source-preview-label').textContent=previewSourceLabel(track,kind);};
+ refreshLabel();sourcePreviewTimer=setInterval(refreshLabel,1000);
+ $('source-preview-status').textContent='Preparing live preview…';
+ panel.hidden=false;video.muted=true;video.volume=0;
+ video.onloadeddata=()=>{$('source-preview-status').textContent='Live source picture';};
+ video.onerror=()=>{$('source-preview-status').textContent='Live preview unavailable. Check the shared source.';};
+ try{const previewStream=new MediaStream([track]);video.srcObject=previewStream;video.play().catch(()=>{if(video.srcObject===previewStream)$('source-preview-status').textContent='Live preview unavailable. Check the shared source.';});}
+ catch{$('source-preview-status').textContent='Live preview unavailable. Check the shared source.';}
+}
+if($('source-preview-toggle'))$('source-preview-toggle').onclick=()=>{
+ const video=$('source-preview-video'),button=$('source-preview-toggle');video.hidden=!video.hidden;
+ button.textContent=video.hidden?'Show preview':'Hide preview';button.setAttribute('aria-expanded',String(!video.hidden));
+};
 function renderSourceAudio(){
  const panel=$('source-audio');if(!panel)return;
  panel.hidden=!(state.config&&state.role==='source'&&!state.stopped);if(panel.hidden)return;
@@ -497,7 +534,7 @@ async function start(stream,cleanup,sourceKind='screen'){
   const publicKey=await crypto.subtle.exportKey('jwk',state.key.publicKey);
   state.stream=stream;state.demoCleanup=cleanup;state.seq=0;state.active=true;state.offset=0;state.clockReady=true;state.trail=[];captureStats=null;
   const epoch=now();await init({id:crypto.randomUUID(),epoch,delay:Number($('delay').value),mime,publicKey,audio,segmentVersion:2,sourceId:crypto.randomUUID(),sourceEpoch:0,programId:crypto.randomUUID(),alignmentVersion:1},'source');
-  state.sourceReachable=true;monitorSourceAudio(stream,sourceKind);lifecycle();
+  state.sourceReachable=true;monitorSourceAudio(stream,sourceKind);showSourcePreview(inputStream,sourceKind);lifecycle();
   for(const t of stream.getVideoTracks())t.addEventListener('ended',()=>{if(state.active)end('Screen sharing ended.');},{once:true});
   record();status(mime.startsWith('video/mp4')?'Cast running. Your delayed picture will begin shortly. You can invite a friend now.':'Cast running in WebM. Older iPhones and iPads need the host to use updated Chrome, Edge or Safari for MP4.');
  }catch(e){normalizer?.close();inputStream.getTracks().forEach(t=>t.stop());originalCleanup?.();if(state.active&&state.stream===stream)await end('Screen sharing could not start.');throw e;}
@@ -529,7 +566,7 @@ async function startStandardCompatibility(inputStream,originalCleanup,sourceKind
   state.stream=stream;state.seq=0;state.active=true;state.offset=0;state.clockReady=true;state.trail=[];captureStats=null;captureNormalizer=normalizer;state.sourceChain=Promise.resolve();
   state.demoCleanup=()=>{void producer?.close().catch(()=>{});normalizer?.close();originalCleanup?.();};
   lastNetworkCheck=null;lastJoinLink=null;
-  await init(config,'source');state.sourceReachable=true;monitorSourceAudio(stream,sourceKind);lifecycle();
+  await init(config,'source');state.sourceReachable=true;monitorSourceAudio(stream,sourceKind);showSourcePreview(inputStream,sourceKind);lifecycle();
   producer=await capture.createCapture(stream,{epoch,bitrate:Number($('quality').value),now,onError:()=>{if(state.active&&state.config?.id===config.id)void end('Your shared picture stopped. Start a fresh share.');},onBatch:batch=>{
    const job=async()=>{
     if(!state.active||state.stopped||state.config?.id!==config.id)return;
@@ -561,7 +598,7 @@ async function startResilientStandard(inputStream,originalCleanup,sourceKind='sc
   const config={id:crypto.randomUUID(),epoch,delay:Number($('delay').value),mime:SameEndHLS.HLS_MIME,mediaProfile:SameEndHLS.HLS_PROFILE,publicKey,audio:sourceAudioAvailable,sourceAudioAvailable,segmentVersion:3,renditions,startRendition:low?'v360':'v480',maxRendition:low?'v360':'v480',sourceId:crypto.randomUUID(),sourceEpoch:0,programId:crypto.randomUUID(),alignmentVersion:1,...(window.SameEndConfig?.automaticCommonStart===true&&Number($('delay').value)===300?{commonStartVersion:2}:{})};
   state.stream=inputStream;state.seq=0;state.active=true;state.offset=0;state.clockReady=true;state.trail=[];captureStats=null;captureNormalizer=null;state.sourceChain=Promise.resolve();
   state.demoCleanup=()=>{void producer?.close().catch(()=>{});originalCleanup?.();};lastNetworkCheck=null;lastJoinLink=null;
-  await init(config,'source');state.sourceReachable=true;monitorSourceAudio(inputStream,sourceKind);lifecycle();
+  await init(config,'source');state.sourceReachable=true;monitorSourceAudio(inputStream,sourceKind);showSourcePreview(inputStream,sourceKind);lifecycle();
   producer=await capture.createResilientCapture(inputStream,{epoch,now,renditions,onError:(error,rendition)=>{
    if(!state.active||state.config?.id!==config.id)return;state.failedRenditions.add(rendition);
    log('A media rendition stopped: '+rendition);advanceRendition();
@@ -613,7 +650,7 @@ async function end(message='You ended this connection.',sourceEnd=null){
  if(state.stopped)return;
  const config=state.config,key=state.key,role=state.role,oldMagnet=magnetTransport,peers=[...state.peers.values()];
  state.stopped=true;state.active=false;state.invitationConfigId=null;state.sourceEnded=!!sourceEnd||role==='source';state.sourceReachable=false;
- sourceAudioMonitor?.close();sourceAudioMonitor=null;sourceAudioState=null;sourceAudioKind=null;renderSourceAudio();
+ clearSourcePreview();sourceAudioMonitor?.close();sourceAudioMonitor=null;sourceAudioState=null;sourceAudioKind=null;renderSourceAudio();
  const oldHlsCapture=hlsCapture;hlsCapture=null;void oldHlsCapture?.close().catch(()=>{});clearTimeout(state.captureTimer);if(state.recorder?.state==='recording')state.recorder.stop();state.stream?.getTracks().forEach(t=>t.stop());state.demoCleanup?.();state.demoCleanup=null;
  // Relays cannot turn departure into a source shutdown. Only a verified signature
  // made by the cast's capture key is forwarded as a whole-cast end.

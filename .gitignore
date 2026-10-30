@@ -19,3 +19,6 @@ private*
 *.magnet
 
 .idea/
+
+# Local diagnostic artifacts and private acceptance evidence
+.local/

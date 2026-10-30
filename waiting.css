@@ -26,3 +26,7 @@
 }
 @media(max-width:760px){.sameend-wait .wait-reading>summary,.sameend-wait .wait-transcript>summary{padding:10px 0;line-height:1.4}}
 .room.room-expanded .sameend-wait .wait-heading,.room.is-browser-fullscreen .sameend-wait .wait-heading{position:static}
+
+/* Status stays outside the picture when a frame is available or recovering. */
+.sameend-compact{margin-top:8px;padding:10px 12px;border:1px solid #567562;border-radius:10px;color:#edf6df;font-size:13px;background:#14372d}.sameend-compact[hidden]{display:none!important}.sameend-compact strong{font-size:13px}.sameend-compact p{margin:3px 0;color:#c6dac6;line-height:1.4}.sameend-compact details{font-size:12px}.sameend-compact summary{cursor:pointer;color:#d7e9c5;padding:4px 0}.sameend-compact summary:focus-visible{outline:3px solid #ed6252;outline-offset:3px}
+.stage.has-decoded-picture .stage-empty{display:none!important}

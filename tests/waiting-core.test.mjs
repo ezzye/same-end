@@ -24,9 +24,9 @@ test('initial buffer content stays hidden after a picture while a returning tab 
  const s={config:{},clockReady:true,targetProgramTime:25,programTime:22,ready:1,paused:true,sourceReachable:true,playbackAdaptivePhase:'rebuffering'};
  assert.equal(core.explain(s,{},{code:'buffering'}).visible,true,'first join still explains preparation');
  for(const patch of [{},{clockReady:false},{targetProgramTime:-8},{playbackAdaptivePhase:'recovering'}]){
-  const r=core.explain({...s,...patch},{},{code:'buffering'},{hasPlayed:true});assert.equal(r.visible,false);assert.equal(r.state,'resuming');
+  const r=core.explain({...s,...patch},{},{code:'buffering'},{hasPlayed:true});assert.equal(r.visible,true);assert.equal(r.compact,true);
  }
- const failure=core.explain({...s,sourceReachable:false},{connected:true},{code:'source-unreachable',title:'The source left'},{hasPlayed:true});assert.equal(failure.visible,true);assert.equal(failure.title,'The source left');
+ const failure=core.explain({...s,sourceReachable:false},{connected:true},{code:'source-unreachable',title:'The source left'},{hasPlayed:true});assert.equal(failure.visible,true);assert.equal(failure.compact,true);assert.equal(failure.title,'The source left');
 });
 test('waiting pack rejects oversized/unknown formats and removes links, media and invitation material',()=>{
  assert.equal(core.cleanPack({items:[{body:'x'.repeat(50001)}]}),null);
@@ -45,4 +45,13 @@ test('pending common selection avoids a misleading five-minute countdown',()=>{
  const pending=core.explain(base,{},{});assert.equal(pending.title,'Checking group delay');assert.equal(pending.seconds,null);assert.equal(pending.allowSponsor,false);
  const chosen=core.explain({...base,commonStart:{enabled:true,state:'selected',delaySeconds:30},targetProgramTime:-10,effectiveTargetProgramTime:-10},{},{});
  assert.equal(chosen.seconds,10);assert.match(chosen.detail,/0:10/);
+});
+
+test('scheduled starts and measured buffers remain honest in compact mode',()=>{
+ const base={config:{delay:300},clockReady:true,targetProgramTime:40,effectiveTargetProgramTime:40,programTime:36,ready:2,sourceReachable:true,commonStart:{enabled:true,state:'selected',startRemainingSeconds:14.2},mediaDiagnostics:{delivery:{verifiedReserveSeconds:3.25},playback:{bufferGoalSeconds:8}}};
+ const scheduled=core.explain(base,{},{code:'buffering'},{hasPicture:true});assert.equal(scheduled.compact,true);assert.equal(scheduled.seconds,15);assert.match(scheduled.detail,/0:15/);
+ const pending=core.explain({...base,commonStart:{enabled:true,state:'pending',startRemainingSeconds:14.2},targetProgramTime:-200,effectiveTargetProgramTime:-200},{},{},{hasPicture:true});assert.equal(pending.seconds,null);assert.doesNotMatch(pending.detail,/Group start in/);
+ const measured=core.explain({...base,commonStart:null},{},{code:'buffering'},{hasPicture:true});assert.equal(measured.seconds,null);assert.match(measured.detail,/Verified media buffer: 3\.3 seconds \(target 8\.0 seconds\)/);assert.doesNotMatch(measured.detail,/ETA|remaining|start in/i);
+ const unknown=core.explain({...base,commonStart:null,mediaDiagnostics:{delivery:{},playback:{}}},{},{code:'buffering'},{hasPicture:true});assert.doesNotMatch(unknown.detail,/Verified media buffer|target [0-9]|ETA/i);
+ const stopped=core.explain({...base,commonStart:null,sourceReachable:false},{},{code:'source-stopped',title:'Source stopped',detail:'Waiting for host'},{hasPicture:true});assert.equal(stopped.compact,true);assert.equal(stopped.title,'Source stopped');assert.doesNotMatch(stopped.detail,/Verified media buffer/);
 });
