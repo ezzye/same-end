@@ -89,7 +89,14 @@ import WebTorrent from './vendor/webtorrent.min.js';
       }
       return {authenticatedPeers:Math.min(12,peers.length),rootedSuppliers:Math.min(12,rootedSuppliers),fullSuppliers:Math.min(12,fullSuppliers),eligibleSuppliers:Math.min(12,eligibleSuppliers),unrootedPeers:Math.min(12,unrootedPeers),lastReject:this.lastReject&&now-this.lastReject.at<=15000?this.lastReject.reason:null};
     }
-    snapshot(){return {parent:this.parent?.remote?.nodeId||null,trail:[...this.trail],sourceReachable:this.getStatus().rooted,recovery:this.recovery?{...this.recovery,recoveries:this.recoveries,failures:this.failures}:null,authenticatedPeers:[...this.wires.values()].filter(s=>s.auth).length,coordinator:this.coordinator?{available:!!this.coordinator.latest(),recommendations:Math.min(5,this.coordinator.latest()?.recommendations?.length||0)}:null,availability:this._availability(),network:this.network?{...this.network,elapsedSeconds:Math.max(0,Math.min(86400,Math.floor((Date.now()-this.networkStarted)/1000)))}:null};}
+    _serving(){
+      if(!this.role)return null;
+      const s=this.getStatus(),h=s.health;
+      // This device's effective application budget, including the one-child
+      // viewer limit. Keep identifiers and cache programme positions private.
+      return {relayLimit:s.relayLimit,downCount:s.downCount,availableSlots:Math.max(0,s.relayLimit-s.downCount),leafOnly:s.leafOnly,rooted:s.rooted,clockReady:s.clockReady,sourceAgeSeconds:h?.sourceAgeSeconds??null,queueBytes:h?.queueBytes??null,outgoingMbps:h?.outgoingMbps??null,cacheRenditions:[...new Set((h?.cache||[]).map(c=>c.rendition))]};
+    }
+    snapshot(){return {parent:this.parent?.remote?.nodeId||null,trail:[...this.trail],sourceReachable:this.getStatus().rooted,serving:this._serving(),recovery:this.recovery?{...this.recovery,recoveries:this.recoveries,failures:this.failures}:null,authenticatedPeers:[...this.wires.values()].filter(s=>s.auth).length,coordinator:this.coordinator?{available:!!this.coordinator.latest(),recommendations:Math.min(5,this.coordinator.latest()?.recommendations?.length||0)}:null,availability:this._availability(),network:this.network?{...this.network,elapsedSeconds:Math.max(0,Math.min(86400,Math.floor((Date.now()-this.networkStarted)/1000)))}:null};}
     _progress(name){try{this.onProgress(name);}catch{}}
     _status(){ return this.getStatus(); }
     async _cryptoKey(key){ return crypto.subtle.importKey('raw',key,{name:'HMAC',hash:'SHA-256'},false,['sign','verify']); }
@@ -378,7 +385,9 @@ import WebTorrent from './vendor/webtorrent.min.js';
       if(this.coordinator&&!s.candidateSince){s.candidateSince=Date.now();return;}
       const remote=s.remote,mine=this._status();
       const h=remote.health;let needed=null;try{needed=this.getCoordinatorReport?.()||null;}catch{}
-      if(h && (h.outgoingMbps===0 || Number.isFinite(h.queueBytes)&&h.queueBytes>2000000))return;
+      // Recent delivered goodput is usage, not a measurement of spare capacity.
+      // Idle suppliers can send zero while still having a declared free slot.
+      if(h && Number.isFinite(h.queueBytes)&&h.queueBytes>2000000)return;
       if(this.config?.segmentVersion===3 && h && needed?.neededRange && Array.isArray(h.cache) && Array.isArray(needed.requestedRenditions) && !needed.requestedRenditions.every(r=>h.cache.some(c=>c.rendition===r&&c.start<=needed.neededRange.start&&c.end>=needed.neededRange.end)))return;
       const coolUntil=this.failedSuppliers.get(remote?.nodeId)||0;if(coolUntil<=Date.now())this.failedSuppliers.delete(remote?.nodeId);
       const relayLimit=Number.isInteger(remote?.relayLimit)?Math.min(2,Math.max(0,remote.relayLimit)):2;

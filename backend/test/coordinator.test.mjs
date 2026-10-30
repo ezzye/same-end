@@ -79,6 +79,12 @@ test('an unmeasured rooted viewer has only one provisional slot',async()=>{
  const item=await store.get('CLUB#club','COORD#cast1');assert.equal(item.nodes.relay.report.children[0].deliveredMbps,null);
  const viewer=await coord('club',report('viewer',base({leafOnly:true})));assert.ok(!viewer.recommendations.some(x=>x.nodeId==='relay'));
 });
+test('zero recent throughput does not hide a source slot when its queue and relay budget allow it',async()=>{
+ const {coord}=setup();
+ await coord('club',report('source',base({role:'source',relayLimit:2,sourceAgeSeconds:null,outgoingMbps:0,children:[{nodeId:'existing',queuedBytes:0,deliveredMbps:0,health:'degraded'}]})));
+ const viewer=await coord('club',report('viewer',base({leafOnly:true})));
+ assert.ok(viewer.recommendations.some(candidate=>candidate.nodeId==='source'));
+});
 test('four concurrent peers renew across report intervals and expired leases can re-register',async()=>{
  const {coord,advance}=setup();const ids=['root','a','b','c'];
  const created=await Promise.all(ids.map(node=>coord('club',report(node,base(node==='root'?{role:'source',relayLimit:2}:{leafOnly:true})))));

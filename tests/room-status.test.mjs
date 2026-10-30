@@ -42,7 +42,7 @@ test('capacity needs positive current local evidence and never claims a full roo
 });
 test('offline and group warm-up are distinct from failed direct routing',()=>{
   assert.equal(explain({room:room('sharing'),online:false}).code,'offline');
-  assert.equal(explain({snapshot:{config:{},clockReady:true,targetProgramTime:-300},room:room('sharing')}).code,'warming-up');
+  assert.equal(explain({snapshot:{config:{},clockReady:true,targetProgramTime:-300},room:room('sharing')}).code,'finding-route');
   assert.equal(explain({snapshot:{config:{},recovery:{state:'exhausted'}},room:room('sharing')}).code,'no-direct-route');
 });
 test('policy output contains only static messages and bounded classifications',()=>{
@@ -70,9 +70,24 @@ test('adaptive rebuffering is an intentional wait, while moving playback and sou
 test('common delay presentation separates pending selection and the signed fallback',()=>{
  const groupDelay=context.window.SameEndRoomStatus.groupDelay,base={config:{delay:300}};
  assert.equal(groupDelay(base).label,'5-minute group delay');
- const pending={...base,clockReady:true,targetProgramTime:-280,commonStart:{enabled:true,state:'pending'}};
+ const pending={...base,clockReady:true,sourceReachable:true,targetProgramTime:-280,commonStart:{enabled:true,state:'pending'}};
  assert.equal(groupDelay(pending).seconds,null);assert.equal(explain({snapshot:pending}).title,'Checking group delay');
  assert.equal(groupDelay({...base,commonStart:{enabled:true,state:'selected',delaySeconds:30}}).label,'30-second group delay');
  assert.equal(groupDelay({...base,commonStart:{enabled:true,state:'fallback',delaySeconds:300}}).seconds,300);
  assert.equal(groupDelay({...base,commonStart:{enabled:true,state:'selected',delaySeconds:Infinity}}).seconds,300);
+});
+
+test('pending schedule needs a rooted clock-ready media path before capacity is classified',()=>{
+ const pending={config:{},clockReady:false,sourceReachable:false,targetProgramTime:-280,commonStart:{enabled:true,state:'pending'},transport:{availability:{rootedSuppliers:1,fullSuppliers:1,eligibleSuppliers:0}}};
+ assert.equal(explain({snapshot:pending,elapsedSeconds:0}).code,'suppliers-full');
+ const noSupplier={...pending,transport:{availability:{rootedSuppliers:0,fullSuppliers:0,eligibleSuppliers:0}}};
+ assert.equal(explain({snapshot:noSupplier,elapsedSeconds:0}).code,'finding-route');
+ assert.equal(explain({snapshot:noSupplier,elapsedSeconds:91}).code,'no-direct-route');
+});
+
+test('scheduled warm-up still appears for a clock-ready active source, and generic target warm-up needs a path',()=>{
+ const pending={config:{},role:'source',active:true,clockReady:true,commonStart:{enabled:true,state:'pending',reason:'waiting-for-first-viewer'}};
+ assert.equal(explain({snapshot:pending}).title,'Ready for your mates');
+ assert.equal(explain({snapshot:{config:{},clockReady:true,targetProgramTime:-2}}).code,'finding-route');
+ assert.equal(explain({snapshot:{config:{},clockReady:true,sourceReachable:true,targetProgramTime:-2}}).code,'warming-up');
 });
