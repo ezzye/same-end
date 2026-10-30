@@ -80,7 +80,7 @@ test('stalled viewer enables one preferred edge URL, limits offers and restores 
  const tracker={_rtcConfig:{},_trackers:[]};t.client={tracker:{}};t.torrent={discovery:{tracker}};t.network={};t.role='viewer';t.networkStarted=Date.now()-14000;t.refreshNetwork=reason=>{assert.equal(reason,'edge-fallback');resets++;return true;};
  t._refreshIce();await new Promise(r=>setImmediate(r));assert.equal(calls,0);t.networkStarted=Date.now()-16000;t._refreshIce();await new Promise(r=>setImmediate(r));assert.equal(calls,1);assert.equal(resets,1);assert.equal(t.network.fallbackState,'active');assert.equal(tracker._rtcConfig.iceServers.length,3);assert.equal(tracker._rtcConfig.iceServers[2].urls,'turn:edge.example:3478?transport=udp');
  const tracked={peers:{},setInterval(){},announce(o){this.last=o;}};tracker._trackers=[tracked];t._boundTrackerOffers(t.torrent.discovery);tracked.announce({numwant:4});assert.equal(tracked.last.numwant,1);tracked.peers.pending={_pc:{},destroy(){}};tracked.announce({numwant:4});assert.equal(tracked.last.numwant,0);delete tracked.peers.pending;
- const wire={destroyed:false,extended(){},destroy(){this.destroyed=true;}},peer={wire,auth:true,direction:'up',remote:{nodeId:'root',role:'source',trail:[]}};t.wires.set(wire,peer);t.recovery={};t._open(peer);assert.equal(wire.destroyed,false);assert.equal(t.parent,peer);assert.equal(tracker._rtcConfig.iceServers.length,2);assert.equal(t.network.fallbackState,'direct');assert.equal(t.network.relayConfigured,false);
+ const wire={destroyed:false,extended(){},destroy(){this.destroyed=true;}},peer={wire,auth:true,direction:'up',remote:{nodeId:'root',role:'source',trail:[]}};t.wires.set(wire,peer);t.recovery={};t._open(peer);assert.equal(wire.destroyed,false);assert.equal(t.parent,peer);assert.equal(tracker._rtcConfig.iceServers.length,2);assert.equal(t.network.fallbackState,'connected');assert.equal(t.network.relayConfigured,false);assert.equal(t.network.selectedRoute,'unknown');
 });
 test('failed edge search rotates to TLS only after a cooldown',async()=>{
  const w=setup();const urls=['turn:edge.example:3478?transport=udp','turns:edge.example:443?transport=tcp'];const t=new w.CastMagnetTransport({getIceServers:async()=>({expiresAt:Math.floor(Date.now()/1000)+60,iceServers:[{urls,username:'u',credential:'c'}]})});const tracker={_rtcConfig:{}};t.client={tracker:{}};t.torrent={discovery:{tracker}};t.network={};t.role='viewer';t.networkStarted=Date.now()-16000;t.refreshNetwork=()=>true;
@@ -91,4 +91,29 @@ test('initial source client is STUN-only and does not request edge credentials',
  let calls=0,created;class Client{constructor(options){created=options;}on(){}}
  const context={window:{},WebTorrent:Client,TextEncoder,TextDecoder,crypto:webcrypto,btoa,atob,URL,queueMicrotask,setTimeout,clearTimeout,setInterval,clearInterval};vm.createContext(context);vm.runInContext(transport,context);
  const t=new context.window.CastMagnetTransport({getIceServers:()=>{calls++;return Promise.resolve(null);}});t.role='source';await t._client();assert.equal(calls,0);assert.equal(created.tracker.rtcConfig.iceServers.length,2);assert.equal(created.tracker.getAnnounceOpts().numwant,4);
+});
+
+
+test('selected supplier route comes only from its selected ICE candidate pair',async()=>{
+ const w=setup(),t=new w.CastMagnetTransport({getStatus:()=>({nodeId:'self',clockReady:true})});t.role='viewer';t.network={relayConfigured:false};
+ const wire={destroyed:false,extended(){}},parent={wire,auth:true,direction:'up',remote:{nodeId:'root',role:'source',trail:[]}};
+ const report=(local,remote)=>new Map([['t',{id:'t',type:'transport',selectedCandidatePairId:'p'}],['p',{id:'p',type:'candidate-pair',localCandidateId:'l',remoteCandidateId:'r'}],['l',{id:'l',type:'local-candidate',candidateType:local,address:'PRIVATE-IP'}],['r',{id:'r',type:'remote-candidate',candidateType:remote,address:'PRIVATE-IP'}]]);
+ let stats=report('relay','host');const pc={getStats:async()=>stats};t.torrent={_peers:new Map([['p',{wire,conn:{_pc:pc}}]])};t.wires.set(wire,parent);t.recovery={};t._open(parent);await new Promise(r=>setImmediate(r));
+ assert.equal(t.network.selectedRoute,'relay');assert.equal(t.network.localCandidateType,'relay');assert.equal(t.network.remoteCandidateType,'host');assert.equal(t.network.relayConfigured,false);assert(!JSON.stringify(t.snapshot().network).includes('PRIVATE-IP'));
+ stats=report('srflx','host');t._sampleSelectedRoute();await new Promise(r=>setImmediate(r));assert.equal(t.network.selectedRoute,'direct');
+ stats=report('host','relay');t._sampleSelectedRoute();await new Promise(r=>setImmediate(r));assert.equal(t.network.selectedRoute,'relay');
+ stats=report('host','unsupported');t._sampleSelectedRoute();await new Promise(r=>setImmediate(r));assert.equal(t.network.selectedRoute,'unknown');
+ stats=new Map([['p',{id:'p',type:'candidate-pair',nominated:true,state:'succeeded',localCandidateId:'l',remoteCandidateId:'r'}]]);t._sampleSelectedRoute();await new Promise(r=>setImmediate(r));assert.equal(t.network.selectedRoute,'unknown');
+ pc.getStats=async()=>{throw Error('PRIVATE-ERROR')};t._sampleSelectedRoute();await new Promise(r=>setImmediate(r));assert.equal(t.network.selectedRoute,'unknown');assert.equal(t.network.localCandidateType,null);
+});
+test('late ICE stats cannot restore a route for a departed supplier',async()=>{
+ const w=setup(),t=new w.CastMagnetTransport();let resolve;const wire={destroyed:false},parent={wire};t.parent=parent;t.network={selectedRoute:'unknown'};t.torrent={_peers:new Map([['p',{wire,conn:{_pc:{getStats:()=>new Promise(r=>resolve=r)}}}]])};t._sampleSelectedRoute();await Promise.resolve();t.parent=null;t._clearSelectedRoute();resolve(new Map([['t',{id:'t',type:'transport',selectedCandidatePairId:'p'}],['p',{id:'p',type:'candidate-pair',localCandidateId:'l',remoteCandidateId:'r'}],['l',{id:'l',type:'local-candidate',candidateType:'relay'}],['r',{id:'r',type:'remote-candidate',candidateType:'host'}]]));await new Promise(r=>setImmediate(r));assert.equal(t.network.selectedRoute,'unknown');
+});
+
+
+test('pending ICE statistics cannot report a disconnected or replaced peer route',async()=>{
+ const w=setup(),t=new w.CastMagnetTransport();let resolve;const wire={destroyed:false},parent={wire},pc={connectionState:'connected',iceConnectionState:'connected',getStats:()=>new Promise(r=>resolve=r)};t.parent=parent;t.network={selectedRoute:'unknown'};const peer={wire,conn:{_pc:pc}};t.torrent={_peers:new Map([['p',peer]])};
+ const stats=new Map([['t',{id:'t',type:'transport',selectedCandidatePairId:'p'}],['p',{id:'p',type:'candidate-pair',localCandidateId:'l',remoteCandidateId:'r'}],['l',{id:'l',type:'local-candidate',candidateType:'relay'}],['r',{id:'r',type:'remote-candidate',candidateType:'host'}]]);
+ t._sampleSelectedRoute();await Promise.resolve();pc.iceConnectionState='disconnected';resolve(stats);await new Promise(r=>setImmediate(r));assert.equal(t.network.selectedRoute,'unknown');
+ pc.iceConnectionState='connected';t._sampleSelectedRoute();await Promise.resolve();peer.conn._pc={};resolve(stats);await new Promise(r=>setImmediate(r));assert.equal(t.network.selectedRoute,'unknown');
 });

@@ -83,3 +83,18 @@ List every required UDP and TCP listener and relay mapping explicitly, including
 Set `supervisorStatusPath` in the capacity agent config to the same absolute status path. Missing, malformed, future-dated, expired, or unhealthy status sets the sample's `metricError` and prevents healthy admission; omit the setting only on legacy hosts without this prerequisite. The status expires after ten minutes and is marked unhealthy while a cycle runs. A supervisor failure cannot bypass the capacity policy, and capacity failures cannot be made healthy by the supervisor.
 
 For a user LaunchAgent, copy the reviewed modules (including their imports) to a stable private runtime directory, substitute absolute executable, module, config and log paths in `com.sameend.edge-turn-supervisor.plist.example`, and place the resulting plist in the operator's `~/Library/LaunchAgents`. Run the agent and coturn as the same regular user so the supervisor can signal the coturn PID; no root account is required. Review ownership, permissions, paths, network and firewall prerequisites before loading it. A loaded job is not proof that the supervisor is healthy or that external TURN works.
+
+## Verify the actual picture route
+
+The connection report now uses the selected supplier connection's browser statistics to label its route `direct`, `relay` or `unknown`. A selected relay candidate establishes that TURN is on that connection's route; an offer containing TURN credentials alone does not. Only candidate types are retained, without addresses, ports, SDP or credentials. `relayOfferConfigured` describes new connection offers; `relayFallbackConfigured` remains unknown when the client cannot establish the server's configuration. See the [WebRTC statistics specification](https://www.w3.org/TR/webrtc-stats/#dom-rtctransportstats-selectedcandidatepairid).
+
+After building, the generated-content browser check can use a protected JSON provider file containing `{apiBase, clubId, readToken}` for a dedicated test room. Use an owner-only file outside tracked source. The harness requests fresh short-lived credentials from the normal authenticated ICE endpoint, so unhealthy or disabled admission remains an actual failure. It also accepts a separately protected ICE response through `SAMEEND_TURN_TEST_ICE_FILE` for operator diagnostics; that alternative does not test admission.
+
+```sh
+npm run build:resilience
+SAMEEND_TURN_AUTH_FILE=/absolute/protected/test-provider.json npm run test:turn-media
+```
+
+The check requires moving decoded video and increasing signed media pieces over a selected relay route, first on a relay-only join, then after a direct connection is deliberately closed and replacement connections are restricted to relay. It records the observed interruption and buffer reserve, with frame-counter resets handled separately. The local HTTPS/WSS tracker serves no media; generated media travels through WebRTC. Evidence is written under ignored `privatework/turn-media-browser/` without invitation links, addresses or secrets. Browser isolation and local TLS overrides are test-only. This is one-computer external-relay verification, not physical Wi-Fi/5G handover or audible-speaker acceptance; the production UI's club-token hookup is also separate.
+
+A direct-only control for the reporting adapter uses `SAMEEND_TURN_TEST_MODE=direct-baseline` with the same command. Passing that control establishes direct picture/route reporting only; it does not establish TURN availability.

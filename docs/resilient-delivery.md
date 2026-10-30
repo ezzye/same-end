@@ -43,6 +43,10 @@ A phone/tablet viewer can watch and chat but does not host capture or forward me
 
 The recovery path retries supplier discovery while retaining verified cache and the shared room clock. It does not promise zero outage. Make-before-break media handover—establishing and verifying replacement media before removing the current supplier—is not implemented, so a handover can pause. No amount of local buffer can bridge loss of future source content indefinitely.
 
+The connection report labels independent audio and video playback facts under `mediaDiagnostics.playback.audio` and `.video`. Each buffer total sums retained decoder ranges, including ranges behind the playhead; `playableAheadSeconds` counts only the range containing that renderer's current time. Legacy top-level playback fields remain for compatibility and mostly describe the audio clock, while picture dimensions and frame counts describe video. A zero verified reserve measures contiguous verified media at the requested target, not total cached bytes.
+
+`extraDelaySeconds` describes actual playhead lag behind the nominal room target. During a long outage it can exceed 60 seconds while playback waits for recoverable media. The requested recovery target is bounded to 60 seconds behind the nominal target; the actual playhead cannot reach that bound until suitable verified and decoder-ready media is available. The reported actual lag is therefore not capped to 60 seconds.
+
 ## Metadata coordinator and optional edge TURN
 
 The room coordinator is separate from the WebTorrent tracker and carries no video or audio. It stores bounded, expiring metadata keyed by cast: a participant's role, clock/source reachability, parent/child topology, requested renditions, needed media interval, cached time ranges, queue size, optional outgoing-rate report, and declared relay limit. Reports and reservations live for 15 seconds. The coordinator client reports about every four seconds and renews its short lease; reservations expire with either participant's lease. At most 64 live nodes and five recommendations are retained for a cast.

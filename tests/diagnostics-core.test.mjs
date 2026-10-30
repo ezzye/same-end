@@ -232,3 +232,31 @@ test('diagnostics collector reads v3 sound element and video frame counts indepe
  assert.equal(observed.muted,false);assert.equal(observed.paused,false);assert.equal(observed.ready,4);assert.equal(observed.volume,0.8);assert.equal(observed.decodedFrames,123);
  snap.config.segmentVersion=2;context.tick();assert.equal(observed.muted,true);assert.equal(observed.ready,1);
 });
+
+test('resilient reports label independent audio and picture buffer and error facts', async () => {
+  const { Player } = await import('../hls-player.js');
+  const { ResilientPlayer } = await import('../resilience-player.js');
+  const makePlayer = (ranges, currentTime, errors, playError) => {
+    const video = { currentTime, buffered: { length: ranges.length, start: i => ranges[i][0], end: i => ranges[i][1] }, muted: false, videoWidth: 640, videoHeight: 360 };
+    return { facts: () => Player.prototype.facts.call({ video, adaptive: { facts: () => ({ extraDelaySeconds: 142, adaptivePhase: 'recovering' }) }, mode: 'hls', cache: { bytes: 100, files: new Map() }, errors, lastPlayError: playError }), programTime: () => currentTime };
+  };
+  const audio = makePlayer([[0, 26]], 30, 1, 'AbortError');
+  const picture = makePlayer([[10, 39]], 30, 2, 'NotSupportedError');
+  const facts = ResilientPlayer.prototype.facts.call({ audio, videoPlayer: picture, mode: 'v360', pendingMode: null, video: { readyState: 2, seeking: false, paused: false } });
+  const storage = memoryStorage(), first = setup({ storage });
+  facts.audio.rawError = 'PRIVATE_AUDIO_ERROR'; facts.video.rawError = 'PRIVATE_VIDEO_ERROR'; facts.video.peerId = 'PRIVATE_PEER';
+  first.observe({ mediaMode: 'v360', mediaDiagnostics: { playback: facts } });
+  for (const report of [first.c.report(), setup({ storage }).c.report()]) {
+    const p = report.status.mediaDiagnostics.playback;
+    assert.deepEqual([p.audio.decoderBufferedSeconds, p.audio.playableAheadSeconds, p.audio.errorCount, p.audio.playError], [26, 0, 1, 'AbortError']);
+    assert.deepEqual([p.video.decoderBufferedSeconds, p.video.playableAheadSeconds, p.video.errorCount, p.video.playError], [29, 9, 2, 'NotSupportedError']);
+    assert.equal(p.decoderBufferedSeconds, 26, 'legacy top-level field remains audio-derived');
+    assert.equal(p.extraDelaySeconds, 142, 'observed lag is not clamped to the recovery target');
+    assert(!JSON.stringify(report).includes('PRIVATE_'));
+  }
+  const summary = first.c.summary().lastStatus.mediaDiagnostics.playback;
+  assert.equal(summary.video.playableAheadSeconds, 9);
+  first.observe({ mediaDiagnostics: { playback: { audio: { playError: 'PRIVATE_RAW', decoderBufferedSeconds: Infinity }, video: null } } });
+  const safe = first.c.report().status.mediaDiagnostics.playback;
+  assert.equal(safe.audio.playError, null); assert.equal(safe.audio.decoderBufferedSeconds, null); assert.equal(safe.video, null);
+});

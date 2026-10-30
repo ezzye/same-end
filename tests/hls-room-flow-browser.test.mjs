@@ -234,7 +234,7 @@ async function run() {
   await source.waitForFunction(() => SameEndSocial.snapshot().chatCount > 1);
   assert.equal(await source.locator('.club-message p').last().textContent(), 'Generated HLS still watching after recovery');
   const network = await late.evaluate(() => SameEndInviteCheck.report().joining);
-  assert.equal(network.connectionMode, 'direct-only'); assert.equal(network.relayFallbackConfigured, false); assert.equal(network.network.relayConfigured, false);
+  assert(['direct','unknown'].includes(network.connectionMode)); assert.equal(network.relayOfferConfigured, false); assert.equal(network.network.relayConfigured, false);
   assert.deepEqual(pageErrors, []); assert.deepEqual(trackerErrors, []); assert.deepEqual(mediaAttempts, []); assert.deepEqual(externalRequests, []);
   report.pass = true; await record('automatic HLS picture sound chat fullscreen late join and recovery passed');
   console.log(JSON.stringify({ pass: true, lateJoinMs: report.lateJoinMs, connectedStallRecoveryMs: report.connectedStallRecoveryMs, abruptSupplierDepartureRecoveryMs: report.abruptSupplierDepartureRecoveryMs, cloudVideoRelay: false }));
