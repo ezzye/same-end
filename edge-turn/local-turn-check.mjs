@@ -6,9 +6,9 @@ import {readFile, stat} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 const COOKIE=0x2112a442, MAX_PACKET=4096;
-function attr(type,value){const b=Buffer.from(value),out=Buffer.alloc(4+b.length+((4-b.length%4)%4));out.writeUInt16BE(type);out.writeUInt16BE(b.length,2);b.copy(out,4);return out;}
-function packet(type,tx,attributes,key){const body=Buffer.concat(attributes),header=Buffer.alloc(20);header.writeUInt16BE(type);header.writeUInt16BE(body.length+(key?24:0),2);header.writeUInt32BE(COOKIE,4);tx.copy(header,8);const prefix=Buffer.concat([header,body]);return key?Buffer.concat([prefix,attr(8,createHmac('sha1',key).update(prefix).digest())]):prefix;}
-function decode(data,tx,key){
+export function attr(type,value){const b=Buffer.from(value),out=Buffer.alloc(4+b.length+((4-b.length%4)%4));out.writeUInt16BE(type);out.writeUInt16BE(b.length,2);b.copy(out,4);return out;}
+export function packet(type,tx,attributes,key){const body=Buffer.concat(attributes),header=Buffer.alloc(20);header.writeUInt16BE(type);header.writeUInt16BE(body.length+(key?24:0),2);header.writeUInt32BE(COOKIE,4);tx.copy(header,8);const prefix=Buffer.concat([header,body]);return key?Buffer.concat([prefix,attr(8,createHmac('sha1',key).update(prefix).digest())]):prefix;}
+export function decode(data,tx,key){
  if(!Buffer.isBuffer(data)||data.length<20||data.length>MAX_PACKET||data.readUInt32BE(4)!==COOKIE||!data.subarray(8,20).equals(tx)||data.readUInt16BE(2)!==data.length-20)return null;
  const attrs=new Map();let integrity=null;
  for(let at=20;at<data.length;){if(at+4>data.length)return null;const type=data.readUInt16BE(at),size=data.readUInt16BE(at+2),end=at+4+size;if(end>data.length)return null;if(type===8){if(size!==20||integrity)return null;integrity={offset:at,value:data.subarray(at+4,end)};}else if(integrity && type!==0x8028)return null;if(attrs.has(type))return null;attrs.set(type,data.subarray(at+4,end));at=end+((4-size%4)%4);if(at>data.length)return null;}
