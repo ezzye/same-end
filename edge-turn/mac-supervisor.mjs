@@ -18,7 +18,7 @@ function validate(c){
  if(c.forwardingMode!==undefined&&!['upnp','operator-static'].includes(c.forwardingMode))throw Error('Invalid forwarding mode');
  if(c.forwardingMode==='operator-static'&&(!path.isAbsolute(c.staticManifestPath||'')||!/^[a-f0-9]{64}$/.test(c.staticManifestSha256||'')))throw Error('Invalid static manifest configuration');
  if(c.staticRenewalMode!==undefined&&c.staticRenewalMode!=='tls-alpn-haproxy')throw Error('Invalid static renewal mode');
- if(c.staticRenewalMode&& (c.forwardingMode!=='operator-static'||!['haproxyPemPath','haproxyPidFile'].every(k=>typeof c[k]==='string'&&path.isAbsolute(c[k]))||new Set([c.haproxyPemPath,c.haproxyPidFile,c.certPath,c.keyPath,c.statusPath,c.statusPath+'.renewal-pending']).size!==6))throw Error('Invalid static renewal configuration');
+ if(c.staticRenewalMode&& (c.forwardingMode!=='operator-static'||!['haproxyPemPath','haproxyPidFile','haproxyExecutablePath','haproxyConfigPath'].every(k=>typeof c[k]==='string'&&path.isAbsolute(c[k]))||[c.haproxyPidFile,c.haproxyExecutablePath,c.haproxyConfigPath].some(v=>/\s/.test(v))||new Set([c.haproxyPemPath,c.haproxyPidFile,c.certPath,c.keyPath,c.statusPath,c.statusPath+'.renewal-pending']).size!==6))throw Error('Invalid static renewal configuration');
  if(c.mappings.some(m=>m.external===80&&m.protocol==='TCP'))throw Error('Port 80 is reserved for renewal');
  if(!Number.isInteger(c.tlsPort)||c.tlsPort<1024||c.tlsPort>65535)throw Error('Invalid TLS port');
  if(!Number.isInteger(c.intervalMs)||c.intervalMs<30000||c.intervalMs>120000)throw Error('Invalid supervisor interval');
@@ -53,7 +53,20 @@ export const supervisorTiming = {statusTtlMs: TTL, mappingLeaseSeconds: LEASE};
 export function legoArgs(c){return ['run','--path',c.acmePath,'--cert.name','same-end-edge','--domains',c.expectedPublicIPv4,'--profile','shortlived',...(c.staticRenewalMode==='tls-alpn-haproxy'?['--tls','--tls.address','127.0.0.1:8443']:['--http','--http.address',':8080']),'--accept-tos','--account-id','same-end-edge','--no-random-sleep'];}
 async function requirePrivateDirectory(file){const meta=await lstat(path.dirname(file));if(!meta.isDirectory()||meta.isSymbolicLink()||(meta.mode&0o077)!==0||(typeof process.getuid==='function'&&meta.uid!==process.getuid()))throw Error('Private HAProxy directory required');}
 async function requirePrivatePem(file){const meta=await lstat(file);if(!meta.isFile()||meta.isSymbolicLink()||(meta.mode&0o077)!==0||(typeof process.getuid==='function'&&meta.uid!==process.getuid()))throw Error('Private HAProxy PEM required');}
-async function reloadHaproxy(c){const meta=await lstat(c.haproxyPidFile);if(!meta.isFile()||meta.isSymbolicLink()||(meta.mode&0o077)!==0||(typeof process.getuid==='function'&&meta.uid!==process.getuid())||meta.size>32)throw Error('Private HAProxy PID file required');const value=(await readFile(c.haproxyPidFile,'utf8')).trim();if(!/^[1-9]\d{0,9}$/.test(value))throw Error('Invalid HAProxy PID');process.kill(Number(value),'SIGUSR2');}
+export async function reloadHaproxy(c, overrides={}){
+ const ps=overrides.ps|| (async args=>(await runFile('/bin/ps',args,{timeout:2000,maxBuffer:8192})).stdout),signal=overrides.signal||((pid)=>process.kill(pid,'SIGUSR2')),uid=overrides.uid??(typeof process.getuid==='function'?process.getuid():null);
+ if(uid===null)throw Error('Cannot verify HAProxy process owner');
+ for(const file of [c.haproxyPidFile,c.haproxyConfigPath]){const meta=await lstat(file);if(!meta.isFile()||meta.isSymbolicLink()||(meta.mode&0o077)!==0||meta.uid!==uid||meta.size>1024*1024)throw Error('Private HAProxy files required');}
+ const value=(await readFile(c.haproxyPidFile,'utf8')).trim();if(!/^[1-9]\d{0,9}$/.test(value)||Number(value)>2147483647)throw Error('Invalid HAProxy PID');
+ const row=(await ps(['-ww','-p',value,'-o','uid=','-o','ppid=','-o','comm=','-o','args='])).trim();
+ const match=/^(\d+)\s+(\d+)\s+(\S+)\s+(.+)$/.exec(row);
+ const expected=[c.haproxyExecutablePath,'-W','-f',c.haproxyConfigPath,'-p',c.haproxyPidFile].join(' ');
+ if(!match||Number(match[1])!==uid||!Number(match[2])||path.basename(match[3])!==path.basename(c.haproxyExecutablePath)||match[4]!==expected)throw Error('HAProxy master identity unconfirmed');
+ const parent=(await ps(['-ww','-p',match[2],'-o','comm='])).trim();if(!parent||path.basename(parent)===path.basename(c.haproxyExecutablePath))throw Error('HAProxy master identity unconfirmed');
+ const executable=overrides.executable|| (async pid=>{const {stdout}=await runFile('/usr/sbin/lsof',['-nP','-a','-p',String(pid),'-d','txt','-Fn'],{timeout:3000,maxBuffer:262144});return stdout.split('\n').find(line=>line.startsWith('n'))?.slice(1);});
+ const resolveExpected=overrides.resolveExpected||realpathSync;if(await executable(Number(value))!==resolveExpected(c.haproxyExecutablePath))throw Error('HAProxy executable unconfirmed');
+ signal(Number(value));
+}
 async function verifyReload(c,fingerprint,a){let last;for(let n=0;n<10;n++){try{return await a.verifyTls(c,fingerprint);}catch(e){last=e;if(n<9)await a.sleep(1000);}}throw last;}
 const defaults={interfaces:networkInterfaces,router:routerClient,readCertificate,verifyTls,readStaticManifest,readPrivateSecret,checkPublicTurn,atomic,requirePrivateDirectory,requirePrivatePem,reloadHaproxy,sleep:ms=>new Promise(resolve=>setTimeout(resolve,ms)),now:()=>Date.now(),issue:async c=>{await runFile(c.legoPath,legoArgs(c),{timeout:180000,maxBuffer:65536});},reload:async c=>{const value=(await readFile(c.coturnPidFile,'utf8')).trim();if(!/^[1-9]\d*$/.test(value))throw Error('Invalid coturn PID');process.kill(Number(value),'SIGUSR2');}};
 export async function supervisorCycle(c, overrides={}){
