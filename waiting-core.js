@@ -64,12 +64,18 @@
     }else if(cfg&&s.sourceReachable&&hasTarget&&target>=0&&code==='finding-route'){
       title='Preparing the picture';detail='Waiting for verified picture at the group’s current moment. Your chat stays open.';
     }
-    var compact=!!(session&&(session.hasPicture===true||session.hasPlayed===true));
+    // Audio-only playback has no picture to establish the usual compact-mode
+    // boundary. Keep the player unobstructed while the video probe recovers.
+    var compact=!!(s.mediaMode==='audio'||session&&(session.hasPicture===true||session.hasPlayed===true));
     // A verified media reserve is a measurement, not a download time estimate.
     // Do not show it before the target exists or after the source has stopped.
     var reserve=delivery&&delivery.verifiedReserveSeconds,playback=s.mediaDiagnostics&&s.mediaDiagnostics.playback,goal=playback&&playback.bufferGoalSeconds;
     if(seconds===null&&code!=='source-stopped'&&code!=='source-unreachable'&&cfg&&s.clockReady&&hasTarget&&target>=0&&Number.isFinite(reserve)&&reserve>=0){
-      detail+=' Verified media buffer: '+reserve.toFixed(1)+' seconds';
+      // The reserve follows the policy's selected rendition, which can be
+      // video while the renderer is still switching out of audio-only mode.
+      var audioReserve=s.renditionPolicy?s.renditionPolicy.mode==='audio':s.mediaMode==='audio';
+      detail+=audioReserve?(cfg.sourceAudioAvailable===false?' Playback-clock buffer: ':' Verified audio buffer: '):' Verified media buffer: ';
+      detail+=reserve.toFixed(1)+' seconds';
       if(Number.isFinite(goal)&&goal>0)detail+=' (target '+goal.toFixed(1)+' seconds)';
       detail+='.';
     }

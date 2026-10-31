@@ -55,3 +55,10 @@ test('scheduled starts and measured buffers remain honest in compact mode',()=>{
  const unknown=core.explain({...base,commonStart:null,mediaDiagnostics:{delivery:{},playback:{}}},{},{code:'buffering'},{hasPicture:true});assert.doesNotMatch(unknown.detail,/Verified media buffer|target [0-9]|ETA/i);
  const stopped=core.explain({...base,commonStart:null,sourceReachable:false},{},{code:'source-stopped',title:'Source stopped',detail:'Waiting for host'},{hasPicture:true});assert.equal(stopped.compact,true);assert.equal(stopped.title,'Source stopped');assert.doesNotMatch(stopped.detail,/Verified media buffer/);
 });
+
+test('audio-only recovery keeps the player clear and identifies the measured track',()=>{
+ const s={config:{sourceAudioAvailable:true},clockReady:true,targetProgramTime:20,programTime:20,ready:0,sourceReachable:true,mediaMode:'audio',mediaDiagnostics:{delivery:{verifiedReserveSeconds:8.1},playback:{bufferGoalSeconds:4}}};
+ const result=core.explain(s,{},{code:'playing'});assert.equal(result.compact,true);assert.equal(result.visible,true);assert.match(result.detail,/Verified audio buffer: 8\.1 seconds \(target 4\.0 seconds\)/);assert.doesNotMatch(result.detail,/Verified media buffer/);
+ const silent=core.explain({...s,config:{sourceAudioAvailable:false}},{},{code:'playing'});assert.match(silent.detail,/Playback-clock buffer: 8\.1 seconds/);
+ const switching=core.explain({...s,renditionPolicy:{mode:'v360'}},{},{code:'playing'});assert.equal(switching.compact,true);assert.match(switching.detail,/Verified media buffer/);
+});

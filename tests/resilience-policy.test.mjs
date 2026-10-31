@@ -26,6 +26,13 @@ test('audio stability cannot prove video; probe requires fresh distinct video re
   assert.equal(f.record('v360',3),true); assert.equal(f.record('v360',3),false); assert.equal(f.tick(1,{reserve:{audio:12,v360:2},lastAge:{audio:1,v360:1}}).mode,'audio');
   f.record('v360',4); const promoted=f.tick(1,{reserve:{audio:12,v360:6},lastAge:{audio:1,v360:1}}); assert.equal(promoted.mode,'v360'); assert.equal(promoted.reason,'probe-verified');
 });
+test('healthy audio starts a new probe after fallback without relying on stale video metrics', () => {
+ const f=fixture(); f.tick(13,{reserve:{v360:1},lastAge:{v360:1}}); assert.equal(f.tick(6).mode,'audio');
+ const healthy={reserve:{audio:8.1,v360:0},lastAge:{audio:1,v360:100}};
+ assert.equal(f.tick(1,healthy).probe,null);assert.equal(f.tick(28).probe,null);
+ const probing=f.tick(1);assert.equal(probing.probe,'v360');assert.deepEqual(plain(f.policy.requestedRenditions([])),['audio','v360']);
+ f.record('v360',1);f.record('v360',2);assert.equal(f.tick(1,{reserve:{audio:8,v360:6},lastAge:{audio:1,v360:1}}).mode,'v360');
+});
 test('probe timeout backs off; hidden, offline and unknown observations cannot trigger a fall or upgrade', () => {
   const f=fixture({initialMode:'audio'}); f.tick(13); f.tick(20); assert.equal(f.tick(20).reason,'probe-failed');
   assert.equal(f.tick(2,{visible:false}).phase,'paused'); assert.equal(f.tick(20,{visible:true,playing:false}).phase,'startup');
