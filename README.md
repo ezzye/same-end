@@ -48,7 +48,7 @@ Same End is an early alpha for private, small-group use. Capture and direct conn
 
 You can invite mates and chat before sharing starts. For a regular group, choose **Create your club**, save its member invitation and plan a match. Keep the separate organiser link to yourself.
 
-New shares can choose a **30–120-second common delay** from fresh delivery observations; insufficient evidence keeps the conservative **five-minute fallback**. A recovering viewer may stay up to 60 seconds further behind for smoother playback. Chat remains immediate, so exact frame alignment is not guaranteed.
+New shares default to a **10-second delay** with a short adaptive playback buffer. Longer delays are optional in **Room settings & help**. The optional match-night mode can choose a **30–120-second common delay** from fresh delivery observations, with a **five-minute fallback** if the evidence is insufficient. A recovering viewer may stay up to 60 seconds further behind for smoother playback. Chat remains immediate, so exact frame alignment is not guaranteed.
 
 [User guide](docs/user-guide.md) · [Device check](https://www.sameend.com/device-check.html) · [Rehearsal guide](test-guide.html) · [Troubleshooting](#when-something-doesnt-work)
 
