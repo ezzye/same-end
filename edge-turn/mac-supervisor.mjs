@@ -1,6 +1,6 @@
 import {realpathSync} from 'node:fs';
 /* Explicitly configured Mac edge prerequisites. Never changes cloud state. */
-import {readFile, writeFile, rename, chmod, stat, unlink} from 'node:fs/promises';
+import {readFile, writeFile, rename, chmod, stat, lstat, unlink} from 'node:fs/promises';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {X509Certificate, createPrivateKey, createPublicKey, createHash} from 'node:crypto';
@@ -17,6 +17,8 @@ function validate(c){
  if(!c||!c.router||isIP(c.expectedPublicIPv4)!==4||!Array.isArray(c.mappings)||!c.mappings.length||!['certPath','keyPath','acmePath','coturnPidFile','statusPath','legoPath'].every(k=>typeof c[k]==='string'&&path.isAbsolute(c[k])))throw Error('Invalid supervisor configuration');
  if(c.forwardingMode!==undefined&&!['upnp','operator-static'].includes(c.forwardingMode))throw Error('Invalid forwarding mode');
  if(c.forwardingMode==='operator-static'&&(!path.isAbsolute(c.staticManifestPath||'')||!/^[a-f0-9]{64}$/.test(c.staticManifestSha256||'')))throw Error('Invalid static manifest configuration');
+ if(c.staticRenewalMode!==undefined&&c.staticRenewalMode!=='tls-alpn-haproxy')throw Error('Invalid static renewal mode');
+ if(c.staticRenewalMode&& (c.forwardingMode!=='operator-static'||!['haproxyPemPath','haproxyPidFile','haproxyExecutablePath','haproxyConfigPath'].every(k=>typeof c[k]==='string'&&path.isAbsolute(c[k]))||[c.haproxyPidFile,c.haproxyExecutablePath,c.haproxyConfigPath].some(v=>/\s/.test(v))||new Set([c.haproxyPemPath,c.haproxyPidFile,c.certPath,c.keyPath,c.statusPath,c.statusPath+'.renewal-pending']).size!==6))throw Error('Invalid static renewal configuration');
  if(c.mappings.some(m=>m.external===80&&m.protocol==='TCP'))throw Error('Port 80 is reserved for renewal');
  if(!Number.isInteger(c.tlsPort)||c.tlsPort<1024||c.tlsPort>65535)throw Error('Invalid TLS port');
  if(!Number.isInteger(c.intervalMs)||c.intervalMs<30000||c.intervalMs>120000)throw Error('Invalid supervisor interval');
@@ -48,8 +50,25 @@ async function readStaticManifest(c){
  return manifest;
 }
 export const supervisorTiming = {statusTtlMs: TTL, mappingLeaseSeconds: LEASE};
-export function legoArgs(c){return ['run','--path',c.acmePath,'--cert.name','same-end-edge','--domains',c.expectedPublicIPv4,'--profile','shortlived','--http','--http.address',':8080','--accept-tos','--account-id','same-end-edge','--no-random-sleep'];}
-const defaults={interfaces:networkInterfaces,router:routerClient,readCertificate,verifyTls,readStaticManifest,readPrivateSecret,checkPublicTurn,atomic,now:()=>Date.now(),issue:async c=>{await runFile(c.legoPath,legoArgs(c),{timeout:180000,maxBuffer:65536});},reload:async c=>{const value=(await readFile(c.coturnPidFile,'utf8')).trim();if(!/^[1-9]\d*$/.test(value))throw Error('Invalid coturn PID');process.kill(Number(value),'SIGUSR2');}};
+export function legoArgs(c){return ['run','--path',c.acmePath,'--cert.name','same-end-edge','--domains',c.expectedPublicIPv4,'--profile','shortlived',...(c.staticRenewalMode==='tls-alpn-haproxy'?['--tls','--tls.address','127.0.0.1:8443']:['--http','--http.address',':8080']),'--accept-tos','--account-id','same-end-edge','--no-random-sleep'];}
+async function requirePrivateDirectory(file){const meta=await lstat(path.dirname(file));if(!meta.isDirectory()||meta.isSymbolicLink()||(meta.mode&0o077)!==0||(typeof process.getuid==='function'&&meta.uid!==process.getuid()))throw Error('Private HAProxy directory required');}
+async function requirePrivatePem(file){const meta=await lstat(file);if(!meta.isFile()||meta.isSymbolicLink()||(meta.mode&0o077)!==0||(typeof process.getuid==='function'&&meta.uid!==process.getuid()))throw Error('Private HAProxy PEM required');}
+export async function reloadHaproxy(c, overrides={}){
+ const ps=overrides.ps|| (async args=>(await runFile('/bin/ps',args,{timeout:2000,maxBuffer:8192})).stdout),signal=overrides.signal||((pid)=>process.kill(pid,'SIGUSR2')),uid=overrides.uid??(typeof process.getuid==='function'?process.getuid():null);
+ if(uid===null)throw Error('Cannot verify HAProxy process owner');
+ for(const file of [c.haproxyPidFile,c.haproxyConfigPath]){const meta=await lstat(file);if(!meta.isFile()||meta.isSymbolicLink()||(meta.mode&0o077)!==0||meta.uid!==uid||meta.size>1024*1024)throw Error('Private HAProxy files required');}
+ const value=(await readFile(c.haproxyPidFile,'utf8')).trim();if(!/^[1-9]\d{0,9}$/.test(value)||Number(value)>2147483647)throw Error('Invalid HAProxy PID');
+ const row=(await ps(['-ww','-p',value,'-o','uid=','-o','ppid=','-o','comm=','-o','args='])).trim();
+ const match=/^(\d+)\s+(\d+)\s+(\S+)\s+(.+)$/.exec(row);
+ const expected=[c.haproxyExecutablePath,'-W','-f',c.haproxyConfigPath,'-p',c.haproxyPidFile].join(' ');
+ if(!match||Number(match[1])!==uid||!Number(match[2])||path.basename(match[3])!==path.basename(c.haproxyExecutablePath)||match[4]!==expected)throw Error('HAProxy master identity unconfirmed');
+ const parent=(await ps(['-ww','-p',match[2],'-o','comm='])).trim();if(!parent||path.basename(parent)===path.basename(c.haproxyExecutablePath))throw Error('HAProxy master identity unconfirmed');
+ const executable=overrides.executable|| (async pid=>{const {stdout}=await runFile('/usr/sbin/lsof',['-nP','-a','-p',String(pid),'-d','txt','-Fn'],{timeout:3000,maxBuffer:262144});return stdout.split('\n').find(line=>line.startsWith('n'))?.slice(1);});
+ const resolveExpected=overrides.resolveExpected||realpathSync;if(await executable(Number(value))!==resolveExpected(c.haproxyExecutablePath))throw Error('HAProxy executable unconfirmed');
+ signal(Number(value));
+}
+async function verifyReload(c,fingerprint,a){let last;for(let n=0;n<10;n++){try{return await a.verifyTls(c,fingerprint);}catch(e){last=e;if(n<9)await a.sleep(1000);}}throw last;}
+const defaults={interfaces:networkInterfaces,router:routerClient,readCertificate,verifyTls,readStaticManifest,readPrivateSecret,checkPublicTurn,atomic,requirePrivateDirectory,requirePrivatePem,reloadHaproxy,sleep:ms=>new Promise(resolve=>setTimeout(resolve,ms)),now:()=>Date.now(),issue:async c=>{await runFile(c.legoPath,legoArgs(c),{timeout:180000,maxBuffer:65536});},reload:async c=>{const value=(await readFile(c.coturnPidFile,'utf8')).trim();if(!/^[1-9]\d*$/.test(value))throw Error('Invalid coturn PID');process.kill(Number(value),'SIGUSR2');}};
 export async function supervisorCycle(c, overrides={}){
  const a={...defaults,...overrides}, now=a.now();let reasons=[],evidence=null;
  const status=async ok=>a.atomic(c.statusPath,JSON.stringify({ok,checkedAtMs:now,expiresAtMs:now+TTL,reasons,...(evidence?{evidence}:{})})+'\n');
@@ -62,8 +81,18 @@ export async function supervisorCycle(c, overrides={}){
   const router=a.router(c.router);
   if(await router.externalAddress()!==c.expectedPublicIPv4)throw Error('public-ip-mismatch-or-unknown');
   if(c.forwardingMode==='operator-static'){
-   const manifest=await a.readStaticManifest(c);const pendingPath=c.statusPath+'.renewal-pending';try{await readFile(pendingPath);throw Error('static-renewal-pending');}catch(e){if(e.code!=='ENOENT')throw e;}
-   const leaf=await a.readCertificate(c.certPath,c.keyPath,c.expectedPublicIPv4,now,true);if(leaf.end-now<=RENEW_BEFORE)throw Error('static-renewal-required');await a.verifyTls(c,leaf.fingerprint);
+   const manifest=await a.readStaticManifest(c);const pendingPath=c.statusPath+'.renewal-pending';let pending=false;try{await readFile(pendingPath);pending=true;}catch(e){if(e.code!=='ENOENT')throw e;}
+   let leaf;
+   if(c.staticRenewalMode!=='tls-alpn-haproxy'){
+    if(pending)throw Error('static-renewal-pending');leaf=await a.readCertificate(c.certPath,c.keyPath,c.expectedPublicIPv4,now,true);if(leaf.end-now<=RENEW_BEFORE)throw Error('static-renewal-required');await a.verifyTls(c,leaf.fingerprint);
+   }else{
+    await a.requirePrivateDirectory(c.haproxyPemPath);
+    const acmeCert=path.join(c.acmePath,'certificates','same-end-edge.crt'),acmeKey=path.join(c.acmePath,'certificates','same-end-edge.key');
+    if(!pending){leaf=await a.readCertificate(c.certPath,c.keyPath,c.expectedPublicIPv4,now,true);if(leaf.end-now<=RENEW_BEFORE){await a.issue(c);const fresh=await a.readCertificate(acmeCert,acmeKey,c.expectedPublicIPv4,a.now());if(fresh.end-a.now()<=RENEW_BEFORE)throw Error('static-renewal-required');await a.atomic(pendingPath,'pending\n');pending=true;}}
+    if(pending){let fresh=await a.readCertificate(acmeCert,acmeKey,c.expectedPublicIPv4,a.now(),true);if(fresh.end-a.now()<=RENEW_BEFORE){await a.issue(c);fresh=await a.readCertificate(acmeCert,acmeKey,c.expectedPublicIPv4,a.now());if(fresh.end-a.now()<=RENEW_BEFORE)throw Error('static-renewal-required');}
+     await a.atomic(c.keyPath,fresh.key);await a.atomic(c.certPath,fresh.cert);await a.atomic(c.haproxyPemPath,Buffer.concat([Buffer.from(fresh.cert),Buffer.from('\n'),Buffer.from(fresh.key),Buffer.from('\n')]));await a.reloadHaproxy(c);await verifyReload(c,fresh.fingerprint,a);await unlink(pendingPath);leaf=fresh;
+    }else {await a.requirePrivatePem(c.haproxyPemPath);await a.verifyTls(c,leaf.fingerprint);}
+   }
    const secret=await a.readPrivateSecret(manifest.secretPath);const proof=await a.checkPublicTurn({host:c.expectedPublicIPv4,port:manifest.tlsExternalPort,fingerprint:leaf.fingerprint,relayMin:manifest.relayMin,relayMax:manifest.relayMax,secret});if(proof?.ok!==true||proof.allocations!==2||proof.directions!==2)throw Error('static-proof-failed');
    evidence={kind:'authenticated-turn',allocations:2,directions:2,coverage:'two-allocated-relay-ports',vantage:'public-endpoint-from-host',staticRules:'operator-asserted'};await status(true);return {ok:true,checkedAtMs:now,expiresAtMs:now+TTL,reasons};
   }
