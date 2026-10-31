@@ -1,6 +1,6 @@
 // Ephemeral localhost TLS for isolated browser tests. No external executable or
 // dependency is needed, and the private key never leaves the returned object.
-import { generateKeyPairSync, randomBytes, sign } from 'node:crypto';
+import { createHash, generateKeyPairSync, randomBytes, sign, X509Certificate } from 'node:crypto';
 
 const der = (tag, ...parts) => {
   const body = Buffer.concat(parts);
@@ -53,4 +53,12 @@ export function createLocalTestTLS() {
     key: privateKey.export({ type: 'pkcs8', format: 'pem' }),
     cert: pem('CERTIFICATE', certificate)
   };
+}
+
+// Chromium's --ignore-certificate-errors-spki-list accepts base64-encoded
+// SHA-256 hashes of SubjectPublicKeyInfo DER, one per permitted certificate.
+export function localTestTLSSPKIPin(cert) {
+  return createHash('sha256')
+    .update(new X509Certificate(cert).publicKey.export({ type: 'spki', format: 'der' }))
+    .digest('base64');
 }

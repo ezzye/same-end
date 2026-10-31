@@ -22,7 +22,7 @@ import {createRequire} from 'node:module';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {dirname,join} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
-import {createLocalTestTLS} from './helpers/local-test-tls.mjs';
+import {createLocalTestTLS,localTestTLSSPKIPin} from './helpers/local-test-tls.mjs';
 
 const authFile=process.env.SAMEEND_TURN_AUTH_FILE,configFile=process.env.SAMEEND_TURN_TEST_ICE_FILE;
 if(!!authFile===!!configFile)throw Error('Set exactly one protected ICE or authenticated-provider file.');
@@ -46,7 +46,8 @@ const mode=process.env.SAMEEND_TURN_TEST_MODE||'full';assert(['full','direct-bas
 const report={schema:1,startedAt:new Date().toISOString(),buildSHA256:createHash('sha256').update(html).digest('hex'),environment:{mode,oneComputer:true,isolatedChromeContexts:true,externalTurnTested:mode==='full',generatedPicture:true,localTracker:true,privateIceFile:!authFile,authenticatedIceEndpoint:!!authFile,productionAppAuthenticationTested:false,physicalDevices:false,networkSwitchEmulated:mode==='full',physical5GTested:false},pass:false};
 const relayDeadline=Number(process.env.SAMEEND_TURN_TEST_TIMEOUT_MS||150000);assert(Number.isFinite(relayDeadline)&&relayDeadline>=3000&&relayDeadline<=150000,'Relay deadline must be between 3000 and 150000 ms.');
 let origin,stage='server setup',errors=0;
-const server=https.createServer(createLocalTestTLS(),async(req,res)=>{
+const localTLS=createLocalTestTLS(),localSPKIPin=localTestTLSSPKIPin(localTLS.cert);
+const server=https.createServer(localTLS,async(req,res)=>{
  if(req.url==='/api/ice'&&authFile){
   iceRequests++;
   try{
@@ -86,7 +87,7 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function until(fn,ms,message){const end=Date.now()+ms;while(Date.now()<end){if(await fn())return;await pause(250);}throw Error(message);}
 const snapshot=p=>p.evaluate(()=>{const s=PrivateCast.snapshot(),v=document.querySelector('#player');return {received:s.received||0,frames:v.getVideoPlaybackQuality?.().totalVideoFrames||0,width:v.videoWidth,height:v.videoHeight,playing:!v.paused&&v.readyState>=2,clockReady:s.clockReady===true,sourceReachable:s.sourceReachable===true,reserveSeconds:Number.isFinite(s.reserveSeconds)?s.reserveSeconds:null,route:s.network?.selectedRoute||s.transport?.network?.selectedRoute||'unknown',localCandidateType:s.network?.localCandidateType||s.transport?.network?.localCandidateType||null,remoteCandidateType:s.network?.remoteCandidateType||s.transport?.network?.remoteCandidateType||null};});
 async function page(role,forceRelay){
- const c=await browser.newContext({ignoreHTTPSErrors:true,serviceWorkers:'block'});contexts.push(c);
+ const c=await browser.newContext({serviceWorkers:'block'});contexts.push(c);
  await c.addInitScript(({force})=>{
   window.__turnTest={force,connections:[]};
   const Original=window.RTCPeerConnection;
@@ -101,7 +102,7 @@ async function joinViewer(p,invitation){await p.evaluate(m=>{window.__join={done
 async function picture(p,route,ms){await until(async()=>{const s=await snapshot(p);return s.route===route&&s.clockReady&&s.sourceReachable&&s.playing&&s.width>0&&s.height>0&&s.frames>10&&s.received>2;},ms,'Picture and selected route did not become ready in time.');}
 async function advance(p){const before=await snapshot(p);let last=before.frames,decodedFrameAdvance=0,frameCounterResets=0,after=before;for(let i=0;i<8;i++){await pause(500);after=await snapshot(p);if(after.frames<last)frameCounterResets++;else decodedFrameAdvance+=after.frames-last;last=after.frames;}assert(decodedFrameAdvance>5,'Decoded picture frames must advance.');assert(after.received>before.received,'Signed programme pieces must advance.');return {framesBefore:before.frames,framesAfter:after.frames,decodedFrameAdvance,frameCounterResets,piecesBefore:before.received,piecesAfter:after.received,reserveBeforeSeconds:before.reserveSeconds,reserveAfterSeconds:after.reserveSeconds,route:after.route,localCandidateType:after.localCandidateType,remoteCandidateType:after.remoteCandidateType};}
 try{
- browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--autoplay-policy=no-user-gesture-required','--ignore-certificate-errors','--disable-background-timer-throttling','--disable-renderer-backgrounding']});
+ browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true,args:['--autoplay-policy=no-user-gesture-required','--ignore-certificate-errors-spki-list='+localSPKIPin,'--disable-background-timer-throttling','--disable-renderer-backgrounding']});
  stage='generated source';const source=await page('source',false);await source.evaluate(()=>PrivateCast.testing.startDemo({delay:10}));const invitation=await source.evaluate(()=>PrivateCast.testing.publishInvitation());
  if(mode==='direct-baseline'){
   stage='direct control';const viewer=await page('recovery',false),started=Date.now();await joinViewer(viewer,invitation);await picture(viewer,'direct',90000);report.directControl={joinToPictureMs:Date.now()-started,...await advance(viewer)};
