@@ -7,26 +7,40 @@ import {join, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {homedir} from 'node:os';
 import {createHash} from 'node:crypto';
+import {isIP} from 'node:net';
 
 const args={};
 for(let i=2;i<process.argv.length;i++){
   const k=process.argv[i];if(!/^--[a-z-]+$/.test(k)||i+1>=process.argv.length||process.argv[i+1].startsWith('--'))throw Error('Invalid probe arguments.');
   if(k in args)throw Error('Duplicate probe argument.');args[k]=process.argv[++i];
 }
-const allowed=new Set(['--role','--work-dir','--duration-seconds','--recipient-key','--private-key','--sealed-config','--html','--playwright','--chrome','--network-permission']);
+const allowed=new Set(['--role','--work-dir','--duration-seconds','--recipient-key','--private-key','--sealed-config','--html','--playwright','--chrome','--network-permission','--ice-file','--force-relay']);
 if(Object.keys(args).some(k=>!allowed.has(k)))throw Error('Unknown probe argument.');
 const role=args['--role'],seconds=Number(args['--duration-seconds']||180);
 const networkPermission=args['--network-permission']||'default';if(!['default','grant'].includes(networkPermission))throw Error('Invalid test permission mode.');
 if(!['source','viewer'].includes(role)||!args['--work-dir']||!Number.isInteger(seconds)||seconds<30||seconds>600)throw Error('Choose source/viewer, a private work directory, and a duration from 30 to 600 seconds.');
+if(role==='viewer'&&(args['--ice-file']||args['--force-relay']))throw Error('ICE options are source-only.');
+if(args['--force-relay']&&!['true','false'].includes(args['--force-relay']))throw Error('Invalid relay mode.');
+if(args['--force-relay']==='true'&&!args['--ice-file'])throw Error('A relay configuration is required.');
 if(role==='source'&&!args['--recipient-key']||role==='viewer'&&(!args['--private-key']||!args['--sealed-config']))throw Error('Missing encryption inputs for this role.');
 const directory=resolve(args['--work-dir']);await mkdir(directory,{recursive:true,mode:0o700});
 const pageUrl='https://www.sameend.com/watch.html?synthetic-net-probe';
 const playwrightPath=args['--playwright']||process.env.SAMEEND_PLAYWRIGHT||join(homedir(),'.cache','codex-runtimes','codex-primary-runtime','dependencies','node','node_modules','playwright','index.mjs');
-let browser,context,page,observationDeadline=null;const sourceDeadline=Date.now()+480000;const result={schema:1,role,synthetic:true,physicalDevices:true,generatedMedia:true,realWebRTC:true,productionOrigin:true,durationSeconds:seconds,networkPermission,phase:'starting',samples:[],pass:false};
+let browser,context,page,observationDeadline=null,payload=null,provider=null,forceRelay=false;const sourceDeadline=Date.now()+480000;const result={schema:1,role,synthetic:true,physicalDevices:true,generatedMedia:true,realWebRTC:true,productionOrigin:true,durationSeconds:seconds,networkPermission,phase:'starting',samples:[],pass:false};
 const bounded=(n,max=1000000000000)=>typeof n==='number'&&Number.isFinite(n)&&n>=0?Math.min(max,Math.round(n*1000)/1000):null;
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 async function writeSafe(name,value){const tmp=join(directory,name+'.tmp');await writeFile(tmp,JSON.stringify(value,null,2),{mode:0o600});await rename(tmp,join(directory,name));}
 async function progress(phase,extra={}){result.phase=phase;Object.assign(result,extra);await writeSafe('status.json',result);console.log('Probe '+phase);}
+
+function validateIce(input,requiredUntilMs){
+ if(!input||typeof input!=='object'||!Number.isFinite(input.expiresAt)||!Number.isFinite(input.expiresAt*1000)||input.expiresAt*1000<requiredUntilMs+5000||!Array.isArray(input.iceServers)||!input.iceServers.length||input.iceServers.length>8)throw Error('Invalid ICE configuration.');
+ let hasTurn=false;const iceServers=input.iceServers.map(item=>{
+  if(!item||typeof item!=='object')throw Error('Invalid ICE configuration.');const urls=Array.isArray(item.urls)?item.urls:[item.urls];if(!urls.length||urls.length>8)throw Error('Invalid ICE configuration.');
+  for(const url of urls){if(typeof url!=='string'||url.length>1024)throw Error('Invalid ICE configuration.');const m=url.match(/^(stun|stuns|turn|turns):(\[[0-9a-f:.]+\]|[a-z0-9.-]+)(?::([0-9]{1,5}))?(?:\?transport=(udp|tcp))?$/i);if(!m||m[3]&&(+m[3]<1||+m[3]>65535)||m[4]&&!/^turns?$/i.test(m[1]))throw Error('Invalid ICE configuration.');const host=m[2];if(host.startsWith('[')?isIP(host.slice(1,-1))!==6:/^[0-9.]+$/.test(host)?isIP(host)!==4:host.length>253||!host.split('.').every(label=>/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(label)))throw Error('Invalid ICE configuration.');if(/^turns?$/i.test(m[1]))hasTurn=true;}
+  const turn=urls.some(url=>/^turns?:/i.test(url));for(const key of ['username','credential'])if(item[key]!==undefined&&(typeof item[key]!=='string'||item[key].length>1024))throw Error('Invalid ICE configuration.');if(turn&&(!item.username||!item.credential))throw Error('Invalid ICE configuration.');
+  return {urls:urls.length===1?urls[0]:urls,...(item.username!==undefined?{username:item.username}:{}),...(item.credential!==undefined?{credential:item.credential}:{})};
+ });return {expiresAt:input.expiresAt,iceServers,hasTurn};
+}
 async function sample(){
  return page.evaluate(async()=>{
   const s=window.PrivateCast?.snapshot?.()||{}, v=document.querySelector('#player'),n=s.network||s.transport?.network||{},a=s.transport?.availability||{};
@@ -40,6 +54,15 @@ async function sample(){
 }
 try{
  await progress('loading');
+ if(role==='source'){
+  forceRelay=args['--force-relay']==='true';if(args['--ice-file']){const iceText=await readFile(args['--ice-file'],'utf8');if(iceText.length>65536)throw Error('Invalid ICE configuration.');provider=validateIce(JSON.parse(iceText),Math.min(Date.now()+seconds*1000,sourceDeadline));if(forceRelay&&!provider.hasTurn)throw Error('A TURN server is required.');delete provider.hasTurn;}
+ }else{
+  const {openProbe}=await import('./helpers/sealed-probe.mjs');const envelope=JSON.parse(await readFile(args['--sealed-config'],'utf8')),key=await readFile(args['--private-key'],'utf8');payload=await openProbe(envelope,key);
+  if(payload?.kind!=='generated-same-end-test'||payload.mode!=='magnet'||typeof payload.invite!=='string'||!payload.invite.startsWith('magnet:?')||!Number.isFinite(payload.createdAt)||!Number.isFinite(payload.expiresAt)||payload.expiresAt<=Date.now()||payload.createdAt>Date.now()+60000||payload.expiresAt-payload.createdAt>600000||payload.forceRelay!==undefined&&typeof payload.forceRelay!=='boolean')throw Error('Invalid or expired sealed fixture.');
+  forceRelay=payload.forceRelay===true;if(payload.iceResponse!==undefined){provider=validateIce(payload.iceResponse,payload.expiresAt);if(forceRelay&&!provider.hasTurn)throw Error('A TURN server is required.');delete provider.hasTurn;}else if(forceRelay)throw Error('A relay configuration is required.');
+  observationDeadline=payload.expiresAt-3000;if(observationDeadline-Date.now()<30000)throw Error('Insufficient source time remaining.');
+ }
+ result.providerConfigured=!!provider;result.relayRequested=forceRelay;
  let html;
  if(args['--html'])html=await readFile(args['--html'],'utf8');else{const response=await fetch('https://www.sameend.com/watch.html',{redirect:'error',signal:AbortSignal.timeout(25000)});if(!response.ok)throw Error('Fixture fetch failed.');html=await response.text();}
  if(html.length>12000000||!html.includes('PrivateCast')||!html.includes('SameEnd'))throw Error('Unsupported fixture.');result.fixtureSha256=createHash('sha256').update(html).digest('hex');
@@ -51,21 +74,19 @@ try{
  // Restrict browser WebSockets to the application's public introduction services.
  if(typeof context.routeWebSocket!=='function')throw Error('Playwright WebSocket isolation unavailable.');
  await context.routeWebSocket('**/*',ws=>{let u;try{u=new URL(ws.url());}catch{return ws.close();}if(u.protocol==='wss:'&&['tracker.openwebtorrent.com','tracker.webtorrent.dev'].includes(u.hostname)&&(!u.port||u.port==='443'))ws.connectToServer();else ws.close();});
- await context.addInitScript(()=>{
+ await context.addInitScript(({provider,forceRelay})=>{
   const Original=window.RTCPeerConnection,p={started:Date.now(),connections:[],candidates:{host:0,srflx:0,prflx:0,relay:0},iceErrors:0,pcEvents:{new:0,connecting:0,connected:0,disconnected:0,failed:0,closed:0},iceEvents:{new:0,checking:0,connected:0,completed:0,disconnected:0,failed:0,closed:0}};window.__probe=p;
-  window.RTCPeerConnection=new Proxy(Original,{construct(target,args,newTarget){const pc=Reflect.construct(target,args,newTarget);p.connections.push(pc);pc.addEventListener('connectionstatechange',()=>{const t=pc.connectionState;if(Object.hasOwn(p.pcEvents,t))p.pcEvents[t]=Math.min(10000,p.pcEvents[t]+1);});pc.addEventListener('iceconnectionstatechange',()=>{const t=pc.iceConnectionState;if(Object.hasOwn(p.iceEvents,t))p.iceEvents[t]=Math.min(10000,p.iceEvents[t]+1);});pc.addEventListener('icecandidate',e=>{const t=e.candidate?.type;if(Object.hasOwn(p.candidates,t))p.candidates[t]=Math.min(10000,p.candidates[t]+1);});pc.addEventListener('icecandidateerror',()=>{p.iceErrors=Math.min(10000,p.iceErrors+1);});return pc;}});
- });
+  window.RTCPeerConnection=new Proxy(Original,{construct(target,args,newTarget){const config=provider?{...(args[0]||{}),iceServers:[...((args[0]||{}).iceServers||[]),...provider.iceServers],...(forceRelay?{iceTransportPolicy:'relay'}:{})}:args[0];const pc=Reflect.construct(target,provider?[config,...args.slice(1)]:args,newTarget);p.connections.push(pc);pc.addEventListener('connectionstatechange',()=>{const t=pc.connectionState;if(Object.hasOwn(p.pcEvents,t))p.pcEvents[t]=Math.min(10000,p.pcEvents[t]+1);});pc.addEventListener('iceconnectionstatechange',()=>{const t=pc.iceConnectionState;if(Object.hasOwn(p.iceEvents,t))p.iceEvents[t]=Math.min(10000,p.iceEvents[t]+1);});pc.addEventListener('icecandidate',e=>{const t=e.candidate?.type;if(Object.hasOwn(p.candidates,t))p.candidates[t]=Math.min(10000,p.candidates[t]+1);});pc.addEventListener('icecandidateerror',()=>{p.iceErrors=Math.min(10000,p.iceErrors+1);});return pc;}});
+ },{provider,forceRelay});
  page=await context.newPage();await page.goto(pageUrl,{waitUntil:'domcontentloaded',timeout:30000});
- result.permissionStates=await page.evaluate(async()=>{const out={};for(const name of ['local-network-access','local-network','loopback-network']){try{const s=await navigator.permissions.query({name});out[name]=['granted','prompt','denied'].includes(s.state)?s.state:'unknown';}catch{out[name]='unsupported';}}return out;});await page.waitForFunction(()=>window.PrivateCast?.testing&&window.SameEndInviteCheck,null,{timeout:20000});
+ result.permissionStates=await page.evaluate(async()=>{const out={};for(const name of ['local-network-access','local-network','loopback-network']){try{const s=await navigator.permissions.query({name});out[name]=['granted','prompt','denied'].includes(s.state)?s.state:'unknown';}catch{out[name]='unsupported';}}return out;});await page.waitForFunction(needsProvider=>window.PrivateCast?.testing&&window.SameEndInviteCheck&&(!needsProvider||window.SameEndSocial),!!provider,{timeout:20000});if(provider)await page.evaluate(answer=>{window.SameEndSocial.edgeIceServers=async()=>answer;},provider);
  if(role==='source'){
   await progress('starting-generated-source');await page.evaluate(()=>PrivateCast.testing.startDemo({delay:10,profile:'hls'}));
   const invitation=await page.evaluate(()=>PrivateCast.testing.publishInvitation());if(typeof invitation!=='string'||!invitation.startsWith('magnet:?'))throw Error('No generated invitation.');
-  const {sealProbe}=await import('./helpers/sealed-probe.mjs');const now=Date.now(),payload={kind:'generated-same-end-test',mode:'magnet',invite:invitation,createdAt:now,expiresAt:Math.min(now+seconds*1000,sourceDeadline)};
-  observationDeadline=payload.expiresAt;const sealed=await sealProbe(payload,args['--recipient-key']);await writeSafe('sealed.json',sealed);await progress('sealed-invitation-ready');
+  const {sealProbe}=await import('./helpers/sealed-probe.mjs');const now=Date.now();payload={kind:'generated-same-end-test',mode:'magnet',invite:invitation,createdAt:now,expiresAt:Math.min(now+seconds*1000,sourceDeadline),...(provider?{iceResponse:provider,forceRelay}: {})};
+  if(provider){provider=validateIce(provider,payload.expiresAt);delete provider.hasTurn;payload.iceResponse=provider;}observationDeadline=payload.expiresAt;const sealed=await sealProbe(payload,args['--recipient-key']);await writeSafe('sealed.json',sealed);await progress('sealed-invitation-ready');
  }else{
-  const {openProbe}=await import('./helpers/sealed-probe.mjs');const envelope=JSON.parse(await readFile(args['--sealed-config'],'utf8')),key=await readFile(args['--private-key'],'utf8'),payload=await openProbe(envelope,key);
-  if(payload?.kind!=='generated-same-end-test'||payload.mode!=='magnet'||typeof payload.invite!=='string'||!payload.invite.startsWith('magnet:?')||!Number.isFinite(payload.createdAt)||!Number.isFinite(payload.expiresAt)||payload.expiresAt<=Date.now()||payload.createdAt>Date.now()+60000||payload.expiresAt-payload.createdAt>600000)throw Error('Invalid or expired sealed fixture.');
-  observationDeadline=payload.expiresAt-3000;if(observationDeadline-Date.now()<30000)throw Error('Insufficient source time remaining.');await progress('joining');await page.evaluate(invite=>{window.__joinResult='pending';PrivateCast.joinMagnet(invite).then(()=>window.__joinResult='descriptor-ready',()=>window.__joinResult='failed');},payload.invite);
+  await progress('joining');await page.evaluate(invite=>{window.__joinResult='pending';PrivateCast.joinMagnet(invite).then(()=>window.__joinResult='descriptor-ready',()=>window.__joinResult='failed');},payload.invite);
  }
  await progress('observing');const end=Math.min(Date.now()+seconds*1000,observationDeadline);
  let stopped=false;while(Date.now()<end){try{await access(join(directory,'stop.request'));stopped=true;break;}catch{}const entry=await sample();result.samples.push(entry);if(result.samples.length>125)result.samples.shift();await writeSafe('status.json',result);await wait(Math.min(5000,Math.max(0,end-Date.now())));}
