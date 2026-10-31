@@ -47,6 +47,11 @@ test('waiting introduction is chosen explicitly, decodes, and yields without wri
     await page.getByRole('button',{name:'Play quick guide',exact:true}).click();await page.waitForFunction(()=>!document.getElementById('wait-intro-audio').paused);
     await page.evaluate(()=>{Object.assign(window.__snapshot,{targetProgramTime:10,programTime:10,ready:2,mediaDiagnostics:{delivery:{requiredPiecePresent:true}}});window.SameEndWaiting.refresh();});
     assert.equal(await page.locator('#sameend-wait').isVisible(),false);assert.equal(await page.locator('#wait-intro-audio').getAttribute('src'),null);
+    // Simulate a new cast in audio-only recovery before its first frame.
+    await page.evaluate(()=>{Object.assign(window.__snapshot,{config:{id:'audio-cast',sourceAudioAvailable:true},targetProgramTime:10,programTime:10,ready:0,mediaMode:'audio',renditionPolicy:{mode:'audio'},mediaDiagnostics:{delivery:{verifiedReserveSeconds:8.1},playback:{bufferGoalSeconds:4}}});window.SameEndWaiting.refresh();});
+    assert.equal(await page.locator('#sameend-wait').isVisible(),false);assert.equal(await page.locator('#wait-status').isVisible(),true);
+    assert.match(await page.locator('#wait-status-detail').textContent(),/Verified audio buffer: 8\.1 seconds \(target 4\.0 seconds\)/);
+    assert.equal(await page.locator('.stage').evaluate(e=>e.classList.contains('has-wait-content')),false);
     assert.equal(await page.evaluate(()=>window.__writes),0);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
 });
