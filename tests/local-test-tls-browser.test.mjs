@@ -47,7 +47,15 @@ test('Chromium trusts the generated TLS fixture pin and rejects an unrelated sel
     const response = await page.goto(allowedURL, { waitUntil: 'load', timeout: 8000 });
     assert.equal(response.status(), 200);
     assert.equal(await page.locator('body').textContent(), 'fixture');
-    await assert.rejects(page.evaluate(url => fetch(url).then(r => r.text()), unrelatedURL));
+    const blockedPage = await context.newPage();
+    try {
+      await assert.rejects(
+        blockedPage.goto(unrelatedURL, { waitUntil: 'load', timeout: 8000 }),
+        /ERR_CERT_AUTHORITY_INVALID/
+      );
+    } finally {
+      await blockedPage.close();
+    }
     assert.deepEqual(outsideRequests, []);
     await context.close();
   } finally {
