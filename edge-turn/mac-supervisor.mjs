@@ -51,20 +51,20 @@ export const supervisorTiming = {statusTtlMs: TTL, mappingLeaseSeconds: LEASE};
 export function legoArgs(c){return ['run','--path',c.acmePath,'--cert.name','same-end-edge','--domains',c.expectedPublicIPv4,'--profile','shortlived','--http','--http.address',':8080','--accept-tos','--account-id','same-end-edge','--no-random-sleep'];}
 const defaults={interfaces:networkInterfaces,router:routerClient,readCertificate,verifyTls,readStaticManifest,readPrivateSecret,checkPublicTurn,atomic,now:()=>Date.now(),issue:async c=>{await runFile(c.legoPath,legoArgs(c),{timeout:180000,maxBuffer:65536});},reload:async c=>{const value=(await readFile(c.coturnPidFile,'utf8')).trim();if(!/^[1-9]\d*$/.test(value))throw Error('Invalid coturn PID');process.kill(Number(value),'SIGUSR2');}};
 export async function supervisorCycle(c, overrides={}){
- const a={...defaults,...overrides}, now=a.now();let reasons=[],evidence=null;
- const status=async ok=>a.atomic(c.statusPath,JSON.stringify({ok,checkedAtMs:now,expiresAtMs:now+TTL,reasons,...(evidence?{evidence}:{})})+'\n');
+ const a={...defaults,...overrides}, now=a.now();let reasons=[],evidence=null,failureStage=null,probeStage=null,stage='configuration';
+ const status=async ok=>a.atomic(c.statusPath,JSON.stringify({ok,checkedAtMs:now,expiresAtMs:now+TTL,reasons,...(evidence?{evidence}:{}),...(failureStage?{failureStage}:{}),...(probeStage?{probeStage}:{})})+'\n');
  // Invalidate any previous success while a potentially slow renewal is running.
  reasons=['check-in-progress'];await status(false);reasons=[];
  try{
   validate(c);
-  const interfaces=a.interfaces();
+  stage='local-address';const interfaces=a.interfaces();
   if (!interfaces || !Object.values(interfaces).some(entries => Array.isArray(entries) && entries.some(entry => entry.family === 'IPv4' && !entry.internal && entry.address === c.router.localAddress))) throw Error('local-ip-not-assigned');
-  const router=a.router(c.router);
+  stage='public-address';const router=a.router(c.router);
   if(await router.externalAddress()!==c.expectedPublicIPv4)throw Error('public-ip-mismatch-or-unknown');
   if(c.forwardingMode==='operator-static'){
-   const manifest=await a.readStaticManifest(c);const pendingPath=c.statusPath+'.renewal-pending';try{await readFile(pendingPath);throw Error('static-renewal-pending');}catch(e){if(e.code!=='ENOENT')throw e;}
-   const leaf=await a.readCertificate(c.certPath,c.keyPath,c.expectedPublicIPv4,now,true);if(leaf.end-now<=RENEW_BEFORE)throw Error('static-renewal-required');await a.verifyTls(c,leaf.fingerprint);
-   const secret=await a.readPrivateSecret(manifest.secretPath);const proof=await a.checkPublicTurn({host:c.expectedPublicIPv4,port:manifest.tlsExternalPort,fingerprint:leaf.fingerprint,relayMin:manifest.relayMin,relayMax:manifest.relayMax,secret});if(proof?.ok!==true||proof.allocations!==2||proof.directions!==2)throw Error('static-proof-failed');
+   stage='manifest';const manifest=await a.readStaticManifest(c);stage='renewal-marker';const pendingPath=c.statusPath+'.renewal-pending';try{await readFile(pendingPath);throw Error('static-renewal-pending');}catch(e){if(e.code!=='ENOENT')throw e;}
+   stage='certificate';const leaf=await a.readCertificate(c.certPath,c.keyPath,c.expectedPublicIPv4,now,true);if(leaf.end-now<=RENEW_BEFORE)throw Error('static-renewal-required');stage='loopback-tls';await a.verifyTls(c,leaf.fingerprint);
+   stage='turn-secret';const secret=await a.readPrivateSecret(manifest.secretPath);stage='public-turn-proof';const proof=await a.checkPublicTurn({host:c.expectedPublicIPv4,port:manifest.tlsExternalPort,fingerprint:leaf.fingerprint,relayMin:manifest.relayMin,relayMax:manifest.relayMax,secret});if(proof?.ok!==true||proof.allocations!==2||proof.directions!==2)throw Error('static-proof-failed');
    evidence={kind:'authenticated-turn',allocations:2,directions:2,coverage:'two-allocated-relay-ports',vantage:'public-endpoint-from-host',staticRules:'operator-asserted'};await status(true);return {ok:true,checkedAtMs:now,expiresAtMs:now+TTL,reasons};
   }
   if (typeof router.ensureAll === 'function') await router.ensureAll(c.mappings,LEASE);
@@ -103,7 +103,7 @@ export async function supervisorCycle(c, overrides={}){
    if(!challengeRemoved)await router.remove({protocol:'TCP',external:80,internal:8080});
    await unlink(pendingPath);leaf=fresh;
   }else await a.verifyTls(c,leaf.fingerprint);
- }catch(e){reasons=[c.forwardingMode==='operator-static'?(['static-manifest-invalid','static-manifest-mismatch','static-renewal-pending','static-renewal-required','static-proof-failed','local-ip-not-assigned','public-ip-mismatch-or-unknown'].includes(e?.message)?e.message:'static-prerequisite-failed'):String(e?.message||'supervisor-check-failed').slice(0,160)];}
+ }catch(e){if(c.forwardingMode==='operator-static'){failureStage=stage;if(stage==='public-turn-proof'&&['configuration','secret','tls','transport','frame','timeout','protocol','challenge','relay','data','cleanup'].includes(e?.stage))probeStage=e.stage;}reasons=[c.forwardingMode==='operator-static'?(['static-manifest-invalid','static-manifest-mismatch','static-renewal-pending','static-renewal-required','static-proof-failed','local-ip-not-assigned','public-ip-mismatch-or-unknown'].includes(e?.message)?e.message:'static-prerequisite-failed'):String(e?.message||'supervisor-check-failed').slice(0,160)];}
  await status(reasons.length===0);return {ok:reasons.length===0,checkedAtMs:now,expiresAtMs:now+TTL,reasons};
 }
 async function main(){if(process.argv.length!==4||process.argv[2]!=='--config')throw Error('Explicit --config required');const file=process.argv[3],meta=await stat(file);if(!meta.isFile()||(meta.mode&0o077))throw Error('Supervisor config must be private');const c=JSON.parse(await readFile(file,'utf8'));validate(c);const tick=async()=>{try{await supervisorCycle(c);}catch{console.error('Supervisor status write failed');}setTimeout(tick,c.intervalMs);};await tick();}
