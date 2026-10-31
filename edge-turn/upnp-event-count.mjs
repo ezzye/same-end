@@ -14,11 +14,10 @@ function normalizeAddress(value) {
 function parseCount(body) {
  let xml=body.trim();if(/^<\?xml\b/i.test(xml)){const end=xml.indexOf('?>');if(end<0)throw Error('Malformed router GENA XML declaration');xml=xml.slice(end+2).trimStart();}
  if(/<!DOCTYPE|<!ENTITY/i.test(xml))throw Error('Router GENA event declarations are not allowed');
- const root=/^<((?:[A-Za-z_][A-Za-z0-9_.-]*:)?)propertyset\b([^>]*)>([\s\S]*)<\/\1propertyset\s*>$/i.exec(xml);
+ const root=/^<((?:[A-Za-z_][A-Za-z0-9_.-]*:)?)propertyset\b([^>]*)>([\s\S]*)<\/\1propertyset\s*>$/.exec(xml);
  if(!root)throw Error('Router GENA event is not a complete property set');
- const prefix=root[1].slice(0,-1),declarations=[...root[2].matchAll(/\bxmlns(?::([A-Za-z_][A-Za-z0-9_.-]*))?\s*=\s*["']([^"']*)["']/g)],namespace=declarations.find(value=>(value[1]||'')===prefix)?.[2];
- if(namespace!=='urn:schemas-upnp-org:event-1-0')throw Error('Router GENA event has an unexpected namespace');
- if(declarations.some(value=>!value[1]&&value[2]))throw Error('Router GENA event default namespace prevents an unqualified state variable');
+ const prefix=root[1].slice(0,-1),declaration=/^\s+xmlns:([A-Za-z_][A-Za-z0-9_.-]*)\s*=\s*(["'])urn:schemas-upnp-org:event-1-0\2\s*$/.exec(root[2]);
+ if(!prefix||!declaration||declaration[1]!==prefix)throw Error('Router GENA event has no unambiguous canonical namespace');
  const propertyTag=escapeRE(root[1]+'property'),propertyRx=new RegExp('<'+propertyTag+'>([\\s\\S]*?)<\\/'+propertyTag+'\\s*>','g'),properties=[...root[3].matchAll(propertyRx)];
  if(root[3].replace(propertyRx,'').trim())throw Error('Router GENA property set contains unexpected content');
  const countRx=/^<PortMappingNumberOfEntries>([0-9]{1,5})<\/PortMappingNumberOfEntries>$/;
