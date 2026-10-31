@@ -36,3 +36,11 @@ test('static mode fails closed for drift, manifest, certificate, public proof an
   const r=await supervisorCycle(c,x.a);assert.equal(r.ok,false,condition);assert.equal(await supervisorHealthy(c.statusPath,time+1),false,condition);assert.equal(writes,0,condition);assert.equal(x.counts().issued,0,condition);
  }
 });
+test('static failure status records only safe stage details and keeps health denied',async t=>{
+ for(const [kind,expected,probeStage] of [['manifest','manifest',null],['certificate','certificate',null],['tls','loopback-tls',null],['secret','turn-secret',null],['proof','public-turn-proof','protocol'],['unsafe','public-turn-proof',null]]){
+  const {c}=await staticFixture(t),x=actions({checkPublicTurn:async()=>({ok:true,allocations:2,directions:2})});
+  const error=Error('PRIVATE error with address');if(kind==='proof')error.stage='protocol';if(kind==='unsafe')error.stage='PRIVATE identifier';
+  if(kind==='manifest')x.a.readStaticManifest=async()=>{throw error;};if(kind==='certificate')x.a.readCertificate=async()=>{throw error;};if(kind==='tls')x.a.verifyTls=async()=>{throw error;};if(kind==='secret')x.a.readPrivateSecret=async()=>{throw error;};if(['proof','unsafe'].includes(kind))x.a.checkPublicTurn=async()=>{throw error;};
+  const r=await supervisorCycle(c,x.a),status=JSON.parse(await readFile(c.statusPath));assert.equal(r.ok,false);assert.equal(status.ok,false);assert.equal(status.failureStage,expected);assert.equal(status.probeStage??null,probeStage);assert(!JSON.stringify(status).includes('PRIVATE'));assert.equal(await supervisorHealthy(c.statusPath,time+1),false);
+ }
+});
