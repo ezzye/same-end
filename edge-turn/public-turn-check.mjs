@@ -35,7 +35,9 @@ export function createPublicTurnConnection({host,port,fingerprint,signal,dial=co
   pendingSession.relay=relay;return pendingSession;
  },async permission(peer,session){await exchange(8,[attr(0x12,peerAddress(peer.ip,peer.port)),...session.auth],session.key,0x0108);},
  send(peer,bytes){socket.write(packet(0x0016,randomBytes(12),[attr(0x12,peerAddress(peer.ip,peer.port)),attr(0x13,bytes)],null));},
- async receive(peer,nonce){const frame=await next(b=>b.readUInt16BE(0)===0x0017);const result=decode(frame,frame.subarray(8,20),null),address=unpeer(result?.attrs.get(0x12)),data=result?.attrs.get(0x13);if(!address||address.ip!==peer.ip||address.port!==peer.port||!data?.equals(nonce))throw problem('data');},
+ // A permitted address can send unrelated traffic after a relay port is reused.
+ // Ignore bounded noise, but accept only the exact peer and nonce before the deadline.
+ async receive(peer,nonce){for(let n=0;n<64;n++){const frame=await next(b=>b.readUInt16BE(0)===0x0017);const result=decode(frame,frame.subarray(8,20),null),address=unpeer(result?.attrs.get(0x12)),data=result?.attrs.get(0x13);if(address&&address.ip===peer.ip&&address.port===peer.port&&data?.equals(nonce))return;}throw problem('data');},
  get pendingSession(){return pendingSession;},async closeAllocation(session){const lifetime=Buffer.alloc(4),response=await exchange(4,[attr(0x0d,lifetime),...session.auth],session.key,0x0104),confirmed=response.attrs.get(0x0d);if(!confirmed||confirmed.length!==4||confirmed.readUInt32BE(0)!==0)throw problem('cleanup');},close(){socket.destroy();}};
 }
 export async function checkPublicTurn({host,port=443,fingerprint,relayMin,relayMax,secret,timeoutMs=20000,makeConnection=createPublicTurnConnection}={}){
