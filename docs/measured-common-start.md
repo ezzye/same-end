@@ -1,12 +1,15 @@
-# Measured common start
+# Optional measured match-night start
 
-## Current behavior: first-viewer measurement (version 2)
+## Optional behavior: first-viewer measurement (version 2)
 
-New captures advertise `commonStartVersion:2`. Preparing the source early no
-longer starts the measurement deadline. While no picture peer is connected there
-is no signed common-start decision; the host can watch alone on the original
-300-second timeline. The first ready picture-peer connection starts one bounded
-60-second observation window. Disconnecting and reconnecting does not reset it.
+Only HLS rooms where the host explicitly selects the 5-minute match-night mode
+advertise `commonStartVersion:2`. New rooms default to the recommended 10-second
+shared delay and do not enter this measurement flow. For the opt-in match-night
+mode, preparing the source early no longer starts the measurement deadline.
+While no picture peer is connected there is no signed common-start decision;
+the host can watch alone on the original 300-second timeline. The first ready
+picture-peer connection starts one bounded 60-second observation window.
+Disconnecting and reconnecting does not reset it.
 
 The source requires at least 20 seconds of fresh live delivery observations,
 eligible reports from every observed supporting participant, and actual prepared
@@ -39,13 +42,14 @@ revokes a preview. Its programme position is otherwise pinned, so decoder
 preparation does not chase a moving target. The original source epoch, programme
 ID, signed segment timestamps and 300-second retention/fallback budget stay intact.
 
-If the host was watching alone, it continues until a measured candidate is ready
-to prepare, then briefly holds and performs one catch-up at the shared start.
-This deliberately skips the host forward from its provisional five-minute view.
-There is no already-started group to move: first viewers remain held until the
-signed start. Native viewers keep their player unattached during that hold and
-prepare the current shared position when the start is due. Supporting late viewers
-then follow the established clock with the existing total 60-second local-lag cap.
+If the host was watching alone in this optional mode, it continues until a
+measured candidate is ready to prepare, then briefly holds and performs one
+catch-up at the shared start. This deliberately skips the host forward from its
+provisional five-minute view. There is no already-started group to move: first
+viewers remain held until the signed start. Native viewers keep their player
+unattached during that hold and prepare the current shared position when the
+start is due. Supporting late viewers then follow the established clock with
+the existing total 60-second local-lag cap.
 
 Missing/stale measurements, sustained delivery deficit, unsupported application
 versions, unavailable decoder reserve or the first-connection deadline can still
@@ -114,15 +118,17 @@ using the same saved club/combined invitation.
 ## Version-1 implementation and earlier evidence
 
 
-This implementation can select one shorter **common** initial source delay for a
-new standard HLS room. The source uses that delay too. The authenticated room
-configuration keeps `delay:300`; source epoch, programme identity and signed media
-timestamps are unchanged. The separate source-signed decision supplies the common
-playback baseline.
+This implementation can select one shorter **common** initial source delay for
+an explicitly configured 5-minute standard HLS room. The source uses that delay
+too. The authenticated room configuration keeps `delay:300`; source epoch,
+programme identity and signed media timestamps are unchanged. The separate
+source-signed decision supplies the common playback baseline. The recommended
+10-second default uses its configured baseline directly.
 
 The public build flag is **on by default** after the controlled platform
-acceptance matrix below. Build with `SAMEEND_AUTOMATIC_COMMON_START=0` for the
-conservative configured-delay mode. These controlled tests do not establish
+acceptance matrix below, but applies only to rooms configured for 300 seconds.
+Build with `SAMEEND_AUTOMATIC_COMMON_START=0` for the conservative configured-delay
+mode. These controlled tests do not establish
 physical Apple-device, separate-network or full-match acceptance.
 
 ## Selection and the shared clock

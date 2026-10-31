@@ -1,16 +1,20 @@
 # Viewer-local startup and measured common-start integration
 
-Automatic startup is enabled by default through `SameEndConfig.automaticInitialDelay`
-after the controlled platform acceptance matrix. Build with
-`SAMEEND_AUTOMATIC_INITIAL_DELAY=0` to disable it without changing room settings.
-It complements the observed-delivery estimator; it does not measure maximum ISP speed.
+Viewer-local startup admission is enabled by default for HLS rooms using the
+optional 60-second or 5-minute delay, through
+`SameEndConfig.automaticInitialDelay`. The recommended 10-second room delay does
+not use this extra startup policy; it relies on the player's short adaptive
+buffer. Build with `SAMEEND_AUTOMATIC_INITIAL_DELAY=0` to disable admission
+without changing room settings. It complements the observed-delivery estimator;
+it does not measure maximum ISP speed.
 
-This viewer-local admission policy is distinct from the newer
-[measured common-start policy](measured-common-start.md), which lets the source
-select a shorter baseline for everyone, including itself. That separate flag,
-`SAMEEND_AUTOMATIC_COMMON_START`, is now enabled by default following its own
-[controlled acceptance matrix](measured-common-start.md#acceptance-result). The
-viewer-local results below are distinct from those common-start tests.
+This viewer-local admission policy is distinct from the optional
+[measured common-start policy](measured-common-start.md). That policy applies to
+HLS rooms where the host explicitly chooses the 5-minute match-night mode; it
+can let the source select a shorter baseline for everyone, including itself.
+Its flag, `SAMEEND_AUTOMATIC_COMMON_START`, is enabled by default, but the
+recommended 10-second mode does not enter that policy. The viewer-local results
+below are distinct from those common-start tests.
 
 ## Two timelines
 
@@ -20,11 +24,12 @@ position on or behind the established common baseline before first picture. The
 existing adaptive player can then retain additional local lag for smooth recovery.
 The source and other viewers can remain on that common baseline.
 
-In ordinary rooms the common baseline is the configured delay. In a new room
-using the common-start protocol it is the source-signed decision's delay;
-the original configuration still retains 300 seconds for fallback and history.
-The host uses the decision too, so 300 seconds is not a universal minimum when
-that separate protocol is enabled.
+In ordinary rooms the common baseline is the configured delay, which defaults
+to 10 seconds. In an explicitly selected 5-minute room using the common-start
+protocol it is the source-signed decision's delay; the original configuration
+still retains 300 seconds for fallback and history. The host uses the decision
+too, so the optional match-night mode can start sooner when its measurements
+support it.
 
 `targetProgramTime`, `sharedTargetProgramTime` and `viewerTargetProgramTime` expose
 the current common nominal target. `signedTargetProgramTime` retains the target
@@ -36,7 +41,9 @@ preparation/recovery time; reports must show that difference honestly.
 
 ## Admission
 
-- HLS viewers only; viewer admission cannot choose a different common source clock.
+- HLS viewers in rooms configured for at least 60 seconds; the recommended
+  10-second mode does not add viewer-local admission. Viewer admission cannot
+  choose a different common source clock.
 - Ordinary local selection requires at least 20 seconds of fresh live observations;
   its 60-second analysis deadline starts once the shared start is due. The separate
   version-2 common-start selection deadline is 60 seconds from the first picture-peer connection.
@@ -52,10 +59,11 @@ preparation/recovery time; reports must show that difference honestly.
 - Commit once. Supplier changes and background recovery do not reselect or jump back
   to the room baseline. A new cast creates a new startup policy.
 
-If local admission fails, playback retains the established common baseline. That
-is five minutes in fallback rooms; it is shorter after a valid source-signed
-common decision. No finite initial
-buffer can sustain an indefinitely insufficient delivery path.
+If local admission fails, playback retains the established common baseline. In
+the optional 5-minute mode that is the configured fallback unless a valid
+source-signed common decision selected a shorter delay. The 10-second default
+does not wait for that measurement or decision. No finite initial buffer can
+sustain an indefinitely insufficient delivery path.
 
 ## Joining an already decided common timeline
 
