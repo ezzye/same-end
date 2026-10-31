@@ -1,6 +1,6 @@
 {
-  "checkedAt": "2026-10-30",
-  "fetchedAt": "2026-10-30T10:51:23.617Z",
+  "checkedAt": "2026-10-31",
+  "fetchedAt": "2026-10-31T10:21:40.459Z",
   "dataHash": "3939d30a1f8d57b4bd70b0b65eb583ef6465de9d9198842548779996975e705a",
   "timezone": "UTC",
   "provider": "TheSportsDB",
@@ -67,7 +67,7 @@
       "competition": "English Premier League",
       "startsAt": 1793449800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494084",
-      "checkedAt": "2026-10-30",
+      "checkedAt": "2026-10-31",
       "status": "scheduled",
       "tv": [
         {
@@ -97,7 +97,7 @@
       "competition": "English Premier League",
       "startsAt": 1793458800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494089",
-      "checkedAt": "2026-10-30",
+      "checkedAt": "2026-10-31",
       "status": "scheduled",
       "tv": [
         {
@@ -127,7 +127,7 @@
       "competition": "English Premier League",
       "startsAt": 1793458800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494087",
-      "checkedAt": "2026-10-30",
+      "checkedAt": "2026-10-31",
       "status": "scheduled",
       "tv": [
         {
@@ -157,7 +157,7 @@
       "competition": "English Premier League",
       "startsAt": 1793458800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494086",
-      "checkedAt": "2026-10-30",
+      "checkedAt": "2026-10-31",
       "status": "scheduled",
       "tv": [
         {
@@ -187,7 +187,7 @@
       "competition": "English Premier League",
       "startsAt": 1793458800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494081",
-      "checkedAt": "2026-10-30",
+      "checkedAt": "2026-10-31",
       "status": "scheduled",
       "tv": [
         {
@@ -217,7 +217,7 @@
       "competition": "English Premier League",
       "startsAt": 1793458800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494085",
-      "checkedAt": "2026-10-30",
+      "checkedAt": "2026-10-31",
       "status": "scheduled",
       "tv": [
         {
@@ -247,7 +247,7 @@
       "competition": "English Premier League",
       "startsAt": 1793467800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494083",
-      "checkedAt": "2026-10-30",
+      "checkedAt": "2026-10-31",
       "status": "scheduled",
       "tv": [
         {
@@ -288,7 +288,7 @@
       "competition": "English Premier League",
       "startsAt": 1793476800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494088",
-      "checkedAt": "2026-10-30",
+      "checkedAt": "2026-10-31",
       "status": "scheduled",
       "tv": [
         {
@@ -329,7 +329,7 @@
       "competition": "English Premier League",
       "startsAt": 1793550600000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494082",
-      "checkedAt": "2026-10-30",
+      "checkedAt": "2026-10-31",
       "status": "scheduled",
       "tv": [
         {
@@ -370,7 +370,7 @@
       "competition": "English Premier League",
       "startsAt": 1793649600000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494080",
-      "checkedAt": "2026-10-30",
+      "checkedAt": "2026-10-31",
       "status": "scheduled",
       "tv": [
         {
