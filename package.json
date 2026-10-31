@@ -63,6 +63,7 @@
     "test:resilience-native": "node tests/resilience-native-bridge-browser.test.mjs",
     "test:source-preview": "node tests/source-preview-browser.test.mjs",
     "test:turn-media": "node tests/turn-media-browser.test.mjs",
+    "test:local-tls-browser": "node --test tests/local-test-tls-browser.test.mjs",
     "test:four-peers": "node tests/four-peer-capacity-browser.test.mjs",
     "test:manual-files": "node tests/manual-files-browser.test.mjs",
     "test:hls-media-recovery": "node tests/hls-media-recovery-browser.test.mjs"
