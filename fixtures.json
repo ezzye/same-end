@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-11-01",
-  "fetchedAt": "2026-11-01T11:15:04.123Z",
-  "dataHash": "c7157958ad8711a33a288481245dd4333e67b72c2d09115f177f1d5a83e9dca4",
+  "checkedAt": "2026-11-02",
+  "fetchedAt": "2026-11-02T12:19:46.129Z",
+  "dataHash": "08eb0730aa1d2c44d41e8bf67373f24349a828d0ffc508f444f0cf0c050134c6",
   "timezone": "UTC",
   "provider": "TheSportsDB",
   "providerApi": "v1",
@@ -76,36 +76,6 @@
       "status": "scheduled"
     },
     {
-      "id": "thesportsdb-2494082",
-      "provider": "TheSportsDB",
-      "providerEventId": "2494082",
-      "providerTeamIds": [
-        "133602",
-        "133604"
-      ],
-      "home": "Liverpool",
-      "away": "Arsenal",
-      "title": "Liverpool v Arsenal",
-      "competition": "English Premier League",
-      "startsAt": 1793550600000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2494082",
-      "checkedAt": "2026-11-01",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "Iceland",
-          "channel": "Stöð 2 Sport IS",
-          "providerChannelId": "7941"
-        },
-        {
-          "country": "India",
-          "channel": "Disney+ Hotstar",
-          "providerChannelId": "582"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
       "id": "fixture-10",
       "home": "Newcastle United",
       "away": "Everton",
@@ -130,7 +100,7 @@
       "competition": "English Premier League",
       "startsAt": 1793649600000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494080",
-      "checkedAt": "2026-11-01",
+      "checkedAt": "2026-11-02",
       "status": "scheduled",
       "tv": [
         {
@@ -160,7 +130,7 @@
       "competition": "UEFA Champions League",
       "startsAt": 1793736000000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594537",
-      "checkedAt": "2026-11-01",
+      "checkedAt": "2026-11-02",
       "status": "scheduled",
       "tv": [
         {
@@ -190,7 +160,7 @@
       "competition": "UEFA Champions League",
       "startsAt": 1793736000000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594616",
-      "checkedAt": "2026-11-01",
+      "checkedAt": "2026-11-02",
       "status": "scheduled",
       "tv": [
         {
@@ -202,6 +172,66 @@
           "country": "China",
           "channel": "IQiyi CN",
           "providerChannelId": "3799"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2594651",
+      "provider": "TheSportsDB",
+      "providerEventId": "2594651",
+      "providerTeamIds": [
+        "133807",
+        "133602"
+      ],
+      "home": "Fenerbahçe",
+      "away": "Liverpool",
+      "title": "Fenerbahçe v Liverpool",
+      "competition": "UEFA Champions League",
+      "startsAt": 1793814300000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2594651",
+      "checkedAt": "2026-11-02",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "Iceland",
+          "channel": "Stöð 2 Sport 2 IS",
+          "providerChannelId": "7942"
+        },
+        {
+          "country": "United States",
+          "channel": "Paramount+ US",
+          "providerChannelId": "6001"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2594639",
+      "provider": "TheSportsDB",
+      "providerEventId": "2594639",
+      "providerTeamIds": [
+        "136036",
+        "133604"
+      ],
+      "home": "Slavia Prague",
+      "away": "Arsenal",
+      "title": "Slavia Prague v Arsenal",
+      "competition": "UEFA Champions League",
+      "startsAt": 1793822400000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2594639",
+      "checkedAt": "2026-11-02",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "Iceland",
+          "channel": "Stöð 2 Sport 2 IS",
+          "providerChannelId": "7942"
+        },
+        {
+          "country": "United States",
+          "channel": "Paramount+ US",
+          "providerChannelId": "6001"
         }
       ],
       "tvCoverage": "partial"
@@ -220,7 +250,7 @@
       "competition": "UEFA Champions League",
       "startsAt": 1793822400000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594579",
-      "checkedAt": "2026-11-01",
+      "checkedAt": "2026-11-02",
       "status": "scheduled",
       "tv": [
         {
@@ -250,7 +280,7 @@
       "competition": "UEFA Europa League",
       "startsAt": 1793900700000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594816",
-      "checkedAt": "2026-11-01",
+      "checkedAt": "2026-11-02",
       "status": "scheduled",
       "tv": [
         {
@@ -280,7 +310,7 @@
       "competition": "UEFA Europa League",
       "startsAt": 1793900700000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594912",
-      "checkedAt": "2026-11-01",
+      "checkedAt": "2026-11-02",
       "status": "scheduled",
       "tv": [
         {
@@ -310,7 +340,7 @@
       "competition": "UEFA Europa League",
       "startsAt": 1793908800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594930",
-      "checkedAt": "2026-11-01",
+      "checkedAt": "2026-11-02",
       "status": "scheduled",
       "tv": [
         {
@@ -340,13 +370,18 @@
       "competition": "UEFA Conference League",
       "startsAt": 1793908800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594743",
-      "checkedAt": "2026-11-01",
+      "checkedAt": "2026-11-02",
       "status": "scheduled",
       "tv": [
         {
           "country": "United States",
           "channel": "Paramount+ US",
           "providerChannelId": "6001"
+        },
+        {
+          "country": "Serbia",
+          "channel": "Arena Sport 2 RS",
+          "providerChannelId": "2373"
         }
       ],
       "tvCoverage": "partial"
@@ -365,7 +400,7 @@
       "competition": "English Premier League",
       "startsAt": 1793995200000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494093",
-      "checkedAt": "2026-11-01",
+      "checkedAt": "2026-11-02",
       "status": "scheduled",
       "tv": [
         {
@@ -395,7 +430,7 @@
       "competition": "English Premier League",
       "startsAt": 1794054600000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494097",
-      "checkedAt": "2026-11-01",
+      "checkedAt": "2026-11-02",
       "status": "scheduled",
       "tv": [
         {
@@ -425,7 +460,7 @@
       "competition": "English Premier League",
       "startsAt": 1794063600000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494092",
-      "checkedAt": "2026-11-01",
+      "checkedAt": "2026-11-02",
       "status": "scheduled",
       "tv": [
         {
@@ -455,7 +490,7 @@
       "competition": "English Premier League",
       "startsAt": 1794063600000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494091",
-      "checkedAt": "2026-11-01",
+      "checkedAt": "2026-11-02",
       "status": "scheduled",
       "tv": [
         {
@@ -485,7 +520,7 @@
       "competition": "English Premier League",
       "startsAt": 1794072600000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494098",
-      "checkedAt": "2026-11-01",
+      "checkedAt": "2026-11-02",
       "status": "scheduled",
       "tv": [
         {
@@ -515,7 +550,7 @@
       "competition": "English Premier League",
       "startsAt": 1794146400000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494096",
-      "checkedAt": "2026-11-01",
+      "checkedAt": "2026-11-02",
       "status": "scheduled",
       "tv": [
         {
@@ -545,7 +580,7 @@
       "competition": "English Premier League",
       "startsAt": 1794146400000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494094",
-      "checkedAt": "2026-11-01",
+      "checkedAt": "2026-11-02",
       "status": "scheduled",
       "tv": [
         {
@@ -575,7 +610,7 @@
       "competition": "English Premier League",
       "startsAt": 1794146400000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494099",
-      "checkedAt": "2026-11-01",
+      "checkedAt": "2026-11-02",
       "status": "scheduled",
       "tv": [
         {
