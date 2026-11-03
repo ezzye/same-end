@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-11-02",
-  "fetchedAt": "2026-11-02T12:19:46.129Z",
-  "dataHash": "08eb0730aa1d2c44d41e8bf67373f24349a828d0ffc508f444f0cf0c050134c6",
+  "checkedAt": "2026-11-03",
+  "fetchedAt": "2026-11-03T11:53:46.660Z",
+  "dataHash": "d34c4443b59e31c5b920bc56bb21f3b87104d0b606d22b09415f6917b8bd4f6b",
   "timezone": "UTC",
   "provider": "TheSportsDB",
   "providerApi": "v1",
@@ -87,36 +87,6 @@
       "status": "scheduled"
     },
     {
-      "id": "thesportsdb-2494080",
-      "provider": "TheSportsDB",
-      "providerEventId": "2494080",
-      "providerTeamIds": [
-        "134777",
-        "133615"
-      ],
-      "home": "Newcastle United",
-      "away": "Everton",
-      "title": "Newcastle United v Everton",
-      "competition": "English Premier League",
-      "startsAt": 1793649600000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2494080",
-      "checkedAt": "2026-11-02",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "Iceland",
-          "channel": "Stöð 2 Sport IS",
-          "providerChannelId": "7941"
-        },
-        {
-          "country": "India",
-          "channel": "Disney+ Hotstar",
-          "providerChannelId": "582"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
       "id": "thesportsdb-2594537",
       "provider": "TheSportsDB",
       "providerEventId": "2594537",
@@ -130,7 +100,7 @@
       "competition": "UEFA Champions League",
       "startsAt": 1793736000000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594537",
-      "checkedAt": "2026-11-02",
+      "checkedAt": "2026-11-03",
       "status": "scheduled",
       "tv": [
         {
@@ -160,7 +130,7 @@
       "competition": "UEFA Champions League",
       "startsAt": 1793736000000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594616",
-      "checkedAt": "2026-11-02",
+      "checkedAt": "2026-11-03",
       "status": "scheduled",
       "tv": [
         {
@@ -190,7 +160,7 @@
       "competition": "UEFA Champions League",
       "startsAt": 1793814300000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594651",
-      "checkedAt": "2026-11-02",
+      "checkedAt": "2026-11-03",
       "status": "scheduled",
       "tv": [
         {
@@ -220,7 +190,7 @@
       "competition": "UEFA Champions League",
       "startsAt": 1793822400000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594639",
-      "checkedAt": "2026-11-02",
+      "checkedAt": "2026-11-03",
       "status": "scheduled",
       "tv": [
         {
@@ -250,7 +220,7 @@
       "competition": "UEFA Champions League",
       "startsAt": 1793822400000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594579",
-      "checkedAt": "2026-11-02",
+      "checkedAt": "2026-11-03",
       "status": "scheduled",
       "tv": [
         {
@@ -280,7 +250,7 @@
       "competition": "UEFA Europa League",
       "startsAt": 1793900700000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594816",
-      "checkedAt": "2026-11-02",
+      "checkedAt": "2026-11-03",
       "status": "scheduled",
       "tv": [
         {
@@ -310,7 +280,7 @@
       "competition": "UEFA Europa League",
       "startsAt": 1793900700000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594912",
-      "checkedAt": "2026-11-02",
+      "checkedAt": "2026-11-03",
       "status": "scheduled",
       "tv": [
         {
@@ -340,7 +310,7 @@
       "competition": "UEFA Europa League",
       "startsAt": 1793908800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594930",
-      "checkedAt": "2026-11-02",
+      "checkedAt": "2026-11-03",
       "status": "scheduled",
       "tv": [
         {
@@ -370,7 +340,7 @@
       "competition": "UEFA Conference League",
       "startsAt": 1793908800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594743",
-      "checkedAt": "2026-11-02",
+      "checkedAt": "2026-11-03",
       "status": "scheduled",
       "tv": [
         {
@@ -400,7 +370,7 @@
       "competition": "English Premier League",
       "startsAt": 1793995200000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494093",
-      "checkedAt": "2026-11-02",
+      "checkedAt": "2026-11-03",
       "status": "scheduled",
       "tv": [
         {
@@ -430,7 +400,7 @@
       "competition": "English Premier League",
       "startsAt": 1794054600000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494097",
-      "checkedAt": "2026-11-02",
+      "checkedAt": "2026-11-03",
       "status": "scheduled",
       "tv": [
         {
@@ -460,7 +430,7 @@
       "competition": "English Premier League",
       "startsAt": 1794063600000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494092",
-      "checkedAt": "2026-11-02",
+      "checkedAt": "2026-11-03",
       "status": "scheduled",
       "tv": [
         {
@@ -490,7 +460,7 @@
       "competition": "English Premier League",
       "startsAt": 1794063600000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494091",
-      "checkedAt": "2026-11-02",
+      "checkedAt": "2026-11-03",
       "status": "scheduled",
       "tv": [
         {
@@ -520,7 +490,7 @@
       "competition": "English Premier League",
       "startsAt": 1794072600000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494098",
-      "checkedAt": "2026-11-02",
+      "checkedAt": "2026-11-03",
       "status": "scheduled",
       "tv": [
         {
@@ -550,7 +520,7 @@
       "competition": "English Premier League",
       "startsAt": 1794146400000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494096",
-      "checkedAt": "2026-11-02",
+      "checkedAt": "2026-11-03",
       "status": "scheduled",
       "tv": [
         {
@@ -580,7 +550,7 @@
       "competition": "English Premier League",
       "startsAt": 1794146400000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494094",
-      "checkedAt": "2026-11-02",
+      "checkedAt": "2026-11-03",
       "status": "scheduled",
       "tv": [
         {
@@ -610,7 +580,7 @@
       "competition": "English Premier League",
       "startsAt": 1794146400000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494099",
-      "checkedAt": "2026-11-02",
+      "checkedAt": "2026-11-03",
       "status": "scheduled",
       "tv": [
         {
