@@ -59,9 +59,9 @@ THE SOFTWARE.
   };
   var __copyProps = (to, from, except, desc2) => {
     if (from && typeof from === "object" || typeof from === "function") {
-      for (let key8 of __getOwnPropNames(from))
-        if (!__hasOwnProp.call(to, key8) && key8 !== except)
-          __defProp(to, key8, { get: () => from[key8], enumerable: !(desc2 = __getOwnPropDesc(from, key8)) || desc2.enumerable });
+      for (let key9 of __getOwnPropNames(from))
+        if (!__hasOwnProp.call(to, key9) && key9 !== except)
+          __defProp(to, key9, { get: () => from[key9], enumerable: !(desc2 = __getOwnPropDesc(from, key9)) || desc2.enumerable });
     }
     return to;
   };
@@ -74,9 +74,9 @@ THE SOFTWARE.
     mod2
   ));
 
-  // node_modules/canonicalize/lib/canonicalize.js
+  // ../../../../../apps/family-pilot/node_modules/canonicalize/lib/canonicalize.js
   var require_canonicalize = __commonJS({
-    "node_modules/canonicalize/lib/canonicalize.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/canonicalize/lib/canonicalize.js"(exports, module) {
       "use strict";
       module.exports = function serialize(object) {
         if (typeof object === "number" && isNaN(object)) {
@@ -111,9 +111,9 @@ THE SOFTWARE.
     }
   });
 
-  // node_modules/ms/index.js
+  // ../../../../../apps/family-pilot/node_modules/ms/index.js
   var require_ms = __commonJS({
-    "node_modules/ms/index.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/ms/index.js"(exports, module) {
       var s = 1e3;
       var m = s * 60;
       var h = m * 60;
@@ -227,9 +227,9 @@ THE SOFTWARE.
     }
   });
 
-  // node_modules/debug/src/common.js
+  // ../../../../../apps/family-pilot/node_modules/debug/src/common.js
   var require_common = __commonJS({
-    "node_modules/debug/src/common.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/debug/src/common.js"(exports, module) {
       function setup(env) {
         createDebug.debug = createDebug;
         createDebug.default = createDebug;
@@ -239,8 +239,8 @@ THE SOFTWARE.
         createDebug.enabled = enabled2;
         createDebug.humanize = require_ms();
         createDebug.destroy = destroy;
-        Object.keys(env).forEach((key8) => {
-          createDebug[key8] = env[key8];
+        Object.keys(env).forEach((key9) => {
+          createDebug[key9] = env[key9];
         });
         createDebug.names = [];
         createDebug.skips = [];
@@ -275,12 +275,12 @@ THE SOFTWARE.
               args.unshift("%O");
             }
             let index = 0;
-            args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format) => {
+            args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format2) => {
               if (match === "%%") {
                 return "%";
               }
               index++;
-              const formatter = createDebug.formatters[format];
+              const formatter = createDebug.formatters[format2];
               if (typeof formatter === "function") {
                 const val = args[index];
                 match = formatter.call(self2, val);
@@ -404,9 +404,9 @@ THE SOFTWARE.
     }
   });
 
-  // node_modules/debug/src/browser.js
+  // ../../../../../apps/family-pilot/node_modules/debug/src/browser.js
   var require_browser = __commonJS({
-    "node_modules/debug/src/browser.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/debug/src/browser.js"(exports, module) {
       exports.formatArgs = formatArgs;
       exports.save = save;
       exports.load = load;
@@ -574,9 +574,9 @@ THE SOFTWARE.
     }
   });
 
-  // node_modules/events/events.js
+  // ../../../../../apps/family-pilot/node_modules/events/events.js
   var require_events = __commonJS({
-    "node_modules/events/events.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/events/events.js"(exports, module) {
       "use strict";
       var R = typeof Reflect === "object" ? Reflect : null;
       var ReflectApply = R && typeof R.apply === "function" ? R.apply : function ReflectApply2(target, receiver, args) {
@@ -819,11 +819,11 @@ THE SOFTWARE.
         }
         if (arguments.length === 0) {
           var keys = Object.keys(events);
-          var key8;
+          var key9;
           for (i = 0; i < keys.length; ++i) {
-            key8 = keys[i];
-            if (key8 === "removeListener") continue;
-            this.removeAllListeners(key8);
+            key9 = keys[i];
+            if (key9 === "removeListener") continue;
+            this.removeAllListeners(key9);
           }
           this.removeAllListeners("removeListener");
           this._events = /* @__PURE__ */ Object.create(null);
@@ -943,16 +943,16 @@ THE SOFTWARE.
     }
   });
 
-  // node_modules/events-universal/default.js
+  // ../../../../../apps/family-pilot/node_modules/events-universal/default.js
   var require_default = __commonJS({
-    "node_modules/events-universal/default.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/events-universal/default.js"(exports, module) {
       module.exports = require_events();
     }
   });
 
-  // node_modules/fast-fifo/fixed-size.js
+  // ../../../../../apps/family-pilot/node_modules/fast-fifo/fixed-size.js
   var require_fixed_size = __commonJS({
-    "node_modules/fast-fifo/fixed-size.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/fast-fifo/fixed-size.js"(exports, module) {
       module.exports = class FixedFIFO {
         constructor(hwm) {
           if (!(hwm > 0) || (hwm - 1 & hwm) !== 0) throw new Error("Max size for a FixedFIFO should be a power of two");
@@ -990,9 +990,9 @@ THE SOFTWARE.
     }
   });
 
-  // node_modules/fast-fifo/index.js
+  // ../../../../../apps/family-pilot/node_modules/fast-fifo/index.js
   var require_fast_fifo = __commonJS({
-    "node_modules/fast-fifo/index.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/fast-fifo/index.js"(exports, module) {
       var FixedFIFO = require_fixed_size();
       module.exports = class FastFIFO {
         constructor(hwm) {
@@ -1037,9 +1037,9 @@ THE SOFTWARE.
     }
   });
 
-  // node_modules/b4a/lib/ascii.js
+  // ../../../../../apps/family-pilot/node_modules/b4a/lib/ascii.js
   var require_ascii = __commonJS({
-    "node_modules/b4a/lib/ascii.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/b4a/lib/ascii.js"(exports, module) {
       function byteLength(string) {
         return string.length;
       }
@@ -1066,9 +1066,9 @@ THE SOFTWARE.
     }
   });
 
-  // node_modules/b4a/lib/base64.js
+  // ../../../../../apps/family-pilot/node_modules/b4a/lib/base64.js
   var require_base64 = __commonJS({
-    "node_modules/b4a/lib/base64.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/b4a/lib/base64.js"(exports, module) {
       var alphabet2 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
       var codes = new Uint8Array(256);
       for (let i = 0; i < alphabet2.length; i++) {
@@ -1122,9 +1122,9 @@ THE SOFTWARE.
     }
   });
 
-  // node_modules/b4a/lib/hex.js
+  // ../../../../../apps/family-pilot/node_modules/b4a/lib/hex.js
   var require_hex = __commonJS({
-    "node_modules/b4a/lib/hex.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/b4a/lib/hex.js"(exports, module) {
       function byteLength(string) {
         return string.length >>> 1;
       }
@@ -1166,9 +1166,9 @@ THE SOFTWARE.
     }
   });
 
-  // node_modules/b4a/lib/latin1.js
+  // ../../../../../apps/family-pilot/node_modules/b4a/lib/latin1.js
   var require_latin1 = __commonJS({
-    "node_modules/b4a/lib/latin1.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/b4a/lib/latin1.js"(exports, module) {
       function byteLength(string) {
         return string.length;
       }
@@ -1195,9 +1195,9 @@ THE SOFTWARE.
     }
   });
 
-  // node_modules/b4a/lib/utf8.js
+  // ../../../../../apps/family-pilot/node_modules/b4a/lib/utf8.js
   var require_utf8 = __commonJS({
-    "node_modules/b4a/lib/utf8.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/b4a/lib/utf8.js"(exports, module) {
       function byteLength(string) {
         let length2 = 0;
         for (let i = 0, n = string.length; i < n; i++) {
@@ -1265,9 +1265,9 @@ THE SOFTWARE.
       }
       var write;
       if (typeof TextEncoder !== "undefined") {
-        const encoder4 = new TextEncoder();
+        const encoder5 = new TextEncoder();
         write = function write2(buffer, string) {
-          return encoder4.encodeInto(string, buffer).written;
+          return encoder5.encodeInto(string, buffer).written;
         };
       } else {
         write = function write2(buffer, string) {
@@ -1314,9 +1314,9 @@ THE SOFTWARE.
     }
   });
 
-  // node_modules/b4a/lib/utf16le.js
+  // ../../../../../apps/family-pilot/node_modules/b4a/lib/utf16le.js
   var require_utf16le = __commonJS({
-    "node_modules/b4a/lib/utf16le.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/b4a/lib/utf16le.js"(exports, module) {
       function byteLength(string) {
         return string.length * 2;
       }
@@ -1349,9 +1349,9 @@ THE SOFTWARE.
     }
   });
 
-  // node_modules/b4a/browser.js
+  // ../../../../../apps/family-pilot/node_modules/b4a/browser.js
   var require_browser2 = __commonJS({
-    "node_modules/b4a/browser.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/b4a/browser.js"(exports, module) {
       var ascii2 = require_ascii();
       var base64 = require_base64();
       var hex3 = require_hex();
@@ -1395,18 +1395,18 @@ THE SOFTWARE.
           return false;
         }
       }
-      function alloc(size2, fill2, encoding) {
-        const buffer = new Uint8Array(size2);
+      function alloc(size3, fill2, encoding) {
+        const buffer = new Uint8Array(size3);
         if (fill2 !== void 0) {
           exports.fill(buffer, fill2, 0, buffer.byteLength, encoding);
         }
         return buffer;
       }
-      function allocUnsafe(size2) {
-        return new Uint8Array(size2);
+      function allocUnsafe(size3) {
+        return new Uint8Array(size3);
       }
-      function allocUnsafeSlow(size2) {
-        return new Uint8Array(size2);
+      function allocUnsafeSlow(size3) {
+        return new Uint8Array(size3);
       }
       function byteLength(string, encoding) {
         return codecFor(encoding).byteLength(string);
@@ -1796,9 +1796,9 @@ THE SOFTWARE.
     }
   });
 
-  // node_modules/text-decoder/lib/pass-through-decoder.js
+  // ../../../../../apps/family-pilot/node_modules/text-decoder/lib/pass-through-decoder.js
   var require_pass_through_decoder = __commonJS({
-    "node_modules/text-decoder/lib/pass-through-decoder.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/text-decoder/lib/pass-through-decoder.js"(exports, module) {
       var b4a = require_browser2();
       module.exports = class PassThroughDecoder {
         constructor(encoding) {
@@ -1817,9 +1817,9 @@ THE SOFTWARE.
     }
   });
 
-  // node_modules/text-decoder/lib/utf8-decoder.js
+  // ../../../../../apps/family-pilot/node_modules/text-decoder/lib/utf8-decoder.js
   var require_utf8_decoder = __commonJS({
-    "node_modules/text-decoder/lib/utf8-decoder.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/text-decoder/lib/utf8-decoder.js"(exports, module) {
       var b4a = require_browser2();
       module.exports = class UTF8Decoder {
         constructor() {
@@ -1964,9 +1964,9 @@ THE SOFTWARE.
     }
   });
 
-  // node_modules/text-decoder/index.js
+  // ../../../../../apps/family-pilot/node_modules/text-decoder/index.js
   var require_text_decoder = __commonJS({
-    "node_modules/text-decoder/index.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/text-decoder/index.js"(exports, module) {
       var PassThroughDecoder = require_pass_through_decoder();
       var UTF8Decoder = require_utf8_decoder();
       module.exports = class TextDecoder {
@@ -2026,9 +2026,9 @@ THE SOFTWARE.
     }
   });
 
-  // node_modules/streamx/lib/errors.js
+  // ../../../../../apps/family-pilot/node_modules/streamx/lib/errors.js
   var require_errors = __commonJS({
-    "node_modules/streamx/lib/errors.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/streamx/lib/errors.js"(exports, module) {
       module.exports = class StreamError extends Error {
         constructor(msg, code, fn = StreamError) {
           super(msg);
@@ -2068,9 +2068,9 @@ THE SOFTWARE.
     }
   });
 
-  // node_modules/streamx/index.js
+  // ../../../../../apps/family-pilot/node_modules/streamx/index.js
   var require_streamx = __commonJS({
-    "node_modules/streamx/index.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/streamx/index.js"(exports, module) {
       var { EventEmitter: EventEmitter2 } = require_default();
       var FIFO = require_fast_fifo();
       var TextDecoder4 = require_text_decoder();
@@ -3099,9 +3099,9 @@ THE SOFTWARE.
     }
   });
 
-  // node_modules/throughput/index.js
+  // ../../../../../apps/family-pilot/node_modules/throughput/index.js
   var require_throughput = __commonJS({
-    "node_modules/throughput/index.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/throughput/index.js"(exports, module) {
       var hrtime = typeof process !== "undefined" && !!process.hrtime;
       var maxTick = 65535;
       var resolution = 10;
@@ -3115,32 +3115,32 @@ THE SOFTWARE.
       }
       module.exports = function(seconds) {
         const start = now();
-        const size2 = resolution * (seconds || 5);
+        const size3 = resolution * (seconds || 5);
         const buffer = [0];
         let pointer = 1;
         let last2 = getTick(start) - 1 & maxTick;
         return function(delta) {
           const tick = getTick(start);
           let dist = tick - last2 & maxTick;
-          if (dist > size2) dist = size2;
+          if (dist > size3) dist = size3;
           last2 = tick;
           while (dist--) {
-            if (pointer === size2) pointer = 0;
-            buffer[pointer] = buffer[pointer === 0 ? size2 - 1 : pointer - 1];
+            if (pointer === size3) pointer = 0;
+            buffer[pointer] = buffer[pointer === 0 ? size3 - 1 : pointer - 1];
             pointer++;
           }
           if (delta) buffer[pointer - 1] += delta;
           const top = buffer[pointer - 1];
-          const btm = buffer.length < size2 ? 0 : buffer[pointer === size2 ? 0 : pointer];
+          const btm = buffer.length < size3 ? 0 : buffer[pointer === size3 ? 0 : pointer];
           return buffer.length < resolution ? top : (top - btm) * resolution / buffer.length;
         };
       };
     }
   });
 
-  // node_modules/unordered-array-remove/index.js
+  // ../../../../../apps/family-pilot/node_modules/unordered-array-remove/index.js
   var require_unordered_array_remove = __commonJS({
-    "node_modules/unordered-array-remove/index.js"(exports, module) {
+    "../../../../../apps/family-pilot/node_modules/unordered-array-remove/index.js"(exports, module) {
       module.exports = remove;
       function remove(arr, i) {
         if (i >= arr.length || i < 0) return;
@@ -3262,7 +3262,7 @@ THE SOFTWARE.
   // src/authority.ts
   var import_canonicalize = __toESM(require_canonicalize(), 1);
 
-  // node_modules/@noble/hashes/_u64.js
+  // ../../../../../apps/family-pilot/node_modules/@noble/hashes/_u64.js
   var U32_MASK64 = /* @__PURE__ */ (() => BigInt(2 ** 32 - 1))();
   var _32n = /* @__PURE__ */ BigInt(32);
   function fromBig(n, le = false) {
@@ -3305,7 +3305,7 @@ THE SOFTWARE.
   var add5L = (Al, Bl, Cl, Dl, El) => (Al >>> 0) + (Bl >>> 0) + (Cl >>> 0) + (Dl >>> 0) + (El >>> 0);
   var add5H = (low, Ah, Bh, Ch, Dh, Eh) => Ah + Bh + Ch + Dh + Eh + (low / 2 ** 32 | 0) | 0;
 
-  // node_modules/@noble/hashes/utils.js
+  // ../../../../../apps/family-pilot/node_modules/@noble/hashes/utils.js
   function isBytes(a) {
     return a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array" && "BYTES_PER_ELEMENT" in a && a.BYTES_PER_ELEMENT === 1;
   }
@@ -3322,11 +3322,11 @@ THE SOFTWARE.
       return value;
     if (length2 !== void 0)
       anumber(length2, "length");
-    const bytes8 = isBytes(value);
+    const bytes9 = isBytes(value);
     const ofLen = length2 !== void 0 ? ` of length ${length2}` : "";
-    const got = bytes8 ? `length=${value.length}` : `type=${typeof value}`;
+    const got = bytes9 ? `length=${value.length}` : `type=${typeof value}`;
     const message2 = atitle(title) + "expected Uint8Array" + ofLen + ", got " + got;
-    if (!bytes8)
+    if (!bytes9)
       throw new TypeError(message2);
     throw new RangeError(message2);
   }
@@ -3368,13 +3368,13 @@ THE SOFTWARE.
     typeof Uint8Array.from([]).toHex === "function" && typeof Uint8Array.fromHex === "function"
   ))();
   var hexes = /* @__PURE__ */ Array.from({ length: 256 }, (_, i) => i.toString(16).padStart(2, "0"));
-  function bytesToHex(bytes8) {
-    abytes(bytes8);
+  function bytesToHex(bytes9) {
+    abytes(bytes9);
     if (hasHexBuiltin)
-      return bytes8.toHex();
+      return bytes9.toHex();
     let hex3 = "";
-    for (let i = 0; i < bytes8.length; i++) {
-      hex3 += hexes[bytes8[i]];
+    for (let i = 0; i < bytes9.length; i++) {
+      hex3 += hexes[bytes9[i]];
     }
     return hex3;
   }
@@ -3459,7 +3459,7 @@ THE SOFTWARE.
     oid: Uint8Array.from([6, 9, 96, 134, 72, 1, 101, 3, 4, 2, suffix])
   });
 
-  // node_modules/@noble/hashes/_md.js
+  // ../../../../../apps/family-pilot/node_modules/@noble/hashes/_md.js
   var HashMD = class {
     blockLen;
     outputLen;
@@ -3574,7 +3574,7 @@ THE SOFTWARE.
     327033209
   ]);
 
-  // node_modules/@noble/hashes/sha2.js
+  // ../../../../../apps/family-pilot/node_modules/@noble/hashes/sha2.js
   var K512 = /* @__PURE__ */ (() => split([
     "0x428a2f98d728ae22",
     "0x7137449123ef65cd",
@@ -3808,7 +3808,7 @@ THE SOFTWARE.
     /* @__PURE__ */ oidNist(3)
   );
 
-  // node_modules/@noble/curves/utils.js
+  // ../../../../../apps/family-pilot/node_modules/@noble/curves/utils.js
   function aarray(item, title, inner = () => {
   }) {
     if (!Array.isArray(item))
@@ -3865,11 +3865,11 @@ THE SOFTWARE.
       throw new TypeError("hex string expected, got " + typeof hex3);
     return hex3 === "" ? _0n : BigInt("0x" + hex3);
   }
-  function bytesToNumberBE(bytes8) {
-    return hexToNumber(bytesToHex(bytes8));
+  function bytesToNumberBE(bytes9) {
+    return hexToNumber(bytesToHex(bytes9));
   }
-  function bytesToNumberLE(bytes8) {
-    return hexToNumber(bytesToHex(copyBytes(abytes(bytes8)).reverse()));
+  function bytesToNumberLE(bytes9) {
+    return hexToNumber(bytesToHex(copyBytes(abytes(bytes9)).reverse()));
   }
   function numberToBytesBE(n, len) {
     anumber(len);
@@ -3885,8 +3885,8 @@ THE SOFTWARE.
   function numberToBytesLE(n, len) {
     return numberToBytesBE(n, len).reverse();
   }
-  function copyBytes(bytes8) {
-    return Uint8Array.from(abytes2(bytes8));
+  function copyBytes(bytes9) {
+    return Uint8Array.from(abytes2(bytes9));
   }
   function isPosBig(n) {
     return typeof n === "bigint" && _0n <= n;
@@ -3928,7 +3928,7 @@ THE SOFTWARE.
     iter(optFields, true);
   }
 
-  // node_modules/@noble/curves/abstract/modular.js
+  // ../../../../../apps/family-pilot/node_modules/@noble/curves/abstract/modular.js
   var _0n2 = /* @__PURE__ */ BigInt(0);
   var _1n2 = /* @__PURE__ */ BigInt(1);
   var _2n = /* @__PURE__ */ BigInt(2);
@@ -4319,20 +4319,20 @@ THE SOFTWARE.
     toBytes(num) {
       return this.isLE ? numberToBytesLE(num, this.BYTES) : numberToBytesBE(num, this.BYTES);
     }
-    fromBytes(bytes8, skipValidation = false) {
-      abytes2(bytes8);
+    fromBytes(bytes9, skipValidation = false) {
+      abytes2(bytes9);
       const { _lengths: allowedLengths, BYTES, isLE, ORDER, _mod: modFromBytes } = this;
       if (allowedLengths) {
-        if (bytes8.length < 1 || !allowedLengths.includes(bytes8.length) || bytes8.length > BYTES) {
-          throw new Error("Field.fromBytes: expected " + allowedLengths + " bytes, got " + bytes8.length);
+        if (bytes9.length < 1 || !allowedLengths.includes(bytes9.length) || bytes9.length > BYTES) {
+          throw new Error("Field.fromBytes: expected " + allowedLengths + " bytes, got " + bytes9.length);
         }
         const padded = new Uint8Array(BYTES);
-        padded.set(bytes8, isLE ? 0 : padded.length - bytes8.length);
-        bytes8 = padded;
+        padded.set(bytes9, isLE ? 0 : padded.length - bytes9.length);
+        bytes9 = padded;
       }
-      if (bytes8.length !== BYTES)
-        throw new Error("Field.fromBytes: expected " + BYTES + " bytes, got " + bytes8.length);
-      let scalar = isLE ? bytesToNumberLE(bytes8) : bytesToNumberBE(bytes8);
+      if (bytes9.length !== BYTES)
+        throw new Error("Field.fromBytes: expected " + BYTES + " bytes, got " + bytes9.length);
+      let scalar = isLE ? bytesToNumberLE(bytes9) : bytesToNumberBE(bytes9);
       if (modFromBytes)
         scalar = mod(scalar, ORDER);
       if (!skipValidation) {
@@ -4357,7 +4357,7 @@ THE SOFTWARE.
     return new _Field(ORDER, opts);
   }
 
-  // node_modules/@noble/curves/abstract/curve.js
+  // ../../../../../apps/family-pilot/node_modules/@noble/curves/abstract/curve.js
   var _0n3 = /* @__PURE__ */ BigInt(0);
   var _1n3 = /* @__PURE__ */ BigInt(1);
   var _4n2 = /* @__PURE__ */ BigInt(4);
@@ -4388,9 +4388,9 @@ THE SOFTWARE.
       throw new Error("invalid window size, expected [" + min + ".." + bits + "], got W=" + W);
   }
   function validateTableBytes(numPoints, fpBytes) {
-    const bytes8 = numPoints * (4 * fpBytes + 128);
-    if (bytes8 > TABLE_BYTES_MAX)
-      throw new Error("invalid window size: table would need ~" + Math.ceil(bytes8 / 2 ** 20) + " MiB, max " + TABLE_BYTES_MAX / 2 ** 20 + " MiB");
+    const bytes9 = numPoints * (4 * fpBytes + 128);
+    if (bytes9 > TABLE_BYTES_MAX)
+      throw new Error("invalid window size: table would need ~" + Math.ceil(bytes9 / 2 ** 20) + " MiB, max " + TABLE_BYTES_MAX / 2 ** 20 + " MiB");
   }
   function probeRandomBytes(randomBytes4, length2) {
     if (randomBytes4 === void 0)
@@ -4425,24 +4425,24 @@ THE SOFTWARE.
   function getWindowSize(P) {
     return pointWindowSizes.get(P) || 1;
   }
-  function oddMultiples(p, size2) {
+  function oddMultiples(p, size3) {
     const dbl = p.double();
     const t = [p];
-    for (let j = 1; j < size2; j++)
+    for (let j = 1; j < size3; j++)
       t.push(t[j - 1].add(dbl));
     return t;
   }
   function wnafDigits(n, W) {
-    const size2 = 2 ** W;
-    const half = size2 / 2;
-    const mask = BigInt(size2 - 1);
+    const size3 = 2 ** W;
+    const half = size3 / 2;
+    const mask = BigInt(size3 - 1);
     const d = [];
     while (n > _0n3) {
       let w = 0;
       if (n & _1n3) {
         w = Number(n & mask);
         if (w >= half)
-          w -= size2;
+          w -= size3;
         n -= BigInt(w);
       }
       d.push(w);
@@ -4451,16 +4451,16 @@ THE SOFTWARE.
     return d;
   }
   function signedWindowDigits(n, W, windows) {
-    const size2 = 2 ** W;
-    const half = size2 / 2;
-    const mask = BigInt(size2 - 1);
+    const size3 = 2 ** W;
+    const half = size3 / 2;
+    const mask = BigInt(size3 - 1);
     const shiftBy = BigInt(W);
     const d = [];
     for (let w = 0; w < windows; w++) {
       let v = Number(n & mask);
       n >>= shiftBy;
       if (v > half) {
-        v -= size2;
+        v -= size3;
         n += _1n3;
       }
       d.push(v);
@@ -4631,11 +4631,11 @@ THE SOFTWARE.
      */
     fixedWindowCT(point, n, bits) {
       const W = FW_WINDOW;
-      const size2 = 1 << W;
+      const size3 = 1 << W;
       const mask = bitMask(W);
-      const table = new Array(size2);
+      const table = new Array(size3);
       table[0] = this.ZERO;
-      for (let i = 1; i < size2; i++)
+      for (let i = 1; i < size3; i++)
         table[i] = table[i - 1].add(point);
       const windows = Math.ceil(bits / W);
       let acc = this.ZERO;
@@ -4645,7 +4645,7 @@ THE SOFTWARE.
             acc = acc.double();
         const digit = Number(n >> BigInt(window2 * W) & mask);
         let sel = table[0];
-        for (let i = 1; i < size2; i++)
+        for (let i = 1; i < size3; i++)
           sel = i === digit ? table[i] : sel;
         acc = acc.add(sel);
       }
@@ -4744,7 +4744,7 @@ THE SOFTWARE.
     };
   }
 
-  // node_modules/@noble/curves/abstract/edwards.js
+  // ../../../../../apps/family-pilot/node_modules/@noble/curves/abstract/edwards.js
   var _0n4 = /* @__PURE__ */ BigInt(0);
   var _1n4 = /* @__PURE__ */ BigInt(1);
   var _2n2 = /* @__PURE__ */ BigInt(2);
@@ -4828,13 +4828,13 @@ THE SOFTWARE.
         return new Point(x, y, Fp2.ONE, Fp2.mul(x, y));
       }
       // Uses algo from RFC8032 5.1.3.
-      static fromBytes(bytes8, zip215 = false) {
+      static fromBytes(bytes9, zip215 = false) {
         const len = Fp2.BYTES;
         const { a, d } = CURVE;
-        bytes8 = copyBytes(abytes2(bytes8, len, "point"));
+        bytes9 = copyBytes(abytes2(bytes9, len, "point"));
         abool(zip215, "zip215");
-        const normed = copyBytes(bytes8);
-        const lastByte = bytes8[len - 1];
+        const normed = copyBytes(bytes9);
+        const lastByte = bytes9[len - 1];
         normed[len - 1] = lastByte & ~128;
         const y = bytesToNumberLE(normed);
         const max = zip215 ? MASK : Fp2.ORDER;
@@ -5018,9 +5018,9 @@ THE SOFTWARE.
       }
       toBytes() {
         const { x, y } = this.toAffine();
-        const bytes8 = Fp2.toBytes(y);
-        bytes8[bytes8.length - 1] |= isOdd(x) ? 128 : 0;
-        return bytes8;
+        const bytes9 = Fp2.toBytes(y);
+        bytes9[bytes9.length - 1] |= isOdd(x) ? 128 : 0;
+        return bytes9;
       }
       toHex() {
         return bytesToHex2(this.toBytes());
@@ -5065,7 +5065,7 @@ THE SOFTWARE.
     const randomBytes4 = opts.randomBytes === void 0 ? randomBytes2 : opts.randomBytes;
     const toMontgomery2 = opts.toMontgomery;
     const toMontgomerySecret2 = opts.toMontgomerySecret;
-    const adjustScalarBytes2 = opts.adjustScalarBytes === void 0 ? (bytes8) => bytes8 : opts.adjustScalarBytes;
+    const adjustScalarBytes2 = opts.adjustScalarBytes === void 0 ? (bytes9) => bytes9 : opts.adjustScalarBytes;
     const domain = opts.domain === void 0 ? (data, ctx, phflag) => {
       abool(phflag, "phflag");
       if (ctx.length || phflag)
@@ -5075,10 +5075,10 @@ THE SOFTWARE.
     function modN_LE(hash2) {
       return Fn.create(bytesToNumberLE(hash2));
     }
-    function getPrivateScalar(key8) {
+    function getPrivateScalar(key9) {
       const len = lengths.secretKey;
-      abytes2(key8, lengths.secretKey, "secretKey");
-      const hashed = abytes2(hash(key8), 2 * len, "hashedSecretKey");
+      abytes2(key9, lengths.secretKey, "secretKey");
+      const hashed = abytes2(hash(key9), 2 * len, "hashedSecretKey");
       const head = adjustScalarBytes2(hashed.slice(0, len));
       const prefix = hashed.slice(len, 2 * len);
       const scalar = modN_LE(head);
@@ -5155,12 +5155,12 @@ THE SOFTWARE.
       seed = seed === void 0 ? randomBytes4(lengths.seed) : seed;
       return abytes2(seed, lengths.seed, "seed");
     }
-    function isValidSecretKey(key8) {
-      return isBytes2(key8) && key8.length === lengths.secretKey;
+    function isValidSecretKey(key9) {
+      return isBytes2(key9) && key9.length === lengths.secretKey;
     }
-    function isValidPublicKey(key8, zip215) {
+    function isValidPublicKey(key9, zip215) {
       try {
-        return !!Point.fromBytes(key8, zip215 === void 0 ? verifyOpts.zip215 : zip215);
+        return !!Point.fromBytes(key9, zip215 === void 0 ? verifyOpts.zip215 : zip215);
       } catch (error) {
         return false;
       }
@@ -5195,7 +5195,7 @@ THE SOFTWARE.
     });
   }
 
-  // node_modules/@noble/curves/ed25519.js
+  // ../../../../../apps/family-pilot/node_modules/@noble/curves/ed25519.js
   var _1n5 = /* @__PURE__ */ BigInt(1);
   var _2n3 = /* @__PURE__ */ BigInt(2);
   var _5n2 = /* @__PURE__ */ BigInt(5);
@@ -5227,11 +5227,11 @@ THE SOFTWARE.
     const pow_p_5_8 = pow2(b250, _2n3, P) * x % P;
     return { pow_p_5_8, b2 };
   }
-  function adjustScalarBytes(bytes8) {
-    bytes8[0] &= 248;
-    bytes8[31] &= 127;
-    bytes8[31] |= 64;
-    return bytes8;
+  function adjustScalarBytes(bytes9) {
+    bytes9[0] &= 248;
+    bytes9[31] &= 127;
+    bytes9[31] |= 64;
+    return bytes9;
   }
   var ED25519_SQRT_M1 = /* @__PURE__ */ BigInt("19681161376707505956807079304988542015446066515923890162744021073123829784752");
   function uvRatio(u, v) {
@@ -5261,9 +5261,9 @@ THE SOFTWARE.
     return Fp.toBytes(Fp.div(_1n5 + y, _1n5 - y));
   }
   function toMontgomerySecret(secretKey) {
-    const size2 = ed25519_Point.Fp.BYTES;
-    abytes(secretKey, size2);
-    return adjustScalarBytes(sha512(secretKey.subarray(0, size2))).subarray(0, size2);
+    const size3 = ed25519_Point.Fp.BYTES;
+    abytes(secretKey, size3);
+    return adjustScalarBytes(sha512(secretKey.subarray(0, size3))).subarray(0, size3);
   }
   function ed(opts) {
     return eddsa(ed25519_Point, sha512, Object.assign({ adjustScalarBytes, toMontgomery, toMontgomerySecret, zip215: true }, opts));
@@ -5271,16 +5271,16 @@ THE SOFTWARE.
   var ed25519 = /* @__PURE__ */ ed({});
 
   // source-signature.mjs
-  var b64 = (bytes8) => btoa(String.fromCharCode(...bytes8)).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+  var b64 = (bytes9) => btoa(String.fromCharCode(...bytes9)).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
   var unb64 = (text2) => Uint8Array.from(atob(text2.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
-  function verifySourceSignature(signature, message2, sourceKey2) {
+  function verifySourceSignature(signature2, message2, sourceKey2) {
     try {
-      if (!/^[A-Za-z0-9_-]{86}$/.test(signature) || !/^[A-Za-z0-9_-]{43}$/.test(sourceKey2))
+      if (!/^[A-Za-z0-9_-]{86}$/.test(signature2) || !/^[A-Za-z0-9_-]{43}$/.test(sourceKey2))
         return false;
-      const sig2 = unb64(signature), key8 = unb64(sourceKey2);
-      if (sig2.length !== 64 || key8.length !== 32 || b64(sig2) !== signature || b64(key8) !== sourceKey2)
+      const sig2 = unb64(signature2), key9 = unb64(sourceKey2);
+      if (sig2.length !== 64 || key9.length !== 32 || b64(sig2) !== signature2 || b64(key9) !== sourceKey2)
         return false;
-      return ed25519.verify(sig2, message2, key8, { zip215: false });
+      return ed25519.verify(sig2, message2, key9, { zip215: false });
     } catch {
       return false;
     }
@@ -5288,7 +5288,7 @@ THE SOFTWARE.
 
   // src/authority.ts
   var encoder = new TextEncoder();
-  var b642 = (bytes8) => btoa(String.fromCharCode(...bytes8)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  var b642 = (bytes9) => btoa(String.fromCharCode(...bytes9)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   var randomKey = () => b642(crypto.getRandomValues(new Uint8Array(32)));
   var encode = (value) => encoder.encode((0, import_canonicalize.default)(value) || "");
   var integer = (n, min, max) => typeof n === "number" && Number.isSafeInteger(n) && n >= min && n <= max;
@@ -5350,12 +5350,12 @@ THE SOFTWARE.
     const unique = /* @__PURE__ */ new Set();
     for (const o of head.objects) {
       validateDescriptor(o);
-      const key8 = o.kind + ":" + o.sequence;
-      if (unique.has(key8)) throw Error("Duplicate media sequence");
-      unique.add(key8);
+      const key9 = o.kind + ":" + o.sequence;
+      if (unique.has(key9)) throw Error("Duplicate media sequence");
+      unique.add(key9);
     }
-    const { signature, ...unsigned } = head;
-    if (!verifySourceSignature(signature, encode(unsigned), sourceKey2))
+    const { signature: signature2, ...unsigned } = head;
+    if (!verifySourceSignature(signature2, encode(unsigned), sourceKey2))
       throw Error("Source signature rejected");
     return head;
   }
@@ -5374,17 +5374,17 @@ THE SOFTWARE.
   var verifiedSignatures = /* @__PURE__ */ new Map();
   var SIGNATURE_CACHE_LIMIT = 64;
   var SIGNED_PAYLOAD_CACHE_BYTES = 1024;
-  function verifyClipSignature(signature, card, sourceKey2) {
+  function verifyClipSignature(signature2, card, sourceKey2) {
     const canonical = (0, import_canonicalize2.default)({ domain: "same-end.clip-card.v1", card }) || "";
     const signedBytes = new TextEncoder().encode(canonical);
-    const candidate = typeof signature === "string" && signature.length <= 128 && signedBytes.length <= SIGNED_PAYLOAD_CACHE_BYTES ? JSON.stringify([sourceKey2, signature, canonical]) : void 0;
+    const candidate = typeof signature2 === "string" && signature2.length <= 128 && signedBytes.length <= SIGNED_PAYLOAD_CACHE_BYTES ? JSON.stringify([sourceKey2, signature2, canonical]) : void 0;
     const cacheKey = candidate && candidate.length <= SIGNED_PAYLOAD_CACHE_BYTES ? candidate : void 0;
     if (cacheKey && verifiedSignatures.has(cacheKey)) {
       verifiedSignatures.delete(cacheKey);
       verifiedSignatures.set(cacheKey, true);
       return true;
     }
-    if (!verifySourceSignature(signature, signedBytes, sourceKey2)) return false;
+    if (!verifySourceSignature(signature2, signedBytes, sourceKey2)) return false;
     if (cacheKey) {
       if (verifiedSignatures.size >= SIGNATURE_CACHE_LIMIT) verifiedSignatures.delete(verifiedSignatures.keys().next().value);
       verifiedSignatures.set(cacheKey, true);
@@ -5399,8 +5399,8 @@ THE SOFTWARE.
     if (!exact2(c, ["type", "version", "roomId", "sourceKey", "clipId", "caption", "issuedAtMs", "expiresAtMs", "durationMs", "totalBytes", "objectCount", "manifest", "signature"]) || c.type !== "clip-card" || c.version !== "semk2-clip/1" || c.roomId !== roomId2 || c.sourceKey !== sourceKey2 || !key(sourceKey2) || !key(c.clipId) || typeof c.caption !== "string" || !c.caption.trim() || c.caption.length > 120 || !integer2(c.issuedAtMs, 0, Number.MAX_SAFE_INTEGER) || !integer2(c.expiresAtMs, c.issuedAtMs, Number.MAX_SAFE_INTEGER) || c.expiresAtMs - c.issuedAtMs > CLIP_MAX_AGE || c.expiresAtMs <= now || c.issuedAtMs > now + 6e4 || !integer2(c.durationMs, 1, 18e4) || !integer2(c.totalBytes, 1, CLIP_MAX_BYTES) || !integer2(c.objectCount, 2, CLIP_MAX_OBJECTS)) throw Error("Invalid clip card");
     const d = c.manifest;
     if (!exact2(d, ["kind", "track", "sequence", "mediaStartMs", "durationMs", "mime", "codecConfigId", "lengthBytes", "infoHash", "sha256"]) || d.kind !== "init" || d.track !== "muxed" || d.sequence !== 0 || d.mediaStartMs !== 0 || d.durationMs !== 0 || d.mime !== CLIP_MANIFEST_MIME || d.codecConfigId !== "clip-manifest/1" || !integer2(d.lengthBytes, 1, 65536) || typeof d.infoHash !== "string" || !/^[a-f0-9]{40}$/.test(d.infoHash) || typeof d.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(d.sha256) || c.totalBytes + d.lengthBytes > CLIP_MAX_BYTES) throw Error("Invalid clip manifest reference");
-    const { signature, ...unsigned } = c;
-    if (!verifyClipSignature(signature, unsigned, sourceKey2)) throw Error("Clip signature rejected");
+    const { signature: signature2, ...unsigned } = c;
+    if (!verifyClipSignature(signature2, unsigned, sourceKey2)) throw Error("Clip signature rejected");
     return c;
   }
   function validateClipManifest(value, card) {
@@ -5439,8 +5439,8 @@ THE SOFTWARE.
   var payload2 = (card) => encode2({ domain: card.version === "semk2-clip-still/2" ? "same-end.clip-still-card.v2" : "same-end.clip-still-card.v1", card });
   var exact3 = (v, keys) => !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === keys.length && keys.every((k) => Object.hasOwn(v, k));
   var int = (v, min, max) => typeof v === "number" && Number.isSafeInteger(v) && v >= min && v <= max;
-  async function signClipStillCard(card, key8) {
-    return { ...card, signature: b642(new Uint8Array(await crypto.subtle.sign("Ed25519", key8, payload2(card)))) };
+  async function signClipStillCard(card, key9) {
+    return { ...card, signature: b642(new Uint8Array(await crypto.subtle.sign("Ed25519", key9, payload2(card)))) };
   }
   function validateClipStillCard(value, roomId2, sourceKey2, clip, now = Date.now()) {
     validateClipCard(clip, roomId2, sourceKey2, now);
@@ -5448,8 +5448,8 @@ THE SOFTWARE.
     if (!exact3(c, ["type", "version", "roomId", "sourceKey", "clipId", "manifestSha256", "issuedAtMs", "expiresAtMs", "atMs", "width", "height", "imageDescriptor", "signature"]) || !(c.type === "clip-still-card" && c.version === "semk2-clip-still/1" || c.type === "clip-still-v2-card" && c.version === "semk2-clip-still/2") || c.roomId !== roomId2 || c.sourceKey !== sourceKey2 || c.clipId !== clip.clipId || c.manifestSha256 !== clip.manifest.sha256 || !int(c.issuedAtMs, clip.issuedAtMs, clip.expiresAtMs) || c.issuedAtMs > now + 6e4 || !int(c.expiresAtMs, c.issuedAtMs, clip.expiresAtMs) || c.expiresAtMs <= now || !int(c.atMs, 0, clip.durationMs - 1) || !int(c.width, 1, 640) || !int(c.height, 1, 360) || new TextEncoder().encode(JSON.stringify(c)).length > 4096) throw Error("Invalid clip still card");
     const d = c.imageDescriptor;
     if (!exact3(d, ["kind", "track", "sequence", "mediaStartMs", "durationMs", "mime", "codecConfigId", "lengthBytes", "infoHash", "sha256"]) || d.kind !== "init" || d.track !== "muxed" || d.sequence !== 0 || d.mediaStartMs !== 0 || d.durationMs !== 0 || d.mime !== "image/jpeg" || d.codecConfigId !== "semk2-still/1" || !int(d.lengthBytes, 1, CLIP_STILL_MAX_BYTES) || typeof d.infoHash !== "string" || !/^[a-f0-9]{40}$/.test(d.infoHash) || typeof d.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(d.sha256)) throw Error("Invalid still descriptor");
-    const { signature, ...unsigned } = c;
-    if (!verifySourceSignature(signature, payload2(unsigned), sourceKey2)) throw Error("Still signature rejected");
+    const { signature: signature2, ...unsigned } = c;
+    if (!verifySourceSignature(signature2, payload2(unsigned), sourceKey2)) throw Error("Still signature rejected");
     return c;
   }
 
@@ -5469,6 +5469,12 @@ THE SOFTWARE.
   var VIDEO_TARGET_SECONDS = 180;
   var AUDIO_TARGET_SECONDS = 180;
   var IMAGE_TARGET_SECONDS = 60;
+  var AUDIO_FLOOR = 12e3;
+  var AUDIO_RESERVE_FACTOR = 1.5;
+  var AUDIO_LOW_SECONDS = 0.5;
+  var AUDIO_RECOVER_SECONDS = 1;
+  var AUDIO_HEALTH_TTL = 5e3;
+  var AUDIO_RATE_MAX = 2 * 1024 * 1024;
   var MICRO_BYTES = 32 * 1024;
   var MICRO_EVIDENCE = 64 * 1024;
   var MICRO_WINDOW = 1e4;
@@ -5495,8 +5501,67 @@ THE SOFTWARE.
     lastFallbackProbe = -Infinity;
     lastAudioProbe = -Infinity;
     overshot = false;
+    liveRequired = false;
+    liveCritical = true;
+    liveReason = "live-audio-unavailable";
+    liveAt = -Infinity;
+    liveReserve = AUDIO_FLOOR * AUDIO_RESERVE_FACTOR;
+    /** Feed verified playback-buffer health on the monotonic clock. This does not
+     * estimate spare network capacity. Rate, when known, is AAC payload bytes/sec. */
+    setLiveAudio(input) {
+      if (input?.required === false) {
+        this.liveRequired = false;
+        this.liveCritical = true;
+        this.liveAt = -Infinity;
+        this.liveReason = "live-audio-unavailable";
+        this.liveReserve = AUDIO_FLOOR * AUDIO_RESERVE_FACTOR;
+        return;
+      }
+      const entering = !this.liveRequired;
+      this.liveRequired = true;
+      const rate = input?.rateBytesPerSecond;
+      if (!input || input.required !== true || !validTime(input.atMs) || input.atMs < this.clock || typeof input.stalled !== "boolean" || typeof input.bufferSeconds !== "number" || !Number.isFinite(input.bufferSeconds) || input.bufferSeconds < 0 || input.bufferSeconds > 120 || rate !== void 0 && (!Number.isFinite(rate) || rate < 0 || rate > AUDIO_RATE_MAX)) {
+        this.liveAt = -Infinity;
+        this.liveCritical = true;
+        this.liveReason = "live-audio-unavailable";
+        return;
+      }
+      const wasCritical = entering || this.liveAudioHealth(input.atMs).critical;
+      this.refill(input.atMs);
+      this.clock = input.atMs;
+      if (entering) this.tokens = Math.min(this.tokens, INITIAL);
+      this.liveAt = input.atMs;
+      this.liveReserve = Math.ceil(Math.max(AUDIO_FLOOR, rate ?? 0) * AUDIO_RESERVE_FACTOR);
+      if (input.stalled) {
+        this.liveCritical = true;
+        this.liveReason = "live-audio-stalled";
+      } else if (input.bufferSeconds < AUDIO_LOW_SECONDS) {
+        this.liveCritical = true;
+        this.liveReason = "live-audio-low-buffer";
+      } else if (wasCritical && input.bufferSeconds < AUDIO_RECOVER_SECONDS) {
+        this.liveCritical = true;
+        this.liveReason = "live-audio-recovering";
+      } else {
+        this.liveCritical = false;
+        this.liveReason = "live-audio-healthy";
+      }
+    }
+    /** Invalidate health after a source or path replacement; keep audio required. */
+    resetLiveAudio() {
+      this.liveAt = -Infinity;
+      this.liveCritical = true;
+      this.liveReason = "live-audio-unavailable";
+      this.liveReserve = AUDIO_FLOOR * AUDIO_RESERVE_FACTOR;
+    }
+    liveAudioHealth(now = this.clock) {
+      if (!this.liveRequired) return { required: false, critical: false, reason: "live-audio-not-required", reserveBytesPerSecond: 0 };
+      if (!validTime(now) || now < this.liveAt || now - this.liveAt > AUDIO_HEALTH_TTL) return { required: true, critical: true, reason: "live-audio-health-stale", reserveBytesPerSecond: this.liveReserve };
+      return { required: true, critical: this.liveCritical, reason: this.liveReason, reserveBytesPerSecond: this.liveReserve };
+    }
     /** Full new-room reset only. Old sinks remain invalid after this reset. */
     reset() {
+      this.liveRequired = false;
+      this.resetLiveAudio();
       this.resetMeasurementGeneration();
       this.charges = [];
       this.reservations.clear();
@@ -5508,6 +5573,7 @@ THE SOFTWARE.
     }
     /** New engine: preserve all admissions, reservations, token state and cooldowns. */
     resetMeasurementGeneration() {
+      this.resetLiveAudio();
       this.generation++;
       this.epoch = -1;
       this.highestStartedId = -1;
@@ -5530,10 +5596,13 @@ THE SOFTWARE.
     refill(at) {
       const freshUntil = Math.min(at, this.lastSuccess + RATE_TTL);
       const freshMs = Math.max(0, freshUntil - this.tokenAt);
-      this.tokens = Math.min(HARD, this.tokens + this.rate * 0.5 * freshMs / 1e3);
+      const audio = this.liveAudioHealth(at);
+      const optionalRate = audio.required ? audio.critical ? 0 : Math.max(0, this.rate - audio.reserveBytesPerSecond) : this.rate;
+      this.tokens = Math.min(HARD, this.tokens + optionalRate * 0.5 * freshMs / 1e3);
       this.tokenAt = Math.max(this.tokenAt, at);
     }
     clearPath(epoch) {
+      this.resetLiveAudio();
       this.epoch = epoch;
       this.active.clear();
       this.samples = [];
@@ -5590,8 +5659,8 @@ THE SOFTWARE.
       const current = { start: t.start, end: e.atMs, bytes: t.bytes };
       if (t.bytes < MICRO_BYTES && e.atMs - t.start < 1e3) {
         this.microSamples = [...this.microSamples.filter((s) => s.end > e.atMs - MICRO_WINDOW), current].slice(-MAX_HISTORY);
-        const bytes8 = this.microSamples.reduce((n, s) => n + s.bytes, 0);
-        if (bytes8 < MICRO_EVIDENCE) return;
+        const bytes9 = this.microSamples.reduce((n, s) => n + s.bytes, 0);
+        if (bytes9 < MICRO_EVIDENCE) return;
         const intervals = this.microSamples.map((s) => ({ start: s.start, end: s.end })).sort((a, b) => a.start - b.start);
         let union = 0, start2 = intervals[0].start, end3 = intervals[0].end;
         for (const interval of intervals.slice(1)) {
@@ -5603,10 +5672,10 @@ THE SOFTWARE.
           }
         }
         union += end3 - start2;
-        const aggregate = bytes8 * 1e3 / Math.max(1e3, union);
+        const aggregate = bytes9 * 1e3 / Math.max(1e3, union);
         this.rate = this.rate ? union >= 1e3 && aggregate < this.rate ? aggregate : Math.max(this.rate, this.rate * 0.5 + aggregate * 0.5) : aggregate;
         this.confidence = Math.min(3, this.confidence + 1);
-        this.largestSuccess = Math.max(this.largestSuccess, bytes8);
+        this.largestSuccess = Math.max(this.largestSuccess, bytes9);
         this.lastSuccess = e.atMs;
         this.microSamples = [];
         return;
@@ -5630,7 +5699,8 @@ THE SOFTWARE.
       for (const t of this.active.values()) if (at - t.last >= STALL && at - t.start >= STALL)
         estimated = Math.min(estimated, t.bytes * 1e3 / (at - t.start));
       const confidence = age >= RATE_TTL ? 0 : this.confidence;
-      const allowanceBytes = Math.min(HARD, Math.max(INITIAL, Math.floor(estimated * 300 * 0.5)));
+      const audio = this.liveAudioHealth(at), optionalRate = audio.required ? audio.critical ? 0 : Math.max(0, estimated - audio.reserveBytesPerSecond) : estimated;
+      const allowanceBytes = Math.min(HARD, Math.max(INITIAL, Math.floor(optionalRate * 300 * 0.5)));
       this.tokens = Math.min(this.tokens, allowanceBytes);
       const usedBytes = this.charges.reduce((n, s) => n + s.bytes, 0);
       const reservedBytes = [...this.reservations.values()].reduce((n, r) => n + (r.begun ? 0 : r.bytes), 0);
@@ -5647,7 +5717,9 @@ THE SOFTWARE.
     decide(input) {
       const s = this.snapshot(input.atMs), now = this.clock;
       if (!validTime(input.atMs) || input.atMs < now || !validBytes(input.bytes) || !input.bytes || !["video", "audio", "image"].includes(input.kind)) return { allowed: false, reason: "invalid-input", retryAtMs: now };
+      const audio = this.liveAudioHealth(now);
       if (input.local) return { allowed: true, reason: "local-cache", retryAtMs: now };
+      if (audio.required && audio.critical) return { allowed: false, reason: audio.reason, retryAtMs: now + 1e3 };
       if (this.overshot) return { allowed: false, reason: "admission-overshoot", retryAtMs: Infinity };
       if (this.reservations.size >= MAX_ACTIVE) return { allowed: false, reason: "reservation-limit", retryAtMs: now + 1e3 };
       if (!Number.isSafeInteger(this.nextReservation)) return { allowed: false, reason: "reservation-id-exhausted", retryAtMs: Infinity };
@@ -5658,8 +5730,9 @@ THE SOFTWARE.
       }
       const fallback = input.kind !== "video";
       const targetSeconds = input.kind === "video" ? VIDEO_TARGET_SECONDS : input.kind === "audio" ? AUDIO_TARGET_SECONDS : IMAGE_TARGET_SECONDS;
-      const timely = s.estimatedBytesPerSecond > 0 && input.bytes / s.estimatedBytesPerSecond <= targetSeconds;
-      const normal = input.bytes <= s.availableBytes && (fallback ? timely || !s.confidence && input.bytes <= FALLBACK_MAX : timely && (s.confidence >= 2 || s.confidence >= 1 && this.largestSuccess >= 64 * 1024));
+      const optionalRate = audio.required ? Math.max(0, s.estimatedBytesPerSecond - audio.reserveBytesPerSecond) : s.estimatedBytesPerSecond;
+      const timely = optionalRate > 0 && input.bytes / optionalRate <= targetSeconds;
+      const normal = input.bytes <= s.availableBytes && (fallback ? timely || !audio.required && !s.confidence && input.bytes <= FALLBACK_MAX : timely && (s.confidence >= 2 || s.confidence >= 1 && this.largestSuccess >= 64 * 1024));
       const probeAt = input.kind === "image" ? this.lastFallbackProbe + FALLBACK_PROBE_MS : input.kind === "audio" ? this.lastAudioProbe + AUDIO_PROBE_MS : this.lastVideoProbe + VIDEO_PROBE_MS;
       const probeMax = input.kind === "image" ? FALLBACK_MAX : VIDEO_PROBE_MAX;
       let reason = "measured-delivery";
@@ -5671,8 +5744,8 @@ THE SOFTWARE.
           else this.lastVideoProbe = now;
         } else {
           const deficit = Math.max(0, input.bytes - s.availableBytes);
-          const canBecomeNormal = fallback ? timely || !s.confidence && input.bytes <= FALLBACK_MAX : timely && (s.confidence >= 2 || s.confidence >= 1 && this.largestSuccess >= 64 * 1024);
-          const refillAt = canBecomeNormal && s.estimatedBytesPerSecond > 0 && deficit ? now + Math.ceil(deficit / (s.estimatedBytesPerSecond * 0.5) * 1e3) : Infinity;
+          const canBecomeNormal = fallback ? timely || !audio.required && !s.confidence && input.bytes <= FALLBACK_MAX : timely && (s.confidence >= 2 || s.confidence >= 1 && this.largestSuccess >= 64 * 1024);
+          const refillAt = canBecomeNormal && optionalRate > 0 && deficit ? now + Math.ceil(deficit / (optionalRate * 0.5) * 1e3) : Infinity;
           const candidate = Math.min(probeAt > now ? probeAt : Infinity, refillAt);
           return { allowed: false, reason: "delivery-budget", retryAtMs: Number.isFinite(candidate) ? Math.max(now + 1, candidate) : now + 1e3 };
         }
@@ -5853,8 +5926,8 @@ THE SOFTWARE.
   var payload3 = (card) => encode3({ domain: "same-end.clip-audio-asset-card.v1", card });
   var exact4 = (value, keys) => !!value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === keys.length && keys.every((k) => Object.hasOwn(value, k));
   var int2 = (value, min, max) => typeof value === "number" && Number.isSafeInteger(value) && value >= min && value <= max;
-  async function signClipAudioAssetCard(card, key8) {
-    return { ...card, signature: b642(new Uint8Array(await crypto.subtle.sign("Ed25519", key8, payload3(card)))) };
+  async function signClipAudioAssetCard(card, key9) {
+    return { ...card, signature: b642(new Uint8Array(await crypto.subtle.sign("Ed25519", key9, payload3(card)))) };
   }
   function validateClipAudioAssetCard(value, roomId2, sourceKey2, parent, now = Date.now()) {
     validateClipCard(parent, roomId2, sourceKey2, now);
@@ -5862,8 +5935,8 @@ THE SOFTWARE.
     if (!exact4(c, ["type", "version", "roomId", "sourceKey", "clipId", "manifestSha256", "issuedAtMs", "expiresAtMs", "durationMs", "audioDescriptor", "signature"]) || c.type !== "clip-audio-asset-card" || c.version !== "semk2-audio-asset/1" || c.roomId !== roomId2 || c.sourceKey !== sourceKey2 || c.clipId !== parent.clipId || c.manifestSha256 !== parent.manifest.sha256 || !int2(c.issuedAtMs, parent.issuedAtMs, parent.expiresAtMs) || c.issuedAtMs > now + 6e4 || c.expiresAtMs !== parent.expiresAtMs || c.expiresAtMs <= now || !int2(c.durationMs, 1, Math.min(18e4, parent.durationMs + 250)) || new TextEncoder().encode(JSON.stringify(c)).length > 4096) throw Error("Invalid audio asset card");
     const d = c.audioDescriptor;
     if (!exact4(d, ["kind", "track", "sequence", "mediaStartMs", "durationMs", "mime", "codecConfigId", "lengthBytes", "infoHash", "sha256"]) || d.kind !== "init" || d.track !== "muxed" || d.sequence !== 0 || d.mediaStartMs !== 0 || d.durationMs !== 0 || d.mime !== CLIP_AUDIO_ASSET_MIME || d.codecConfigId !== CLIP_AUDIO_ASSET_CONFIG || !int2(d.lengthBytes, 1, CLIP_AUDIO_ASSET_MAX_BYTES) || typeof d.infoHash !== "string" || !/^[a-f0-9]{40}$/.test(d.infoHash) || typeof d.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(d.sha256)) throw Error("Invalid audio asset descriptor");
-    const { signature, ...unsigned } = c;
-    if (!verifySourceSignature(signature, payload3(unsigned), sourceKey2)) throw Error("Audio asset signature rejected");
+    const { signature: signature2, ...unsigned } = c;
+    if (!verifySourceSignature(signature2, payload3(unsigned), sourceKey2)) throw Error("Audio asset signature rejected");
     return c;
   }
 
@@ -5878,7 +5951,7 @@ THE SOFTWARE.
   var MOMENT_PUBLICATION_LIMIT = 6;
   var MOMENT_PUBLICATION_WINDOW_MS = 3e5;
 
-  // node_modules/mediabunny/dist/modules/src/misc.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/misc.js
   function assert(x) {
     if (!x) {
       throw new Error("Assertion failed.");
@@ -6022,36 +6095,36 @@ THE SOFTWARE.
       this.encoding = "utf-8";
     }
     encode(input = "") {
-      const bytes8 = new Uint8Array(3 * input.length);
+      const bytes9 = new Uint8Array(3 * input.length);
       let n = 0;
       for (let i = 0; i < input.length; i++) {
         let c = input.charCodeAt(i);
         if (c < 128) {
-          bytes8[n++] = c;
+          bytes9[n++] = c;
         } else if (c < 2048) {
-          bytes8[n++] = 192 | c >> 6;
-          bytes8[n++] = 128 | c & 63;
+          bytes9[n++] = 192 | c >> 6;
+          bytes9[n++] = 128 | c & 63;
         } else if (c < 55296 || c > 57343) {
-          bytes8[n++] = 224 | c >> 12;
-          bytes8[n++] = 128 | c >> 6 & 63;
-          bytes8[n++] = 128 | c & 63;
+          bytes9[n++] = 224 | c >> 12;
+          bytes9[n++] = 128 | c >> 6 & 63;
+          bytes9[n++] = 128 | c & 63;
         } else {
           const next = i + 1 < input.length ? input.charCodeAt(i + 1) : 0;
           if (c < 56320 && next >= 56320 && next <= 57343) {
             c = 65536 + (c - 55296 << 10) + (next - 56320);
             i++;
-            bytes8[n++] = 240 | c >> 18;
-            bytes8[n++] = 128 | c >> 12 & 63;
-            bytes8[n++] = 128 | c >> 6 & 63;
-            bytes8[n++] = 128 | c & 63;
+            bytes9[n++] = 240 | c >> 18;
+            bytes9[n++] = 128 | c >> 12 & 63;
+            bytes9[n++] = 128 | c >> 6 & 63;
+            bytes9[n++] = 128 | c & 63;
           } else {
-            bytes8[n++] = 239;
-            bytes8[n++] = 191;
-            bytes8[n++] = 189;
+            bytes9[n++] = 239;
+            bytes9[n++] = 191;
+            bytes9[n++] = 189;
           }
         }
       }
-      return bytes8.slice(0, n);
+      return bytes9.slice(0, n);
     }
   };
   var TextDecoder2 = typeof globalThis.TextDecoder !== "undefined" ? globalThis.TextDecoder : class TextDecoder3 {
@@ -6068,12 +6141,12 @@ THE SOFTWARE.
       }
     }
     decode(input) {
-      const bytes8 = input ? toUint8Array(input) : new Uint8Array(0);
+      const bytes9 = input ? toUint8Array(input) : new Uint8Array(0);
       const units = [];
       if (this.encoding === "utf-8") {
-        let i = bytes8.length >= 3 && bytes8[0] === 239 && bytes8[1] === 187 && bytes8[2] === 191 ? 3 : 0;
-        while (i < bytes8.length) {
-          const lead = bytes8[i];
+        let i = bytes9.length >= 3 && bytes9[0] === 239 && bytes9[1] === 187 && bytes9[2] === 191 ? 3 : 0;
+        while (i < bytes9.length) {
+          const lead = bytes9[i];
           if (lead < 128) {
             units.push(lead);
             i++;
@@ -6099,7 +6172,7 @@ THE SOFTWARE.
           let upperBound = lead === 237 ? 159 : lead === 244 ? 143 : 191;
           let j = 1;
           for (; j <= continuationCount; j++) {
-            const byte = i + j < bytes8.length ? bytes8[i + j] : 0;
+            const byte = i + j < bytes9.length ? bytes9[i + j] : 0;
             if (byte < lowerBound || byte > upperBound) {
               break;
             }
@@ -6121,12 +6194,12 @@ THE SOFTWARE.
         const littleEndian = this.encoding === "utf-16le";
         const bomLow = littleEndian ? 255 : 254;
         const bomHigh = littleEndian ? 254 : 255;
-        let i = bytes8.length >= 2 && bytes8[0] === bomLow && bytes8[1] === bomHigh ? 2 : 0;
-        while (i + 1 < bytes8.length) {
-          const unit = littleEndian ? bytes8[i] | bytes8[i + 1] << 8 : bytes8[i] << 8 | bytes8[i + 1];
+        let i = bytes9.length >= 2 && bytes9[0] === bomLow && bytes9[1] === bomHigh ? 2 : 0;
+        while (i + 1 < bytes9.length) {
+          const unit = littleEndian ? bytes9[i] | bytes9[i + 1] << 8 : bytes9[i] << 8 | bytes9[i + 1];
           i += 2;
           if (unit >= 55296 && unit <= 56319) {
-            const next = i + 1 < bytes8.length ? littleEndian ? bytes8[i] | bytes8[i + 1] << 8 : bytes8[i] << 8 | bytes8[i + 1] : -1;
+            const next = i + 1 < bytes9.length ? littleEndian ? bytes9[i] | bytes9[i + 1] << 8 : bytes9[i] << 8 | bytes9[i + 1] : -1;
             if (next >= 56320 && next <= 57343) {
               units.push(unit, next);
               i += 2;
@@ -6139,7 +6212,7 @@ THE SOFTWARE.
             units.push(unit);
           }
         }
-        if (i < bytes8.length) {
+        if (i < bytes9.length) {
           units.push(65533);
         }
       }
@@ -6153,7 +6226,7 @@ THE SOFTWARE.
   var textDecoder = /* @__PURE__ */ new TextDecoder2();
   var textEncoder = /* @__PURE__ */ new TextEncoder2();
   var invertObject = (object) => {
-    return Object.fromEntries(Object.entries(object).map(([key8, value]) => [value, key8]));
+    return Object.fromEntries(Object.entries(object).map(([key9, value]) => [value, key9]));
   };
   var COLOR_PRIMARIES_MAP = {
     bt709: 1,
@@ -6237,16 +6310,16 @@ THE SOFTWARE.
     }
   };
   var HEX_STRING_REGEX = /^[0-9a-fA-F]+$/;
-  var bytesToHexString = (bytes8) => {
-    return [...bytes8].map((x) => x.toString(16).padStart(2, "0")).join("");
+  var bytesToHexString = (bytes9) => {
+    return [...bytes9].map((x) => x.toString(16).padStart(2, "0")).join("");
   };
   var hexStringToBytes = (hexString) => {
     assert(hexString.length % 2 === 0);
-    const bytes8 = new Uint8Array(hexString.length / 2);
+    const bytes9 = new Uint8Array(hexString.length / 2);
     for (let i = 0; i < hexString.length; i += 2) {
-      bytes8[i / 2] = parseInt(hexString.slice(i, i + 2), 16);
+      bytes9[i / 2] = parseInt(hexString.slice(i, i + 2), 16);
     }
-    return bytes8;
+    return bytes9;
   };
   var reverseBitsU32 = (x) => {
     x = x >> 1 & 1431655765 | (x & 1431655765) << 1;
@@ -6256,17 +6329,17 @@ THE SOFTWARE.
     x = x >> 16 & 65535 | (x & 65535) << 16;
     return x >>> 0;
   };
-  var binarySearchExact = (arr, key8, valueGetter) => {
+  var binarySearchExact = (arr, key9, valueGetter) => {
     let low = 0;
     let high = arr.length - 1;
     let ans = -1;
     while (low <= high) {
       const mid = low + high >> 1;
       const midVal = valueGetter(arr[mid]);
-      if (midVal === key8) {
+      if (midVal === key9) {
         ans = mid;
         high = mid - 1;
-      } else if (midVal < key8) {
+      } else if (midVal < key9) {
         low = mid + 1;
       } else {
         high = mid - 1;
@@ -6274,14 +6347,14 @@ THE SOFTWARE.
     }
     return ans;
   };
-  var binarySearchLessOrEqual = (arr, key8, valueGetter) => {
+  var binarySearchLessOrEqual = (arr, key9, valueGetter) => {
     let low = 0;
     let high = arr.length - 1;
     let ans = -1;
     while (low <= high) {
       const mid = low + (high - low + 1) / 2 | 0;
       const midVal = valueGetter(arr[mid]);
-      if (midVal <= key8) {
+      if (midVal <= key9) {
         ans = mid;
         low = mid + 1;
       } else {
@@ -6409,9 +6482,9 @@ THE SOFTWARE.
     let currNumerator = 1, currDenominator = 0;
     let remainder = x;
     while (true) {
-      const integer8 = Math.floor(remainder);
-      const nextNumerator = integer8 * currNumerator + prevNumerator;
-      const nextDenominator = integer8 * currDenominator + prevDenominator;
+      const integer10 = Math.floor(remainder);
+      const nextNumerator = integer10 * currNumerator + prevNumerator;
+      const nextDenominator = integer10 * currDenominator + prevDenominator;
       if (nextDenominator > maxDenominator) {
         return {
           num: sign * currNumerator,
@@ -6422,7 +6495,7 @@ THE SOFTWARE.
       prevDenominator = currDenominator;
       currNumerator = nextNumerator;
       currDenominator = nextDenominator;
-      remainder = 1 / (remainder - integer8);
+      remainder = 1 / (remainder - integer10);
       if (!isFinite(remainder)) {
         break;
       }
@@ -6504,12 +6577,12 @@ THE SOFTWARE.
     return startA <= endB && startB <= endA;
   };
   var keyValueIterator = function* (object) {
-    for (const key8 in object) {
-      const value = object[key8];
+    for (const key9 in object) {
+      const value = object[key9];
       if (value === void 0) {
         continue;
       }
-      yield { key: key8, value };
+      yield { key: key9, value };
     }
   };
   var uint8ArraysAreEqual = (a, b) => {
@@ -6737,7 +6810,7 @@ THE SOFTWARE.
     return value !== null && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype && Object.values(value).every((x) => typeof x === "string");
   };
 
-  // node_modules/mediabunny/dist/modules/src/logging.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/logging.js
   var LogLevel;
   (function(LogLevel2) {
     LogLevel2[LogLevel2["Silent"] = 0] = "Silent";
@@ -6791,7 +6864,7 @@ THE SOFTWARE.
   Logging._level = LogLevel.Info;
   Logging._emitterInstance = null;
 
-  // node_modules/mediabunny/dist/modules/src/metadata.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/metadata.js
   var RichImageData = class {
     /** Creates a new {@link RichImageData}. */
     constructor(data, mimeType) {
@@ -6941,10 +7014,10 @@ THE SOFTWARE.
     }
   };
 
-  // node_modules/mediabunny/dist/modules/shared/bitstream.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/shared/bitstream.js
   var Bitstream = class _Bitstream {
-    constructor(bytes8) {
-      this.bytes = bytes8;
+    constructor(bytes9) {
+      this.bytes = bytes9;
       this.pos = 0;
     }
     seekToByte(byteOffset) {
@@ -7013,7 +7086,7 @@ THE SOFTWARE.
     }
   };
 
-  // node_modules/mediabunny/dist/modules/shared/aac-misc.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/shared/aac-misc.js
   var aacFrequencyTable = [
     96e3,
     88200,
@@ -7031,11 +7104,11 @@ THE SOFTWARE.
   ];
   var aacChannelMap = [-1, 1, 2, 3, 4, 5, 6, 8];
   var generalAudioObjectTypes = [1, 2, 3, 4, 6, 7, 17, 19, 20, 21, 22];
-  var parseAacAudioSpecificConfig = (bytes8) => {
-    if (!bytes8 || bytes8.byteLength < 2) {
+  var parseAacAudioSpecificConfig = (bytes9) => {
+    if (!bytes9 || bytes9.byteLength < 2) {
       throw new TypeError("AAC description must be at least 2 bytes long.");
     }
-    const bitstream = new Bitstream(bytes8);
+    const bitstream = new Bitstream(bytes9);
     const objectType = readAacObjectType(bitstream);
     const { frequencyIndex, sampleRate } = readAacSamplingFrequency(bitstream);
     const channelConfiguration = bitstream.readBits(4);
@@ -7128,8 +7201,8 @@ THE SOFTWARE.
       }
     }
     const byteCount = Math.ceil(bitCount / 8);
-    const bytes8 = new Uint8Array(byteCount);
-    const bitstream = new Bitstream(bytes8);
+    const bytes9 = new Uint8Array(byteCount);
+    const bitstream = new Bitstream(bytes9);
     writeAacObjectType(bitstream, config2.objectType);
     writeAacSamplingFrequency(bitstream, coreSampleRate);
     bitstream.writeBits(4, channelConfiguration);
@@ -7138,7 +7211,7 @@ THE SOFTWARE.
       writeAacObjectType(bitstream, 2);
     }
     bitstream.writeBits(3, 0);
-    return bytes8;
+    return bytes9;
   };
   var writeAacObjectType = (bitstream, objectType) => {
     if (objectType < 32) {
@@ -7160,7 +7233,7 @@ THE SOFTWARE.
     return index === -1 ? 15 : index;
   };
 
-  // node_modules/mediabunny/dist/modules/shared/mp3-misc.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/shared/mp3-misc.js
   var MP3_FRAME_HEADER_SIZE = 4;
   var XingFlags;
   (function(XingFlags2) {
@@ -7170,18 +7243,18 @@ THE SOFTWARE.
     XingFlags2[XingFlags2["Quality"] = 8] = "Quality";
   })(XingFlags || (XingFlags = {}));
 
-  // node_modules/mediabunny/dist/modules/shared/ac3-misc.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/shared/ac3-misc.js
   var AC3_SAMPLE_RATES = [48e3, 44100, 32e3];
   var EAC3_REDUCED_SAMPLE_RATES = [24e3, 22050, 16e3];
 
-  // node_modules/mediabunny/dist/modules/shared/truehd-misc.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/shared/truehd-misc.js
   var TRUEHD_MAJOR_SYNC_WORD = 4168249274;
 
-  // node_modules/mediabunny/dist/modules/src/version.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/version.js
   var VERSION = "1.65.0";
   var VERSIONED_NAME = `Mediabunny v${VERSION}`;
 
-  // node_modules/mediabunny/dist/modules/src/codec-data.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/codec-data.js
   var AvcNalUnitType;
   (function(AvcNalUnitType2) {
     AvcNalUnitType2[AvcNalUnitType2["NON_IDR_SLICE"] = 1] = "NON_IDR_SLICE";
@@ -7268,8 +7341,8 @@ THE SOFTWARE.
   };
   var iterateAvcNalUnits = (packetData, decoderConfig) => {
     if (decoderConfig.description) {
-      const bytes8 = toUint8Array(decoderConfig.description);
-      const lengthSizeMinusOne = bytes8[4] & 3;
+      const bytes9 = toUint8Array(decoderConfig.description);
+      const lengthSizeMinusOne = bytes9[4] & 3;
       const lengthSize = lengthSizeMinusOne + 1;
       return iterateNalUnitsInLengthPrefixed(packetData, lengthSize);
     } else {
@@ -7348,8 +7421,8 @@ THE SOFTWARE.
   };
   var concatAvcNalUnits = (nalUnits, decoderConfig) => {
     if (decoderConfig.description) {
-      const bytes8 = toUint8Array(decoderConfig.description);
-      const lengthSizeMinusOne = bytes8[4] & 3;
+      const bytes9 = toUint8Array(decoderConfig.description);
+      const lengthSizeMinusOne = bytes9[4] & 3;
       const lengthSize = lengthSizeMinusOne + 1;
       return concatNalUnitsInLengthPrefixed(nalUnits, lengthSize);
     } else {
@@ -7404,48 +7477,48 @@ THE SOFTWARE.
     }
   };
   var serializeAvcDecoderConfigurationRecord = (record) => {
-    const bytes8 = [];
-    bytes8.push(record.configurationVersion);
-    bytes8.push(record.avcProfileIndication);
-    bytes8.push(record.profileCompatibility);
-    bytes8.push(record.avcLevelIndication);
-    bytes8.push(252 | record.lengthSizeMinusOne & 3);
-    bytes8.push(224 | record.sequenceParameterSets.length & 31);
+    const bytes9 = [];
+    bytes9.push(record.configurationVersion);
+    bytes9.push(record.avcProfileIndication);
+    bytes9.push(record.profileCompatibility);
+    bytes9.push(record.avcLevelIndication);
+    bytes9.push(252 | record.lengthSizeMinusOne & 3);
+    bytes9.push(224 | record.sequenceParameterSets.length & 31);
     for (const sps of record.sequenceParameterSets) {
       const length2 = sps.byteLength;
-      bytes8.push(length2 >> 8);
-      bytes8.push(length2 & 255);
+      bytes9.push(length2 >> 8);
+      bytes9.push(length2 & 255);
       for (let i = 0; i < length2; i++) {
-        bytes8.push(sps[i]);
+        bytes9.push(sps[i]);
       }
     }
-    bytes8.push(record.pictureParameterSets.length);
+    bytes9.push(record.pictureParameterSets.length);
     for (const pps of record.pictureParameterSets) {
       const length2 = pps.byteLength;
-      bytes8.push(length2 >> 8);
-      bytes8.push(length2 & 255);
+      bytes9.push(length2 >> 8);
+      bytes9.push(length2 & 255);
       for (let i = 0; i < length2; i++) {
-        bytes8.push(pps[i]);
+        bytes9.push(pps[i]);
       }
     }
     if ((record.avcProfileIndication === 100 || record.avcProfileIndication === 110 || record.avcProfileIndication === 122 || record.avcProfileIndication === 144) && record.chromaFormat !== null) {
       assert(record.bitDepthLumaMinus8 !== null);
       assert(record.bitDepthChromaMinus8 !== null);
       assert(record.sequenceParameterSetExt !== null);
-      bytes8.push(252 | record.chromaFormat & 3);
-      bytes8.push(248 | record.bitDepthLumaMinus8 & 7);
-      bytes8.push(248 | record.bitDepthChromaMinus8 & 7);
-      bytes8.push(record.sequenceParameterSetExt.length);
+      bytes9.push(252 | record.chromaFormat & 3);
+      bytes9.push(248 | record.bitDepthLumaMinus8 & 7);
+      bytes9.push(248 | record.bitDepthChromaMinus8 & 7);
+      bytes9.push(record.sequenceParameterSetExt.length);
       for (const spsExt of record.sequenceParameterSetExt) {
         const length2 = spsExt.byteLength;
-        bytes8.push(length2 >> 8);
-        bytes8.push(length2 & 255);
+        bytes9.push(length2 >> 8);
+        bytes9.push(length2 & 255);
         for (let i = 0; i < length2; i++) {
-          bytes8.push(spsExt[i]);
+          bytes9.push(spsExt[i]);
         }
       }
     }
-    return new Uint8Array(bytes8);
+    return new Uint8Array(bytes9);
   };
   var deserializeAvcDecoderConfigurationRecord = (data) => {
     try {
@@ -7794,8 +7867,8 @@ THE SOFTWARE.
   };
   var concatHevcNalUnits = (nalUnits, decoderConfig) => {
     if (decoderConfig.description) {
-      const bytes8 = toUint8Array(decoderConfig.description);
-      const lengthSizeMinusOne = bytes8[21] & 3;
+      const bytes9 = toUint8Array(decoderConfig.description);
+      const lengthSizeMinusOne = bytes9[21] & 3;
       const lengthSize = lengthSizeMinusOne + 1;
       return concatNalUnitsInLengthPrefixed(nalUnits, lengthSize);
     } else {
@@ -7804,8 +7877,8 @@ THE SOFTWARE.
   };
   var iterateHevcNalUnits = (packetData, decoderConfig) => {
     if (decoderConfig.description) {
-      const bytes8 = toUint8Array(decoderConfig.description);
-      const lengthSizeMinusOne = bytes8[21] & 3;
+      const bytes9 = toUint8Array(decoderConfig.description);
+      const lengthSizeMinusOne = bytes9[21] & 3;
       const lengthSize = lengthSizeMinusOne + 1;
       return iterateNalUnitsInLengthPrefixed(packetData, lengthSize);
     } else {
@@ -8297,38 +8370,38 @@ THE SOFTWARE.
     }
   };
   var serializeHevcDecoderConfigurationRecord = (record) => {
-    const bytes8 = [];
-    bytes8.push(record.configurationVersion);
-    bytes8.push((record.generalProfileSpace & 3) << 6 | (record.generalTierFlag & 1) << 5 | record.generalProfileIdc & 31);
-    bytes8.push(record.generalProfileCompatibilityFlags >>> 24 & 255);
-    bytes8.push(record.generalProfileCompatibilityFlags >>> 16 & 255);
-    bytes8.push(record.generalProfileCompatibilityFlags >>> 8 & 255);
-    bytes8.push(record.generalProfileCompatibilityFlags & 255);
-    bytes8.push(...record.generalConstraintIndicatorFlags);
-    bytes8.push(record.generalLevelIdc & 255);
-    bytes8.push(240 | record.minSpatialSegmentationIdc >> 8 & 15);
-    bytes8.push(record.minSpatialSegmentationIdc & 255);
-    bytes8.push(252 | record.parallelismType & 3);
-    bytes8.push(252 | record.chromaFormatIdc & 3);
-    bytes8.push(248 | record.bitDepthLumaMinus8 & 7);
-    bytes8.push(248 | record.bitDepthChromaMinus8 & 7);
-    bytes8.push(record.avgFrameRate >> 8 & 255);
-    bytes8.push(record.avgFrameRate & 255);
-    bytes8.push((record.constantFrameRate & 3) << 6 | (record.numTemporalLayers & 7) << 3 | (record.temporalIdNested & 1) << 2 | record.lengthSizeMinusOne & 3);
-    bytes8.push(record.arrays.length & 255);
+    const bytes9 = [];
+    bytes9.push(record.configurationVersion);
+    bytes9.push((record.generalProfileSpace & 3) << 6 | (record.generalTierFlag & 1) << 5 | record.generalProfileIdc & 31);
+    bytes9.push(record.generalProfileCompatibilityFlags >>> 24 & 255);
+    bytes9.push(record.generalProfileCompatibilityFlags >>> 16 & 255);
+    bytes9.push(record.generalProfileCompatibilityFlags >>> 8 & 255);
+    bytes9.push(record.generalProfileCompatibilityFlags & 255);
+    bytes9.push(...record.generalConstraintIndicatorFlags);
+    bytes9.push(record.generalLevelIdc & 255);
+    bytes9.push(240 | record.minSpatialSegmentationIdc >> 8 & 15);
+    bytes9.push(record.minSpatialSegmentationIdc & 255);
+    bytes9.push(252 | record.parallelismType & 3);
+    bytes9.push(252 | record.chromaFormatIdc & 3);
+    bytes9.push(248 | record.bitDepthLumaMinus8 & 7);
+    bytes9.push(248 | record.bitDepthChromaMinus8 & 7);
+    bytes9.push(record.avgFrameRate >> 8 & 255);
+    bytes9.push(record.avgFrameRate & 255);
+    bytes9.push((record.constantFrameRate & 3) << 6 | (record.numTemporalLayers & 7) << 3 | (record.temporalIdNested & 1) << 2 | record.lengthSizeMinusOne & 3);
+    bytes9.push(record.arrays.length & 255);
     for (const arr of record.arrays) {
-      bytes8.push((arr.arrayCompleteness & 1) << 7 | 0 << 6 | arr.nalUnitType & 63);
-      bytes8.push(arr.nalUnits.length >> 8 & 255);
-      bytes8.push(arr.nalUnits.length & 255);
+      bytes9.push((arr.arrayCompleteness & 1) << 7 | 0 << 6 | arr.nalUnitType & 63);
+      bytes9.push(arr.nalUnits.length >> 8 & 255);
+      bytes9.push(arr.nalUnits.length & 255);
       for (const nal of arr.nalUnits) {
-        bytes8.push(nal.length >> 8 & 255);
-        bytes8.push(nal.length & 255);
+        bytes9.push(nal.length >> 8 & 255);
+        bytes9.push(nal.length & 255);
         for (let i = 0; i < nal.length; i++) {
-          bytes8.push(nal[i]);
+          bytes9.push(nal[i]);
         }
       }
     }
-    return new Uint8Array(bytes8);
+    return new Uint8Array(bytes9);
   };
   var deserializeHevcDecoderConfigurationRecord = (data) => {
     try {
@@ -8822,11 +8895,11 @@ THE SOFTWARE.
       matrixCoefficients: view2.getUint8(frameHeaderStart + 16)
     };
   };
-  var parseOpusIdentificationHeader = (bytes8) => {
-    if (bytes8.byteLength < 19) {
+  var parseOpusIdentificationHeader = (bytes9) => {
+    if (bytes9.byteLength < 19) {
       throw new Error("Invalid Opus identification header: too short.");
     }
-    const view2 = toDataView(bytes8);
+    const view2 = toDataView(bytes9);
     const outputChannelCount = view2.getUint8(9);
     const preSkip = view2.getUint16(10, true);
     const inputSampleRate = view2.getUint32(12, true);
@@ -8834,7 +8907,7 @@ THE SOFTWARE.
     const channelMappingFamily = view2.getUint8(18);
     let channelMappingTable = null;
     if (channelMappingFamily) {
-      channelMappingTable = bytes8.subarray(19, 19 + 2 + outputChannelCount);
+      channelMappingTable = bytes9.subarray(19, 19 + 2 + outputChannelCount);
     }
     return {
       outputChannelCount,
@@ -8909,12 +8982,12 @@ THE SOFTWARE.
             }
             if (type === AvcNalUnitType.SEI && !isChromium()) {
               const nalUnit = packetData.subarray(loc.offset, loc.offset + loc.length);
-              const bytes8 = removeEmulationPreventionBytes(nalUnit);
+              const bytes9 = removeEmulationPreventionBytes(nalUnit);
               let pos = 1;
               do {
                 let payloadType = 0;
                 while (true) {
-                  const nextByte = bytes8[pos++];
+                  const nextByte = bytes9[pos++];
                   if (nextByte === void 0)
                     break;
                   payloadType += nextByte;
@@ -8924,7 +8997,7 @@ THE SOFTWARE.
                 }
                 let payloadSize = 0;
                 while (true) {
-                  const nextByte = bytes8[pos++];
+                  const nextByte = bytes9[pos++];
                   if (nextByte === void 0)
                     break;
                   payloadSize += nextByte;
@@ -8934,7 +9007,7 @@ THE SOFTWARE.
                 }
                 const PAYLOAD_TYPE_RECOVERY_POINT = 6;
                 if (payloadType === PAYLOAD_TYPE_RECOVERY_POINT) {
-                  const bitstream = new Bitstream(bytes8);
+                  const bitstream = new Bitstream(bytes9);
                   bitstream.pos = 8 * pos;
                   let recoveryFrameCount = -1;
                   try {
@@ -8947,7 +9020,7 @@ THE SOFTWARE.
                   }
                 }
                 pos += payloadSize;
-              } while (pos < bytes8.length - 1);
+              } while (pos < bytes9.length - 1);
             }
           }
           return "delta";
@@ -9654,14 +9727,14 @@ THE SOFTWARE.
     };
   };
   var buildDtsSpecificBox = (frameInfo) => {
-    const bytes8 = new Uint8Array(DTS_SPECIFIC_BOX_SIZE);
-    const view2 = toDataView(bytes8);
+    const bytes9 = new Uint8Array(DTS_SPECIFIC_BOX_SIZE);
+    const view2 = toDataView(bytes9);
     view2.setUint32(0, frameInfo.sampleRate);
     view2.setUint32(4, frameInfo.bitRate);
     view2.setUint32(8, frameInfo.bitRate);
-    bytes8[12] = frameInfo.pcmResolution;
+    bytes9[12] = frameInfo.pcmResolution;
     const streamConstruction = frameInfo.core && !frameInfo.hasExtensions ? 1 : 0;
-    const bitstream = new Bitstream(bytes8);
+    const bitstream = new Bitstream(bytes9);
     bitstream.seekToByte(13);
     bitstream.writeBits(2, Math.max(DTS_SPECIFIC_BOX_FRAME_DURATIONS.indexOf(frameInfo.sampleCount), 0));
     bitstream.writeBits(5, streamConstruction);
@@ -9675,13 +9748,13 @@ THE SOFTWARE.
     bitstream.writeBits(1, 0);
     bitstream.writeBits(1, 0);
     bitstream.writeBits(5, 0);
-    return bytes8;
+    return bytes9;
   };
   var getDtsChannelCount = (channelLayout) => {
     return popcount(channelLayout) + popcount(channelLayout & DTS_CHANNEL_LAYOUT_PAIR_MASK);
   };
 
-  // node_modules/mediabunny/dist/modules/src/subtitles.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/subtitles.js
   var inlineTimestampRegex = /<(?:(\d{2}):)?(\d{2}):(\d{2}).(\d{3})>/g;
   var formatSubtitleTimestamp = (timestamp) => {
     const hours = Math.floor(timestamp / (60 * 60 * 1e3));
@@ -9691,7 +9764,7 @@ THE SOFTWARE.
     return hours.toString().padStart(2, "0") + ":" + minutes.toString().padStart(2, "0") + ":" + seconds.toString().padStart(2, "0") + "." + milliseconds.toString().padStart(3, "0");
   };
 
-  // node_modules/mediabunny/dist/modules/src/pcm.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/pcm.js
   var toUlaw = (s16) => {
     const MULAW_MAX = 8191;
     const MULAW_BIAS = 33;
@@ -9768,7 +9841,7 @@ THE SOFTWARE.
     return (sign === 0 ? -decoded : decoded) << 3;
   };
 
-  // node_modules/mediabunny/dist/modules/src/sample.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/sample.js
   var __addDisposableResource = function(env, value, async) {
     if (value !== null && value !== void 0) {
       if (typeof value !== "object" && typeof value !== "function") throw new TypeError("Object expected.");
@@ -10441,8 +10514,8 @@ THE SOFTWARE.
         if (isThenable(planes)) {
           throw new Error("Cannot convert a VideoSampleResource-backed VideoSample to VideoFrame if getDataPlanes() returns a promise.");
         }
-        const size2 = planes.reduce((a, b) => a + b.data.byteLength, 0);
-        const buffer = new Uint8Array(size2);
+        const size3 = planes.reduce((a, b) => a + b.data.byteLength, 0);
+        const buffer = new Uint8Array(size3);
         let offset = 0;
         const offsets = [];
         for (const plane of planes) {
@@ -11018,8 +11091,8 @@ THE SOFTWARE.
       }
     }
   };
-  var createDefaultPlaneLayout = (format, codedWidth, codedHeight) => {
-    const planes = getPlaneConfigs(format);
+  var createDefaultPlaneLayout = (format2, codedWidth, codedHeight) => {
+    const planes = getPlaneConfigs(format2);
     const layouts = [];
     let currentOffset = 0;
     for (const plane of planes) {
@@ -11035,7 +11108,7 @@ THE SOFTWARE.
     }
     return layouts;
   };
-  var getPlaneConfigs = (format) => {
+  var getPlaneConfigs = (format2) => {
     const yuv = (yBytes, uvBytes, subX, subY, hasAlpha) => {
       const configs = [
         { sampleBytes: yBytes, widthDivisor: 1, heightDivisor: 1 },
@@ -11047,7 +11120,7 @@ THE SOFTWARE.
       }
       return configs;
     };
-    switch (format) {
+    switch (format2) {
       case "I420":
         return yuv(1, 1, 2, 2, false);
       case "I420P10":
@@ -11092,7 +11165,7 @@ THE SOFTWARE.
           { sampleBytes: 4, widthDivisor: 1, heightDivisor: 1 }
         ];
       default:
-        assertNever(format);
+        assertNever(format2);
         assert(false);
     }
   };
@@ -11106,17 +11179,17 @@ THE SOFTWARE.
     const overrideRect = options.rect;
     const parsedRect = ParseVisibleRect(defaultRect, overrideRect, sample.codedWidth, sample.codedHeight, sample.format);
     const optLayout = options.layout;
-    let format;
+    let format2;
     if (!options.format || options.format === sample.format) {
-      format = sample.format;
+      format2 = sample.format;
     } else if (["RGBA", "RGBX", "BGRA", "BGRX"].includes(options.format)) {
-      format = options.format;
+      format2 = options.format;
     } else {
       throw new Error("NotSupportedError: Invalid destination format.");
     }
-    return ComputeLayoutAndAllocationSize(parsedRect, format, optLayout);
+    return ComputeLayoutAndAllocationSize(parsedRect, format2, optLayout);
   };
-  var ParseVisibleRect = (defaultRect, overrideRect, codedWidth, codedHeight, format) => {
+  var ParseVisibleRect = (defaultRect, overrideRect, codedWidth, codedHeight, format2) => {
     const sourceRect = { ...defaultRect };
     if (overrideRect !== void 0) {
       if (overrideRect.width === 0 || overrideRect.height === 0) {
@@ -11133,16 +11206,16 @@ THE SOFTWARE.
       sourceRect.width = overrideRect.width || 0;
       sourceRect.height = overrideRect.height || 0;
     }
-    const validAlignment = VerifyRectOffsetAlignment(format, sourceRect);
+    const validAlignment = VerifyRectOffsetAlignment(format2, sourceRect);
     if (!validAlignment) {
       throw new TypeError("visibleRect alignment is invalid for the format.");
     }
     return sourceRect;
   };
-  var VerifyRectOffsetAlignment = (format, rect) => {
-    if (format === null)
+  var VerifyRectOffsetAlignment = (format2, rect) => {
+    if (format2 === null)
       return true;
-    const planes = getPlaneConfigs(format);
+    const planes = getPlaneConfigs(format2);
     for (let planeIndex = 0; planeIndex < planes.length; planeIndex++) {
       const plane = planes[planeIndex];
       const sampleWidth = plane.widthDivisor;
@@ -11154,8 +11227,8 @@ THE SOFTWARE.
     }
     return true;
   };
-  var ComputeLayoutAndAllocationSize = (parsedRect, format, layout) => {
-    const planes = getPlaneConfigs(format);
+  var ComputeLayoutAndAllocationSize = (parsedRect, format2, layout) => {
+    const planes = getPlaneConfigs(format2);
     const numPlanes = planes.length;
     if (layout !== void 0 && layout.length !== numPlanes) {
       throw new TypeError(`Layout must have ${numPlanes} planes.`);
@@ -11369,10 +11442,10 @@ THE SOFTWARE.
       if (this._closed) {
         throw new Error("AudioSample is closed.");
       }
-      const { format, frameCount: optFrameCount, frameOffset: optFrameOffset } = options;
+      const { format: format2, frameCount: optFrameCount, frameOffset: optFrameOffset } = options;
       let { planeIndex } = options;
       let srcFormat = this.format;
-      const destFormat = format ?? this.format;
+      const destFormat = format2 ?? this.format;
       if (!destFormat)
         throw new Error("Destination format not determined");
       const numFrames = this.numberOfFrames;
@@ -11641,10 +11714,10 @@ THE SOFTWARE.
     /** @internal */
     _createAudioDataFromData() {
       if (formatIsPlanar(this.format)) {
-        const size2 = this.allocationSize({ planeIndex: 0, format: this.format });
-        const data = new ArrayBuffer(size2 * this.numberOfChannels);
+        const size3 = this.allocationSize({ planeIndex: 0, format: this.format });
+        const data = new ArrayBuffer(size3 * this.numberOfChannels);
         for (let i = 0; i < this.numberOfChannels; i++) {
-          this.copyTo(new Uint8Array(data, i * size2, size2), { planeIndex: i, format: this.format });
+          this.copyTo(new Uint8Array(data, i * size3, size3), { planeIndex: i, format: this.format });
         }
         return new AudioData({
           format: this.format,
@@ -11762,8 +11835,8 @@ THE SOFTWARE.
       return result;
     }
   };
-  var getBytesPerSample = (format) => {
-    switch (format) {
+  var getBytesPerSample = (format2) => {
+    switch (format2) {
       case "u8":
       case "u8-planar":
         return 1;
@@ -11780,8 +11853,8 @@ THE SOFTWARE.
         throw new Error("Unknown AudioSampleFormat");
     }
   };
-  var formatIsPlanar = (format) => {
-    switch (format) {
+  var formatIsPlanar = (format2) => {
+    switch (format2) {
       case "u8-planar":
       case "s16-planar":
       case "s32-planar":
@@ -11791,8 +11864,8 @@ THE SOFTWARE.
         return false;
     }
   };
-  var getReadFunction = (format) => {
-    switch (format) {
+  var getReadFunction = (format2) => {
+    switch (format2) {
       case "u8":
       case "u8-planar":
         return (view2, offset) => (view2.getUint8(offset) - 128) / 128;
@@ -11807,8 +11880,8 @@ THE SOFTWARE.
         return (view2, offset) => view2.getFloat32(offset, true);
     }
   };
-  var getWriteFunction = (format) => {
-    switch (format) {
+  var getWriteFunction = (format2) => {
+    switch (format2) {
       case "u8":
       case "u8-planar":
         return (view2, offset, value) => view2.setUint8(offset, clamp(Math.round(value * 128) + 128, 0, 255));
@@ -11826,8 +11899,8 @@ THE SOFTWARE.
   var isAudioData = (x) => {
     return typeof AudioData !== "undefined" && x instanceof AudioData;
   };
-  var toInterleavedAudioFormat = (format) => {
-    switch (format) {
+  var toInterleavedAudioFormat = (format2) => {
+    switch (format2) {
       case "u8-planar":
         return "u8";
       case "s16-planar":
@@ -11837,7 +11910,7 @@ THE SOFTWARE.
       case "f32-planar":
         return "f32";
       default:
-        return format;
+        return format2;
     }
   };
   var doAudioDataCopyToWebKitWorkaround = (audioData, destView, srcFormat, destFormat, numChannels, planeIndex, frameOffset, copyFrameCount) => {
@@ -11919,13 +11992,13 @@ THE SOFTWARE.
       }
     }
   };
-  var audioSampleToInterleavedFormat = (sample, format) => {
-    const size2 = sample.allocationSize({ format, planeIndex: 0 });
-    const buffer = new ArrayBuffer(size2);
-    sample.copyTo(buffer, { format, planeIndex: 0 });
+  var audioSampleToInterleavedFormat = (sample, format2) => {
+    const size3 = sample.allocationSize({ format: format2, planeIndex: 0 });
+    const buffer = new ArrayBuffer(size3);
+    sample.copyTo(buffer, { format: format2, planeIndex: 0 });
     return new AudioSample({
       data: buffer,
-      format,
+      format: format2,
       numberOfChannels: sample.numberOfChannels,
       sampleRate: sample.sampleRate,
       timestamp: sample.timestamp,
@@ -11933,7 +12006,7 @@ THE SOFTWARE.
     });
   };
 
-  // node_modules/mediabunny/dist/modules/src/encode.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/encode.js
   var validateVideoEncodingConfig = (config2) => {
     if (!config2 || typeof config2 !== "object") {
       throw new TypeError("Encoding config must be an object.");
@@ -12364,13 +12437,13 @@ THE SOFTWARE.
     return bitrate instanceof Quality ? bitrate : new Quality({ bitrate });
   };
 
-  // node_modules/mediabunny/dist/modules/src/custom-coder.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/custom-coder.js
   var customVideoDecoders = [];
   var customAudioDecoders = [];
   var customVideoEncoders = [];
   var customAudioEncoders = [];
 
-  // node_modules/mediabunny/dist/modules/src/packet.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/packet.js
   var PLACEHOLDER_DATA = /* @__PURE__ */ new Uint8Array(0);
   var EncodedPacket = class _EncodedPacket {
     /** Creates a new {@link EncodedPacket} from raw bytes and timing information. */
@@ -12531,7 +12604,7 @@ THE SOFTWARE.
     }
   };
 
-  // node_modules/mediabunny/dist/modules/src/resample.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/resample.js
   var AudioResampler = class {
     constructor(options) {
       this.sourceSampleRate = null;
@@ -12714,7 +12787,7 @@ THE SOFTWARE.
     }
   };
 
-  // node_modules/mediabunny/dist/modules/src/demuxer.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/demuxer.js
   var Demuxer = class {
     constructor(input) {
       this.input = input;
@@ -12723,7 +12796,7 @@ THE SOFTWARE.
     }
   };
 
-  // node_modules/mediabunny/dist/modules/src/isobmff/isobmff-misc.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/isobmff/isobmff-misc.js
   var TIMESTAMP_OFFSET = 2082844800;
   var buildIsobmffMimeType = (info) => {
     const base = info.hasVideo ? "video/" : info.hasAudio ? "audio/" : "application/";
@@ -12770,7 +12843,7 @@ THE SOFTWARE.
   };
   var psshBoxesAreEqual = (a, b) => a.systemId === b.systemId && uint8ArraysAreEqual(a.data, b.data);
 
-  // node_modules/mediabunny/dist/modules/src/aes.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/aes.js
   var AES_128_BLOCK_SIZE = 16;
   var Te4 = new Uint32Array(256);
   var Td0 = new Uint32Array(256);
@@ -12828,13 +12901,13 @@ THE SOFTWARE.
       this.inView = new DataView(this.in.buffer);
       this.outView = new DataView(this.out.buffer);
     }
-    init({ key: key8, iv }) {
-      assert(key8.byteLength === 16);
+    init({ key: key9, iv }) {
+      assert(key9.byteLength === 16);
       assert(iv.byteLength === 16);
       if (!tablesGenerated) {
         generateAesTables();
       }
-      const keyView = new DataView(key8.buffer, key8.byteOffset, key8.byteLength);
+      const keyView = new DataView(key9.buffer, key9.byteOffset, key9.byteLength);
       const ivView = new DataView(iv.buffer, iv.byteOffset, iv.byteLength);
       this.roundkey[0] = keyView.getUint32(0, false);
       this.roundkey[1] = keyView.getUint32(4, false);
@@ -12901,7 +12974,7 @@ THE SOFTWARE.
     }
   };
 
-  // node_modules/mediabunny/dist/modules/src/isobmff/isobmff-demuxer.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/isobmff/isobmff-demuxer.js
   var TRUEHD_CHANNEL_ASSIGNMENT_COUNTS = [2, 1, 1, 2, 2, 2, 2, 1, 1, 2, 2, 1, 1];
   var MAX_BOX_NESTING_DEPTH = 64;
   var IsobmffDemuxer = class _IsobmffDemuxer extends Demuxer {
@@ -13790,8 +13863,8 @@ THE SOFTWARE.
             if (!track) {
               break;
             }
-            const format = readAscii(slice, 4);
-            const lowercase = format.toLowerCase();
+            const format2 = readAscii(slice, 4);
+            const lowercase = format2.toLowerCase();
             track.frmaCodecString = lowercase;
           }
           ;
@@ -14151,11 +14224,11 @@ THE SOFTWARE.
             }
             const endPos = slice.filePos;
             slice.filePos = startPos2;
-            const bytes8 = readBytes(slice, endPos - startPos2);
-            const description = new Uint8Array(4 + bytes8.byteLength);
+            const bytes9 = readBytes(slice, endPos - startPos2);
+            const description = new Uint8Array(4 + bytes9.byteLength);
             const view2 = new DataView(description.buffer);
             view2.setUint32(0, 1716281667, false);
-            description.set(bytes8, 4);
+            description.set(bytes9, 4);
             track.info.codecDescription = description;
           }
           ;
@@ -14166,8 +14239,8 @@ THE SOFTWARE.
             if (!track || track.info?.type !== "audio") {
               break;
             }
-            const bytes8 = readBytes(slice, 3);
-            const bitstream = new Bitstream(bytes8);
+            const bytes9 = readBytes(slice, 3);
+            const bitstream = new Bitstream(bytes9);
             const fscod = bitstream.readBits(2);
             bitstream.skipBits(5 + 3);
             const acmod = bitstream.readBits(3);
@@ -14185,8 +14258,8 @@ THE SOFTWARE.
             if (!track || track.info?.type !== "audio") {
               break;
             }
-            const bytes8 = readBytes(slice, boxInfo.contentSize);
-            const config2 = parseEac3Config(bytes8);
+            const bytes9 = readBytes(slice, boxInfo.contentSize);
+            const config2 = parseEac3Config(bytes9);
             if (!config2) {
               Logging._warn("Invalid dec3 box contents, ignoring.");
               break;
@@ -14205,8 +14278,8 @@ THE SOFTWARE.
             if (!track || track.info?.type !== "audio") {
               break;
             }
-            const bytes8 = readBytes(slice, Math.min(boxInfo.contentSize, DTS_SPECIFIC_BOX_SIZE));
-            const config2 = parseDtsSpecificBox(bytes8);
+            const bytes9 = readBytes(slice, Math.min(boxInfo.contentSize, DTS_SPECIFIC_BOX_SIZE));
+            const config2 = parseDtsSpecificBox(bytes9);
             if (!config2) {
               Logging._warn("Invalid ddts box contents, ignoring.");
               break;
@@ -14340,8 +14413,8 @@ THE SOFTWARE.
             if (fieldSize !== 4 && fieldSize !== 8 && fieldSize !== 16) {
               throw new Error(`Invalid stz2 box: unsupported field size ${fieldSize}.`);
             }
-            const bytes8 = readBytes(slice, Math.ceil(sampleCount * fieldSize / 8));
-            const bitstream = new Bitstream(bytes8);
+            const bytes9 = readBytes(slice, Math.ceil(sampleCount * fieldSize / 8));
+            const bitstream = new Bitstream(bytes9);
             for (let i = 0; i < sampleCount; i++) {
               const sampleSize = bitstream.readBits(fieldSize);
               track.sampleTable.sampleSizes.push(sampleSize);
@@ -16065,10 +16138,10 @@ THE SOFTWARE.
       return decryptCbcs(keyBytes, encryptionInfo, sampleEncryption, data);
     }
   };
-  var decryptCtr = async (key8, encryptionInfo, sampleEncryption, data) => {
+  var decryptCtr = async (key9, encryptionInfo, sampleEncryption, data) => {
     const counter = new Uint8Array(16);
     counter.set(sampleEncryption.iv, 0);
-    const cryptoKey = await crypto.subtle.importKey("raw", key8, { name: "AES-CTR" }, false, ["decrypt"]);
+    const cryptoKey = await crypto.subtle.importKey("raw", key9, { name: "AES-CTR" }, false, ["decrypt"]);
     const cryptApply = async (input) => {
       const plaintext = await crypto.subtle.decrypt({ name: "AES-CTR", counter, length: 64 }, cryptoKey, input);
       return new Uint8Array(plaintext);
@@ -16103,9 +16176,9 @@ THE SOFTWARE.
     }
     return output;
   };
-  var decryptCbcs = (key8, encryptionInfo, sampleEncryption, data) => {
+  var decryptCbcs = (key9, encryptionInfo, sampleEncryption, data) => {
     const ctx = new Aes128CbcContext();
-    ctx.init({ key: key8, iv: sampleEncryption.iv });
+    ctx.init({ key: key9, iv: sampleEncryption.iv });
     const cryptByteBlock = encryptionInfo.defaultCryptByteBlock;
     const skipByteBlock = encryptionInfo.defaultSkipByteBlock;
     assert(cryptByteBlock !== null && skipByteBlock !== null);
@@ -16180,7 +16253,7 @@ THE SOFTWARE.
     return ranges;
   };
 
-  // node_modules/mediabunny/dist/modules/src/adts/adts-reader.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/adts/adts-reader.js
   var MIN_ADTS_FRAME_HEADER_SIZE = 7;
   var MAX_ADTS_FRAME_HEADER_SIZE = 9;
   var readAdtsFrameHeader = (slice) => {
@@ -16188,8 +16261,8 @@ THE SOFTWARE.
     if (slice.remainingLength < MIN_ADTS_FRAME_HEADER_SIZE) {
       return null;
     }
-    const bytes8 = readBytes(slice, MIN_ADTS_FRAME_HEADER_SIZE);
-    const bitstream = new Bitstream(bytes8);
+    const bytes9 = readBytes(slice, MIN_ADTS_FRAME_HEADER_SIZE);
+    const bitstream = new Bitstream(bytes9);
     const syncword = bitstream.readBits(12);
     if (syncword !== 4095) {
       return null;
@@ -16241,7 +16314,7 @@ THE SOFTWARE.
     };
   };
 
-  // node_modules/mediabunny/dist/modules/src/source.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/source.js
   polyfillSymbolDispose();
   var DEFAULT_MIN_READ_POSITION = 0;
   var DEFAULT_MAX_READ_POSITION = Infinity;
@@ -16277,14 +16350,14 @@ THE SOFTWARE.
         throw new InputDisposedError();
       }
       return this._sizePromise ??= (async () => {
-        let size2 = this._getFileSize();
-        if (size2 !== void 0) {
-          return size2;
+        let size3 = this._getFileSize();
+        if (size3 !== void 0) {
+          return size3;
         }
         await this._read(0, 1, DEFAULT_MIN_READ_POSITION, DEFAULT_MAX_READ_POSITION);
-        size2 = this._getFileSize();
-        assert(size2 !== void 0);
-        return size2;
+        size3 = this._getFileSize();
+        assert(size3 !== void 0);
+        return size3;
       })();
     }
     /**
@@ -16539,9 +16612,9 @@ THE SOFTWARE.
         const maxExtensionAmount = 8 * 2 ** 20;
         const thresholdPoint = Math.max((worker.startPos + worker.targetPos) / 2, worker.targetPos - maxExtensionAmount);
         if (closedIntervalsOverlap(start, end2, thresholdPoint, worker.targetPos)) {
-          const size2 = worker.targetPos - worker.startPos;
-          const a = Math.ceil((size2 + 1) / maxExtensionAmount) * maxExtensionAmount;
-          const b = 2 ** Math.ceil(Math.log2(size2 + 1));
+          const size3 = worker.targetPos - worker.startPos;
+          const a = Math.ceil((size3 + 1) / maxExtensionAmount) * maxExtensionAmount;
+          const b = 2 ** Math.ceil(Math.log2(size3 + 1));
           const extent = Math.min(b, a);
           end2 = Math.max(end2, worker.startPos + extent);
         }
@@ -16582,7 +16655,7 @@ THE SOFTWARE.
         };
       }
       const outerCacheStartIndex = binarySearchLessOrEqual(this.cache, outerStart, (x) => x.start);
-      const bytes8 = result ? null : new Uint8Array(innerEnd - innerStart);
+      const bytes9 = result ? null : new Uint8Array(innerEnd - innerStart);
       let contiguousBytesWriteEnd = 0;
       let lastEnd = outerStart;
       const outerHoles = [];
@@ -16602,12 +16675,12 @@ THE SOFTWARE.
             outerHoles.push({ start: lastEnd, end: cappedOuterStart });
           }
           lastEnd = cappedOuterEnd;
-          if (bytes8) {
+          if (bytes9) {
             const cappedInnerStart = Math.max(innerStart, entry.start);
             const cappedInnerEnd = Math.min(innerEnd, entry.end);
             if (cappedInnerStart < cappedInnerEnd) {
               const relativeOffset = cappedInnerStart - innerStart;
-              bytes8.set(entry.bytes.subarray(cappedInnerStart - entry.start, cappedInnerEnd - entry.start), relativeOffset);
+              bytes9.set(entry.bytes.subarray(cappedInnerStart - entry.start, cappedInnerEnd - entry.start), relativeOffset);
               if (relativeOffset === contiguousBytesWriteEnd) {
                 contiguousBytesWriteEnd = cappedInnerEnd - innerStart;
               }
@@ -16621,10 +16694,10 @@ THE SOFTWARE.
       } else {
         outerHoles.push({ start: outerStart, end: outerEnd });
       }
-      if (bytes8 && contiguousBytesWriteEnd >= bytes8.length) {
+      if (bytes9 && contiguousBytesWriteEnd >= bytes9.length) {
         result = {
-          bytes: bytes8,
-          view: toDataView(bytes8),
+          bytes: bytes9,
+          view: toDataView(bytes9),
           offset: innerStart
         };
       }
@@ -16643,9 +16716,9 @@ THE SOFTWARE.
           innerHoles.push({ start: cappedStart, end: cappedEnd });
         }
       }
-      const pendingSlice = bytes8 && {
+      const pendingSlice = bytes9 && {
         start: innerStart,
-        bytes: bytes8,
+        bytes: bytes9,
         holes: innerHoles,
         resolve,
         reject
@@ -16702,10 +16775,10 @@ THE SOFTWARE.
         }
       }
       if (!result) {
-        assert(bytes8);
-        result = promise.then((bytes9) => bytes9 && {
-          bytes: bytes9,
-          view: toDataView(bytes9),
+        assert(bytes9);
+        result = promise.then((bytes10) => bytes10 && {
+          bytes: bytes10,
+          view: toDataView(bytes10),
           offset: innerStart
         });
       } else {
@@ -16830,18 +16903,18 @@ THE SOFTWARE.
       });
     }
     /** Called by a worker when it has read some data. */
-    supplyWorkerData(worker, bytes8) {
+    supplyWorkerData(worker, bytes9) {
       assert(!worker.aborted);
       const start = worker.currentPos;
-      const end2 = start + bytes8.length;
+      const end2 = start + bytes9.length;
       this.insertIntoCache({
         start,
         end: end2,
-        bytes: bytes8,
-        view: toDataView(bytes8),
+        bytes: bytes9,
+        view: toDataView(bytes9),
         age: this.nextAge++
       });
-      worker.currentPos += bytes8.length;
+      worker.currentPos += bytes9.length;
       if (worker.currentPos > worker.targetPos) {
         worker.targetPos = worker.currentPos;
         this.checkQueuedReadsAgainstWorker(worker);
@@ -16851,7 +16924,7 @@ THE SOFTWARE.
         const clampedStart = Math.max(start, pendingSlice.start);
         const clampedEnd = Math.min(end2, pendingSlice.start + pendingSlice.bytes.length);
         if (clampedStart < clampedEnd) {
-          pendingSlice.bytes.set(bytes8.subarray(clampedStart - start, clampedEnd - start), clampedStart - pendingSlice.start);
+          pendingSlice.bytes.set(bytes9.subarray(clampedStart - start, clampedEnd - start), clampedStart - pendingSlice.start);
         }
         for (let j = 0; j < pendingSlice.holes.length; j++) {
           const hole = pendingSlice.holes[j];
@@ -16881,16 +16954,16 @@ THE SOFTWARE.
         }
       }
     }
-    supplyFileSize(size2) {
+    supplyFileSize(size3) {
       assert(this.fileSize === null);
-      this.fileSize = size2;
+      this.fileSize = size3;
       for (const worker of this.workers) {
-        worker.targetPos = Math.min(worker.targetPos, size2);
+        worker.targetPos = Math.min(worker.targetPos, size3);
         worker.strictTarget = true;
         for (let i = 0; i < worker.pendingSlices.length; i++) {
           const pendingSlice = worker.pendingSlices[i];
           for (const hole of pendingSlice.holes) {
-            if (hole.end > size2) {
+            if (hole.end > size3) {
               pendingSlice.resolve(null);
               worker.pendingSlices.splice(i, 1);
               i--;
@@ -16901,17 +16974,17 @@ THE SOFTWARE.
       }
       for (let i = 0; i < this.queuedReads.length; i++) {
         const queuedRead = this.queuedReads[i];
-        if (queuedRead.hole.start >= size2) {
+        if (queuedRead.hole.start >= size3) {
           for (const slice of queuedRead.pendingSlices)
             slice.resolve(null);
           this.queuedReads.splice(i, 1);
           i--;
-        } else if (queuedRead.hole.end > size2) {
-          queuedRead.hole.end = size2;
+        } else if (queuedRead.hole.end > size3) {
+          queuedRead.hole.end = size3;
           queuedRead.strictTarget = true;
           for (let j = 0; j < queuedRead.pendingSlices.length; j++) {
             const slice = queuedRead.pendingSlices[j];
-            if (slice.start >= size2) {
+            if (slice.start >= size3) {
               slice.resolve(null);
               queuedRead.pendingSlices.splice(j, 1);
               j--;
@@ -17084,7 +17157,7 @@ THE SOFTWARE.
     }
   };
 
-  // node_modules/mediabunny/dist/modules/src/input-format.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/input-format.js
   var InputFormat = class {
     constructor() {
       this._isIsobmff = false;
@@ -17131,25 +17204,25 @@ THE SOFTWARE.
           slice = await slice;
         if (!slice)
           return false;
-        let size2 = readU32Be(slice);
+        let size3 = readU32Be(slice);
         let headerSize = 8;
-        if (size2 === 1) {
+        if (size3 === 1) {
           let sizeExtensionSlice = input._reader.requestSlice(pos + 8, 8);
           if (isThenable(sizeExtensionSlice))
             sizeExtensionSlice = await sizeExtensionSlice;
           if (!sizeExtensionSlice)
             return false;
-          size2 = readU64Be(sizeExtensionSlice);
+          size3 = readU64Be(sizeExtensionSlice);
           headerSize = 16;
         }
-        if (size2 < headerSize) {
+        if (size3 < headerSize) {
           return false;
         }
         const fourCc = readAscii(slice, 4);
         if (fourCc === "moof" || fourCc === "sidx") {
           return true;
         } else if (fourCc === "emsg" || fourCc === "prft" || fourCc === "free") {
-          pos += size2;
+          pos += size3;
         } else {
           return false;
         }
@@ -17186,7 +17259,7 @@ THE SOFTWARE.
     }
   };
 
-  // node_modules/mediabunny/dist/modules/src/media-sink.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/media-sink.js
   var validatePacketRetrievalOptions = (options) => {
     if (!options || typeof options !== "object") {
       throw new TypeError("options must be an object.");
@@ -18301,28 +18374,28 @@ THE SOFTWARE.
       });
     });
     const merge = async (color, alpha) => {
-      const format = color.format;
+      const format2 = color.format;
       const alphaFormat = alpha.format;
-      if (!format || !alphaFormat) {
+      if (!format2 || !alphaFormat) {
         throw new Error("CPU color/alpha merging requires a known VideoFrame format.");
       }
-      const colorIs10 = format.includes("P10");
-      const colorIs12 = format.includes("P12");
+      const colorIs10 = format2.includes("P10");
+      const colorIs12 = format2.includes("P12");
       const alphaIs10 = alphaFormat.includes("P10");
       const alphaIs12 = alphaFormat.includes("P12");
       if (alphaIs10 !== colorIs10 || alphaIs12 !== colorIs12) {
-        throw new Error(`CPU color/alpha merging requires the alpha frame to have the same bit depth as the color frame (color: '${format}', alpha: '${alphaFormat}').`);
+        throw new Error(`CPU color/alpha merging requires the alpha frame to have the same bit depth as the color frame (color: '${format2}', alpha: '${alphaFormat}').`);
       }
-      if (format === "RGBX" || format === "RGBA" || format === "BGRX" || format === "BGRA") {
-        return await mergeInterleavedRgba(color, alpha, format);
-      } else if (format === "I420" || format === "I420P10" || format === "I420P12" || format === "I422" || format === "I422P10" || format === "I422P12" || format === "I444" || format === "I444P10" || format === "I444P12") {
-        return await mergePlanarYuv(color, alpha, format);
-      } else if (format === "NV12") {
+      if (format2 === "RGBX" || format2 === "RGBA" || format2 === "BGRX" || format2 === "BGRA") {
+        return await mergeInterleavedRgba(color, alpha, format2);
+      } else if (format2 === "I420" || format2 === "I420P10" || format2 === "I420P12" || format2 === "I422" || format2 === "I422P10" || format2 === "I422P12" || format2 === "I444" || format2 === "I444P10" || format2 === "I444P12") {
+        return await mergePlanarYuv(color, alpha, format2);
+      } else if (format2 === "NV12") {
         return await mergeNv12(color, alpha);
       }
-      throw new Error(`CPU color/alpha merging does not support format '${format}'.`);
+      throw new Error(`CPU color/alpha merging does not support format '${format2}'.`);
     };
-    const mergeInterleavedRgba = async (color, alpha, format) => {
+    const mergeInterleavedRgba = async (color, alpha, format2) => {
       const width = color.visibleRect?.width ?? color.codedWidth;
       const height = color.visibleRect?.height ?? color.codedHeight;
       const pixelCount = width * height;
@@ -18332,7 +18405,7 @@ THE SOFTWARE.
       for (let i = 0, j = 3; i < pixelCount; i++, j += 4) {
         output[j] = alphaY[i];
       }
-      const outputFormat = format === "RGBX" || format === "RGBA" ? "RGBA" : "BGRA";
+      const outputFormat = format2 === "RGBX" || format2 === "RGBA" ? "RGBA" : "BGRA";
       const init = {
         format: outputFormat,
         codedWidth: width,
@@ -18343,18 +18416,18 @@ THE SOFTWARE.
       };
       return new VideoFrame(output, init);
     };
-    const mergePlanarYuv = async (color, alpha, format) => {
+    const mergePlanarYuv = async (color, alpha, format2) => {
       const width = color.visibleRect?.width ?? color.codedWidth;
       const height = color.visibleRect?.height ?? color.codedHeight;
-      const is10 = format.includes("P10");
-      const is12 = format.includes("P12");
+      const is10 = format2.includes("P10");
+      const is12 = format2.includes("P12");
       const bytesPerSample = is10 || is12 ? 2 : 1;
       let chromaW;
       let chromaH;
-      if (format.startsWith("I420")) {
+      if (format2.startsWith("I420")) {
         chromaW = Math.ceil(width / 2);
         chromaH = Math.ceil(height / 2);
-      } else if (format.startsWith("I422")) {
+      } else if (format2.startsWith("I422")) {
         chromaW = Math.ceil(width / 2);
         chromaH = height;
       } else {
@@ -18372,7 +18445,7 @@ THE SOFTWARE.
       const alphaY = await readAlpha(alpha, width, height, bytesPerSample);
       const aOffset = yBytes + 2 * uvBytes;
       output.set(alphaY, aOffset);
-      const outputFormat = format.slice(0, 4) + "A" + format.slice(4);
+      const outputFormat = format2.slice(0, 4) + "A" + format2.slice(4);
       const init = {
         format: outputFormat,
         codedWidth: width,
@@ -18417,14 +18490,14 @@ THE SOFTWARE.
       return new VideoFrame(output, init);
     };
     const readAlpha = async (alpha, width, height, bytesPerSample) => {
-      const size2 = alpha.allocationSize();
-      if (!cpuAlphaBuffer || cpuAlphaBuffer.byteLength !== size2) {
-        cpuAlphaBuffer = new Uint8Array(size2);
+      const size3 = alpha.allocationSize();
+      if (!cpuAlphaBuffer || cpuAlphaBuffer.byteLength !== size3) {
+        cpuAlphaBuffer = new Uint8Array(size3);
       }
       await alpha.copyTo(cpuAlphaBuffer);
-      const format = alpha.format;
-      if (format === "RGBA" || format === "BGRA" || format === "RGBX" || format === "BGRX") {
-        const rOffset = format === "RGBA" || format === "RGBX" ? 0 : 2;
+      const format2 = alpha.format;
+      if (format2 === "RGBA" || format2 === "BGRA" || format2 === "RGBX" || format2 === "BGRX") {
+        const rOffset = format2 === "RGBA" || format2 === "RGBX" ? 0 : 2;
         const pixelCount = width * height;
         for (let i = 0; i < pixelCount; i++) {
           cpuAlphaBuffer[i] = cpuAlphaBuffer[i * 4 + rOffset];
@@ -18433,7 +18506,7 @@ THE SOFTWARE.
       } else {
         const yPlane = cpuAlphaBuffer.subarray(0, width * height * bytesPerSample);
         if (alpha.colorSpace.fullRange === false) {
-          const bitDepth = format.includes("P12") ? 12 : format.includes("P10") ? 10 : 8;
+          const bitDepth = format2.includes("P12") ? 12 : format2.includes("P10") ? 10 : 8;
           const low = 16 << bitDepth - 8;
           const high = 235 << bitDepth - 8;
           const max = (1 << bitDepth) - 1;
@@ -18906,7 +18979,7 @@ THE SOFTWARE.
     }
   };
 
-  // node_modules/mediabunny/dist/modules/src/input-track.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/input-track.js
   var InputTrack = class _InputTrack {
     /** @internal */
     constructor(input, backing) {
@@ -19964,7 +20037,7 @@ THE SOFTWARE.
     return best;
   };
 
-  // node_modules/mediabunny/dist/modules/src/input.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/input.js
   polyfillSymbolDispose();
   var DEFAULT_SOURCE_CACHE_GROUP = 1;
   var Input = class _Input extends EventEmitter {
@@ -20082,12 +20155,12 @@ THE SOFTWARE.
       return this._demuxerPromise ??= (async () => {
         this._reader = new Reader(this._rootSource);
         this._emit("source", { source: this._rootSource, request: null, isRoot: true });
-        for (const format of this._formats) {
-          const canRead = await format._canReadInput(this);
+        for (const format2 of this._formats) {
+          const canRead = await format2._canReadInput(this);
           if (canRead) {
-            this._format = format;
-            this._onFormatDetermined?.(format);
-            return format._createDemuxer(this);
+            this._format = format2;
+            this._onFormatDetermined?.(format2);
+            return format2._createDemuxer(this);
           }
         }
         throw new UnsupportedInputFormatError();
@@ -20321,17 +20394,17 @@ THE SOFTWARE.
     }
   };
 
-  // node_modules/mediabunny/dist/modules/src/reader.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/reader.js
   var Reader = class {
     constructor(source) {
       this.source = source;
     }
     get fileSize() {
-      const size2 = this.source._getFileSize();
-      if (size2 === void 0) {
+      const size3 = this.source._getFileSize();
+      if (size3 === void 0) {
         throw new Error("Reading file size too early; read required first.");
       }
-      return size2;
+      return size3;
     }
     get fileSizeNonStrict() {
       return this.source._getFileSize() ?? null;
@@ -20424,16 +20497,16 @@ THE SOFTWARE.
     }
   };
   var FileSlice = class _FileSlice {
-    constructor(bytes8, view2, offset, start, end2) {
-      this.bytes = bytes8;
+    constructor(bytes9, view2, offset, start, end2) {
+      this.bytes = bytes9;
       this.view = view2;
       this.offset = offset;
       this.start = start;
       this.end = end2;
       this.bufferPos = start - offset;
     }
-    static tempFromBytes(bytes8) {
-      return new _FileSlice(bytes8, toDataView(bytes8), 0, 0, bytes8.length);
+    static tempFromBytes(bytes9) {
+      return new _FileSlice(bytes9, toDataView(bytes9), 0, 0, bytes9.length);
     }
     get length() {
       return this.end - this.start;
@@ -20466,9 +20539,9 @@ THE SOFTWARE.
   };
   var readBytes = (slice, length2) => {
     checkIsInRange(slice, length2);
-    const bytes8 = slice.bytes.subarray(slice.bufferPos, slice.bufferPos + length2);
+    const bytes9 = slice.bytes.subarray(slice.bufferPos, slice.bufferPos + length2);
     slice.bufferPos += length2;
-    return bytes8;
+    return bytes9;
   };
   var readU8 = (slice) => {
     checkIsInRange(slice, 1);
@@ -20529,7 +20602,7 @@ THE SOFTWARE.
     return str;
   };
 
-  // node_modules/mediabunny/dist/modules/src/isobmff/isobmff-reader.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/isobmff/isobmff-reader.js
   var MIN_BOX_HEADER_SIZE = 8;
   var MAX_BOX_HEADER_SIZE = 16;
   var readBoxHeader = (slice) => {
@@ -20643,7 +20716,7 @@ THE SOFTWARE.
     }
   };
 
-  // node_modules/mediabunny/dist/modules/src/media-source.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/media-source.js
   var __addDisposableResource2 = function(env, value, async) {
     if (value !== null && value !== void 0) {
       if (typeof value !== "object" && typeof value !== "function") throw new TypeError("Object expected.");
@@ -21424,7 +21497,7 @@ THE SOFTWARE.
   var detectAvcChunkTimestampShift = () => {
     return avcChunkTimestampShiftPromise ??= (async () => {
       let chunkTimestamp = null;
-      const encoder4 = new VideoEncoder({
+      const encoder5 = new VideoEncoder({
         output: (chunk) => {
           chunkTimestamp ??= chunk.timestamp;
         },
@@ -21432,7 +21505,7 @@ THE SOFTWARE.
         }
       });
       try {
-        encoder4.configure({
+        encoder5.configure({
           codec: "avc1.64001f",
           width: 1280,
           height: 720
@@ -21444,14 +21517,14 @@ THE SOFTWARE.
           timestamp: 0,
           duration: 500
         });
-        encoder4.encode(frame2, { keyFrame: true });
+        encoder5.encode(frame2, { keyFrame: true });
         frame2.close();
-        await encoder4.flush();
+        await encoder5.flush();
       } catch {
         return false;
       } finally {
-        if (encoder4.state !== "closed") {
-          encoder4.close();
+        if (encoder5.state !== "closed") {
+          encoder5.close();
         }
       }
       return chunkTimestamp === 500;
@@ -21525,8 +21598,8 @@ THE SOFTWARE.
       });
     });
     const split2 = async (sourceFrame) => {
-      const format = sourceFrame.format;
-      if (!format) {
+      const format2 = sourceFrame.format;
+      if (!format2) {
         throw new Error("CPU color/alpha splitting requires a known VideoFrame format.");
       }
       const sourceSize = sourceFrame.allocationSize();
@@ -21534,14 +21607,14 @@ THE SOFTWARE.
         cpuSourceBuffer = new Uint8Array(sourceSize);
       }
       await sourceFrame.copyTo(cpuSourceBuffer);
-      if (format === "RGBA" || format === "BGRA") {
-        return splitInterleavedRgba(cpuSourceBuffer, format, sourceFrame);
-      } else if (format === "I420A" || format === "I420AP10" || format === "I420AP12" || format === "I422A" || format === "I422AP10" || format === "I422AP12" || format === "I444A" || format === "I444AP10" || format === "I444AP12") {
-        return splitPlanarYuvA(cpuSourceBuffer, format, sourceFrame);
+      if (format2 === "RGBA" || format2 === "BGRA") {
+        return splitInterleavedRgba(cpuSourceBuffer, format2, sourceFrame);
+      } else if (format2 === "I420A" || format2 === "I420AP10" || format2 === "I420AP12" || format2 === "I422A" || format2 === "I422AP10" || format2 === "I422AP12" || format2 === "I444A" || format2 === "I444AP10" || format2 === "I444AP12") {
+        return splitPlanarYuvA(cpuSourceBuffer, format2, sourceFrame);
       }
-      throw new Error(`CPU color/alpha splitting does not support format '${format}'.`);
+      throw new Error(`CPU color/alpha splitting does not support format '${format2}'.`);
     };
-    const splitInterleavedRgba = (source, format, sourceFrame) => {
+    const splitInterleavedRgba = (source, format2, sourceFrame) => {
       const width = sourceFrame.visibleRect?.width ?? sourceFrame.codedWidth;
       const height = sourceFrame.visibleRect?.height ?? sourceFrame.codedHeight;
       const pixelCount = width * height;
@@ -21554,7 +21627,7 @@ THE SOFTWARE.
       }
       alphaBuffer.fill(128, pixelCount);
       const colorFrame = new VideoFrame(source, {
-        format: format === "RGBA" ? "RGBX" : "BGRX",
+        format: format2 === "RGBA" ? "RGBX" : "BGRX",
         codedWidth: width,
         codedHeight: height,
         timestamp: sourceFrame.timestamp,
@@ -21578,18 +21651,18 @@ THE SOFTWARE.
       const alphaFrame = new VideoFrame(alphaBuffer, alphaInit);
       return { colorFrame, alphaFrame };
     };
-    const splitPlanarYuvA = (source, format, sourceFrame) => {
+    const splitPlanarYuvA = (source, format2, sourceFrame) => {
       const width = sourceFrame.visibleRect?.width ?? sourceFrame.codedWidth;
       const height = sourceFrame.visibleRect?.height ?? sourceFrame.codedHeight;
-      const is10 = format.includes("P10");
-      const is12 = format.includes("P12");
+      const is10 = format2.includes("P10");
+      const is12 = format2.includes("P12");
       const bytesPerSample = is10 || is12 ? 2 : 1;
       let chromaW;
       let chromaH;
-      if (format.startsWith("I420")) {
+      if (format2.startsWith("I420")) {
         chromaW = Math.ceil(width / 2);
         chromaH = Math.ceil(height / 2);
-      } else if (format.startsWith("I422")) {
+      } else if (format2.startsWith("I422")) {
         chromaW = Math.ceil(width / 2);
         chromaH = height;
       } else {
@@ -21602,7 +21675,7 @@ THE SOFTWARE.
       const uvBytes = uvSamples * bytesPerSample;
       const aBytes = ySamples * bytesPerSample;
       const colorBytes = yBytes + uvBytes * 2;
-      const colorFormat = format.replace("A", "");
+      const colorFormat = format2.replace("A", "");
       const alphaChromaW = Math.ceil(width / 2);
       const alphaChromaH = Math.ceil(height / 2);
       const alphaUvSamples = alphaChromaW * alphaChromaH;
@@ -22443,7 +22516,7 @@ THE SOFTWARE.
       let peakValue = -Infinity;
       let decodedFrames = 0;
       let codecError = null;
-      const encoder4 = new AudioEncoder({
+      const encoder5 = new AudioEncoder({
         output: (chunk, meta) => {
           if (meta?.decoderConfig) {
             decoderConfig ??= meta.decoderConfig;
@@ -22458,7 +22531,7 @@ THE SOFTWARE.
         try {
           return new AudioDecoder(init);
         } catch (error) {
-          if (encoder4.state !== "closed") encoder4.close();
+          if (encoder5.state !== "closed") encoder5.close();
           throw error;
         }
       };
@@ -22486,9 +22559,9 @@ THE SOFTWARE.
       void primingTimeout.catch(() => {
       });
       try {
-        encoder4.configure(encoderConfig);
+        encoder5.configure(encoderConfig);
         if (codec === "aac" && isWebKit()) {
-          encodeAacSilencePrefix(encoder4, numberOfChannels, sampleRate, 0);
+          encodeAacSilencePrefix(encoder5, numberOfChannels, sampleRate, 0);
         }
         const data = new Float32Array(numberOfChannels * numberOfFrames);
         data[impulseIndex] = 1;
@@ -22500,9 +22573,9 @@ THE SOFTWARE.
           sampleRate,
           timestamp: 0
         });
-        encoder4.encode(audioData);
+        encoder5.encode(audioData);
         audioData.close();
-        await Promise.race([encoder4.flush(), primingTimeout]);
+        await Promise.race([encoder5.flush(), primingTimeout]);
         assert(decoderConfig);
         fixAudioDecoderConfig(codec, encoderConfig, decoderConfig);
         decoder4.configure(decoderConfig);
@@ -22514,8 +22587,8 @@ THE SOFTWARE.
         throw codecError ?? error;
       } finally {
         clearTimeout(primingTimer);
-        if (encoder4.state !== "closed") {
-          encoder4.close();
+        if (encoder5.state !== "closed") {
+          encoder5.close();
         }
         if (decoder4.state !== "closed") {
           decoder4.close();
@@ -22529,7 +22602,7 @@ THE SOFTWARE.
     promise.catch(() => audioEncoderPrimingShiftPromises.delete(codecString));
     return promise;
   };
-  var encodeAacSilencePrefix = (encoder4, numberOfChannels, sampleRate, timestamp) => {
+  var encodeAacSilencePrefix = (encoder5, numberOfChannels, sampleRate, timestamp) => {
     const numberOfFrames = 1024;
     const audioData = new AudioData({
       data: new Float32Array(numberOfChannels * numberOfFrames),
@@ -22539,7 +22612,7 @@ THE SOFTWARE.
       sampleRate,
       timestamp: Math.round(1e6 * (timestamp - numberOfFrames / sampleRate))
     });
-    encoder4.encode(audioData);
+    encoder5.encode(audioData);
     audioData.close();
   };
   var fixAudioDecoderConfig = (codec, encoderConfig, decoderConfig) => {
@@ -22840,7 +22913,7 @@ THE SOFTWARE.
     }
   };
 
-  // node_modules/mediabunny/dist/modules/src/codec.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/codec.js
   var VIDEO_CODECS = [
     "avc",
     "hevc",
@@ -23169,12 +23242,12 @@ THE SOFTWARE.
     if (codec === "avc") {
       assert(trackInfo2.avcType !== null);
       if (avcCodecInfo) {
-        const bytes8 = new Uint8Array([
+        const bytes9 = new Uint8Array([
           avcCodecInfo.avcProfileIndication,
           avcCodecInfo.profileCompatibility,
           avcCodecInfo.avcLevelIndication
         ]);
-        return `avc${trackInfo2.avcType}.${bytesToHexString(bytes8)}`;
+        return `avc${trackInfo2.avcType}.${bytesToHexString(bytes9)}`;
       }
       if (!codecDescription || codecDescription.byteLength < 4) {
         throw new TypeError("AVC decoder description is not provided or is not at least 4 bytes long.");
@@ -23495,15 +23568,15 @@ THE SOFTWARE.
       }
       case "vorbis": {
         assert(decoderConfig.description);
-        const bytes8 = toUint8Array(decoderConfig.description);
+        const bytes9 = toUint8Array(decoderConfig.description);
         let pos = 1;
         let lacedLengthsLeft = 2;
         while (lacedLengthsLeft > 0) {
-          if (bytes8[pos++] < 255) {
+          if (bytes9[pos++] < 255) {
             lacedLengthsLeft--;
           }
         }
-        const blockSizeByte = bytes8[pos + 28];
+        const blockSizeByte = bytes9[pos + 28];
         const longBlockSize = 1 << (blockSizeByte >> 4);
         return longBlockSize / 2 / decoderConfig.sampleRate;
       }
@@ -23854,7 +23927,7 @@ THE SOFTWARE.
     }
   };
 
-  // node_modules/mediabunny/dist/modules/src/muxer.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/muxer.js
   var Muxer = class {
     constructor(output) {
       this.mutex = new AsyncMutex();
@@ -23887,7 +23960,7 @@ THE SOFTWARE.
     }
   };
 
-  // node_modules/mediabunny/dist/modules/src/isobmff/isobmff-boxes.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/isobmff/isobmff-boxes.js
   var IsobmffBoxWriter = class {
     constructor(writer) {
       this.writer = writer;
@@ -23930,17 +24003,17 @@ THE SOFTWARE.
               this.writeBox(child);
         }
         const endPos = this.writer.getPos();
-        const size2 = box3.size ?? endPos - startPos;
+        const size3 = box3.size ?? endPos - startPos;
         this.writer.seek(startPos);
-        this.writeBoxHeader(box3, size2);
+        this.writeBoxHeader(box3, size3);
         this.writer.seek(endPos);
       }
     }
-    writeBoxHeader(box3, size2) {
-      this.writeU32(box3.largeSize ? 1 : size2);
+    writeBoxHeader(box3, size3) {
+      this.writeU32(box3.largeSize ? 1 : size3);
       this.writeAscii(box3.type);
       if (box3.largeSize)
-        this.writeU64(size2);
+        this.writeU64(size3);
     }
     measureBoxHeader(box3) {
       return 8 + (box3.largeSize ? 8 : 0);
@@ -24018,26 +24091,26 @@ THE SOFTWARE.
     return [bytes2[0], bytes2[1], bytes2[2], bytes2[3]];
   };
   var variableUnsignedInt = (value, byteLength) => {
-    const bytes8 = [];
+    const bytes9 = [];
     let remaining = value;
     do {
       let byte = remaining & 127;
       remaining >>= 7;
-      if (bytes8.length > 0) {
+      if (bytes9.length > 0) {
         byte |= 128;
       }
-      bytes8.push(byte);
+      bytes9.push(byte);
       if (byteLength !== void 0) {
         byteLength--;
       }
     } while (remaining > 0 || byteLength);
-    return bytes8.reverse();
+    return bytes9.reverse();
   };
   var ascii = (text2, nullTerminated = false) => {
-    const bytes8 = Array(text2.length).fill(null).map((_, i) => text2.charCodeAt(i));
+    const bytes9 = Array(text2.length).fill(null).map((_, i) => text2.charCodeAt(i));
     if (nullTerminated)
-      bytes8.push(0);
-    return bytes8;
+      bytes9.push(0);
+    return bytes9;
   };
   var matrixToBytes = (matrix) => {
     return [
@@ -24148,7 +24221,7 @@ THE SOFTWARE.
     ]);
   };
   var mdat = (reserveLargeSize) => ({ type: "mdat", largeSize: reserveLargeSize });
-  var free = (size2) => ({ type: "free", size: size2 });
+  var free = (size3) => ({ type: "free", size: size3 });
   var moov = (muxer) => {
     return box("moov", void 0, [
       mvhd(muxer.creationTime, muxer.trackDatas),
@@ -24652,7 +24725,7 @@ THE SOFTWARE.
       default:
         throw new Error(`Unhandled audio codec: ${trackData.track.source._codec}`);
     }
-    let bytes8 = [
+    let bytes9 = [
       ...u8(objectTypeIndication),
       // Object type indication
       ...u8(21),
@@ -24666,23 +24739,23 @@ THE SOFTWARE.
     ];
     if (trackData.info.decoderConfig.description) {
       const description = toUint8Array(trackData.info.decoderConfig.description);
-      bytes8 = [
-        ...bytes8,
+      bytes9 = [
+        ...bytes9,
         ...u8(5),
         // TAG(5) = DecoderSpecificInfo
         ...variableUnsignedInt(description.byteLength),
         ...description
       ];
     }
-    bytes8 = [
+    bytes9 = [
       ...u16(1),
       // ES_ID = 1
       ...u8(0),
       // flags etc = 0
       ...u8(4),
       // TAG(4) = ES Descriptor
-      ...variableUnsignedInt(bytes8.length),
-      ...bytes8,
+      ...variableUnsignedInt(bytes9.length),
+      ...bytes9,
       ...u8(6),
       // TAG(6)
       ...u8(1),
@@ -24690,13 +24763,13 @@ THE SOFTWARE.
       ...u8(2)
       // data
     ];
-    bytes8 = [
+    bytes9 = [
       ...u8(3),
       // TAG(3) = Object Descriptor
-      ...variableUnsignedInt(bytes8.length),
-      ...bytes8
+      ...variableUnsignedInt(bytes9.length),
+      ...bytes9
     ];
-    return fullBox("esds", 0, 0, bytes8);
+    return fullBox("esds", 0, 0, bytes9);
   };
   var wave = (trackData) => {
     return box("wave", void 0, [
@@ -24727,8 +24800,8 @@ THE SOFTWARE.
     const description = trackData.info.decoderConfig?.description;
     if (description) {
       assert(description.byteLength >= 18);
-      const bytes8 = toUint8Array(description);
-      const header = parseOpusIdentificationHeader(bytes8);
+      const bytes9 = toUint8Array(description);
+      const header = parseOpusIdentificationHeader(bytes9);
       outputChannelCount = header.outputChannelCount;
       preSkip = header.preSkip;
       inputSampleRate = header.inputSampleRate;
@@ -24757,9 +24830,9 @@ THE SOFTWARE.
   var dfLa = (trackData) => {
     const description = trackData.info.decoderConfig?.description;
     assert(description);
-    const bytes8 = toUint8Array(description);
+    const bytes9 = toUint8Array(description);
     return fullBox("dfLa", 0, 0, [
-      ...bytes8.subarray(4)
+      ...bytes9.subarray(4)
     ]);
   };
   var pcmC = (trackData) => {
@@ -24776,8 +24849,8 @@ THE SOFTWARE.
     if (!frameInfo) {
       throw new Error("Couldn't extract AC-3 frame info from the audio packet. Ensure the packets contain valid AC-3 sync frames (as specified in ETSI TS 102 366).");
     }
-    const bytes8 = new Uint8Array(3);
-    const bitstream = new Bitstream(bytes8);
+    const bytes9 = new Uint8Array(3);
+    const bitstream = new Bitstream(bytes9);
     bitstream.writeBits(2, frameInfo.fscod);
     bitstream.writeBits(5, frameInfo.bsid);
     bitstream.writeBits(3, frameInfo.bsmod);
@@ -24785,7 +24858,7 @@ THE SOFTWARE.
     bitstream.writeBits(1, frameInfo.lfeon);
     bitstream.writeBits(5, frameInfo.bitRateCode);
     bitstream.writeBits(5, 0);
-    return box("dac3", [...bytes8]);
+    return box("dac3", [...bytes9]);
   };
   var dec3 = (trackData) => {
     assert(trackData.info.primingPacket);
@@ -24802,9 +24875,9 @@ THE SOFTWARE.
         totalBits += 1;
       }
     }
-    const size2 = Math.ceil(totalBits / 8);
-    const bytes8 = new Uint8Array(size2);
-    const bitstream = new Bitstream(bytes8);
+    const size3 = Math.ceil(totalBits / 8);
+    const bytes9 = new Uint8Array(size3);
+    const bitstream = new Bitstream(bytes9);
     bitstream.writeBits(13, frameInfo.dataRate);
     bitstream.writeBits(3, frameInfo.substreams.length - 1);
     for (const sub of frameInfo.substreams) {
@@ -24823,7 +24896,7 @@ THE SOFTWARE.
         bitstream.writeBits(1, 0);
       }
     }
-    return box("dec3", [...bytes8]);
+    return box("dec3", [...bytes9]);
   };
   var ddts = (trackData) => {
     assert(trackData.info.primingPacket);
@@ -25200,12 +25273,12 @@ THE SOFTWARE.
     ]);
   };
   var vtte = () => box("vtte");
-  var vttc = (payload6, timestamp, identifier, settings, sourceId) => box("vttc", void 0, [
+  var vttc = (payload8, timestamp, identifier, settings, sourceId) => box("vttc", void 0, [
     sourceId !== null ? box("vsid", [i32(sourceId)]) : null,
     identifier !== null ? box("iden", [...textEncoder.encode(identifier)]) : null,
     timestamp !== null ? box("ctim", [...textEncoder.encode(formatSubtitleTimestamp(timestamp))]) : null,
     settings !== null ? box("sttg", [...textEncoder.encode(settings)]) : null,
-    box("payl", [...textEncoder.encode(payload6)])
+    box("payl", [...textEncoder.encode(payload8)])
   ]);
   var vtta = (notes) => box("vtta", [...textEncoder.encode(notes)]);
   var udta = (muxer) => {
@@ -25229,8 +25302,8 @@ THE SOFTWARE.
     return box("udta", void 0, boxes);
   };
   var addQuickTimeMetadataTagBoxes = (boxes, tags) => {
-    for (const { key: key8, value } of keyValueIterator(tags)) {
-      switch (key8) {
+    for (const { key: key9, value } of keyValueIterator(tags)) {
+      switch (key9) {
         case "title":
           {
             boxes.push(metadataTagStringBoxShort("\xA9nam", value));
@@ -25306,19 +25379,19 @@ THE SOFTWARE.
           ;
           break;
         default:
-          assertNever(key8);
+          assertNever(key9);
       }
     }
     if (tags.raw) {
-      for (const key8 in tags.raw) {
-        const value = tags.raw[key8];
-        if (value == null || key8.length !== 4 || boxes.some((x) => x.type === key8)) {
+      for (const key9 in tags.raw) {
+        const value = tags.raw[key9];
+        if (value == null || key9.length !== 4 || boxes.some((x) => x.type === key9)) {
           continue;
         }
         if (typeof value === "string") {
-          boxes.push(metadataTagStringBoxShort(key8, value));
+          boxes.push(metadataTagStringBoxShort(key9, value));
         } else if (value instanceof Uint8Array) {
-          boxes.push(box(key8, Array.from(value)));
+          boxes.push(box(key9, Array.from(value)));
         }
       }
     }
@@ -25339,8 +25412,8 @@ THE SOFTWARE.
   var ILST_UNSAFE_RAW_KEYS = /* @__PURE__ */ new Set(["HMMT", "loci", "chpl"]);
   var generateMetadataPairs = (tags, isMdta) => {
     const pairs = [];
-    for (const { key: key8, value } of keyValueIterator(tags)) {
-      switch (key8) {
+    for (const { key: key9, value } of keyValueIterator(tags)) {
+      switch (key9) {
         case "title":
           {
             pairs.push({ key: isMdta ? "title" : "\xA9nam", value: dataStringBoxLong(value) });
@@ -25486,19 +25559,19 @@ THE SOFTWARE.
           ;
           break;
         default:
-          assertNever(key8);
+          assertNever(key9);
       }
     }
     if (tags.raw) {
-      for (const key8 in tags.raw) {
-        const value = tags.raw[key8];
-        if (value == null || !isMdta && (key8.length !== 4 || ILST_UNSAFE_RAW_KEYS.has(key8)) || pairs.some((x) => x.key === key8)) {
+      for (const key9 in tags.raw) {
+        const value = tags.raw[key9];
+        if (value == null || !isMdta && (key9.length !== 4 || ILST_UNSAFE_RAW_KEYS.has(key9)) || pairs.some((x) => x.key === key9)) {
           continue;
         }
         if (typeof value === "string") {
-          pairs.push({ key: key8, value: dataStringBoxLong(value) });
+          pairs.push({ key: key9, value: dataStringBoxLong(value) });
         } else if (value instanceof Uint8Array) {
-          pairs.push({ key: key8, value: box("data", [
+          pairs.push({ key: key9, value: box("data", [
             u32(0),
             // Type indicator
             u32(0),
@@ -25506,7 +25579,7 @@ THE SOFTWARE.
             Array.from(value)
           ]) });
         } else if (value instanceof RichImageData) {
-          pairs.push({ key: key8, value: box("data", [
+          pairs.push({ key: key9, value: box("data", [
             u32(DATA_BOX_MIME_TYPE_MAP[value.mimeType] ?? 0),
             // Type indicator
             u32(0),
@@ -25743,7 +25816,7 @@ THE SOFTWARE.
     return language;
   };
 
-  // node_modules/mediabunny/dist/modules/src/writer.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/writer.js
   var Writer = class {
     constructor(target, isMonotonic) {
       this.finalized = false;
@@ -25835,7 +25908,7 @@ THE SOFTWARE.
     }
   };
 
-  // node_modules/mediabunny/dist/modules/src/target.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/target.js
   var Target = class extends EventEmitter {
     constructor() {
       super(...arguments);
@@ -25896,11 +25969,11 @@ THE SOFTWARE.
       this._bytes = new Uint8Array(this._buffer);
     }
     /** @internal */
-    _ensureSize(size2) {
+    _ensureSize(size3) {
       assert(this._buffer);
       assert(this._bytes);
       let newLength = this._buffer.byteLength;
-      while (newLength < size2)
+      while (newLength < size3)
         newLength *= 2;
       if (newLength === this._buffer.byteLength)
         return;
@@ -26265,7 +26338,7 @@ THE SOFTWARE.
     }
   };
 
-  // node_modules/mediabunny/dist/modules/src/isobmff/isobmff-muxer.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/isobmff/isobmff-muxer.js
   var GLOBAL_TIMESCALE = 57600;
   var MIN_CHUNK_DURATION = 0.5;
   var getTrackMetadata = (trackData) => {
@@ -26301,7 +26374,7 @@ THE SOFTWARE.
     return maxEndTimestamp - minTimestamp;
   };
   var IsobmffMuxer = class extends Muxer {
-    constructor(output, format) {
+    constructor(output, format2) {
       super(output);
       this.writer = null;
       this.boxWriter = null;
@@ -26321,11 +26394,11 @@ THE SOFTWARE.
       this.minWrittenTimestamp = Infinity;
       this.maxWrittenEndTimestamp = -Infinity;
       this.segmentHeaderSize = null;
-      this.format = format;
-      this.formatOptions = { ...format._options };
-      this.isQuickTime = format instanceof MovOutputFormat;
-      this.isCmaf = format instanceof CmafOutputFormat;
-      this.minimumFragmentDuration = this.formatOptions.minimumFragmentDuration ?? (format instanceof CmafOutputFormat ? Infinity : 1);
+      this.format = format2;
+      this.formatOptions = { ...format2._options };
+      this.isQuickTime = format2 instanceof MovOutputFormat;
+      this.isCmaf = format2 instanceof CmafOutputFormat;
+      this.minimumFragmentDuration = this.formatOptions.minimumFragmentDuration ?? (format2 instanceof CmafOutputFormat ? Infinity : 1);
       this.auxWriter.start();
     }
     async start() {
@@ -27376,7 +27449,7 @@ THE SOFTWARE.
     }
   };
 
-  // node_modules/mediabunny/dist/modules/src/output-format.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/output-format.js
   var OutputFormat = class {
     /**
      * Whether this output format supports video rotation metadata.
@@ -27579,7 +27652,7 @@ THE SOFTWARE.
     }
   };
 
-  // node_modules/mediabunny/dist/modules/src/output.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/output.js
   var ALL_TRACK_TYPES = ["video", "audio", "subtitle"];
   var OutputTrack = class _OutputTrack {
     /** @internal */
@@ -28118,7 +28191,7 @@ THE SOFTWARE.
     }
   };
 
-  // node_modules/mediabunny/dist/modules/src/index.js
+  // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/index.js
   var MEDIABUNNY_LOADED_SYMBOL = Symbol.for("mediabunny loaded");
   if (globalThis[MEDIABUNNY_LOADED_SYMBOL]) {
     Logging._error("[WARNING]\nMediabunny was loaded twice. This will likely cause Mediabunny not to work correctly. Check if multiple dependencies are importing different versions of Mediabunny, or if something is being bundled incorrectly.");
@@ -28131,8 +28204,8 @@ THE SOFTWARE.
   var MAX_SECONDS = 180;
   var MAX_WORK_MS = 15e3;
   var aborted = () => new DOMException("Clip audio cancelled.", "AbortError");
-  function validateEdits(bytes8) {
-    const view2 = new DataView(bytes8.buffer, bytes8.byteOffset, bytes8.byteLength);
+  function validateEdits(bytes9) {
+    const view2 = new DataView(bytes9.buffer, bytes9.byteOffset, bytes9.byteLength);
     let boxes = 0;
     const walk = (start, end2, depth) => {
       if (depth > 4) throw Error("Unsupported MP4 structure.");
@@ -28140,22 +28213,22 @@ THE SOFTWARE.
       while (at < end2) {
         if (++boxes > 2e4) throw Error("MP4 box limit exceeded.");
         if (end2 - at < 8) throw Error("Incomplete MP4 box.");
-        let size2 = view2.getUint32(at), header = 8;
-        const type = String.fromCharCode(...bytes8.subarray(at + 4, at + 8));
-        if (size2 === 1) {
+        let size3 = view2.getUint32(at), header = 8;
+        const type = String.fromCharCode(...bytes9.subarray(at + 4, at + 8));
+        if (size3 === 1) {
           if (end2 - at < 16) throw Error("Incomplete MP4 box.");
           const n = view2.getBigUint64(at + 8);
           if (n > BigInt(Number.MAX_SAFE_INTEGER)) throw Error("Invalid MP4 box.");
-          size2 = Number(n);
+          size3 = Number(n);
           header = 16;
-        } else if (size2 === 0) size2 = end2 - at;
-        if (size2 < header || at + size2 > end2) throw Error("Invalid MP4 box.");
-        if (type === "moov" || type === "trak" || type === "edts") walk(at + header, at + size2, depth + 1);
+        } else if (size3 === 0) size3 = end2 - at;
+        if (size3 < header || at + size3 > end2) throw Error("Invalid MP4 box.");
+        if (type === "moov" || type === "trak" || type === "edts") walk(at + header, at + size3, depth + 1);
         else if (type === "elst") {
           const p = at + header;
-          if (at + size2 - p < 8) throw Error("Invalid MP4 edit list.");
+          if (at + size3 - p < 8) throw Error("Invalid MP4 edit list.");
           const version = view2.getUint8(p), count = view2.getUint32(p + 4), width = version === 0 ? 12 : version === 1 ? 20 : 0;
-          if (!width || count > 2 || p + 8 + count * width !== at + size2) throw Error("Unsupported MP4 edit list.");
+          if (!width || count > 2 || p + 8 + count * width !== at + size3) throw Error("Unsupported MP4 edit list.");
           let seenMedia = false;
           for (let i = 0; i < count; i++) {
             const q = p + 8 + i * width, time = version === 0 ? BigInt(view2.getInt32(q + 4)) : view2.getBigInt64(q + 8), rate = q + (version === 0 ? 8 : 16);
@@ -28163,10 +28236,10 @@ THE SOFTWARE.
             if (time !== -1n) seenMedia = true;
           }
         }
-        at += size2;
+        at += size3;
       }
     };
-    walk(0, bytes8.length, 0);
+    walk(0, bytes9.length, 0);
   }
   async function trackInfo(input, parentDurationMs, signal, check) {
     if (!Number.isSafeInteger(parentDurationMs) || parentDurationMs < 1 || parentDurationMs > 18e4) throw Error("Invalid parent duration.");
@@ -28216,11 +28289,11 @@ THE SOFTWARE.
       signal.removeEventListener("abort", onAbort);
     } };
   }
-  async function inspectClipAudioAsset(bytes8, parentDurationMs, signal) {
-    if (!(bytes8 instanceof Uint8Array) || bytes8.byteLength < 1 || bytes8.byteLength > MAX_OUTPUT) throw Error("Audio asset exceeds size limit.");
+  async function inspectClipAudioAsset(bytes9, parentDurationMs, signal) {
+    if (!(bytes9 instanceof Uint8Array) || bytes9.byteLength < 1 || bytes9.byteLength > MAX_OUTPUT) throw Error("Audio asset exceeds size limit.");
     if (signal.aborted) throw aborted();
-    validateEdits(bytes8);
-    const input = new Input({ source: new BlobSource(new Blob([bytes8.slice().buffer])), formats: [MP4] });
+    validateEdits(bytes9);
+    const input = new Input({ source: new BlobSource(new Blob([bytes9.slice().buffer])), formats: [MP4] });
     const guard = makeGuard(signal, () => input.dispose());
     try {
       const run = async () => {
@@ -28249,8 +28322,8 @@ THE SOFTWARE.
   }
   async function extractClipAudioAsset(parent, verifiedParts, signal) {
     if (signal.aborted) throw aborted();
-    const size2 = verifiedParts.reduce((n, p) => n + (p instanceof Uint8Array ? p.byteLength : Infinity), 0);
-    if (!parent || parent.expiresAtMs <= Date.now() || !Number.isSafeInteger(parent.durationMs) || parent.durationMs < 1 || parent.durationMs > 18e4 || verifiedParts.length !== parent.objectCount || size2 !== parent.totalBytes || size2 > CLIP_MAX_BYTES) throw Error("Invalid verified clip.");
+    const size3 = verifiedParts.reduce((n, p) => n + (p instanceof Uint8Array ? p.byteLength : Infinity), 0);
+    if (!parent || parent.expiresAtMs <= Date.now() || !Number.isSafeInteger(parent.durationMs) || parent.durationMs < 1 || parent.durationMs > 18e4 || verifiedParts.length !== parent.objectCount || size3 !== parent.totalBytes || size3 > CLIP_MAX_BYTES) throw Error("Invalid verified clip.");
     validateEdits(verifiedParts[0]);
     const input = new Input({ source: new BlobSource(new Blob(verifiedParts.map((p) => p.slice().buffer))), formats: [MP4] });
     const buffer = new Uint8Array(MAX_OUTPUT);
@@ -28297,11 +28370,11 @@ THE SOFTWARE.
         await output.finalize();
         check();
         if (!high || high > MAX_OUTPUT) throw Error("Audio asset exceeds size limit.");
-        const bytes8 = buffer.slice(0, high);
-        const inspected = await inspectClipAudioAsset(bytes8, parent.durationMs, signal);
+        const bytes9 = buffer.slice(0, high);
+        const inspected = await inspectClipAudioAsset(bytes9, parent.durationMs, signal);
         check();
         if (Math.abs(inspected.durationMs - info.durationMs) > 100) throw Error("Audio remux timing changed.");
-        return { bytes: bytes8, durationMs: inspected.durationMs };
+        return { bytes: bytes9, durationMs: inspected.durationMs };
       };
       return await Promise.race([run(), guard.interrupted]);
     } finally {
@@ -28312,20 +28385,20 @@ THE SOFTWARE.
     }
   }
 
-  // node_modules/uint8-util/dist/src/util.js
+  // ../../../../../apps/family-pilot/node_modules/uint8-util/dist/src/util.js
   var decoder = new TextDecoder();
-  var arr2text = (data, enc2) => {
-    if (!enc2)
+  var arr2text = (data, enc3) => {
+    if (!enc3)
       return decoder.decode(data);
-    const dec = new TextDecoder(enc2);
+    const dec = new TextDecoder(enc3);
     return dec.decode(data);
   };
-  function concat(chunks, size2 = 0) {
+  function concat(chunks, size3 = 0) {
     const length2 = chunks.length;
-    if (!size2)
+    if (!size3)
       for (let i = 0; i < length2; i++)
-        size2 += chunks[i].length;
-    const b = new Uint8Array(size2);
+        size3 += chunks[i].length;
+    const b = new Uint8Array(size3);
     let offset = 0;
     for (let i = 0; i < length2; i++) {
       b.set(chunks[i], offset);
@@ -28334,7 +28407,7 @@ THE SOFTWARE.
     return b;
   }
 
-  // node_modules/uint8-util/dist/src/browser.js
+  // ../../../../../apps/family-pilot/node_modules/uint8-util/dist/src/browser.js
   var alphabet = "0123456789abcdef";
   var encodeLookup = [];
   var decodeLookup = new Uint8Array(128);
@@ -28365,9 +28438,9 @@ THE SOFTWARE.
   };
   var encoder2 = new TextEncoder();
   var text2arr = (str) => encoder2.encode(str);
-  var randomBytes3 = (size2) => crypto.getRandomValues(new Uint8Array(size2));
+  var randomBytes3 = (size3) => crypto.getRandomValues(new Uint8Array(size3));
 
-  // node_modules/bencode/lib/util.js
+  // ../../../../../apps/family-pilot/node_modules/bencode/lib/util.js
   function digitCount(value) {
     const sign = value < 0 ? 1 : 0;
     value = Math.abs(Number(value || 1));
@@ -28385,7 +28458,7 @@ THE SOFTWARE.
     return typeof value;
   }
 
-  // node_modules/bencode/lib/encode.js
+  // ../../../../../apps/family-pilot/node_modules/bencode/lib/encode.js
   function encode4(data, buffer, offset) {
     const buffers = [];
     let result = null;
@@ -28476,10 +28549,10 @@ THE SOFTWARE.
   encode4.dictMap = function(buffers, data) {
     buffers.push(buffD);
     const keys = Array.from(data.keys()).sort();
-    for (const key8 of keys) {
-      if (data.get(key8) == null) continue;
-      ArrayBuffer.isView(key8) ? encode4._encode(buffers, key8) : encode4.string(buffers, String(key8));
-      encode4._encode(buffers, data.get(key8));
+    for (const key9 of keys) {
+      if (data.get(key9) == null) continue;
+      ArrayBuffer.isView(key9) ? encode4._encode(buffers, key9) : encode4.string(buffers, String(key9));
+      encode4._encode(buffers, data.get(key9));
     }
     buffers.push(buffE);
   };
@@ -28503,7 +28576,7 @@ THE SOFTWARE.
   };
   var encode_default = encode4;
 
-  // node_modules/bencode/lib/decode.js
+  // ../../../../../apps/family-pilot/node_modules/bencode/lib/decode.js
   var INTEGER_START = 105;
   var STRING_DELIM = 58;
   var DICTIONARY_START = 100;
@@ -28583,9 +28656,9 @@ THE SOFTWARE.
     const dict = {};
     while (decode.data[decode.position] !== END_OF_TYPE) {
       const buffer = decode.buffer();
-      let key8 = arr2text(buffer);
-      if (key8.includes("\uFFFD")) key8 = arr2hex(buffer);
-      dict[key8] = decode.next();
+      let key9 = arr2text(buffer);
+      if (key9.includes("\uFFFD")) key9 = arr2hex(buffer);
+      dict[key9] = decode.next();
     }
     decode.position++;
     return dict;
@@ -28614,7 +28687,7 @@ THE SOFTWARE.
   };
   var decode_default = decode;
 
-  // node_modules/bencode/lib/encoding-length.js
+  // ../../../../../apps/family-pilot/node_modules/bencode/lib/encoding-length.js
   function listLength(list) {
     let length2 = 1 + 1;
     for (const value of list) {
@@ -28624,8 +28697,8 @@ THE SOFTWARE.
   }
   function mapLength(map) {
     let length2 = 1 + 1;
-    for (const [key8, value] of map) {
-      const keyLength = text2arr(key8).byteLength;
+    for (const [key9, value] of map) {
+      const keyLength = text2arr(key9).byteLength;
       length2 += digitCount(keyLength) + 1 + keyLength;
       length2 += encodingLength(value);
     }
@@ -28675,26 +28748,26 @@ THE SOFTWARE.
   }
   var encoding_length_default = encodingLength;
 
-  // node_modules/bencode/index.js
+  // ../../../../../apps/family-pilot/node_modules/bencode/index.js
   var encodingLength2 = encoding_length_default;
   var bencode_default = { encode: encode_default, decode: decode_default, byteLength: encoding_length_default, encodingLength: encodingLength2 };
 
   // src/object-integrity.ts
   var PIECE = 16384;
-  var hex = (bytes8) => Array.from(bytes8, (x) => x.toString(16).padStart(2, "0")).join("");
-  var digest = async (algorithm, bytes8) => new Uint8Array(await crypto.subtle.digest(algorithm, bytes8));
-  async function buildObjectInfo(bytes8) {
-    const hashes = new Uint8Array(Math.ceil(bytes8.length / PIECE) * 20);
-    for (let i = 0; i < bytes8.length; i += PIECE)
-      hashes.set(await digest("SHA-1", bytes8.subarray(i, i + PIECE)), i / PIECE * 20);
-    const info = new Uint8Array(bencode_default.encode({ length: bytes8.length, name: "object", "piece length": PIECE, pieces: hashes }));
+  var hex = (bytes9) => Array.from(bytes9, (x) => x.toString(16).padStart(2, "0")).join("");
+  var digest = async (algorithm, bytes9) => new Uint8Array(await crypto.subtle.digest(algorithm, bytes9));
+  async function buildObjectInfo(bytes9) {
+    const hashes = new Uint8Array(Math.ceil(bytes9.length / PIECE) * 20);
+    for (let i = 0; i < bytes9.length; i += PIECE)
+      hashes.set(await digest("SHA-1", bytes9.subarray(i, i + PIECE)), i / PIECE * 20);
+    const info = new Uint8Array(bencode_default.encode({ length: bytes9.length, name: "object", "piece length": PIECE, pieces: hashes }));
     return { info, hashes };
   }
-  async function verifyObjectBytes(bytes8, descriptor) {
-    if (bytes8.length !== descriptor.lengthBytes)
+  async function verifyObjectBytes(bytes9, descriptor) {
+    if (bytes9.length !== descriptor.lengthBytes)
       return false;
-    const { info } = await buildObjectInfo(bytes8);
-    return hex(await digest("SHA-1", info)) === descriptor.infoHash && hex(await digest("SHA-256", bytes8)) === descriptor.sha256;
+    const { info } = await buildObjectInfo(bytes9);
+    return hex(await digest("SHA-1", info)) === descriptor.infoHash && hex(await digest("SHA-256", bytes9)) === descriptor.sha256;
   }
 
   // src/clip-audio-assets.ts
@@ -28859,17 +28932,17 @@ THE SOFTWARE.
       purge();
       if (cards.has(parent.clipId) || cards.size >= CLIP_ROOM_CARD_LIMIT) throw Error("Audio asset already exists or limit reached");
       if (!(input.bytes instanceof Uint8Array) || input.bytes.length < 1 || input.bytes.length > CLIP_AUDIO_ASSET_MAX_BYTES || !Number.isSafeInteger(input.durationMs)) throw Error("Invalid audio asset");
-      const bytes8 = input.bytes.slice(), token2 = Symbol();
+      const bytes9 = input.bytes.slice(), token2 = Symbol();
       publishing.set(parent.clipId, token2);
       let descriptor, committed = false;
       try {
-        const inspected = await inspectClipAudioAsset(bytes8, parent.durationMs, signal);
+        const inspected = await inspectClipAudioAsset(bytes9, parent.durationMs, signal);
         check(c, v, parent, signal, ownerCurrent);
         if (Math.abs(inspected.durationMs - input.durationMs) > 50) throw Error("Audio asset duration mismatch");
-        descriptor = await c.engine.put({ kind: "init", track: "muxed", sequence: 0, mediaStartMs: 0, durationMs: 0, mime: CLIP_AUDIO_ASSET_MIME, codecConfigId: CLIP_AUDIO_ASSET_CONFIG, bytes: bytes8 });
+        descriptor = await c.engine.put({ kind: "init", track: "muxed", sequence: 0, mediaStartMs: 0, durationMs: 0, mime: CLIP_AUDIO_ASSET_MIME, codecConfigId: CLIP_AUDIO_ASSET_CONFIG, bytes: bytes9 });
         holdHash(descriptor.infoHash, token2);
         check(c, v, parent, signal, ownerCurrent);
-        if (!await verifyObjectBytes(bytes8, descriptor)) throw Error("Audio asset integrity failed");
+        if (!await verifyObjectBytes(bytes9, descriptor)) throw Error("Audio asset integrity failed");
         check(c, v, parent, signal, ownerCurrent);
         const now = Date.now();
         const signed = await signClipAudioAssetCard({ type: "clip-audio-asset-card", version: "semk2-audio-asset/1", roomId: c.roomId, sourceKey: c.sourceKey, clipId: parent.clipId, manifestSha256: parent.manifest.sha256, issuedAtMs: now, expiresAtMs: parent.expiresAtMs, durationMs: inspected.durationMs, audioDescriptor: descriptor }, c.privateKey);
@@ -28905,18 +28978,18 @@ THE SOFTWARE.
       holdHash(card.audioDescriptor.infoHash, token2);
       let committed = false;
       try {
-        const bytes8 = await c.engine.fetch(card.audioDescriptor, suppliers2, signal);
+        const bytes9 = await c.engine.fetch(card.audioDescriptor, suppliers2, signal);
         check(c, v, parent, signal);
-        if (cards.get(id) !== card || !await verifyObjectBytes(bytes8, card.audioDescriptor)) throw Error("Audio asset integrity failed");
+        if (cards.get(id) !== card || !await verifyObjectBytes(bytes9, card.audioDescriptor)) throw Error("Audio asset integrity failed");
         check(c, v, parent, signal);
-        const inspected = await inspectClipAudioAsset(bytes8, parent.durationMs, signal);
+        const inspected = await inspectClipAudioAsset(bytes9, parent.durationMs, signal);
         check(c, v, parent, signal);
         if (cards.get(id) !== card || Math.abs(inspected.durationMs - card.durationMs) > 50 || !c.engine.peek(card.audioDescriptor.infoHash)) throw Error("Audio asset changed or duration mismatch");
         validLocal.add(id);
         committed = true;
         if (c.canForward()) broadcast({ type: "clip-audio-asset-have", clipIds: [id] });
         notify();
-        return bytes8;
+        return bytes9;
       } finally {
         releaseHash(card.audioDescriptor.infoHash, token2);
         if (downloads.get(id) === token2) downloads.delete(id);
@@ -29202,6 +29275,8 @@ THE SOFTWARE.
       URL.revokeObjectURL(old.url);
     }
     function stop(text2 = "") {
+      const stoppedId = selected?.card.clipId ?? pending ?? active?.id;
+      if (stoppedId) ctx.programmeEnd?.(stoppedId, "error");
       epoch++;
       reconnecting = false;
       pending = void 0;
@@ -29230,6 +29305,11 @@ THE SOFTWARE.
       if (!cardFor(current.card.clipId)) return;
       take(current.card.clipId);
       paused = blocked = false;
+      if (ctx.programmeResume) {
+        ctx.programmeResume();
+        notify();
+        return;
+      }
       const attempt = ++playAttempt;
       let playing2;
       try {
@@ -29313,14 +29393,14 @@ THE SOFTWARE.
       abort2.signal.addEventListener("abort", onAbort, { once: true });
       void (async () => {
         try {
-          const bytes8 = await ctx.download(id, abort2.signal, reserved?.local);
+          const bytes9 = await ctx.download(id, abort2.signal, reserved?.local);
           if (!valid2()) {
             if (stamp3 === epoch) ctx.status("This audio clip is no longer available.");
             return;
           }
-          if (bytes8.byteLength !== card.audioDescriptor.lengthBytes) throw Error("Audio size changed.");
+          if (bytes9.byteLength !== card.audioDescriptor.lengthBytes) throw Error("Audio size changed.");
           clearPlayer();
-          const url2 = URL.createObjectURL(new Blob([bytes8], { type: "audio/mp4" }));
+          const url2 = URL.createObjectURL(new Blob([bytes9], { type: "audio/mp4" }));
           if (!valid2()) {
             URL.revokeObjectURL(url2);
             return;
@@ -29342,6 +29422,7 @@ THE SOFTWARE.
           });
           on("pause", () => {
             if (current() && !audio.ended) {
+              if (ctx.programmePause?.()) return;
               playAttempt++;
               const newlyPaused = !userPaused;
               paused = userPaused = true;
@@ -29352,6 +29433,7 @@ THE SOFTWARE.
           });
           on("ended", () => {
             if (current()) {
+              ctx.programmeEnd?.(id, "ended");
               const automatic = origin === "auto";
               clearPlayer();
               paused = blocked = false;
@@ -29363,6 +29445,7 @@ THE SOFTWARE.
           });
           on("error", () => {
             if (current()) {
+              ctx.programmeEnd?.(id, "error");
               stop("This audio clip could not play. Choose another clip.");
             }
           });
@@ -29370,13 +29453,22 @@ THE SOFTWARE.
             if (current()) stop("Audio clip expired.");
           }, Math.max(1, card.expiresAtMs - now()));
           selected = { card, url: url2, timer: expiry, handlers };
+          if (ctx.programmeReady) {
+            on("canplay", () => {
+              if (current()) ctx.programmeReady?.(id, origin ?? "manual");
+            });
+            audio.preload = "auto";
+          }
           audio.src = url2;
           if (origin === "auto") {
             autoFailed.delete(id);
             autoPlayed.set(id, card.expiresAtMs);
             trim(autoPlayed);
           }
-          if (!paused) resume();
+          if (ctx.programmeReady) {
+            ctx.status("Sound is ready to prepare.");
+            notify();
+          } else if (!paused) resume();
           else {
             ctx.status("Sound is ready. Press Play this audio to listen.");
             notify();
@@ -29399,6 +29491,7 @@ THE SOFTWARE.
     return {
       select(id) {
         if (!ctx.current() || !cardFor(id)) return;
+        ctx.programmeSelect?.(id, "manual");
         epoch++;
         cancelAdmission();
         active?.abort.abort();
@@ -29412,14 +29505,15 @@ THE SOFTWARE.
         notify();
       },
       selectAutomatic(id) {
-        for (const [key8, item] of autoFailed) if (item.expiry <= now()) autoFailed.delete(key8);
-        for (const [key8, expiry] of autoPlayed) if (expiry <= now()) autoPlayed.delete(key8);
+        for (const [key9, item] of autoFailed) if (item.expiry <= now()) autoFailed.delete(key9);
+        for (const [key9, expiry] of autoPlayed) if (expiry <= now()) autoPlayed.delete(key9);
         const card = cardFor(id), policy = ctx.delivery?.();
         if (!ctx.current() || !card || !policy || !ctx.usable(id) || owned || active || pending || paused || (autoFailed.get(id)?.next ?? 0) > now() || autoPlayed.has(id)) return false;
         const local = !!ctx.has?.(id);
         const decision = policy.decide({ kind: "audio", bytes: card.audioDescriptor.lengthBytes, local, atMs: mono() });
         if (!decision.allowed) return false;
         admission = { policy, id: decision.reservationId, local, timeout: decision.probeTimeoutMs };
+        ctx.programmeSelect?.(id, "auto");
         userPaused = false;
         origin = "auto";
         pending = id;
@@ -29467,6 +29561,14 @@ THE SOFTWARE.
         if (active && !cardFor(active.id)) active.abort.abort();
         if (pending && ctx.current()) pump();
       },
+      canTakeManualControl(id, url2) {
+        return !!selected && selected.card.clipId === id && selected.url === url2 && audio.getAttribute("src") === url2 && cardFor(id)?.signature === selected.card.signature;
+      },
+      takeManualControl(id, url2) {
+        if (!selected || selected.card.clipId !== id || selected.url !== url2 || audio.getAttribute("src") !== url2 || cardFor(id)?.signature !== selected.card.signature) return false;
+        origin = "manual";
+        return true;
+      },
       get selection() {
         const id = selected?.card.clipId ?? pending ?? active?.id;
         return owned && id ? { clipId: id } : void 0;
@@ -29488,6 +29590,4179 @@ THE SOFTWARE.
       }
     };
   }
+
+  // src/programme-playback.ts
+  function createProgrammePlayback(ctx) {
+    const kinds = ["live", "video", "audio"];
+    let live = { sourceId: null, available: false, connected: false, decodable: false, positionExpired: false };
+    let intent = "paused", previousIntent = "live";
+    let selection;
+    let owner = null, pending = null;
+    let blocked = null, generation = 0;
+    let jumpOnLive = false, nextToken = 0, soundError = null;
+    const playingRequests = { live: 0, video: 0, audio: 0 };
+    const notify = () => {
+      try {
+        ctx.changed?.();
+      } catch {
+      }
+    };
+    const quiet = (kind) => {
+      let muted = false, paused = false;
+      try {
+        ctx.ports[kind].mute(true);
+        muted = true;
+      } catch {
+      }
+      try {
+        ctx.ports[kind].pause();
+        paused = true;
+      } catch {
+      }
+      return muted || paused;
+    };
+    const liveUsable = () => !!live.sourceId && live.available && live.decodable && !live.positionExpired;
+    const liveReady = () => liveUsable() && live.startReady !== false;
+    const snapshot3 = () => ({ intent, previousIntent, owner, pending, blocked, soundError, live: { ...live }, selection: selection ? { ...selection } : void 0 });
+    function silence() {
+      generation++;
+      pending = owner = null;
+      const safe = /* @__PURE__ */ new Set();
+      for (const kind of kinds) {
+        try {
+          ctx.ports[kind].mute(true);
+          safe.add(kind);
+        } catch {
+        }
+      }
+      for (const kind of kinds) {
+        try {
+          ctx.ports[kind].pause();
+          if (!playingRequests[kind])
+            safe.add(kind);
+        } catch {
+        }
+      }
+      soundError = safe.size === kinds.length ? null : "could-not-silence";
+      return !soundError;
+    }
+    function start(kind, jump = false) {
+      if (intent === "paused" || kind === "live" && !liveReady())
+        return;
+      if (pending === kind || owner === kind)
+        return;
+      if (!silence()) {
+        blocked = kind;
+        notify();
+        return;
+      }
+      const stamp3 = generation;
+      pending = kind;
+      blocked = null;
+      notify();
+      if (stamp3 !== generation || pending !== kind)
+        return;
+      let result;
+      playingRequests[kind]++;
+      try {
+        if (kind === "live" && jump)
+          ctx.ports.live.seekLatest?.();
+        result = ctx.ports[kind].play();
+      } catch (error) {
+        result = Promise.reject(error);
+      }
+      Promise.resolve(result).then(() => {
+        playingRequests[kind]--;
+        if (stamp3 !== generation || pending !== kind || intent === "paused") {
+          if (pending !== kind && owner !== kind && !quiet(kind)) {
+            soundError = "could-not-silence";
+            notify();
+          }
+          return;
+        }
+        pending = null;
+        owner = kind;
+        try {
+          ctx.ports[kind].mute(false);
+        } catch {
+          if (!quiet(kind))
+            soundError = "could-not-silence";
+          owner = null;
+          blocked = kind;
+        }
+        if (kind === "live" && owner) {
+          live.positionExpired = false;
+          jumpOnLive = false;
+        }
+        notify();
+      }, () => {
+        playingRequests[kind]--;
+        if (stamp3 !== generation || pending !== kind)
+          return;
+        pending = null;
+        if (!quiet(kind))
+          soundError = "could-not-silence";
+        blocked = kind;
+        notify();
+      });
+    }
+    function maybeLive() {
+      if (intent === "live" && (!selection || selection.origin === "auto" && !selection.ready) && !blocked && liveReady())
+        start("live", jumpOnLive);
+    }
+    function finish(token2, automaticReturn, reason) {
+      if (!selection || selection.token !== token2 || selection.finished)
+        return;
+      const kind = selection.kind;
+      const mayReturn = automaticReturn && selection.origin === "auto" && selection.returnAllowed && intent === "live";
+      if (owner === kind || pending === kind)
+        silence();
+      blocked = null;
+      if (mayReturn) {
+        selection = void 0;
+        jumpOnLive = true;
+        maybeLive();
+      } else {
+        selection.finished = true;
+        selection.finishReason = reason;
+        selection.returnAllowed = false;
+        if (intent !== "paused")
+          intent = previousIntent = "manual";
+      }
+      notify();
+    }
+    return {
+      get state() {
+        return snapshot3();
+      },
+      setLive(next) {
+        const changedSource = live.sourceId !== next.sourceId;
+        live = { ...next, positionExpired: !!next.positionExpired || !!live.positionExpired || changedSource && intent === "paused" && !!live.sourceId };
+        if (changedSource)
+          jumpOnLive = true;
+        if (changedSource && (owner === "live" || pending === "live")) {
+          silence();
+          jumpOnLive = true;
+        }
+        if (!liveUsable() && (owner === "live" || pending === "live"))
+          silence();
+        maybeLive();
+        notify();
+      },
+      /** Selection is only a request. Call clipReady after media can actually start. */
+      selectClip(kind, id, origin) {
+        if (!id || origin === "auto" && (intent !== "live" || !!selection))
+          return void 0;
+        if (origin === "manual") {
+          previousIntent = "manual";
+          if (intent !== "paused")
+            intent = "manual";
+          blocked = null;
+        }
+        if (selection && (owner === selection.kind || pending === selection.kind))
+          silence();
+        selection = { kind, id, token: ++nextToken, origin, ready: false, returnAllowed: origin === "auto" };
+        notify();
+        return selection.token;
+      },
+      canTakeManualControl(kind, id, token2) {
+        return !!selection && selection.kind === kind && selection.id === id && selection.token === token2 && selection.ready && !selection.finished;
+      },
+      takeManualControl(kind, id, token2) {
+        if (!selection || selection.kind !== kind || selection.id !== id || selection.token !== token2 || !selection.ready || selection.finished) return false;
+        selection.origin = "manual";
+        selection.returnAllowed = false;
+        previousIntent = "manual";
+        if (intent !== "paused") intent = "manual";
+        notify();
+        return true;
+      },
+      clipReady(token2) {
+        if (!selection || selection.token !== token2 || selection.ready)
+          return;
+        selection.ready = true;
+        if (intent !== "paused")
+          start(selection.kind);
+        notify();
+      },
+      clipEnded(token2) {
+        finish(token2, true, "ended");
+      },
+      clipError(token2) {
+        finish(token2, true, "error");
+      },
+      skipClip(token2) {
+        finish(token2, true, "skipped");
+      },
+      pause() {
+        if (intent !== "paused")
+          previousIntent = intent;
+        if (selection)
+          selection.returnAllowed = false;
+        intent = "paused";
+        blocked = null;
+        silence();
+        notify();
+      },
+      resume() {
+        if (!selection && live.positionExpired) {
+          notify();
+          return;
+        }
+        if (intent === "paused")
+          intent = previousIntent;
+        blocked = null;
+        if (selection?.ready) {
+          selection.finished = false;
+          selection.finishReason = void 0;
+          start(selection.kind);
+        } else if (intent === "live")
+          maybeLive();
+        notify();
+      },
+      backToLive() {
+        intent = previousIntent = "live";
+        selection = void 0;
+        blocked = null;
+        live.positionExpired = false;
+        jumpOnLive = true;
+        silence();
+        maybeLive();
+        notify();
+      },
+      reset() {
+        intent = "paused";
+        previousIntent = "live";
+        selection = void 0;
+        blocked = null;
+        jumpOnLive = false;
+        live = { sourceId: null, available: false, connected: false, decodable: false, positionExpired: false };
+        silence();
+        notify();
+      }
+    };
+  }
+
+  // src/programme-position.ts
+  var import_canonicalize6 = __toESM(require_canonicalize(), 1);
+
+  // src/paced-room-snapshot.ts
+  function createPacedRoomSnapshot(options) {
+    const now = options.now ?? (() => performance.now());
+    const setTimer = options.setTimer ?? setTimeout;
+    const clearTimer = options.clearTimer ?? clearTimeout;
+    const jobs = /* @__PURE__ */ new Map();
+    let nextSweep = 0;
+    function forget(peer) {
+      const job = jobs.get(peer);
+      if (job?.timer !== void 0) clearTimer(job.timer);
+      jobs.delete(peer);
+    }
+    function step(peer, job) {
+      job.timer = void 0;
+      if (jobs.get(peer) !== job || !options.peers().includes(peer) || now() - job.started > 9e4) {
+        forget(peer);
+        return;
+      }
+      while (job.index < job.frames.length && !options.valid(peer, job.frames[job.index])) job.index++;
+      if (job.index >= job.frames.length) {
+        forget(peer);
+        return;
+      }
+      if (options.send(peer, job.frames[job.index])) job.index++;
+      job.timer = setTimer(() => step(peer, job), 500);
+    }
+    function start(peer) {
+      if (jobs.has(peer) || jobs.size >= 8 || !options.peers().includes(peer)) return;
+      const frames = options.frames().slice(0, CLIP_ROOM_CARD_LIMIT).filter((raw) => new TextEncoder().encode(raw).length <= 4096);
+      if (!frames.length) return;
+      const job = { frames, index: 0, started: now() };
+      jobs.set(peer, job);
+      step(peer, job);
+    }
+    return {
+      start,
+      forget,
+      tick() {
+        for (const peer of jobs.keys()) if (!options.peers().includes(peer)) forget(peer);
+        if (now() < nextSweep) return;
+        nextSweep = now() + 45e3;
+        for (const peer of options.peers().slice(0, 8)) start(peer);
+      },
+      clear() {
+        for (const peer of [...jobs.keys()]) forget(peer);
+        nextSweep = 0;
+      }
+    };
+  }
+
+  // src/programme-position.ts
+  var encoder3 = new TextEncoder();
+  var size = (s) => encoder3.encode(s).byteLength;
+  var key2 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s);
+  var signature = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{86}$/.test(s);
+  var integer3 = (n, min, max) => typeof n === "number" && Number.isSafeInteger(n) && n >= min && n <= max;
+  var exact5 = (o, names) => !!o && typeof o === "object" && !Array.isArray(o) && Object.keys(o).length === names.length && names.every((n) => Object.prototype.hasOwnProperty.call(o, n));
+  var payload4 = (entry) => encoder3.encode((0, import_canonicalize6.default)({ domain: "same-end.programme-position.v1", entry }) || "");
+  var FOUR_HOURS = 4 * 60 * 60 * 1e3;
+  var LIMIT = 264;
+  var itemKey = (kind, id) => `${kind}:${id}`;
+  function validateProgrammePosition(value, roomId2, sourceKey2, subject, now = Date.now()) {
+    const e = value;
+    if (!exact5(e, ["type", "version", "roomId", "sourceKey", "subject", "recordingId", "startMs", "endMs", "precision", "uncertaintyMs", "issuedAtMs", "expiresAtMs", "signature"]) || e.type !== "programme-position" || e.version !== "semk2-programme-position/1" || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key2(sourceKey2) || !exact5(e.subject, ["kind", "id", "signature"]) || !["clip", "transcript"].includes(e.subject.kind) || !key2(e.subject.id) || !signature(e.subject.signature) || !subject || subject.signature !== e.subject.signature || !key2(e.recordingId) || !integer3(e.startMs, -300, FOUR_HOURS) || !integer3(e.endMs, -299, FOUR_HOURS) || e.endMs <= e.startMs || e.endMs - e.startMs > (e.subject.kind === "clip" ? 18e4 : 1e4) || e.precision !== "exact" && e.precision !== "estimated" || !integer3(e.uncertaintyMs, e.precision === "exact" ? 0 : 1, e.precision === "exact" ? 0 : 1e4) || !integer3(e.issuedAtMs, 0, Number.MAX_SAFE_INTEGER) || e.issuedAtMs > now + 6e4 || !integer3(e.expiresAtMs, e.issuedAtMs + 1, Number.MAX_SAFE_INTEGER) || e.expiresAtMs <= now || e.expiresAtMs - e.issuedAtMs > FOUR_HOURS || e.subject.kind === "clip" && (!integer3(subject.expiresAtMs, 0, Number.MAX_SAFE_INTEGER) || !integer3(subject.durationMs, 1, 18e4)) || subject.expiresAtMs !== void 0 && (!integer3(subject.expiresAtMs, 0, Number.MAX_SAFE_INTEGER) || e.expiresAtMs > subject.expiresAtMs) || subject.durationMs !== void 0 && (!integer3(subject.durationMs, 1, 18e4) || Math.abs(e.endMs - e.startMs - subject.durationMs) > 100 + 2 * e.uncertaintyMs) || size(JSON.stringify(e)) > 4096)
+      throw Error("Invalid programme position");
+    const { signature: signed, ...unsigned } = e;
+    if (!verifySourceSignature(signed, payload4(unsigned), sourceKey2))
+      throw Error("Programme position signature rejected");
+    return e;
+  }
+  function formatProgrammeAge(ref, latest) {
+    if (!ref || !latest || !key2(ref.recordingId) || ref.recordingId !== latest.recordingId || !integer3(ref.endMs, -300, FOUR_HOURS) || !integer3(latest.edgeMs, -300, FOUR_HOURS) || latest.edgeMs < ref.endMs)
+      return "Position unknown";
+    const seconds = Math.floor((latest.edgeMs - ref.endMs) / 1e3);
+    if (seconds < 60)
+      return `\u2248 ${seconds}s behind latest received sound`;
+    const minutes = Math.floor(seconds / 60);
+    return `\u2248 ${minutes}m${seconds % 60 ? ` ${seconds % 60}s` : ""} behind latest received sound`;
+  }
+  function createProgrammePositions() {
+    let ctx, scope = "", generation = 0, pending = 0, rotation = 0, issuedClock = -1;
+    const entries2 = /* @__PURE__ */ new Map(), rates = /* @__PURE__ */ new Map();
+    const issuedFloors = /* @__PURE__ */ new Map();
+    const notify = () => {
+      try {
+        ctx?.changed();
+      } catch {
+      }
+    };
+    const subjectFor = (c, kind, id) => {
+      try {
+        return c.subject(kind, id);
+      } catch {
+        return void 0;
+      }
+    };
+    function purge() {
+      const c = ctx;
+      if (!c)
+        return;
+      let changed = false;
+      for (const [id, e] of entries2) {
+        try {
+          const subject = subjectFor(c, e.subject.kind, e.subject.id);
+          if (!subject || subject.signature !== e.subject.signature || e.expiresAtMs <= Date.now() || subject.expiresAtMs !== void 0 && (subject.expiresAtMs < e.expiresAtMs || subject.expiresAtMs <= Date.now()) || e.subject.kind === "clip" && (subject.expiresAtMs === void 0 || subject.durationMs === void 0) || subject.durationMs !== void 0 && Math.abs(e.endMs - e.startMs - subject.durationMs) > 100 + 2 * e.uncertaintyMs)
+            throw Error();
+        } catch {
+          entries2.delete(id);
+          changed = true;
+        }
+      }
+      if (changed)
+        notify();
+    }
+    function validRaw(raw) {
+      if (!ctx?.current() || size(raw) > 4096)
+        return false;
+      let e;
+      try {
+        e = JSON.parse(raw);
+      } catch {
+        return false;
+      }
+      if (e?.type !== "programme-position" || !e.subject || !["clip", "transcript"].includes(e.subject.kind) || typeof e.subject.id !== "string")
+        return false;
+      purge();
+      const stored = entries2.get(itemKey(e.subject.kind, e.subject.id));
+      return !!stored && JSON.stringify(stored) === raw && (ctx.privateKey !== void 0 || ctx.canForward?.() === true);
+    }
+    const sync = createPacedRoomSnapshot({
+      peers: () => ctx?.current() ? ctx.peers().slice(0, 8) : [],
+      frames: () => {
+        purge();
+        const all = [...entries2.values()];
+        if (!all.length)
+          return [];
+        const start = rotation % all.length;
+        rotation = (start + 64) % all.length;
+        return [...all.slice(start), ...all.slice(0, start)].map((e) => JSON.stringify(e));
+      },
+      valid: (_peer, raw) => validRaw(raw),
+      send: (peer, raw) => ctx?.send(peer, raw) === true
+    });
+    function apply(e) {
+      purge();
+      const id = itemKey(e.subject.kind, e.subject.id), old = entries2.get(id);
+      if (old && old.subject.signature === e.subject.signature && old.issuedAtMs >= e.issuedAtMs)
+        return false;
+      if (!old && entries2.size >= LIMIT)
+        entries2.delete(entries2.keys().next().value);
+      entries2.delete(id);
+      entries2.set(id, JSON.parse(JSON.stringify(e)));
+      notify();
+      return true;
+    }
+    return {
+      attach(c) {
+        sync.clear();
+        generation++;
+        const next = JSON.stringify([c.roomId, c.sourceKey]);
+        if (scope && scope !== next)
+          entries2.clear();
+        scope = next;
+        issuedClock = issuedFloors.get(scope) ?? -1;
+        ctx = c;
+        rates.clear();
+        purge();
+      },
+      detach() {
+        sync.clear();
+        generation++;
+        ctx = void 0;
+        rates.clear();
+      },
+      clear() {
+        sync.clear();
+        generation++;
+        ctx = void 0;
+        scope = "";
+        entries2.clear();
+        rates.clear();
+        rotation = 0;
+        issuedClock = -1;
+      },
+      get(kind, id) {
+        if (!ctx?.current())
+          return void 0;
+        purge();
+        const e = entries2.get(itemKey(kind, id));
+        return e && JSON.parse(JSON.stringify(e));
+      },
+      list() {
+        if (!ctx?.current())
+          return [];
+        purge();
+        return [...entries2.values()].map((e) => JSON.parse(JSON.stringify(e)));
+      },
+      async publish(kind, id, input, signal, stillCurrent = () => true) {
+        const c = ctx, v = generation, subject = c && subjectFor(c, kind, id);
+        if (!c?.privateKey || !c.current() || !subject || !key2(id) || !["clip", "transcript"].includes(kind) || pending >= 4 || signal?.aborted || !stillCurrent())
+          throw Error("Programme position unavailable");
+        const now = Date.now();
+        const issuedAtMs = Math.max(now, issuedClock + 1, (entries2.get(itemKey(kind, id))?.issuedAtMs ?? -1) + 1);
+        if (!Number.isSafeInteger(issuedAtMs) || issuedAtMs > now + 6e4)
+          throw Error("Programme position clock unavailable");
+        if (!issuedFloors.has(scope) && issuedFloors.size >= 32)
+          throw Error("Programme position room limit reached");
+        issuedClock = issuedAtMs;
+        issuedFloors.set(scope, issuedAtMs);
+        const unsigned = { type: "programme-position", version: "semk2-programme-position/1", roomId: c.roomId, sourceKey: c.sourceKey, subject: { kind, id, signature: subject.signature }, recordingId: input.recordingId, startMs: input.startMs, endMs: input.endMs, precision: input.precision, uncertaintyMs: input.uncertaintyMs, issuedAtMs, expiresAtMs: Math.min(now + FOUR_HOURS, subject.expiresAtMs ?? now + FOUR_HOURS) };
+        pending++;
+        try {
+          const signed = b642(new Uint8Array(await crypto.subtle.sign("Ed25519", c.privateKey, payload4(unsigned))));
+          if (ctx !== c || generation !== v || !c.current() || signal?.aborted || !stillCurrent())
+            return;
+          const currentSubject = subjectFor(c, kind, id);
+          if (!currentSubject || (0, import_canonicalize6.default)(currentSubject) !== (0, import_canonicalize6.default)(subject))
+            return;
+          const e = validateProgrammePosition({ ...unsigned, signature: signed }, c.roomId, c.sourceKey, currentSubject);
+          if (!apply(e))
+            return;
+          const raw = JSON.stringify(e);
+          for (const peer of c.peers().slice(0, 8)) {
+            try {
+              if (validRaw(raw))
+                c.send(peer, raw);
+            } catch {
+            }
+          }
+          return JSON.parse(JSON.stringify(e));
+        } finally {
+          pending--;
+        }
+      },
+      canSend: validRaw,
+      ready(peer) {
+        if (ctx?.current() && ctx.peers().includes(peer))
+          sync.start(peer);
+      },
+      forgetPeer(peer) {
+        sync.forget(peer);
+        rates.delete(peer);
+      },
+      tick() {
+        purge();
+        sync.tick();
+      },
+      receive(peer, raw) {
+        if (size(raw) > 4096)
+          return false;
+        let e;
+        try {
+          e = JSON.parse(raw);
+        } catch {
+          return false;
+        }
+        if (e?.type !== "programme-position")
+          return false;
+        const c = ctx;
+        if (!c?.current() || !c.peers().includes(peer))
+          return true;
+        const now = Date.now(), rate = rates.get(peer);
+        if (!rate || now - rate.at >= 1e4) {
+          if (rates.size >= 16 && !rates.has(peer))
+            return true;
+          rates.set(peer, { at: now, count: 1 });
+        } else if (++rate.count > 40)
+          return true;
+        try {
+          if (!e.subject || !["clip", "transcript"].includes(e.subject.kind) || typeof e.subject.id !== "string")
+            return true;
+          const subject = subjectFor(c, e.subject.kind, e.subject.id);
+          if (!subject)
+            return true;
+          apply(validateProgrammePosition(e, c.roomId, c.sourceKey, subject, now));
+        } catch {
+        }
+        return true;
+      }
+    };
+  }
+
+  // src/peer-fetch-errors.ts
+  var PeerFetchUnavailable = class extends Error {
+    constructor(message2) {
+      super(message2);
+      this.name = "PeerFetchUnavailable";
+    }
+  };
+
+  // src/pipeline-trace.ts
+  var LIMIT2 = 4096;
+  var enabled = false;
+  var entries = [];
+  function enableTrace() {
+    entries = [];
+    enabled = true;
+  }
+  function traceSnapshot() {
+    return entries.slice();
+  }
+  function trace(event, fields2 = {}) {
+    if (!enabled || entries.length >= LIMIT2) return;
+    entries.push({ event, at: performance.timeOrigin + performance.now(), ...fields2 });
+  }
+
+  // src/chat-receive-limit.ts
+  function createChatReceiveLimit(now = () => performance.now()) {
+    const burst = 32, perMs = 20 / 1e3;
+    let tokens = burst, last2;
+    return {
+      accept(raw) {
+        if (typeof raw !== "string" || raw.length > 4096 || new TextEncoder().encode(raw).byteLength > 4096) return false;
+        let at;
+        try {
+          at = now();
+        } catch {
+          return false;
+        }
+        if (!Number.isFinite(at) || at < 0 || last2 !== void 0 && at < last2) return false;
+        if (last2 !== void 0) tokens = Math.min(burst, tokens + (at - last2) * perMs);
+        last2 = at;
+        if (tokens < 1) return false;
+        tokens -= 1;
+        return true;
+      }
+    };
+  }
+
+  // src/piece-window.ts
+  async function fetchPieceWindow(length2, pieceSize, window2, request2, waitFor, check) {
+    if (!Number.isSafeInteger(length2) || length2 < 1 || !Number.isSafeInteger(pieceSize) || pieceSize < 1 || !Number.isInteger(window2) || window2 < 1 || window2 > 4) throw Error("invalid piece window");
+    const bytes9 = new Uint8Array(length2), count = Math.ceil(length2 / pieceSize);
+    let next = 0, inflight = 0, completed2 = 0, active = true, failed;
+    try {
+      while (completed2 < count) {
+        check();
+        if (failed) throw failed;
+        while (active && !failed && inflight < window2 && next < count) {
+          check();
+          const index = next++, size3 = Math.min(pieceSize, length2 - index * pieceSize);
+          inflight++;
+          let settled = false;
+          request2(index, size3, (error, block) => {
+            if (!active || settled) return;
+            settled = true;
+            inflight--;
+            if (error) {
+              failed = error;
+              return;
+            }
+            if (!(block instanceof Uint8Array) || block.length !== size3) {
+              failed = Error("short piece");
+              return;
+            }
+            bytes9.set(block, index * pieceSize);
+            completed2++;
+          });
+        }
+        if (failed) throw failed;
+        if (completed2 < count) {
+          const before = completed2;
+          await waitFor(() => completed2 !== before || !!failed);
+        }
+      }
+      check();
+      if (failed) throw failed;
+      return bytes9;
+    } finally {
+      active = false;
+    }
+  }
+
+  // src/peer-delivery-observer.ts
+  var NOOP_FETCH = { piece(_index, _bytes) {
+  }, complete() {
+  }, fail() {
+  } };
+  var NOOP_OBSERVER = { resetPath() {
+  }, start(_expectedBytes) {
+    return NOOP_FETCH;
+  } };
+  var MAX_OBSERVED_FETCHES = 128;
+  function createDeliveryObserver(observer) {
+    if (!observer) return NOOP_OBSERVER;
+    let nextId = 0, pathEpoch = 0, lastAt = 0;
+    const active = /* @__PURE__ */ new Set();
+    const now = () => {
+      const value = performance.now();
+      lastAt = Math.max(lastAt, Number.isFinite(value) ? value : lastAt);
+      return lastAt;
+    };
+    const emit = (event) => {
+      try {
+        observer?.(event);
+      } catch {
+      }
+    };
+    return {
+      resetPath() {
+        pathEpoch++;
+        for (const item of active) item.reset();
+      },
+      start(expectedBytes) {
+        if (active.size >= MAX_OBSERVED_FETCHES) return NOOP_FETCH;
+        const id = ++nextId, startedAtMs = now(), pieces = /* @__PURE__ */ new Set();
+        let remoteVerifiedBytes = 0, done = false;
+        const send2 = (kind) => emit({ kind, id, atMs: now(), startedAtMs, expectedBytes, remoteVerifiedBytes, pathEpoch });
+        const item = { reset: () => {
+          if (!done) send2("path-reset");
+        } };
+        active.add(item);
+        send2("start");
+        return {
+          piece(index, bytes9) {
+            if (done || pieces.has(index)) return;
+            pieces.add(index);
+            remoteVerifiedBytes += bytes9;
+            send2("progress");
+          },
+          complete() {
+            if (done) return;
+            done = true;
+            active.delete(item);
+            send2("complete");
+          },
+          fail() {
+            if (done) return;
+            done = true;
+            active.delete(item);
+            send2("failed");
+          }
+        };
+      }
+    };
+  }
+
+  // ../../../../../apps/family-pilot/node_modules/bitfield/dist/index.js
+  function bitsToBytes(numberOfBits) {
+    return (numberOfBits >> 3) + Number(numberOfBits % 8 !== 0);
+  }
+  var BitField = class {
+    /**
+     * Grow the bitfield up to this number of entries.
+     * @default 0.
+     */
+    grow;
+    /** The internal storage of the bitfield. */
+    buffer;
+    /** The number of bits in the bitfield. */
+    get length() {
+      return this.buffer.length << 3;
+    }
+    /**
+     * Constructs a BitField.
+     * @param data Either a number representing the maximum number of supported bits, or a Uint8Array.
+     * @param options Configuration for bitfield growth behavior.
+     */
+    constructor(data = 0, options) {
+      const grow = options?.grow;
+      this.grow = grow ? Number.isFinite(grow) ? bitsToBytes(grow) : grow : 0;
+      this.buffer = typeof data === "number" ? new Uint8Array(bitsToBytes(data)) : data;
+    }
+    /**
+     * Get a particular bit.
+     * @param bitIndex Bit index to retrieve.
+     * @returns A boolean indicating whether the `i`th bit is set.
+     */
+    get(bitIndex) {
+      const byteIndex = bitIndex >> 3;
+      return byteIndex < this.buffer.length && !!(this.buffer[byteIndex] & 128 >> bitIndex % 8);
+    }
+    /**
+     * Set a particular bit.
+     *
+     * Will grow the underlying array if the bit is out of bounds and the `grow` option is set.
+     * @param bitIndex Bit index to set.
+     * @param value Value to set the bit to. Defaults to `true`.
+     */
+    set(bitIndex, value = true) {
+      const byteIndex = bitIndex >> 3;
+      if (value) {
+        if (byteIndex >= this.buffer.length) {
+          const newLength = Math.max(byteIndex + 1, Math.min(2 * this.buffer.length, this.grow));
+          if (newLength <= this.grow) {
+            const newBuffer = new Uint8Array(newLength);
+            newBuffer.set(this.buffer);
+            this.buffer = newBuffer;
+          }
+        }
+        this.buffer[byteIndex] |= 128 >> bitIndex % 8;
+      } else if (byteIndex < this.buffer.length) {
+        this.buffer[byteIndex] &= ~(128 >> bitIndex % 8);
+      }
+    }
+    /**
+     * Sets a value or an array of values.
+     * @param array An array of booleans to set.
+     * @param offset The bit offset at which the values are to be written.
+     */
+    setAll(array, offset = 0) {
+      const targetLength = Math.min(bitsToBytes(offset + array.length), this.grow);
+      if (this.buffer.length < targetLength) {
+        const newBuffer = new Uint8Array(targetLength);
+        newBuffer.set(this.buffer);
+        this.buffer = newBuffer;
+      }
+      let byteIndex = offset >> 3;
+      let bitMask2 = 128 >> offset % 8;
+      for (let index = 0; index < array.length; index++) {
+        const element = array[index];
+        if (element) {
+          this.buffer[byteIndex] |= bitMask2;
+        } else {
+          this.buffer[byteIndex] &= ~bitMask2;
+        }
+        if (bitMask2 === 1) {
+          byteIndex += 1;
+          if (byteIndex >= this.buffer.length) {
+            break;
+          }
+          bitMask2 = 128;
+        } else {
+          bitMask2 >>= 1;
+        }
+      }
+    }
+    /**
+     * Loop through the bits in the bitfield.
+     * @param callbackfn Function to be called with the bit value and index.
+     * @param start Index of the first bit to look at.
+     * @param end Index of the first bit that should no longer be considered.
+     */
+    forEach(callbackfn, start = 0, end2 = this.buffer.length * 8) {
+      let byteIndex = start >> 3;
+      let bitMask2 = 128 >> start % 8;
+      for (let bitIndex = start; bitIndex < end2; bitIndex++) {
+        callbackfn(!!(this.buffer[byteIndex] & bitMask2), bitIndex);
+        if (bitMask2 === 1) {
+          byteIndex += 1;
+          bitMask2 = 128;
+        } else {
+          bitMask2 >>= 1;
+        }
+      }
+    }
+    /**
+     * Check if all bits in the Bitfield are unset.
+     * @returns A boolean indicating whether all bits are unset.
+     */
+    isEmpty() {
+      for (let index = 0; index < this.buffer.length; index++) {
+        if (this.buffer[index] !== 0) {
+          return false;
+        }
+      }
+      return true;
+    }
+  };
+
+  // ../../../../../apps/family-pilot/node_modules/bittorrent-protocol/index.js
+  var import_debug = __toESM(require_browser(), 1);
+  var import_streamx = __toESM(require_streamx(), 1);
+  var import_throughput = __toESM(require_throughput(), 1);
+  var import_unordered_array_remove = __toESM(require_unordered_array_remove(), 1);
+  var debug = (0, import_debug.default)("bittorrent-protocol");
+  var BITFIELD_GROW = 4e5;
+  var KEEP_ALIVE_TIMEOUT = 55e3;
+  var ALLOWED_FAST_SET_MAX_LENGTH = 100;
+  var MESSAGE_PROTOCOL = text2arr("BitTorrent protocol");
+  var MESSAGE_KEEP_ALIVE = new Uint8Array([0, 0, 0, 0]);
+  var MESSAGE_CHOKE = new Uint8Array([0, 0, 0, 1, 0]);
+  var MESSAGE_UNCHOKE = new Uint8Array([0, 0, 0, 1, 1]);
+  var MESSAGE_INTERESTED = new Uint8Array([0, 0, 0, 1, 2]);
+  var MESSAGE_UNINTERESTED = new Uint8Array([0, 0, 0, 1, 3]);
+  var MESSAGE_RESERVED = [0, 0, 0, 0, 0, 0, 0, 0];
+  var MESSAGE_PORT = [0, 0, 0, 3, 9, 0, 0];
+  var MESSAGE_HAVE_ALL = new Uint8Array([0, 0, 0, 1, 14]);
+  var MESSAGE_HAVE_NONE = new Uint8Array([0, 0, 0, 1, 15]);
+  function getUint32(buffer, at = 0) {
+    return buffer[at] << 24 | buffer[at + 1] << 16 | buffer[at + 2] << 8 | buffer[at + 3];
+  }
+  function setUint32(buffer, at, value) {
+    buffer[at] = value >>> 24 & 255;
+    buffer[at + 1] = value >>> 16 & 255;
+    buffer[at + 2] = value >>> 8 & 255;
+    buffer[at + 3] = value & 255;
+  }
+  function indexOfBytes(haystack, needle) {
+    if (needle.length === 0) return 0;
+    if (haystack.length < needle.length) return -1;
+    const max = haystack.length - needle.length;
+    for (let i = 0; i <= max; i++) {
+      let match = true;
+      for (let j = 0; j < needle.length; j++) {
+        if (haystack[i + j] !== needle[j]) {
+          match = false;
+          break;
+        }
+      }
+      if (match) return i;
+    }
+    return -1;
+  }
+  var Request2 = class {
+    constructor(piece, offset, length2, callback) {
+      this.piece = piece;
+      this.offset = offset;
+      this.length = length2;
+      this.callback = callback;
+    }
+  };
+  var HaveAllBitField = class {
+    constructor() {
+      this.buffer = new Uint8Array();
+    }
+    get(index) {
+      return true;
+    }
+    set(index) {
+    }
+  };
+  var Wire = class extends import_streamx.Duplex {
+    static nativeRC4 = void 0;
+    // true if Node's crypto supports RC4 (avoids slower JS fallback) Node 17+ (requires `--openssl-legacy-provider`)
+    constructor(type = "", peEnabled = 0) {
+      super();
+      this._debugId = arr2hex(randomBytes3(4));
+      this._debug("new wire");
+      this.peerId = null;
+      this.peerIdBuffer = null;
+      this.type = type;
+      this.amChoking = true;
+      this.amInterested = false;
+      this.peerChoking = true;
+      this.peerInterested = false;
+      this.peerPieces = new BitField(0, { grow: BITFIELD_GROW });
+      this.extensions = {};
+      this.peerExtensions = {};
+      this.requests = [];
+      this.peerRequests = [];
+      this.extendedMapping = {};
+      this.peerExtendedMapping = {};
+      this.extendedHandshake = {};
+      this.peerExtendedHandshake = {};
+      this.hasFast = false;
+      this.allowedFastSet = [];
+      this.peerAllowedFastSet = [];
+      this._ext = {};
+      this._nextExt = 1;
+      this.uploaded = 0;
+      this.downloaded = 0;
+      this.uploadSpeed = (0, import_throughput.default)();
+      this.downloadSpeed = (0, import_throughput.default)();
+      this._keepAliveInterval = null;
+      this._timeout = null;
+      this._timeoutMs = 0;
+      this._timeoutExpiresAt = null;
+      this._finished = false;
+      this._parserSize = 0;
+      this._parser = null;
+      this._buffer = [];
+      this._bufferSize = 0;
+      this._peEnabled = peEnabled;
+      this._encryptor = null;
+      this._infoHash = null;
+      this._cryptoSyncPattern = null;
+      this._pePending = false;
+      this._waitMaxBytes = null;
+      this.on("finish", this._onFinish);
+      this._debug("type:", this.type);
+      if (this._peEnabled) {
+        this._encryptor = new (void 0)(this);
+        if (this.type.includes("Incoming")) {
+          this._encryptor.handleIncoming();
+        } else if (this.type.includes("Outgoing")) {
+          this._encryptor.handleOutgoing();
+        }
+      } else {
+        this._parseHandshake(null);
+      }
+    }
+    get _peState() {
+      return this._encryptor?.state ?? "idle";
+    }
+    get _encryptionMethod() {
+      return this._encryptor?.encryptionMethod;
+    }
+    get _cryptoHandshakeDone() {
+      return !!this._encryptor?.cryptoHandshakeDone;
+    }
+    /**
+     * Set whether to send a "keep-alive" ping (sent every 55s)
+     * @param {boolean} enable
+     */
+    setKeepAlive(enable) {
+      this._debug("setKeepAlive %s", enable);
+      clearInterval(this._keepAliveInterval);
+      if (enable === false) return;
+      this._keepAliveInterval = setInterval(() => {
+        this.keepAlive();
+      }, KEEP_ALIVE_TIMEOUT);
+    }
+    /**
+     * Set the amount of time to wait before considering a request to be "timed out"
+     * @param {number} ms
+     * @param {boolean=} unref (should the timer be unref'd? default: false)
+     */
+    setTimeout(ms, unref) {
+      this._debug("setTimeout ms=%d unref=%s", ms, unref);
+      this._timeoutMs = ms;
+      this._timeoutUnref = !!unref;
+      this._resetTimeout(true);
+    }
+    destroy() {
+      if (this.destroyed) return;
+      this._debug("destroy");
+      this.end();
+      return this;
+    }
+    end(data) {
+      if (this.destroyed || this.destroying) return;
+      this._debug("end");
+      this._onUninterested();
+      this._onChoke();
+      return super.end(data);
+    }
+    /**
+     * Use the specified protocol extension.
+     * @param  {function} Extension
+     */
+    use(Extension) {
+      const name = Extension.prototype.name;
+      if (!name) {
+        throw new Error('Extension class requires a "name" property on the prototype');
+      }
+      this._debug("use extension.name=%s", name);
+      const ext = this._nextExt;
+      const handler = new Extension(this);
+      function noop() {
+      }
+      if (typeof handler.onHandshake !== "function") {
+        handler.onHandshake = noop;
+      }
+      if (typeof handler.onExtendedHandshake !== "function") {
+        handler.onExtendedHandshake = noop;
+      }
+      if (typeof handler.onMessage !== "function") {
+        handler.onMessage = noop;
+      }
+      this.extendedMapping[ext] = name;
+      this._ext[name] = handler;
+      this[name] = handler;
+      this._nextExt += 1;
+    }
+    //
+    // OUTGOING MESSAGES
+    //
+    /**
+     * Message "keep-alive": <len=0000>
+     */
+    keepAlive() {
+      this._debug("keep-alive");
+      this._push(MESSAGE_KEEP_ALIVE);
+    }
+    /**
+     * Start the PE/MSE handshake as initiator.
+     * @param {string} infoHash hex-encoded info hash
+     */
+    startEncryption(infoHash) {
+      if (!this._peEnabled) return;
+      this._infoHash = infoHash;
+      this._encryptor.startAsInitiator(infoHash);
+    }
+    /**
+     * Message: "handshake" <pstrlen><pstr><reserved><info_hash><peer_id>
+     * @param  {Uint8Array|string} infoHash (as Buffer or *hex* string)
+     * @param  {Uint8Array|string} peerId
+     * @param  {Object} extensions
+     */
+    handshake(infoHash, peerId, extensions) {
+      let infoHashBuffer;
+      let peerIdBuffer;
+      if (typeof infoHash === "string") {
+        infoHash = infoHash.toLowerCase();
+        infoHashBuffer = hex2arr(infoHash);
+      } else {
+        infoHashBuffer = infoHash;
+        infoHash = arr2hex(infoHashBuffer);
+      }
+      if (typeof peerId === "string") {
+        peerIdBuffer = hex2arr(peerId);
+      } else {
+        peerIdBuffer = peerId;
+        peerId = arr2hex(peerIdBuffer);
+      }
+      this._infoHash = infoHashBuffer;
+      if (infoHashBuffer.length !== 20 || peerIdBuffer.length !== 20) {
+        throw new Error("infoHash and peerId MUST have length 20");
+      }
+      this._debug("handshake i=%s p=%s exts=%o", infoHash, peerId, extensions);
+      const reserved = new Uint8Array(MESSAGE_RESERVED);
+      this.extensions = {
+        extended: true,
+        dht: !!(extensions && extensions.dht),
+        fast: !!(extensions && extensions.fast)
+      };
+      reserved[5] |= 16;
+      if (this.extensions.dht) reserved[7] |= 1;
+      if (this.extensions.fast) reserved[7] |= 4;
+      if (this.extensions.fast && this.peerExtensions.fast) {
+        this._debug("fast extension is enabled");
+        this.hasFast = true;
+      }
+      this._push(concat([MESSAGE_PROTOCOL, reserved, infoHashBuffer, peerIdBuffer]));
+      this._handshakeSent = true;
+      if (this.peerExtensions.extended && !this._extendedHandshakeSent) {
+        this._sendExtendedHandshake();
+      }
+    }
+    /* Peer supports BEP-0010, send extended handshake.
+     *
+     * This comes after the 'handshake' event to give the user a chance to populate
+     * `this.extendedHandshake` and `this.extendedMapping` before the extended handshake
+     * is sent to the remote peer.
+     */
+    _sendExtendedHandshake() {
+      const msg = Object.assign({}, this.extendedHandshake);
+      msg.m = {};
+      for (const ext in this.extendedMapping) {
+        const name = this.extendedMapping[ext];
+        msg.m[name] = Number(ext);
+      }
+      this.extended(0, bencode_default.encode(msg));
+      this._extendedHandshakeSent = true;
+    }
+    /**
+     * Message "choke": <len=0001><id=0>
+     */
+    choke() {
+      if (this.amChoking) return;
+      this.amChoking = true;
+      this._debug("choke");
+      this._push(MESSAGE_CHOKE);
+      if (this.hasFast) {
+        let allowedCount = 0;
+        while (this.peerRequests.length > allowedCount) {
+          const request2 = this.peerRequests[allowedCount];
+          if (this.allowedFastSet.includes(request2.piece)) {
+            ++allowedCount;
+          } else {
+            this.reject(request2.piece, request2.offset, request2.length);
+          }
+        }
+      } else {
+        while (this.peerRequests.length) {
+          this.peerRequests.pop();
+        }
+      }
+    }
+    /**
+     * Message "unchoke": <len=0001><id=1>
+     */
+    unchoke() {
+      if (!this.amChoking) return;
+      this.amChoking = false;
+      this._debug("unchoke");
+      this._push(MESSAGE_UNCHOKE);
+    }
+    /**
+     * Message "interested": <len=0001><id=2>
+     */
+    interested() {
+      if (this.amInterested) return;
+      this.amInterested = true;
+      this._debug("interested");
+      this._push(MESSAGE_INTERESTED);
+    }
+    /**
+     * Message "uninterested": <len=0001><id=3>
+     */
+    uninterested() {
+      if (!this.amInterested) return;
+      this.amInterested = false;
+      this._debug("uninterested");
+      this._push(MESSAGE_UNINTERESTED);
+    }
+    /**
+     * Message "have": <len=0005><id=4><piece index>
+     * @param  {number} index
+     */
+    have(index) {
+      this._debug("have %d", index);
+      this._message(4, [index], null);
+    }
+    /**
+     * Message "bitfield": <len=0001+X><id=5><bitfield>
+     * @param  {BitField|Buffer} bitfield
+     */
+    bitfield(bitfield) {
+      this._debug("bitfield");
+      if (!ArrayBuffer.isView(bitfield)) bitfield = bitfield.buffer;
+      this._message(5, [], bitfield);
+    }
+    /**
+     * Message "request": <len=0013><id=6><index><begin><length>
+     * @param  {number}   index
+     * @param  {number}   offset
+     * @param  {number}   length
+     * @param  {function} cb
+     */
+    request(index, offset, length2, cb) {
+      if (!cb) cb = () => {
+      };
+      if (this._finished) return cb(new Error("wire is closed"));
+      if (this.peerChoking && !(this.hasFast && this.peerAllowedFastSet.includes(index))) {
+        return cb(new Error("peer is choking"));
+      }
+      this._debug("request index=%d offset=%d length=%d", index, offset, length2);
+      this.requests.push(new Request2(index, offset, length2, cb));
+      if (!this._timeout) {
+        this._resetTimeout(true);
+      }
+      this._message(6, [index, offset, length2], null);
+    }
+    /**
+     * Message "piece": <len=0009+X><id=7><index><begin><block>
+     * @param  {number} index
+     * @param  {number} offset
+     * @param  {Uint8Array} buffer
+     */
+    piece(index, offset, buffer) {
+      this._debug("piece index=%d offset=%d", index, offset);
+      this._message(7, [index, offset], buffer);
+      this.uploaded += buffer.length;
+      this.uploadSpeed(buffer.length);
+      this.emit("upload", buffer.length);
+    }
+    /**
+     * Message "cancel": <len=0013><id=8><index><begin><length>
+     * @param  {number} index
+     * @param  {number} offset
+     * @param  {number} length
+     */
+    cancel(index, offset, length2) {
+      this._debug("cancel index=%d offset=%d length=%d", index, offset, length2);
+      this._callback(
+        this._pull(this.requests, index, offset, length2),
+        new Error("request was cancelled"),
+        null
+      );
+      this._message(8, [index, offset, length2], null);
+    }
+    /**
+     * Message: "port" <len=0003><id=9><listen-port>
+     * @param {Number} port
+     */
+    port(port) {
+      this._debug("port %d", port);
+      const message2 = new Uint8Array(MESSAGE_PORT);
+      const view2 = new DataView(message2.buffer);
+      view2.setUint16(5, port);
+      this._push(message2);
+    }
+    /**
+     * Message: "suggest" <len=0x0005><id=0x0D><piece index> (BEP6)
+     * @param {number} index
+     */
+    suggest(index) {
+      if (!this.hasFast) throw Error("fast extension is disabled");
+      this._debug("suggest %d", index);
+      this._message(13, [index], null);
+    }
+    /**
+     * Message: "have-all" <len=0x0001><id=0x0E> (BEP6)
+     */
+    haveAll() {
+      if (!this.hasFast) throw Error("fast extension is disabled");
+      this._debug("have-all");
+      this._push(MESSAGE_HAVE_ALL);
+    }
+    /**
+     * Message: "have-none" <len=0x0001><id=0x0F> (BEP6)
+     */
+    haveNone() {
+      if (!this.hasFast) throw Error("fast extension is disabled");
+      this._debug("have-none");
+      this._push(MESSAGE_HAVE_NONE);
+    }
+    /**
+     * Message "reject": <len=0x000D><id=0x10><index><offset><length> (BEP6)
+     * @param  {number}   index
+     * @param  {number}   offset
+     * @param  {number}   length
+     */
+    reject(index, offset, length2) {
+      if (!this.hasFast) throw Error("fast extension is disabled");
+      this._debug("reject index=%d offset=%d length=%d", index, offset, length2);
+      this._pull(this.peerRequests, index, offset, length2);
+      this._message(16, [index, offset, length2], null);
+    }
+    /**
+     * Message: "allowed-fast" <len=0x0005><id=0x11><piece index> (BEP6)
+     * @param {number} index
+     */
+    allowedFast(index) {
+      if (!this.hasFast) throw Error("fast extension is disabled");
+      this._debug("allowed-fast %d", index);
+      if (!this.allowedFastSet.includes(index)) this.allowedFastSet.push(index);
+      this._message(17, [index], null);
+    }
+    /**
+     * Message: "extended" <len=0005+X><id=20><ext-number><payload>
+     * @param  {number|string} ext
+     * @param  {Object} obj
+     */
+    extended(ext, obj) {
+      this._debug("extended ext=%s", ext);
+      if (typeof ext === "string" && this.peerExtendedMapping[ext]) {
+        ext = this.peerExtendedMapping[ext];
+      }
+      if (typeof ext === "number") {
+        const extId = new Uint8Array([ext]);
+        const buf = ArrayBuffer.isView(obj) ? obj : bencode_default.encode(obj);
+        this._message(20, [], concat([extId, buf]));
+      } else {
+        throw new Error(`Unrecognized extension: ${ext}`);
+      }
+    }
+    /**
+     * Sets the encryption method for this wire, as per PSE/ME specification
+     * Called by conn-pool when it resolves the infoHash from a crypto-infohash event.
+     * Initializes the responder's ciphers and resumes pe3 processing.
+     * @param {string} infoHash hex-encoded info hash
+     */
+    setInfoHash(infoHash) {
+      this._infoHash = infoHash;
+      if (this._encryptor) this._encryptor.setInfoHash(infoHash);
+    }
+    /**
+     * Send a message to the remote peer.
+     */
+    _message(id, numbers, data) {
+      const dataLength = data ? data.length : 0;
+      const buffer = new Uint8Array(5 + 4 * numbers.length);
+      setUint32(buffer, 0, buffer.length + dataLength - 4);
+      buffer[4] = id;
+      for (let i = 0; i < numbers.length; i++) {
+        setUint32(buffer, 5 + 4 * i, numbers[i]);
+      }
+      this._push(buffer);
+      if (data) this._push(data);
+    }
+    _push(data) {
+      if (this._finished) return;
+      if (this._encryptor) data = this._encryptor.encrypt(data);
+      return this.push(data);
+    }
+    //
+    // INCOMING MESSAGES
+    //
+    _onKeepAlive() {
+      this._debug("got keep-alive");
+      this.emit("keep-alive");
+    }
+    _onHandshake(infoHashBuffer, peerIdBuffer, extensions) {
+      const infoHash = arr2hex(infoHashBuffer);
+      const peerId = arr2hex(peerIdBuffer);
+      this._debug("got handshake i=%s p=%s exts=%o", infoHash, peerId, extensions);
+      this.peerId = peerId;
+      this.peerIdBuffer = peerIdBuffer;
+      this.peerExtensions = extensions;
+      if (this.extensions.fast && this.peerExtensions.fast) {
+        this._debug("fast extension is enabled");
+        this.hasFast = true;
+      }
+      this.emit("handshake", infoHash, peerId, extensions);
+      for (const name in this._ext) {
+        this._ext[name].onHandshake(infoHash, peerId, extensions);
+      }
+      if (extensions.extended && this._handshakeSent && !this._extendedHandshakeSent) {
+        this._sendExtendedHandshake();
+      }
+    }
+    _onChoke() {
+      this.peerChoking = true;
+      this._debug("got choke");
+      this.emit("choke");
+      if (!this.hasFast) {
+        while (this.requests.length) {
+          this._callback(this.requests.pop(), new Error("peer is choking"), null);
+        }
+      }
+    }
+    _onUnchoke() {
+      this.peerChoking = false;
+      this._debug("got unchoke");
+      this.emit("unchoke");
+    }
+    _onInterested() {
+      this.peerInterested = true;
+      this._debug("got interested");
+      this.emit("interested");
+    }
+    _onUninterested() {
+      this.peerInterested = false;
+      this._debug("got uninterested");
+      this.emit("uninterested");
+    }
+    _onHave(index) {
+      if (this.peerPieces.get(index)) return;
+      this._debug("got have %d", index);
+      this.peerPieces.set(index, true);
+      this.emit("have", index);
+    }
+    _onBitField(buffer) {
+      this.peerPieces = new BitField(buffer);
+      this._debug("got bitfield");
+      this.emit("bitfield", this.peerPieces);
+    }
+    _onRequest(index, offset, length2) {
+      if (this.amChoking && !(this.hasFast && this.allowedFastSet.includes(index))) {
+        if (this.hasFast) this.reject(index, offset, length2);
+        return;
+      }
+      this._debug("got request index=%d offset=%d length=%d", index, offset, length2);
+      const respond = (err, buffer) => {
+        if (request2 !== this._pull(this.peerRequests, index, offset, length2)) return;
+        if (err) {
+          this._debug("error satisfying request index=%d offset=%d length=%d (%s)", index, offset, length2, err.message);
+          if (this.hasFast) this.reject(index, offset, length2);
+          return;
+        }
+        this.piece(index, offset, buffer);
+      };
+      const request2 = new Request2(index, offset, length2, respond);
+      this.peerRequests.push(request2);
+      this.emit("request", index, offset, length2, respond);
+    }
+    _onPiece(index, offset, buffer) {
+      this._debug("got piece index=%d offset=%d", index, offset);
+      this._callback(this._pull(this.requests, index, offset, buffer.length), null, buffer);
+      this.downloaded += buffer.length;
+      this.downloadSpeed(buffer.length);
+      this.emit("download", buffer.length);
+      this.emit("piece", index, offset, buffer);
+    }
+    _onCancel(index, offset, length2) {
+      this._debug("got cancel index=%d offset=%d length=%d", index, offset, length2);
+      this._pull(this.peerRequests, index, offset, length2);
+      this.emit("cancel", index, offset, length2);
+    }
+    _onPort(port) {
+      this._debug("got port %d", port);
+      this.emit("port", port);
+    }
+    _onSuggest(index) {
+      if (!this.hasFast) {
+        this._debug("Error: got suggest whereas fast extension is disabled");
+        this.destroy();
+        return;
+      }
+      this._debug("got suggest %d", index);
+      this.emit("suggest", index);
+    }
+    _onHaveAll() {
+      if (!this.hasFast) {
+        this._debug("Error: got have-all whereas fast extension is disabled");
+        this.destroy();
+        return;
+      }
+      this._debug("got have-all");
+      this.peerPieces = new HaveAllBitField();
+      this.emit("have-all");
+    }
+    _onHaveNone() {
+      if (!this.hasFast) {
+        this._debug("Error: got have-none whereas fast extension is disabled");
+        this.destroy();
+        return;
+      }
+      this._debug("got have-none");
+      this.emit("have-none");
+    }
+    _onReject(index, offset, length2) {
+      if (!this.hasFast) {
+        this._debug("Error: got reject whereas fast extension is disabled");
+        this.destroy();
+        return;
+      }
+      this._debug("got reject index=%d offset=%d length=%d", index, offset, length2);
+      this._callback(
+        this._pull(this.requests, index, offset, length2),
+        new Error("request was rejected"),
+        null
+      );
+      this.emit("reject", index, offset, length2);
+    }
+    _onAllowedFast(index) {
+      if (!this.hasFast) {
+        this._debug("Error: got allowed-fast whereas fast extension is disabled");
+        this.destroy();
+        return;
+      }
+      this._debug("got allowed-fast %d", index);
+      if (!this.peerAllowedFastSet.includes(index)) this.peerAllowedFastSet.push(index);
+      if (this.peerAllowedFastSet.length > ALLOWED_FAST_SET_MAX_LENGTH) this.peerAllowedFastSet.shift();
+      this.emit("allowed-fast", index);
+    }
+    _onExtended(ext, buf) {
+      if (ext === 0) {
+        let info;
+        try {
+          info = bencode_default.decode(buf);
+        } catch (err) {
+          this._debug("ignoring invalid extended handshake: %s", err.message || err);
+        }
+        if (!info) return;
+        this.peerExtendedHandshake = info;
+        if (typeof info.m === "object") {
+          for (const name in info.m) {
+            this.peerExtendedMapping[name] = Number(info.m[name].toString());
+          }
+        }
+        for (const name in this._ext) {
+          if (this.peerExtendedMapping[name]) {
+            this._ext[name].onExtendedHandshake(this.peerExtendedHandshake);
+          }
+        }
+        this._debug("got extended handshake");
+        this.emit("extended", "handshake", this.peerExtendedHandshake);
+      } else {
+        if (this.extendedMapping[ext]) {
+          ext = this.extendedMapping[ext];
+          if (this._ext[ext]) {
+            this._ext[ext].onMessage(buf);
+          }
+        }
+        this._debug("got extended message ext=%s", ext);
+        this.emit("extended", ext, buf);
+      }
+    }
+    _onTimeout() {
+      this._debug("request timed out");
+      this._callback(this.requests.shift(), new Error("request has timed out"), null);
+      this.emit("timeout");
+    }
+    /**
+     * Duplex stream method. Called whenever the remote peer has data for us. Data that the
+     * remote peer sends gets buffered (i.e. not actually processed) until the right number
+     * of bytes have arrived, determined by the last call to `this._parse(number, callback)`.
+     * Once enough bytes have arrived to process the message, the callback function
+     * (i.e. `this._parser`) gets called with the full buffer of data.
+     * @param  {Uint8Array} data
+     * @param  {function} cb
+     */
+    _write(data, cb) {
+      if (this._encryptor) data = this._encryptor.decrypt(data);
+      this._bufferSize += data.length;
+      this._buffer.push(data);
+      if (this._buffer.length > 1) {
+        this._buffer = [concat(this._buffer, this._bufferSize)];
+      }
+      this._processBuffer();
+      cb(null);
+    }
+    _processBuffer() {
+      if (this._cryptoSyncPattern) {
+        const index = indexOfBytes(this._buffer[0], this._cryptoSyncPattern);
+        if (index !== -1) {
+          this._buffer[0] = this._buffer[0].slice(index + this._cryptoSyncPattern.length);
+          this._bufferSize -= index + this._cryptoSyncPattern.length;
+          this._cryptoSyncPattern = null;
+        } else if (this._bufferSize > this._waitMaxBytes + this._cryptoSyncPattern.length) {
+          this._debug("Error: could not resynchronize");
+          this.destroy();
+          return;
+        }
+        if (this._cryptoSyncPattern) return;
+      }
+      while (this._bufferSize >= this._parserSize) {
+        if (this._cryptoSyncPattern || this._pePending) break;
+        if (this._parserSize === 0) {
+          this._parser(new Uint8Array());
+        } else {
+          const buffer = this._buffer[0];
+          this._bufferSize -= this._parserSize;
+          this._buffer = this._bufferSize ? [buffer.subarray(this._parserSize)] : [];
+          this._parser(buffer.subarray(0, this._parserSize));
+        }
+      }
+    }
+    _callback(request2, err, buffer) {
+      if (!request2) return;
+      this._resetTimeout(!this.peerChoking && !this._finished);
+      request2.callback(err, buffer);
+    }
+    _resetTimeout(setAgain) {
+      if (!setAgain || !this._timeoutMs || !this.requests.length) {
+        clearTimeout(this._timeout);
+        this._timeout = null;
+        this._timeoutExpiresAt = null;
+        return;
+      }
+      const timeoutExpiresAt = Date.now() + this._timeoutMs;
+      if (this._timeout) {
+        if (timeoutExpiresAt - this._timeoutExpiresAt < this._timeoutMs * 0.05) {
+          return;
+        }
+        clearTimeout(this._timeout);
+      }
+      this._timeoutExpiresAt = timeoutExpiresAt;
+      this._timeout = setTimeout(() => this._onTimeout(), this._timeoutMs);
+      if (this._timeoutUnref && this._timeout.unref) this._timeout.unref();
+    }
+    /**
+     * Takes a number of bytes that the local peer is waiting to receive from the remote peer
+     * in order to parse a complete message, and a callback function to be called once enough
+     * bytes have arrived.
+     * @param  {number} size
+     * @param  {function} parser
+     */
+    _parse(size3, parser) {
+      this._parserSize = size3;
+      this._parser = parser;
+    }
+    _parseUntil(pattern, maxBytes) {
+      this._cryptoSyncPattern = pattern;
+      this._waitMaxBytes = maxBytes;
+    }
+    /**
+     * Handle the first 4 bytes of a message, to determine the length of bytes that must be
+     * waited for in order to have the whole message.
+     * @param  {Uint8Array} buffer
+     */
+    _onMessageLength(buffer) {
+      const length2 = getUint32(buffer);
+      if (length2 > 0) {
+        this._parse(length2, this._onMessage);
+      } else {
+        this._onKeepAlive();
+        this._parse(4, this._onMessageLength);
+      }
+    }
+    /**
+     * Handle a message from the remote peer.
+     * @param  {Uint8Array} buffer
+     */
+    _onMessage(buffer) {
+      this._parse(4, this._onMessageLength);
+      switch (buffer[0]) {
+        case 0:
+          return this._onChoke();
+        case 1:
+          return this._onUnchoke();
+        case 2:
+          return this._onInterested();
+        case 3:
+          return this._onUninterested();
+        case 4:
+          return this._onHave(getUint32(buffer, 1));
+        case 5:
+          return this._onBitField(buffer.subarray(1));
+        case 6:
+          return this._onRequest(
+            getUint32(buffer, 1),
+            getUint32(buffer, 5),
+            getUint32(buffer, 9)
+          );
+        case 7:
+          return this._onPiece(
+            getUint32(buffer, 1),
+            getUint32(buffer, 5),
+            buffer.subarray(9)
+          );
+        case 8:
+          return this._onCancel(
+            getUint32(buffer, 1),
+            getUint32(buffer, 5),
+            getUint32(buffer, 9)
+          );
+        case 9:
+          return this._onPort(buffer[1] << 8 | buffer[2]);
+        case 13:
+          return this._onSuggest(getUint32(buffer, 1));
+        case 14:
+          return this._onHaveAll();
+        case 15:
+          return this._onHaveNone();
+        case 16:
+          return this._onReject(
+            getUint32(buffer, 1),
+            getUint32(buffer, 5),
+            getUint32(buffer, 9)
+          );
+        case 17:
+          return this._onAllowedFast(getUint32(buffer, 1));
+        case 20:
+          return this._onExtended(buffer[1], buffer.subarray(2));
+        default:
+          this._debug("got unknown message");
+          return this.emit("unknownmessage", buffer);
+      }
+    }
+    /**
+     * Reads the handshake as specified by the bittorrent wire protocol.
+     */
+    _parseHandshake() {
+      this._parse(1, (buffer) => {
+        const pstrlen = buffer[0];
+        if (pstrlen !== 19) {
+          this._debug("Error: wire not speaking BitTorrent protocol (%s)", pstrlen.toString());
+          this.end();
+          return;
+        }
+        this._parse(pstrlen + 48, this._onHandshakeBuffer);
+      });
+    }
+    _onHandshakeBuffer(handshake) {
+      const protocol = handshake.slice(0, 19);
+      if (arr2text(protocol) !== "BitTorrent protocol") {
+        this._debug("Error: wire not speaking BitTorrent protocol (%s)", arr2text(protocol));
+        this.end();
+        return;
+      }
+      handshake = handshake.slice(19);
+      this._onHandshake(handshake.slice(8, 28), handshake.slice(28, 48), {
+        dht: !!(handshake[7] & 1),
+        // see bep_0005
+        fast: !!(handshake[7] & 4),
+        // see bep_0006
+        extended: !!(handshake[5] & 16)
+        // see bep_0010
+      });
+      this._parse(4, this._onMessageLength);
+    }
+    _onFinish() {
+      this._finished = true;
+      this.push(null);
+      while (this.read()) {
+      }
+      clearInterval(this._keepAliveInterval);
+      this._parse(Number.MAX_VALUE, () => {
+      });
+      while (this.peerRequests.length) {
+        this.peerRequests.pop();
+      }
+      while (this.requests.length) {
+        this._callback(this.requests.pop(), new Error("wire was closed"), null);
+      }
+    }
+    _debug(...args) {
+      args[0] = `[${this._debugId}] ${args[0]}`;
+      debug(...args);
+    }
+    _pull(requests, piece, offset, length2) {
+      for (let i = 0; i < requests.length; i++) {
+        const req = requests[i];
+        if (req.piece === piece && req.offset === offset && req.length === length2) {
+          (0, import_unordered_array_remove.default)(requests, i);
+          return req;
+        }
+      }
+      return null;
+    }
+  };
+  var bittorrent_protocol_default = Wire;
+
+  // src/peer-engine.ts
+  var PIECE2 = 16384;
+  var TTL = 12e4;
+  var TIMEOUT = 12e3;
+  var CANCEL_TIMEOUT = TIMEOUT;
+  var LIMIT3 = 65536;
+  var hex2 = (b) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+  var digest2 = async (algorithm, b) => new Uint8Array(await crypto.subtle.digest(algorithm, b));
+  var wait2 = (ms) => new Promise((r) => setTimeout(r, ms));
+  var validHash = (x, n) => typeof x === "string" && new RegExp(`^[0-9a-f]{${n}}$`).test(x);
+  var b643 = (b) => {
+    let s = "";
+    for (let i = 0; i < b.length; i += 8192) s += String.fromCharCode(...b.subarray(i, i + 8192));
+    return btoa(s);
+  };
+  var unb642 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  var frame = (g, type, bytes9 = new Uint8Array()) => {
+    const a = new Uint8Array(5 + bytes9.length);
+    new DataView(a.buffer).setUint32(0, g);
+    a[4] = type;
+    a.set(bytes9, 5);
+    return a;
+  };
+  function createObjectPeerEngine(options, track, namespace2 = "") {
+    const pieceWindow = options.pieceWindow ?? 1;
+    if (!Number.isInteger(pieceWindow) || pieceWindow < 1 || pieceWindow > 4) throw Error("invalid piece window");
+    const maxObject = options.maxObjectBytes ?? 8 * 1024 * 1024, maxCache = options.maxCacheBytes ?? 64 * 1024 * 1024;
+    const links = /* @__PURE__ */ new Map(), cache = /* @__PURE__ */ new Map();
+    let closed = false, cacheBytes = 0, progressDigests = 0;
+    const pendingLoads = /* @__PURE__ */ new Map();
+    let loadTail = Promise.resolve();
+    const delivery = createDeliveryObserver(options.onDelivery);
+    const counters = { pcCreated: 0, activePC: 0, channels: 0, offers: 0, bytesSent: 0, bytesReceived: 0, objectsVerified: 0, objectsServed: 0, integrityRejected: 0, staleFrames: 0, staleIceCandidates: 0, route: "unknown" };
+    const count = (k, n = 1) => {
+      counters[k] = Number(counters[k] || 0) + n;
+    };
+    const report = () => options.onStats?.({ ...counters, cacheBytes });
+    const ensureOpen = () => {
+      if (closed) throw Error("engine closed");
+    };
+    const servingAllowed = (hash) => (typeof options.canServe === "function" ? options.canServe() : options.canServe !== false) && (options.canServeHash?.(hash) ?? true);
+    const purge = () => {
+      const now = Date.now();
+      for (const [key9, entry] of cache) if ((options.expireInit || entry.descriptor.kind !== "init") && now - entry.touched > (options.cacheTtlMs ?? TTL)) {
+        cache.delete(key9);
+        cacheBytes -= entry.bytes.length;
+      }
+    };
+    const get = (key9) => {
+      purge();
+      const e = cache.get(key9);
+      if (e) {
+        e.touched = Date.now();
+        cache.delete(key9);
+        cache.set(key9, e);
+      }
+      return e;
+    };
+    const store = (e) => {
+      ensureOpen();
+      purge();
+      const previous = cache.get(e.descriptor.infoHash);
+      if (previous) {
+        cache.delete(e.descriptor.infoHash);
+        cacheBytes -= previous.bytes.length;
+      }
+      while (cacheBytes + e.bytes.length > maxCache && cache.size) {
+        const key9 = options.cacheEviction === "lru" ? cache.keys().next().value : [...cache].find(([, value]) => value.descriptor.kind !== "init")?.[0] ?? cache.keys().next().value;
+        const old = cache.get(key9);
+        cache.delete(key9);
+        cacheBytes -= old.bytes.length;
+      }
+      if (e.bytes.length <= maxCache) {
+        cache.set(e.descriptor.infoHash, e);
+        cacheBytes += e.bytes.length;
+      }
+      report();
+    };
+    const validateDescriptor2 = (d) => {
+      if (!d || !validHash(d.infoHash, 40) || !validHash(d.sha256, 64) || !Number.isSafeInteger(d.lengthBytes) || d.lengthBytes <= 0 || d.lengthBytes > maxObject || !["init", "media"].includes(d.kind) || d.track !== track || !Number.isSafeInteger(d.sequence) || d.sequence < 0 || !Number.isFinite(d.mediaStartMs) || !Number.isFinite(d.durationMs) || typeof d.mime !== "string" || d.mime.length > 256 || typeof d.codecConfigId !== "string" || d.codecConfigId.length > 256) throw Error("invalid descriptor");
+    };
+    const getInfo = buildObjectInfo;
+    const parseInfo = async (info, d) => {
+      if (info.length > Math.ceil(maxObject / PIECE2) * 20 + 256 || hex2(await digest2("SHA-1", info)) !== d.infoHash) throw Error("invalid info hash");
+      let parsed;
+      try {
+        parsed = bencode_default.decode(info);
+      } catch {
+        throw Error("invalid metadata");
+      }
+      if (!parsed || parsed.length !== d.lengthBytes || parsed["piece length"] !== PIECE2 || !(parsed.pieces instanceof Uint8Array) || parsed.pieces.length !== Math.ceil(d.lengthBytes / PIECE2) * 20 || new TextDecoder().decode(parsed.name) !== "object" || hex2(new Uint8Array(bencode_default.encode(parsed))) !== hex2(info)) throw Error("invalid metadata");
+      return new Uint8Array(parsed.pieces);
+    };
+    const verify = async (bytes9, d, hashes) => {
+      if (bytes9.length !== d.lengthBytes) throw Error("object length mismatch");
+      for (let i = 0; i < bytes9.length; i += PIECE2) if (hex2(await digest2("SHA-1", bytes9.subarray(i, i + PIECE2))) !== hex2(hashes.subarray(i / PIECE2 * 20, i / PIECE2 * 20 + 20))) throw Error("piece hash mismatch");
+      if (hex2(await digest2("SHA-256", bytes9)) !== d.sha256) throw Error("object hash mismatch");
+    };
+    const sendControl = (l, data) => {
+      if (l.control?.readyState !== "open") throw new PeerFetchUnavailable("control unavailable");
+      if (l.control.bufferedAmount > LIMIT3) throw new PeerFetchUnavailable("control backpressure");
+      l.control.send(JSON.stringify(data));
+    };
+    const failure2 = (t, error) => {
+      if (t && !t.failed) t.failed = error;
+    };
+    const stop = (id, reason = "closed", expected, cause = new Error(reason)) => {
+      const l = links.get(id);
+      if (!l || l.closed || expected && l !== expected) return;
+      l.closeCause = cause;
+      l.closed = true;
+      links.delete(id);
+      if (l.chat) try {
+        options.onChatState?.(id, false);
+      } catch {
+      }
+      delivery.resetPath();
+      for (const m of l.metas.values()) m.reject(cause);
+      l.metas.clear();
+      for (const slot of l.slots) {
+        for (const job of slot.queue.splice(0)) {
+          if (job.abort) job.signal?.removeEventListener("abort", job.abort);
+          job.reject(cause);
+        }
+        failure2(slot.transfer, cause);
+        try {
+          slot.transfer?.wire.destroy();
+          slot.channel?.close();
+        } catch {
+        }
+      }
+      try {
+        l.chat?.close();
+        l.control?.close();
+        l.pc.close();
+      } catch {
+      }
+      counters.activePC = Math.max(0, Number(counters.activePC) - 1);
+      options.onState(id, "closed", reason);
+      report();
+    };
+    const until = async (predicate, l, t, signal, ms = TIMEOUT) => {
+      const end2 = Date.now() + ms;
+      while (true) {
+        if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+        if (t?.failed) throw t.failed;
+        if (l.closed) throw l.closeCause ?? Error("peer closed");
+        if (predicate()) return;
+        if (Date.now() > end2) throw new PeerFetchUnavailable("peer timeout");
+        await wait2(10);
+      }
+    };
+    const enqueue = (s, task, signal) => {
+      ensureOpen();
+      if (signal?.aborted) return Promise.reject(new DOMException("Aborted", "AbortError"));
+      if (s.queue.length >= 16) return Promise.reject(new PeerFetchUnavailable("peer queue full"));
+      return new Promise((resolve, reject) => {
+        const pump = () => {
+          if (s.active) return;
+          const next = s.queue.shift();
+          if (!next) return;
+          s.active = true;
+          if (next.abort) next.signal?.removeEventListener("abort", next.abort);
+          next.run();
+        };
+        const job = { signal, reject, run: () => {
+          Promise.resolve().then(task).then(resolve, reject).finally(() => {
+            s.active = false;
+            pump();
+          });
+        } };
+        job.abort = () => {
+          const index = s.queue.indexOf(job);
+          if (index < 0) return;
+          s.queue.splice(index, 1);
+          signal?.removeEventListener("abort", job.abort);
+          reject(new DOMException("Aborted", "AbortError"));
+        };
+        s.queue.push(job);
+        signal?.addEventListener("abort", job.abort, { once: true });
+        pump();
+      });
+    };
+    const attach = (id, l, slotIndex, gen, hash, serving, entry) => {
+      const s = l.slots[slotIndex], w = new bittorrent_protocol_default("webrtc");
+      const t = { gen, hash, wire: w, serving, pending: Promise.resolve(), queued: 0, remoteFin: false, closeAck: false, ownFin: false, handshake: false, ack: false, finished: false };
+      s.transfer = t;
+      w.on("error", (e) => failure2(t, e));
+      w.on("data", (chunk) => {
+        const copy = new Uint8Array(chunk);
+        t.queued += copy.length;
+        if (t.queued > LIMIT3 * 4) {
+          failure2(t, Error("wire queue exceeded"));
+          return;
+        }
+        t.pending = t.pending.then(async () => {
+          for (let i = 0; i < copy.length; ) {
+            await until(() => !!s.channel && s.channel.readyState === "open" && s.channel.bufferedAmount <= LIMIT3, l, t);
+            const size3 = Math.min(16379, Math.max(1, (l.pc.sctp?.maxMessageSize || 16384) - 5), copy.length - i);
+            const data = frame(gen, 0, copy.subarray(i, i + size3));
+            s.channel.send(data);
+            count("bytesSent", size3);
+            i += size3;
+          }
+          t.queued -= copy.length;
+        }).catch((e) => failure2(t, e));
+      });
+      w.on("handshake", (h) => {
+        if (h !== hash) {
+          failure2(t, Error("wrong handshake"));
+          return;
+        }
+        t.handshake = true;
+        if (serving) w.unchoke();
+      });
+      if (serving && entry) w.on("request", (index, offset, length2, cb) => {
+        let allowed = false;
+        try {
+          allowed = servingAllowed(hash);
+        } catch {
+        }
+        if (!allowed) {
+          cb(Error("object authorization revoked"));
+          return;
+        }
+        const start = index * PIECE2 + offset;
+        if (!Number.isSafeInteger(index) || !Number.isSafeInteger(offset) || !Number.isSafeInteger(length2) || index < 0 || offset < 0 || length2 <= 0 || length2 > PIECE2 || offset + length2 > PIECE2 || start + length2 > entry.bytes.length) {
+          cb(Error("invalid request"));
+          return;
+        }
+        cb(null, entry.bytes.slice(start, start + length2));
+      });
+      return t;
+    };
+    const startHandshake = (t) => t.wire.handshake(t.hash, crypto.getRandomValues(new Uint8Array(20)));
+    const retire = (s, t) => {
+      if (t.finished) return;
+      t.finished = true;
+      if (t.serving) {
+        count("objectsServed");
+        report();
+      }
+      t.wire.destroy();
+      if (s.transfer === t) s.transfer = void 0;
+    };
+    const finish = async (l, s, t, signal) => {
+      await t.pending;
+      if (t.failed) throw t.failed;
+      if (l.closed) throw l.closeCause ?? Error("peer closed");
+      if (s.transfer !== t && !t.finished) throw Error("transfer replaced");
+      if (!t.ownFin) {
+        s.channel.send(frame(t.gen, 1));
+        t.ownFin = true;
+      }
+      await until(() => t.finished || t.remoteFin && t.closeAck, l, t, signal);
+      retire(s, t);
+    };
+    const cancelTransfer = async (l, s, t) => {
+      let timer;
+      try {
+        await Promise.race([
+          (async () => {
+            await until(() => t.ack, l, t);
+            await finish(l, s, t);
+          })(),
+          new Promise((_, reject) => {
+            timer = setTimeout(() => reject(Error("cancel cleanup timeout")), CANCEL_TIMEOUT);
+          })
+        ]);
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+    };
+    const setupChat = (id, l, ch) => {
+      const current = () => !closed && !l.closed && links.get(id) === l && l.chat === ch && !!options.chatAllowed?.(id);
+      try {
+        if (!options.chatAllowed?.(id) || l.chat || !ch.ordered || ch.maxRetransmits !== null || ch.maxPacketLifeTime !== null) {
+          ch.close();
+          return;
+        }
+        l.chat = ch;
+        ch.onopen = () => {
+          if (current()) try {
+            options.onChatState?.(id, true);
+          } catch {
+          }
+        };
+        ch.onclose = () => {
+          if (current()) try {
+            options.onChatState?.(id, false);
+          } catch {
+          }
+        };
+        ch.onerror = () => {
+          try {
+            ch.close();
+          } catch {
+          }
+        };
+        ch.onmessage = (e) => {
+          if (!current()) return;
+          if (!l.chatLimit.accept(e.data)) {
+            try {
+              ch.close();
+            } catch {
+            }
+            return;
+          }
+          try {
+            options.onChatMessage?.(id, e.data);
+          } catch {
+          }
+        };
+      } catch {
+        try {
+          ch.close();
+        } catch {
+        }
+      }
+    };
+    const setupChannel = (id, l, ch) => {
+      if (ch.label === namespace2 + "room-chat-1") {
+        setupChat(id, l, ch);
+        return;
+      }
+      if (closed || l.closed) {
+        ch.close();
+        return;
+      }
+      if (!ch.label.startsWith(namespace2)) {
+        ch.close();
+        stop(id, "invalid channel namespace", l);
+        return;
+      }
+      const label = ch.label.slice(namespace2.length);
+      if (label === "control") {
+        if (l.control) {
+          stop(id, "duplicate control", l);
+          return;
+        }
+        l.control = ch;
+        ch.onmessage = (e) => {
+          if (!options.loadObject && !options.authorizeObject) {
+            void controlMessage(id, l, e.data);
+            return;
+          }
+          if (++l.controlQueued > 16) {
+            stop(id, "control queue exceeded", l);
+            return;
+          }
+          l.controlChain = l.controlChain.then(() => controlMessage(id, l, e.data)).finally(() => {
+            l.controlQueued--;
+          });
+        };
+        ch.onopen = () => {
+          if (closed || l.closed || links.get(id) !== l) return;
+          options.onState(id, "connected");
+          report();
+        };
+        ch.onclose = () => stop(id, "control closed", l, new PeerFetchUnavailable("control closed"));
+        ch.onerror = () => stop(id, "control error", l, new PeerFetchUnavailable("control error"));
+      } else {
+        const match = /^slot-([01])$/.exec(label);
+        if (!match) {
+          ch.close();
+          stop(id, "invalid channel", l);
+          return;
+        }
+        const index = Number(match[1]), s = l.slots[index];
+        if (s.channel) {
+          ch.close();
+          stop(id, "duplicate slot", l);
+          return;
+        }
+        s.channel = ch;
+        ch.binaryType = "arraybuffer";
+        ch.onclose = () => stop(id, "slot closed", l, new PeerFetchUnavailable("slot closed"));
+        ch.onerror = () => stop(id, "slot error", l, new PeerFetchUnavailable("slot error"));
+        ch.onmessage = (e) => {
+          if (closed || l.closed || links.get(id) !== l) return;
+          try {
+            if (!(e.data instanceof ArrayBuffer) || e.data.byteLength < 5 || e.data.byteLength > 16384) throw Error("bad frame");
+            const a = new Uint8Array(e.data), g = new DataView(a.buffer).getUint32(0), t = s.transfer;
+            if (g < s.gen) {
+              count("staleFrames");
+              return;
+            }
+            if (g !== s.gen || !t || t.gen !== g) throw Error("unexpected generation");
+            if (a[4] === 0 && a.length > 5 && !t.remoteFin) {
+              count("bytesReceived", a.length - 5);
+              t.wire.write(a.subarray(5));
+            } else if (a[4] === 1 && a.length === 5 && !t.remoteFin) {
+              t.remoteFin = true;
+              sendControl(l, { op: "CLOSE_ACK", slot: index, g });
+              if (t.serving) void finish(l, s, t).catch((err) => stop(id, err.message, l, err instanceof Error ? err : Error(String(err))));
+            } else throw Error("bad frame");
+          } catch (err) {
+            const cause = err instanceof Error ? err : Error(String(err));
+            stop(id, cause.message, l, cause);
+          }
+        };
+      }
+    };
+    const within = async (work, ms = 5e3) => {
+      let timer;
+      try {
+        return await Promise.race([work, new Promise((_, reject) => {
+          timer = setTimeout(() => reject(Error("Object storage timed out")), ms);
+        })]);
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+    };
+    function loadVerified(hash) {
+      const existing = pendingLoads.get(hash);
+      if (existing) return existing;
+      if (pendingLoads.size >= 16) return Promise.reject(Error("Object storage queue full"));
+      const task = loadTail.catch(() => {
+      }).then(async () => {
+        if (closed || !servingAllowed(hash) || !options.loadObject) return;
+        const loaded = await options.loadObject(hash);
+        if (closed || !servingAllowed(hash) || !loaded) return;
+        const d = loaded.descriptor;
+        validateDescriptor2(d);
+        if (d.infoHash !== hash || loaded.bytes.length !== d.lengthBytes) return;
+        const { info, hashes } = await getInfo(loaded.bytes);
+        if (closed || !servingAllowed(hash) || hex2(await digest2("SHA-1", info)) !== hash || hex2(await digest2("SHA-256", loaded.bytes)) !== d.sha256) return;
+        store({ bytes: loaded.bytes, info, hashes, descriptor: Object.freeze({ ...d }), touched: Date.now() });
+      });
+      pendingLoads.set(hash, task);
+      loadTail = task.catch(() => {
+      });
+      void task.finally(() => {
+        if (pendingLoads.get(hash) === task) pendingLoads.delete(hash);
+      }).catch(() => {
+      });
+      return task;
+    }
+    async function getForServe(hash, id, l) {
+      const current = () => !closed && !l.closed && links.get(id) === l && servingAllowed(hash);
+      if (!current()) return void 0;
+      try {
+        if (options.authorizeObject && !await within(options.authorizeObject(hash))) return void 0;
+      } catch {
+        return void 0;
+      }
+      if (!current()) return void 0;
+      let entry = get(hash);
+      if (!entry && options.loadObject) {
+        try {
+          await within(loadVerified(hash));
+        } catch {
+          return void 0;
+        }
+        if (!current()) return void 0;
+        entry = get(hash);
+      }
+      if (!current()) return void 0;
+      try {
+        if (options.authorizeObject && !await within(options.authorizeObject(hash))) return void 0;
+      } catch {
+        return void 0;
+      }
+      if (!current()) return void 0;
+      return entry;
+    }
+    async function controlMessage(id, l, raw) {
+      if (closed || l.closed || links.get(id) !== l) return;
+      try {
+        if (typeof raw !== "string" || raw.length > Math.ceil(maxObject / PIECE2) * 30 + 1024) throw Error("invalid control");
+        const m = JSON.parse(raw);
+        if (!m || typeof m !== "object" || typeof m.op !== "string") throw Error("invalid control");
+        if (m.op === "META_REQ") {
+          if (!validHash(m.hash, 40) || typeof m.req !== "string" || m.req.length > 80) throw Error("invalid metadata request");
+          const e = options.loadObject || options.authorizeObject ? await getForServe(m.hash, id, l) : servingAllowed(m.hash) ? get(m.hash) : void 0;
+          if (closed || l.closed || links.get(id) !== l) return;
+          sendControl(l, { op: "META", req: m.req, hash: m.hash, info: e ? b643(e.info) : null });
+        } else if (m.op === "META") {
+          if (typeof m.req !== "string" || !validHash(m.hash, 40) || !(m.info === null || typeof m.info === "string")) throw Error("invalid metadata response");
+          const pending = l.metas.get(m.req);
+          if (pending) {
+            l.metas.delete(m.req);
+            if (m.info === null) pending.reject(new PeerFetchUnavailable("object unavailable"));
+            else pending.resolve(unb642(m.info));
+          }
+        } else if (m.op === "OPEN") {
+          if (!Number.isInteger(m.slot) || m.slot < 0 || m.slot > 1 || !Number.isInteger(m.g) || m.g < 1 || !validHash(m.hash, 40)) throw Error("invalid open");
+          const s = l.slots[m.slot], expectedRemoteSlot = options.selfId < id ? 1 : 0;
+          if (m.slot !== expectedRemoteSlot || s.transfer || m.g !== s.gen + 1 || s.channel?.readyState !== "open") throw Error("slot unavailable");
+          const entry = options.loadObject || options.authorizeObject ? await getForServe(m.hash, id, l) : servingAllowed(m.hash) ? get(m.hash) : void 0;
+          if (closed || l.closed || links.get(id) !== l) return;
+          if (s.transfer || m.g !== s.gen + 1 || s.channel?.readyState !== "open") throw Error("slot unavailable");
+          if (!entry) {
+            sendControl(l, { op: "OPEN_FAIL", slot: m.slot, g: m.g });
+            s.gen = m.g;
+            return;
+          }
+          s.gen = m.g;
+          const t = attach(id, l, m.slot, m.g, m.hash, true, entry);
+          sendControl(l, { op: "OPEN_ACK", slot: m.slot, g: m.g, hash: m.hash });
+          startHandshake(t);
+        } else if (m.op === "OPEN_ACK" || m.op === "OPEN_FAIL" || m.op === "CLOSE_ACK") {
+          if (!Number.isInteger(m.slot) || m.slot < 0 || m.slot > 1 || !Number.isInteger(m.g)) throw Error("invalid ack");
+          const s = l.slots[m.slot], t = s.transfer;
+          if (m.g < s.gen) {
+            count("staleFrames");
+            return;
+          }
+          if (!t || t.gen !== m.g) throw Error("unexpected ack");
+          if (m.op === "OPEN_ACK") {
+            if (m.hash !== t.hash || t.serving || t.ack) throw Error("invalid open ack");
+            t.ack = true;
+          } else if (m.op === "OPEN_FAIL") failure2(t, new PeerFetchUnavailable("object unavailable"));
+          else {
+            if (t.closeAck || !t.ownFin) throw Error("unexpected close ack");
+            t.closeAck = true;
+            if (t.serving && t.remoteFin) retire(s, t);
+          }
+        } else throw Error("unknown control");
+      } catch (e) {
+        const cause = e instanceof Error ? e : Error(String(e));
+        stop(id, cause.message, l, cause);
+      }
+    }
+    const descriptionUfrag = (description) => {
+      if (typeof description.sdp !== "string") return void 0;
+      const values = [...description.sdp.matchAll(/^a=ice-ufrag:([^\r\n]+)\r?$/gm)].map((match) => match[1]);
+      if (!values.length || values.some((value) => !/^[A-Za-z0-9+/]{1,256}$/.test(value) || value !== values[0])) return void 0;
+      return values[0];
+    };
+    const supersedeIce = (l) => {
+      if (l.iceUfrag) {
+        if (l.oldIceUfrags.size >= 8 && !l.oldIceUfrags.has(l.iceUfrag)) return false;
+        l.oldIceUfrags.add(l.iceUfrag);
+      }
+      l.iceSuperseded = true;
+      l.iceUfrag = void 0;
+      delivery.resetPath();
+      return true;
+    };
+    const failIceOwnership = (id, l) => {
+      stop(id, "signalling failed", l);
+      try {
+        options.onSignalError?.();
+      } catch {
+      }
+    };
+    const signalOwner = (id, link) => {
+      const generation = link.signalGeneration;
+      return () => !closed && !link.closed && links.get(id) === link && link.signalGeneration === generation;
+    };
+    const create = (id, initiator) => {
+      if (closed) throw Error("engine closed");
+      if (!id || id === options.selfId || id.length > 256) throw Error("invalid peer");
+      let l = links.get(id);
+      if (l) return l;
+      const pc = new RTCPeerConnection({ iceServers: options.iceServers });
+      l = { pc, chatLimit: createChatReceiveLimit(), slots: [{ gen: 0, active: false, queue: [] }, { gen: 0, active: false, queue: [] }], candidates: [], makingOffer: false, signalGeneration: 0, oldIceUfrags: /* @__PURE__ */ new Set(), iceSuperseded: false, closed: false, metas: /* @__PURE__ */ new Map(), signalChain: Promise.resolve(), controlChain: Promise.resolve(), controlQueued: 0 };
+      links.set(id, l);
+      delivery.resetPath();
+      count("pcCreated");
+      count("activePC");
+      const link = l;
+      pc.onicecandidate = (e) => {
+        if (!e.candidate || link.closed || links.get(id) !== link) return;
+        try {
+          const candidate = e.candidate.toJSON();
+          const fragment = e.candidate.usernameFragment ?? candidate.usernameFragment;
+          if (link.iceSuperseded) {
+            if (!link.iceUfrag || typeof fragment !== "string" || !fragment) {
+              failIceOwnership(id, link);
+              return;
+            }
+            if (fragment !== link.iceUfrag) {
+              if (link.oldIceUfrags.has(fragment)) {
+                counters.staleIceCandidates = Math.min(255, Number(counters.staleIceCandidates) + 1);
+                report();
+                return;
+              }
+              failIceOwnership(id, link);
+              return;
+            }
+          }
+          const current = signalOwner(id, link);
+          options.sendSignal(id, { candidate }, current);
+        } catch {
+          failIceOwnership(id, link);
+        }
+      };
+      pc.ondatachannel = (e) => setupChannel(id, link, e.channel);
+      pc.onconnectionstatechange = () => {
+        if (closed || link.closed) return;
+        options.onState(id, pc.connectionState);
+        if (pc.connectionState === "disconnected") delivery.resetPath();
+        if (["failed", "closed"].includes(pc.connectionState)) stop(id, pc.connectionState, link, new PeerFetchUnavailable("peer connection unavailable"));
+        if (pc.connectionState === "connected") void pc.getStats().then((stats) => {
+          if (closed || link.closed) return;
+          stats.forEach((x) => {
+            if (x.type === "transport" && x.selectedCandidatePairId) {
+              const pair = stats.get(x.selectedCandidatePairId), local = pair && stats.get(pair.localCandidateId), remote = pair && stats.get(pair.remoteCandidateId);
+              counters.route = [local?.candidateType, remote?.candidateType].filter(Boolean).join("/") || "unknown";
+              report();
+            }
+          });
+        }).catch(() => {
+        });
+      };
+      if (initiator) {
+        for (const name of ["control", "slot-0", "slot-1"]) {
+          setupChannel(id, link, pc.createDataChannel(namespace2 + name, { ordered: true }));
+          count("channels");
+        }
+        if (options.chatAllowed?.(id)) try {
+          setupChat(id, link, pc.createDataChannel(namespace2 + "room-chat-1", { ordered: true }));
+        } catch {
+        }
+      }
+      return l;
+    };
+    const api = {
+      async connect(id, initiator) {
+        initiator = initiator && options.selfId < id;
+        const l = create(id, initiator);
+        if (!initiator || l.makingOffer || l.pc.signalingState !== "stable") return;
+        l.makingOffer = true;
+        if (l.signalGeneration > 0 && !supersedeIce(l)) {
+          failIceOwnership(id, l);
+          l.makingOffer = false;
+          return;
+        }
+        l.signalGeneration++;
+        const current = signalOwner(id, l);
+        try {
+          const offer = await l.pc.createOffer();
+          ensureOpen();
+          if (l.closed || links.get(id) !== l) throw Error("peer closed");
+          if (!current()) return;
+          l.iceUfrag = descriptionUfrag(offer);
+          await l.pc.setLocalDescription(offer);
+          ensureOpen();
+          if (l.closed || links.get(id) !== l) throw Error("peer closed");
+          if (!current()) return;
+          count("offers");
+          options.sendSignal(id, { description: l.pc.localDescription?.toJSON() }, current);
+          report();
+        } catch (e) {
+          if (current()) stop(id, "offer failed", l);
+          throw e;
+        } finally {
+          l.makingOffer = false;
+        }
+      },
+      async handleSignal(id, data) {
+        const l = create(id, false);
+        let owned = signalOwner(id, l);
+        l.signalChain = l.signalChain.then(async () => {
+          owned = signalOwner(id, l);
+          ensureOpen();
+          if (l.closed) throw l.closeCause ?? Error("peer closed");
+          if (!data || typeof data !== "object") throw Error("invalid signal");
+          const msg = data;
+          if (msg.description) {
+            const d = msg.description;
+            if (!["offer", "answer"].includes(d.type) || typeof d.sdp !== "string" || d.sdp.length > 1e5) throw Error("invalid description");
+            if (d.type === "offer") {
+              if ((l.makingOffer || l.pc.signalingState !== "stable") && options.selfId < id) return;
+              if ((l.signalGeneration > 0 || l.iceUfrag !== void 0) && !supersedeIce(l)) {
+                failIceOwnership(id, l);
+                return;
+              }
+              l.signalGeneration++;
+              if (l.makingOffer || l.pc.signalingState !== "stable") {
+                await l.pc.setLocalDescription({ type: "rollback" });
+                ensureOpen();
+                if (l.closed || links.get(id) !== l) throw new PeerFetchUnavailable("peer closed");
+              }
+            }
+            const current = owned = signalOwner(id, l);
+            await l.pc.setRemoteDescription(d);
+            if (l.closed || links.get(id) !== l) throw new PeerFetchUnavailable("peer closed");
+            if (!current()) return;
+            for (const c of l.candidates.splice(0)) {
+              await l.pc.addIceCandidate(c);
+              if (l.closed || links.get(id) !== l) throw new PeerFetchUnavailable("peer closed");
+              if (!current()) return;
+            }
+            if (d.type === "offer") {
+              const answer = await l.pc.createAnswer();
+              if (l.closed || links.get(id) !== l) throw Error("peer closed");
+              if (!current()) return;
+              l.iceUfrag = descriptionUfrag(answer);
+              await l.pc.setLocalDescription(answer);
+              ensureOpen();
+              if (l.closed || links.get(id) !== l) throw Error("peer closed");
+              if (!current()) return;
+              options.sendSignal(id, { description: l.pc.localDescription?.toJSON() }, current);
+            }
+          } else if (msg.candidate) {
+            if (typeof msg.candidate.candidate !== "string" || msg.candidate.candidate.length > 4096) throw Error("invalid candidate");
+            if (l.pc.remoteDescription) await l.pc.addIceCandidate(msg.candidate);
+            else {
+              if (l.candidates.length >= 128) throw Error("too many candidates");
+              l.candidates.push(msg.candidate);
+            }
+          } else throw Error("invalid signal");
+        }).catch((e) => {
+          if (owned()) stop(id, "signalling failed", l);
+          throw e;
+        });
+        return l.signalChain;
+      },
+      async put(input) {
+        trace("put-start", { seq: input.sequence, bytes: input.bytes.length });
+        if (closed) throw Error("engine closed");
+        const bytes9 = new Uint8Array(input.bytes);
+        if (!bytes9.length || bytes9.length > maxObject) throw Error("object too large or empty");
+        const { info, hashes } = await getInfo(bytes9);
+        ensureOpen();
+        const descriptor = { kind: input.kind, track: input.track, sequence: input.sequence, mediaStartMs: input.mediaStartMs, durationMs: input.durationMs, mime: input.mime, codecConfigId: input.codecConfigId, lengthBytes: bytes9.length, infoHash: hex2(await digest2("SHA-1", info)), sha256: hex2(await digest2("SHA-256", bytes9)) };
+        ensureOpen();
+        validateDescriptor2(descriptor);
+        store({ bytes: bytes9, info, hashes, descriptor: Object.freeze({ ...descriptor }), touched: Date.now() });
+        ensureOpen();
+        trace("put-end", { seq: input.sequence, bytes: bytes9.length });
+        return Object.freeze(descriptor);
+      },
+      async fetch(d, suppliers2, signal, onProgress) {
+        trace("fetch-start", { seq: d.sequence, bytes: d.lengthBytes });
+        ensureOpen();
+        validateDescriptor2(d);
+        const observation = delivery.start(d.lengthBytes);
+        let fatalFetchError;
+        try {
+          if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+          const own = get(d.infoHash);
+          if (own) {
+            try {
+              await verify(own.bytes, d, own.hashes);
+              ensureOpen();
+              if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+              trace("fetch-end", { seq: d.sequence, bytes: own.bytes.length });
+              observation.complete();
+              return own.bytes.slice();
+            } catch (e) {
+              ensureOpen();
+              if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+              fatalFetchError = e;
+              count("integrityRejected");
+            }
+          }
+          const ordered = [...new Set(suppliers2)], ready2 = [], waiting = [];
+          const reportedPieces = /* @__PURE__ */ new Set();
+          let verifiedBytes = 0;
+          for (const id of ordered) {
+            const l = links.get(id), slot = l?.slots[options.selfId < id ? 0 : 1];
+            (l && !l.closed && l.control?.readyState === "open" && slot?.channel?.readyState === "open" ? ready2 : waiting).push(id);
+          }
+          let last2 = new PeerFetchUnavailable("no supplier available");
+          for (const id of [...ready2, ...waiting]) {
+            ensureOpen();
+            if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+            const l = links.get(id);
+            if (!l || l.closed) continue;
+            const slotIndex = options.selfId < id ? 0 : 1, s = l.slots[slotIndex];
+            const task = async () => {
+              await until(() => l.control?.readyState === "open" && s.channel?.readyState === "open", l, void 0, signal);
+              const req = crypto.randomUUID();
+              let info, metaError;
+              l.metas.set(req, { resolve: (v) => {
+                info = v;
+              }, reject: (e) => {
+                metaError = e;
+              } });
+              try {
+                sendControl(l, { op: "META_REQ", hash: d.infoHash, req });
+                await until(() => !!info || !!metaError, l, void 0, signal);
+                if (metaError) throw metaError;
+              } finally {
+                l.metas.delete(req);
+              }
+              const hashes = await parseInfo(info, d);
+              ensureOpen();
+              if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+              if (s.gen >= 4294967294) throw Error("generation exhausted");
+              const gen = ++s.gen, t = attach(id, l, slotIndex, gen, d.infoHash, false);
+              try {
+                sendControl(l, { op: "OPEN", slot: slotIndex, g: gen, hash: d.infoHash });
+                await until(() => t.ack, l, t, signal);
+                startHandshake(t);
+                await until(() => t.handshake, l, t, signal);
+                t.wire.interested();
+                await until(() => !t.wire.peerChoking, l, t, signal);
+                const bytes9 = await fetchPieceWindow(d.lengthBytes, PIECE2, pieceWindow, (index, length2, callback) => {
+                  if (!onProgress && !options.onDelivery) {
+                    t.wire.request(index, 0, length2, callback);
+                    return;
+                  }
+                  let received = false;
+                  t.wire.request(index, 0, length2, (error, block) => {
+                    if (received) return;
+                    received = true;
+                    if (error || !(block instanceof Uint8Array) || block.length !== length2) {
+                      callback(error, block);
+                      return;
+                    }
+                    const owned = block.slice();
+                    void (async () => {
+                      while (true) {
+                        await until(() => progressDigests < pieceWindow, l, t, signal);
+                        if (closed || signal?.aborted || l.closed || links.get(id) !== l || s.transfer !== t || s.gen !== gen || t.failed) throw Error("stale piece");
+                        if (progressDigests < pieceWindow) {
+                          progressDigests++;
+                          break;
+                        }
+                      }
+                      try {
+                        return await digest2("SHA-1", owned);
+                      } finally {
+                        progressDigests--;
+                      }
+                    })().then((hash) => {
+                      if (closed || signal?.aborted || l.closed || links.get(id) !== l || s.transfer !== t || s.gen !== gen || t.failed) return;
+                      if (hex2(hash) !== hex2(hashes.subarray(index * 20, index * 20 + 20))) {
+                        count("integrityRejected");
+                        callback(Error("piece hash mismatch"));
+                        return;
+                      }
+                      callback(null, owned);
+                      if (!reportedPieces.has(index)) {
+                        reportedPieces.add(index);
+                        verifiedBytes += owned.length;
+                        observation.piece(index, owned.length);
+                        try {
+                          onProgress?.({ verifiedBytes, totalBytes: d.lengthBytes });
+                        } catch {
+                        }
+                      }
+                    }).catch((error2) => {
+                      if (!closed && !signal?.aborted && !l.closed && links.get(id) === l && s.transfer === t && s.gen === gen && !t.failed) callback(error2 instanceof Error ? error2 : Error("piece digest failed"));
+                    });
+                  });
+                }, (predicate) => until(predicate, l, t, signal), () => {
+                  ensureOpen();
+                  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+                  if (t.failed) throw t.failed;
+                  if (l.closed) throw l.closeCause ?? Error("peer closed");
+                });
+                try {
+                  await verify(bytes9, d, hashes);
+                } catch (e) {
+                  count("integrityRejected");
+                  throw e;
+                }
+                await finish(l, s, t, signal);
+                ensureOpen();
+                if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+                store({ bytes: bytes9.slice(), info, hashes, descriptor: Object.freeze({ ...d }), touched: Date.now() });
+                count("objectsVerified");
+                report();
+                ensureOpen();
+                trace("fetch-end", { seq: d.sequence, bytes: bytes9.length });
+                observation.complete();
+                return bytes9;
+              } catch (e) {
+                if (e?.name === "AbortError" && signal?.aborted && !t.failed) {
+                  try {
+                    await cancelTransfer(l, s, t);
+                  } catch {
+                    stop(id, "cancel cleanup failed", l);
+                  }
+                } else {
+                  const cause = e instanceof Error ? e : Error(String(e));
+                  failure2(t, cause);
+                  stop(id, "transfer failed", l, cause);
+                }
+                throw e;
+              }
+            };
+            try {
+              return await enqueue(s, task, signal);
+            } catch (e) {
+              ensureOpen();
+              if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+              last2 = e;
+              if (!(e instanceof PeerFetchUnavailable) && fatalFetchError === void 0) fatalFetchError = e;
+            }
+          }
+          throw fatalFetchError ?? last2;
+        } catch (error) {
+          observation.fail();
+          throw error;
+        }
+      },
+      sendChat(id, raw) {
+        const l = links.get(id), ch = l?.chat;
+        if (!l || l.closed || !options.chatAllowed?.(id) || !ch || ch.readyState !== "open" || typeof raw !== "string" || raw.length > 4096) return false;
+        const bytes9 = new TextEncoder().encode(raw).length;
+        if (bytes9 > 4096 || !Number.isFinite(ch.bufferedAmount) || ch.bufferedAmount < 0 || ch.bufferedAmount + bytes9 > 16384) return false;
+        try {
+          ch.send(raw);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      has(hash) {
+        return !closed && !!get(hash);
+      },
+      peek(hash) {
+        if (closed) return false;
+        purge();
+        return cache.has(hash);
+      },
+      drop(hash) {
+        const e = cache.get(hash);
+        if (e) {
+          cache.delete(hash);
+          cacheBytes -= e.bytes.length;
+          report();
+        }
+      },
+      closePeer(id) {
+        stop(id, "closed", void 0, new PeerFetchUnavailable("peer closed"));
+      },
+      stats() {
+        purge();
+        return { ...counters, cacheBytes };
+      },
+      close() {
+        if (closed) return;
+        closed = true;
+        for (const id of [...links.keys()]) stop(id);
+        cache.clear();
+        cacheBytes = 0;
+        report();
+      }
+    };
+    return api;
+  }
+  function createPeerEngine(options) {
+    return createObjectPeerEngine(options, "muxed");
+  }
+
+  // src/live-audio-contract.ts
+  var import_canonicalize7 = __toESM(require_canonicalize(), 1);
+  var LIVE_AUDIO_MIME = 'audio/mp4; codecs="mp4a.40.2"';
+  var LIVE_AUDIO_CONFIG = "same-end-live-aac/1";
+  var LIVE_AUDIO_WINDOW = 6;
+  var bytes3 = (v) => new TextEncoder().encode((0, import_canonicalize7.default)(v) || "");
+  var payload5 = (v) => bytes3({ domain: "same-end.live-audio-head.v1", head: v });
+  var exact6 = (v, keys) => !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === keys.length && keys.every((k) => Object.hasOwn(v, k));
+  var integer4 = (n, min, max = Number.MAX_SAFE_INTEGER) => typeof n === "number" && Number.isSafeInteger(n) && n >= min && n <= max;
+  var descriptorKeys = ["kind", "track", "sequence", "mediaStartMs", "durationMs", "startTicks", "durationTicks", "mime", "codecConfigId", "lengthBytes", "infoHash", "sha256"];
+  function checkDescriptor(d, kind, map) {
+    if (!exact6(d, descriptorKeys) || d.kind !== kind || d.track !== "audio" || !integer4(d.sequence, kind === "init" ? 0 : 1) || kind === "init" && d.sequence !== 0 || !integer4(d.startTicks, Number.MIN_SAFE_INTEGER) || !integer4(d.durationTicks, kind === "init" ? 0 : 1) || kind === "init" && (d.startTicks !== 0 || d.durationTicks !== 0) || d.mime !== LIVE_AUDIO_MIME || d.codecConfigId !== LIVE_AUDIO_CONFIG || !integer4(d.lengthBytes, 1, kind === "init" ? 256 * 1024 : 512 * 1024) || typeof d.infoHash !== "string" || !/^[a-f0-9]{40}$/.test(d.infoHash) || typeof d.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(d.sha256) || !Number.isSafeInteger(d.startTicks + d.durationTicks) || !Number.isFinite(d.mediaStartMs) || !Number.isFinite(d.durationMs) || d.mediaStartMs !== d.startTicks * 1e3 / map.timescale || d.durationMs !== d.durationTicks * 1e3 / map.timescale)
+      throw Error("Invalid audio descriptor");
+  }
+  function validateAudioHead(input, roomId2, sourceKey2, now = Date.now()) {
+    if (new TextEncoder().encode(JSON.stringify(input)).length > 4096)
+      throw Error("Audio head too large");
+    const h = input;
+    if (!exact6(h, ["type", "version", "roomId", "sourceKey", "epochId", "sequence", "issuedAtMs", "expiresAtMs", "state", "map", "init", "media", "signature"]) || h.type !== "live-audio-head" || h.version !== 1 || h.roomId !== roomId2 || h.sourceKey !== sourceKey2 || typeof h.epochId !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(h.epochId) || !integer4(h.sequence, 1) || !integer4(h.issuedAtMs, 0) || !integer4(h.expiresAtMs, 1) || h.issuedAtMs > now + 6e4 || h.expiresAtMs <= now || h.expiresAtMs - h.issuedAtMs > 3e4 || !["running", "ended", "error"].includes(h.state) || typeof h.signature !== "string" || !/^[A-Za-z0-9_-]{86}$/.test(h.signature))
+      throw Error("Invalid audio head");
+    const m = h.map;
+    if (!exact6(m, ["timescale", "movieTimescale", "editMediaTimeTicks", "firstPtsTicks", "firstCommonTicks", "commonTimescale"]) || !integer4(m.timescale, 1, 1e6) || !integer4(m.movieTimescale, 1, 1e6) || !integer4(m.commonTimescale, 1, 1e6) || !integer4(m.editMediaTimeTicks, 0) || !integer4(m.firstPtsTicks, Number.MIN_SAFE_INTEGER) || !integer4(m.firstCommonTicks, Number.MIN_SAFE_INTEGER))
+      throw Error("Invalid audio mapping");
+    checkDescriptor(h.init, "init", m);
+    if (!Array.isArray(h.media) || !h.media.length || h.media.length > LIVE_AUDIO_WINDOW)
+      throw Error("Invalid audio window");
+    for (let i = 0; i < h.media.length; i++) {
+      const d = h.media[i];
+      checkDescriptor(d, "media", m);
+      if (i && (d.sequence !== h.media[i - 1].sequence + 1 || d.startTicks !== h.media[i - 1].startTicks + h.media[i - 1].durationTicks))
+        throw Error("Discontinuous audio window");
+    }
+    return h;
+  }
+  async function signAudioHead(unsigned, key9) {
+    const h = JSON.parse(JSON.stringify({ ...unsigned, signature: "A".repeat(86) }));
+    validateAudioHead(h, h.roomId, h.sourceKey, h.issuedAtMs);
+    const { signature: _, ...body } = h;
+    h.signature = b642(new Uint8Array(await crypto.subtle.sign("Ed25519", key9, payload5(body))));
+    validateAudioHead(h, h.roomId, h.sourceKey, h.issuedAtMs);
+    return h;
+  }
+  function verifyAudioHead(input, roomId2, sourceKey2, now = Date.now()) {
+    const h = JSON.parse(JSON.stringify(validateAudioHead(input, roomId2, sourceKey2, now)));
+    const { signature: signature2, ...body } = h;
+    if (!verifySourceSignature(signature2, payload5(body), sourceKey2))
+      throw Error("Audio signature rejected");
+    return h;
+  }
+
+  // src/live-audio-room.ts
+  var enc = new TextEncoder();
+  var same2 = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  var exact7 = (v, keys) => v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === keys.length && keys.every((k) => Object.hasOwn(v, k));
+  function createLiveAudioRoom(o) {
+    const now = o.now ?? Date.now, peers2 = /* @__PURE__ */ new Map(), retained = /* @__PURE__ */ new Set(), retired = /* @__PURE__ */ new Set();
+    let closed = false, generation = 0, head, epoch = "", headSeq = 0, map, init, media = [], pending = 0, pendingBytes = 0, lastEpochTime = 0, finishing = false, expired = false;
+    let publishingDone = Promise.resolve();
+    const send2 = (id, value) => {
+      const raw = JSON.stringify(value);
+      return enc.encode(raw).length <= 4096 && o.send(id, raw);
+    };
+    const notify = () => {
+      try {
+        o.onChange?.();
+      } catch {
+      }
+    };
+    const active = () => !closed && o.current();
+    const engine2 = createObjectPeerEngine({
+      selfId: o.selfId,
+      roomId: o.roomId,
+      iceServers: o.iceServers,
+      maxObjectBytes: 2 * 1024 * 1024,
+      maxCacheBytes: 8 * 1024 * 1024,
+      cacheTtlMs: 3e4,
+      expireInit: false,
+      cacheEviction: "media-first",
+      pieceWindow: 4,
+      canServe: () => active() && (!!o.privateKey || o.canForward()),
+      canServeHash: (hash) => !!head && head.expiresAtMs > now() && retained.has(hash),
+      onDelivery: o.onDelivery,
+      sendSignal: (id, signal, current) => {
+        if (!active() || !peers2.get(id)?.hello || current && !current() || !send2(id, { type: "live-audio-signal", version: 1, round: peers2.get(id).round, signal }))
+          throw Error("Audio signal could not be queued");
+      },
+      onState: (id, state) => {
+        const p = peers2.get(id);
+        if (!p)
+          return;
+        p.connected = state === "connected";
+        if (p.connected) {
+          p.attempts = 0;
+          p.nextRetry = 0;
+        } else if (["failed", "closed", "disconnected"].includes(state) && p.hello) {
+          p.nextRetry = now() + 3e3;
+        }
+        notify();
+      },
+      onStats: notify
+    }, "audio", "live-audio-1-");
+    const refreshRetained = () => {
+      const wanted = /* @__PURE__ */ new Set();
+      if (head) {
+        wanted.add(head.init.infoHash);
+        for (const d of head.media)
+          wanted.add(d.infoHash);
+      }
+      for (const hash of retained)
+        if (!wanted.has(hash)) {
+          retained.delete(hash);
+          engine2.drop(hash);
+        }
+      for (const hash of wanted)
+        retained.add(hash);
+    };
+    const broadcast = () => {
+      if (!head || head.expiresAtMs <= now())
+        return;
+      for (const [id, p] of peers2)
+        if (p.hello)
+          send2(id, head);
+    };
+    const accept = (candidate) => {
+      if (retired.has(candidate.epochId) || !head && lastEpochTime && candidate.issuedAtMs <= lastEpochTime)
+        throw Error("Old audio epoch");
+      if (head) {
+        if (candidate.epochId === head.epochId) {
+          if (candidate.sequence <= head.sequence || candidate.issuedAtMs < head.issuedAtMs || head.state !== "running" || !same2(candidate.map, head.map) || !same2(candidate.init, head.init))
+            throw Error("Stale or inconsistent audio head");
+          const prior = new Map(head.media.map((d) => [d.sequence, d]));
+          for (const d of candidate.media) {
+            const old = prior.get(d.sequence);
+            if (old && !same2(old, d))
+              throw Error("Conflicting audio descriptor");
+          }
+          const last2 = head.media.at(-1), next = candidate.media.at(-1);
+          if (next.sequence < last2.sequence || next.startTicks + next.durationTicks < last2.startTicks + last2.durationTicks)
+            throw Error("Audio timeline moved backwards");
+        } else {
+          if (retired.has(candidate.epochId) || candidate.issuedAtMs <= Math.max(lastEpochTime, head.issuedAtMs))
+            throw Error("Old audio epoch");
+          retired.add(head.epochId);
+          if (retired.size > 128)
+            throw Error("Too many audio epochs");
+        }
+      }
+      if (!head || candidate.epochId !== head.epochId) {
+        if (head)
+          generation++;
+        lastEpochTime = candidate.issuedAtMs;
+      }
+      head = JSON.parse(JSON.stringify(candidate));
+      expired = false;
+      refreshRetained();
+      try {
+        o.onHead?.(JSON.parse(JSON.stringify(head)));
+      } catch {
+      }
+      notify();
+    };
+    const announce = async (state) => {
+      if (!o.privateKey || !init || !map || !media.length || !active())
+        return;
+      const fence2 = generation, time = now();
+      const candidate = await signAudioHead({ type: "live-audio-head", version: 1, roomId: o.roomId, sourceKey: o.sourceKey, epochId: epoch, sequence: ++headSeq, issuedAtMs: time, expiresAtMs: time + 15e3, state, map, init, media: [...media] }, o.privateKey);
+      if (!active() || fence2 !== generation)
+        return;
+      accept(candidate);
+      broadcast();
+    };
+    const attach = (id) => {
+      if (!active() || !id || id === o.selfId || id.length > 256 || peers2.size >= 7 && !peers2.has(id))
+        return false;
+      if (!peers2.has(id))
+        peers2.set(id, { hello: false, connected: false, generation: 0, round: 0, attempts: 0, nextRetry: 0, lastPathReset: -Infinity });
+      return send2(id, { type: "live-audio-hello", version: 1 });
+    };
+    const reconnect = (id) => {
+      const p = peers2.get(id);
+      if (!active() || !p?.hello || p.attempts >= 3 || p.nextRetry > now())
+        return false;
+      p.attempts++;
+      p.nextRetry = now() + 3e3;
+      if (o.selfId > id)
+        return send2(id, { type: "live-audio-reset-request", version: 1, round: p.round });
+      if (p.round >= 1e6)
+        return false;
+      p.round++;
+      p.generation++;
+      engine2.closePeer(id);
+      if (!send2(id, { type: "live-audio-reset", version: 1, round: p.round }))
+        return false;
+      void engine2.connect(id, true).catch(() => {
+        p.connected = false;
+        notify();
+      });
+      return true;
+    };
+    return {
+      attach,
+      ready: attach,
+      recover: reconnect,
+      newPath(id) {
+        const p = peers2.get(id);
+        if (!p || now() - p.lastPathReset < 3e3)
+          return false;
+        p.lastPathReset = now();
+        p.attempts = 0;
+        p.nextRetry = 0;
+        return reconnect(id);
+      },
+      canSend(id, raw) {
+        try {
+          if (!active() || !peers2.has(id) || enc.encode(raw).length > 4096)
+            return false;
+          const m = JSON.parse(raw);
+          if (m.type === "live-audio-hello")
+            return exact7(m, ["type", "version"]) && m.version === 1;
+          if (m.type === "live-audio-signal")
+            return !!peers2.get(id)?.hello && exact7(m, ["type", "version", "round", "signal"]) && m.version === 1 && m.round === peers2.get(id)?.round;
+          if (m.type === "live-audio-reset" || m.type === "live-audio-reset-request")
+            return !!peers2.get(id)?.hello && (m.type !== "live-audio-reset-request" || !peers2.get(id)?.connected) && exact7(m, ["type", "version", "round"]) && m.version === 1 && m.round === peers2.get(id)?.round;
+          if (m.type === "live-audio-head")
+            return !!peers2.get(id)?.hello && !!head && head.expiresAtMs > now() && same2(m, head);
+          return false;
+        } catch {
+          return false;
+        }
+      },
+      receive(id, raw) {
+        let m;
+        try {
+          if (typeof raw !== "string" || enc.encode(raw).length > 4096)
+            return false;
+          m = JSON.parse(raw);
+        } catch {
+          return false;
+        }
+        if (!m || typeof m.type !== "string" || !m.type.startsWith("live-audio-"))
+          return false;
+        const p = peers2.get(id);
+        if (!active() || !p)
+          return true;
+        try {
+          if (m.type === "live-audio-hello" && exact7(m, ["type", "version"]) && m.version === 1) {
+            if (!p.hello) {
+              p.hello = true;
+              send2(id, { type: "live-audio-hello", version: 1 });
+              const token2 = ++p.generation;
+              void engine2.connect(id, o.selfId < id).then(() => {
+                if (active() && peers2.get(id) === p && p.generation === token2 && head)
+                  send2(id, head);
+              }).catch(() => {
+                if (peers2.get(id) === p) {
+                  p.connected = false;
+                  p.nextRetry = now() + 3e3;
+                  notify();
+                }
+              });
+            } else if (head)
+              send2(id, head);
+            return true;
+          }
+          if (m.type === "live-audio-reset-request" && p.hello && o.selfId < id && exact7(m, ["type", "version", "round"]) && m.version === 1 && m.round === p.round) {
+            reconnect(id);
+            return true;
+          }
+          if (m.type === "live-audio-reset" && p.hello && o.selfId > id && exact7(m, ["type", "version", "round"]) && m.version === 1 && Number.isSafeInteger(m.round) && m.round > p.round && m.round <= 1e6) {
+            p.round = m.round;
+            p.generation++;
+            engine2.closePeer(id);
+            p.connected = false;
+            p.nextRetry = now() + 3e3;
+            void engine2.connect(id, false).catch(() => notify());
+            return true;
+          }
+          if (m.type === "live-audio-signal" && p.hello && exact7(m, ["type", "version", "round", "signal"]) && m.version === 1 && m.round === p.round) {
+            void engine2.handleSignal(id, m.signal).catch(() => {
+              p.connected = false;
+              p.nextRetry = now() + 3e3;
+              notify();
+            });
+            return true;
+          }
+          if (m.type === "live-audio-head" && p.hello) {
+            if (o.privateKey) return true;
+            const candidate = verifyAudioHead(m, o.roomId, o.sourceKey, now());
+            accept(candidate);
+            return true;
+          }
+        } catch {
+        }
+        return true;
+      },
+      beginCapture(id) {
+        if (!o.privateKey || !active() || !/^[A-Za-z0-9_-]{43}$/.test(id) || retired.has(id) || head?.epochId === id)
+          throw Error("Invalid audio capture");
+        generation++;
+        if (epoch)
+          retired.add(epoch);
+        if (head)
+          retired.add(head.epochId);
+        head = void 0;
+        refreshRetained();
+        epoch = id;
+        finishing = false;
+        headSeq = 0;
+        map = void 0;
+        init = void 0;
+        media = [];
+        return epoch;
+      },
+      async publish(object) {
+        if (!active() || !o.privateKey || !epoch || finishing || head?.epochId === epoch && head.state !== "running")
+          throw Error("No active audio capture");
+        if (!(object.bytes instanceof Uint8Array) || object.bytes.length > (object.kind === "init" ? 256 * 1024 : 512 * 1024) || pending >= 1 || pendingBytes + object.bytes.length > 4 * 1024 * 1024)
+          throw Error("Audio publishing queue full");
+        const fence2 = generation, owned = { ...object, bytes: object.bytes.slice(), mapping: { ...object.mapping }, fragment: object.fragment ? { ...object.fragment } : void 0 };
+        pending++;
+        pendingBytes += owned.bytes.length;
+        let complete;
+        publishingDone = new Promise((resolve) => {
+          complete = resolve;
+        });
+        try {
+          if (owned.kind === "init") {
+            if (init || owned.sequence !== 0 || owned.fragment)
+              throw Error("Invalid audio init");
+            map = owned.mapping;
+          } else if (!init || !map || !same2(map, owned.mapping) || !owned.fragment || owned.sequence !== (media.at(-1)?.sequence ?? 0) + 1 || media.length && owned.fragment.startTicks !== media.at(-1).startTicks + media.at(-1).durationTicks)
+            throw Error("Invalid audio fragment sequence");
+          const timing = owned.fragment ?? { startTicks: 0, durationTicks: 0 };
+          const wire = await engine2.put({ kind: owned.kind, track: "audio", sequence: owned.sequence, mediaStartMs: timing.startTicks * 1e3 / owned.mapping.timescale, durationMs: timing.durationTicks * 1e3 / owned.mapping.timescale, mime: LIVE_AUDIO_MIME, codecConfigId: LIVE_AUDIO_CONFIG, bytes: owned.bytes });
+          if (!active() || fence2 !== generation)
+            throw Error("Audio capture replaced");
+          const d = { ...wire, ...timing };
+          if (owned.kind === "init")
+            init = d;
+          else {
+            media.push(d);
+            if (media.length > LIVE_AUDIO_WINDOW)
+              media.shift();
+            await announce("running");
+            if (!active() || fence2 !== generation)
+              throw Error("Audio capture replaced");
+          }
+          return d;
+        } finally {
+          pending--;
+          pendingBytes -= owned.bytes.length;
+          complete();
+        }
+      },
+      async finish(state = "ended") {
+        if (!active() || !epoch)
+          return;
+        if (finishing)
+          throw Error("Audio source is busy");
+        finishing = true;
+        const fence2 = generation;
+        await publishingDone;
+        if (active() && fence2 === generation)
+          await announce(state);
+      },
+      async fetch(d, signal) {
+        const fence2 = generation, h = head;
+        if (!active() || !h || h.expiresAtMs <= now() || !retained.has(d.infoHash) || ![h.init, ...h.media].some((x) => same2(x, d)))
+          throw new PeerFetchUnavailable("Audio object no longer available");
+        const suppliers2 = [...peers2].filter(([, p]) => p.hello && p.connected).map(([id]) => id);
+        const result = await engine2.fetch({ ...d, track: "audio" }, suppliers2, signal);
+        if (!active() || fence2 !== generation || !head || head.expiresAtMs <= now() || !retained.has(d.infoHash) || ![head.init, ...head.media].some((x) => same2(x, d)))
+          throw new PeerFetchUnavailable("Audio object expired");
+        return result;
+      },
+      tick() {
+        if (head && head.expiresAtMs <= now() && !expired) {
+          expired = true;
+          generation++;
+          notify();
+        }
+        for (const [id, p] of peers2)
+          if (p.hello && !p.connected && p.nextRetry > 0 && p.nextRetry <= now())
+            reconnect(id);
+      },
+      currentHead() {
+        return head && head.expiresAtMs > now() ? JSON.parse(JSON.stringify(head)) : void 0;
+      },
+      stats() {
+        const last2 = head?.media.at(-1), m = head?.map;
+        return { ...engine2.stats(), peers: peers2.size, pending, pendingBytes, headAgeMs: head ? Math.max(0, now() - head.issuedAtMs) : -1, commonEdgeMs: last2 && m ? 1e3 * (m.firstCommonTicks / m.commonTimescale + (last2.startTicks + last2.durationTicks - m.firstPtsTicks) / m.timescale) : null };
+      },
+      forgetPeer(id) {
+        const p = peers2.get(id);
+        if (p)
+          p.generation++;
+        peers2.delete(id);
+        engine2.closePeer(id);
+        notify();
+      },
+      close() {
+        if (closed)
+          return;
+        closed = true;
+        generation++;
+        head = void 0;
+        retained.clear();
+        peers2.clear();
+        engine2.close();
+        notify();
+      }
+    };
+  }
+
+  // src/audio-mp4-timing.ts
+  var MAX_INIT = 256 * 1024;
+  var MAX_FRAGMENT = 2 * 1024 * 1024;
+  var MAX_SAMPLES = 256;
+  function readBoundedMp4(bytes9, max) {
+    if (!(bytes9 instanceof Uint8Array) || !bytes9.length || bytes9.length > max) throw Error("Invalid audio MP4 size");
+    const view2 = new DataView(bytes9.buffer, bytes9.byteOffset, bytes9.byteLength);
+    const boxes = (start, end2) => {
+      const out = [];
+      for (let p = start; p < end2; ) {
+        if (p + 8 > end2) throw Error("Truncated MP4 header");
+        const size3 = view2.getUint32(p), type = String.fromCharCode(...bytes9.subarray(p + 4, p + 8));
+        if (size3 < 8 || p + size3 > end2) throw Error(`Unsupported or truncated MP4 box ${type}`);
+        out.push({ type, data: p + 8, end: p + size3 });
+        if (out.length > 64) throw Error("MP4 box count limit");
+        p += size3;
+      }
+      return out;
+    };
+    const one = (list, type) => {
+      const found = list.filter((x) => x.type === type);
+      if (found.length !== 1) throw Error(`Expected one ${type}`);
+      return found[0];
+    };
+    const children = (b) => boxes(b.data, b.end);
+    const field = (b, p, n) => {
+      if (p < b.data || p + n > b.end) throw Error(`Truncated ${b.type}`);
+    };
+    const u322 = (b, p) => {
+      field(b, p, 4);
+      return view2.getUint32(p);
+    };
+    const i322 = (b, p) => {
+      field(b, p, 4);
+      return view2.getInt32(p);
+    };
+    const u642 = (b, p) => {
+      field(b, p, 8);
+      const n = view2.getBigUint64(p);
+      if (n > BigInt(Number.MAX_SAFE_INTEGER)) throw Error("MP4 integer exceeds safe range");
+      return Number(n);
+    };
+    const i642 = (b, p) => {
+      field(b, p, 8);
+      const n = view2.getBigInt64(p);
+      if (n > BigInt(Number.MAX_SAFE_INTEGER) || n < BigInt(Number.MIN_SAFE_INTEGER)) throw Error("MP4 integer exceeds safe range");
+      return Number(n);
+    };
+    const full = (b) => {
+      field(b, b.data, 4);
+      return { version: bytes9[b.data], flags: bytes9[b.data + 1] << 16 | bytes9[b.data + 2] << 8 | bytes9[b.data + 3], p: b.data + 4 };
+    };
+    return { bytes: bytes9, view: view2, boxes, one, children, field, u32: u322, i32: i322, u64: u642, i64: i642, full };
+  }
+  var AudioMp4Timing = class {
+    id = 0;
+    timescale = 0;
+    movieTimescale = 0;
+    editMediaTimeTicks = 0;
+    defaultDuration = 0;
+    firstCommonTicks = 0;
+    commonTimescale = 0;
+    firstPtsTicks;
+    nextTicks;
+    constructor(init, firstPacketSeconds, sampleRate) {
+      if (!Number.isSafeInteger(sampleRate) || sampleRate <= 0 || !Number.isFinite(firstPacketSeconds)) throw Error("Invalid first AAC timestamp");
+      const ticks = firstPacketSeconds * sampleRate, rounded = Math.round(ticks);
+      if (!Number.isSafeInteger(rounded) || Math.abs(ticks - rounded) > 1e-4) throw Error("AAC timestamp not on sample grid");
+      this.firstCommonTicks = rounded;
+      this.commonTimescale = sampleRate;
+      const r = readBoundedMp4(init, MAX_INIT), top = r.boxes(0, init.length);
+      r.one(top, "ftyp");
+      const moov2 = r.one(top, "moov"), root = r.children(moov2);
+      const mv = r.full(r.one(root, "mvhd"));
+      if (mv.version !== 0 && mv.version !== 1) throw Error("Unsupported movie header");
+      const mvbox = r.one(root, "mvhd");
+      this.movieTimescale = r.u32(mvbox, mv.p + (mv.version === 1 ? 16 : 8));
+      const tracks2 = root.filter((x) => x.type === "trak");
+      if (tracks2.length !== 1) throw Error("Expected one audio track");
+      const track = r.children(tracks2[0]), tkbox = r.one(track, "tkhd"), tk = r.full(tkbox);
+      if (tk.version !== 0 && tk.version !== 1) throw Error("Unsupported track header");
+      this.id = r.u32(tkbox, tk.p + (tk.version === 1 ? 16 : 8));
+      const media = r.children(r.one(track, "mdia"));
+      const md = r.one(media, "mdhd"), mdfull = r.full(md);
+      if (mdfull.version !== 0 && mdfull.version !== 1) throw Error("Unsupported media header");
+      this.timescale = r.u32(md, mdfull.p + (mdfull.version === 1 ? 16 : 8));
+      const h = r.one(media, "hdlr"), hf = r.full(h);
+      r.field(h, hf.p + 4, 4);
+      if (String.fromCharCode(...r.bytes.subarray(hf.p + 4, hf.p + 8)) !== "soun" || !this.id || !this.timescale || !this.movieTimescale) throw Error("Invalid audio track");
+      const edits2 = track.filter((x) => x.type === "edts");
+      if (edits2.length > 1) throw Error("Multiple edit containers");
+      if (edits2.length) {
+        const el = r.one(r.children(edits2[0]), "elst"), e = r.full(el);
+        if (e.version !== 0 && e.version !== 1 || r.u32(el, e.p) !== 1) throw Error("Unsupported audio edit list");
+        const p = e.p + 4;
+        const segmentDuration = e.version === 1 ? r.u64(el, p) : r.u32(el, p);
+        if (segmentDuration !== 0) throw Error("Unsupported finite audio edit");
+        this.editMediaTimeTicks = e.version === 1 ? r.i64(el, p + 8) : r.i32(el, p + 4);
+        const rate = p + (e.version === 1 ? 16 : 8);
+        r.field(el, rate, 4);
+        if (this.editMediaTimeTicks < 0 || r.view.getInt16(rate) !== 1 || r.view.getInt16(rate + 2) !== 0) throw Error("Unsupported audio edit");
+      }
+      const trex2 = r.children(r.one(root, "mvex")).filter((x) => x.type === "trex");
+      const matches = trex2.filter((t) => r.u32(t, r.full(t).p) === this.id);
+      if (matches.length !== 1) throw Error("Missing audio defaults");
+      const tr = matches[0], tf = r.full(tr);
+      this.defaultDuration = r.u32(tr, tf.p + 8);
+    }
+    inspect(fragment) {
+      const r = readBoundedMp4(fragment, MAX_FRAGMENT), top = r.boxes(0, fragment.length), moof2 = r.one(top, "moof");
+      r.one(top, "mdat");
+      const traf2 = r.children(moof2).filter((x) => x.type === "traf");
+      if (traf2.length !== 1) throw Error("Expected one audio fragment track");
+      const children = r.children(traf2[0]), header = r.one(children, "tfhd"), h = r.full(header);
+      if (h.version !== 0 || (h.flags & ~131131) !== 0) throw Error("Unsupported tfhd");
+      let p = h.p;
+      const id = r.u32(header, p);
+      p += 4;
+      if (id !== this.id) throw Error("Wrong audio track");
+      if (h.flags & 1) {
+        r.field(header, p, 8);
+        p += 8;
+      }
+      if (h.flags & 2) {
+        r.field(header, p, 4);
+        p += 4;
+      }
+      let defaultDuration = this.defaultDuration;
+      if (h.flags & 8) {
+        defaultDuration = r.u32(header, p);
+        p += 4;
+      }
+      if (h.flags & 16) {
+        r.field(header, p, 4);
+        p += 4;
+      }
+      if (h.flags & 32) {
+        r.field(header, p, 4);
+        p += 4;
+      }
+      const tfdt2 = r.one(children, "tfdt"), base = r.full(tfdt2);
+      if (base.version !== 0 && base.version !== 1) throw Error("Unsupported tfdt");
+      let decode2 = base.version === 1 ? r.u64(tfdt2, base.p) : r.u32(tfdt2, base.p);
+      let first, end2, count = 0;
+      const samples = [];
+      const runs = children.filter((x) => x.type === "trun");
+      if (!runs.length || runs.length > 8) throw Error("Invalid audio runs");
+      for (const box3 of runs) {
+        const run = r.full(box3);
+        if (run.version !== 0 && run.version !== 1 || (run.flags & ~3845) !== 0) throw Error("Unsupported trun");
+        p = run.p;
+        const n = r.u32(box3, p);
+        p += 4;
+        count += n;
+        if (!n || count > MAX_SAMPLES) throw Error("Invalid audio sample count");
+        if (run.flags & 1) {
+          r.field(box3, p, 4);
+          p += 4;
+        }
+        if (run.flags & 4) {
+          r.field(box3, p, 4);
+          p += 4;
+        }
+        for (let i = 0; i < n; i++) {
+          let duration = defaultDuration, offset = 0;
+          if (run.flags & 256) {
+            duration = r.u32(box3, p);
+            p += 4;
+          }
+          if (run.flags & 512) {
+            r.field(box3, p, 4);
+            p += 4;
+          }
+          if (run.flags & 1024) {
+            r.field(box3, p, 4);
+            p += 4;
+          }
+          if (run.flags & 2048) {
+            offset = run.version === 1 ? r.i32(box3, p) : r.u32(box3, p);
+            p += 4;
+          }
+          const pts = decode2 + offset;
+          if (!duration || !Number.isSafeInteger(pts) || !Number.isSafeInteger(pts + duration) || end2 !== void 0 && pts !== end2) throw Error("Discontinuous or invalid audio samples");
+          first ??= pts;
+          end2 = pts + duration;
+          samples.push({ ptsTicks: pts, durationTicks: duration });
+          decode2 += duration;
+        }
+      }
+      if (first === void 0 || end2 === void 0 || this.nextTicks !== void 0 && first !== this.nextTicks) throw Error("Audio fragment discontinuity");
+      this.firstPtsTicks ??= first;
+      this.nextTicks = end2;
+      return { mapping: { timescale: this.timescale, movieTimescale: this.movieTimescale, editMediaTimeTicks: this.editMediaTimeTicks, firstPtsTicks: this.firstPtsTicks, firstCommonTicks: this.firstCommonTicks, commonTimescale: this.commonTimescale }, fragment: { startTicks: first, durationTicks: end2 - first }, samples };
+    }
+  };
+
+  // src/experimental-native-audio.ts
+  var owners = /* @__PURE__ */ new WeakMap();
+  var MAX_OBJECT = 2 * 1024 * 1024;
+  var MAX_QUEUE = 4 * 1024 * 1024;
+  var TIMEOUT2 = 1e4;
+  function createExperimentalNativeAudio(element, mime, onState, rolling) {
+    if (rolling && (!Number.isFinite(rolling.retainSeconds) || rolling.retainSeconds < 1 || rolling.retainSeconds > 120 || !Number.isFinite(rolling.maxForwardSeconds) || rolling.maxForwardSeconds < 1 || rolling.maxForwardSeconds > 120 || !Number.isSafeInteger(rolling.firstMediaSequence ?? 1) || (rolling.firstMediaSequence ?? 1) < 1)) throw Error("Invalid audio rolling limits");
+    if (!/^audio\/mp4;\s*codecs="mp4a\.40\.2"$/i.test(mime) || !MediaSource.isTypeSupported(mime)) throw Error("Unsupported validated AAC MIME");
+    let state = "idle", detail, intent = false, closed = false, ending = false;
+    let media, buffer, url2;
+    let queuedBytes = 0, sequence = 0, epoch = 0, firstMedia = true;
+    let observerError, closing;
+    let cancelPlay;
+    const invalidatePlay = () => {
+      epoch++;
+      cancelPlay?.();
+      cancelPlay = void 0;
+    };
+    let superseded = false;
+    const token2 = { supersede: () => {
+      superseded = true;
+      void close().catch(() => {
+      });
+    } };
+    const ownsSession = () => owners.get(element) === token2;
+    const ownsElement = () => ownsSession() && !!url2 && element.src === url2;
+    let chain = Promise.resolve();
+    const abort2 = new AbortController();
+    const snapshot3 = () => {
+      const buffered = [];
+      for (let i = 0; i < element.buffered.length; i++) buffered.push([element.buffered.start(i), element.buffered.end(i)]);
+      return { state, intent, currentTime: element.currentTime, buffered, queuedBytes, detail, observerError };
+    };
+    const notify = () => {
+      try {
+        onState?.(snapshot3());
+      } catch (error) {
+        observerError ??= error instanceof Error ? error.message : String(error);
+      }
+    };
+    const emit = () => {
+      if (ownsSession() && (!url2 || ownsElement())) notify();
+    };
+    const set = (value, message2) => {
+      if (!closed) {
+        state = value;
+        detail = message2;
+        emit();
+      }
+    };
+    const wait5 = (target, success, failures, label, signal = abort2.signal) => new Promise((resolve, reject) => {
+      let timer;
+      const done = (error) => {
+        if (timer) clearTimeout(timer);
+        target.removeEventListener(success, ok);
+        failures.forEach((e) => target.removeEventListener(e, bad));
+        signal.removeEventListener("abort", cancel);
+        error ? reject(error) : resolve();
+      };
+      const ok = () => done(), bad = () => done(Error(`${label} failed`)), cancel = () => done(Error("Audio closed"));
+      if (signal.aborted) return cancel();
+      target.addEventListener(success, ok, { once: true });
+      failures.forEach((e) => target.addEventListener(e, bad, { once: true }));
+      signal.addEventListener("abort", cancel, { once: true });
+      timer = setTimeout(() => done(Error(`${label} timed out`)), TIMEOUT2);
+    });
+    const update = async (fn) => {
+      if (!buffer || buffer.updating) throw Error("Audio source buffer unavailable");
+      const operationAbort = new AbortController();
+      const cancel = () => operationAbort.abort();
+      abort2.signal.addEventListener("abort", cancel, { once: true });
+      const pending = wait5(buffer, "updateend", ["error", "abort"], "Audio append", operationAbort.signal);
+      try {
+        fn();
+        await pending;
+      } catch (error) {
+        operationAbort.abort();
+        void pending.catch(() => {
+        });
+        throw error;
+      } finally {
+        abort2.signal.removeEventListener("abort", cancel);
+      }
+    };
+    const fail = (error) => {
+      if (!closed && state !== "error") {
+        intent = false;
+        invalidatePlay();
+        abort2.abort();
+        if (ownsElement()) {
+          try {
+            element.pause();
+          } catch (pauseError) {
+            observerError ??= String(pauseError);
+          }
+        }
+        set("error", error instanceof Error ? error.message : String(error));
+      }
+    };
+    const nativeError = () => {
+      if (ownsElement()) fail(Error(`Native audio error ${element.error?.code ?? "unknown"}`));
+    };
+    const nativeEnded = () => {
+      if (!closed && ownsElement() && state !== "error") {
+        intent = false;
+        invalidatePlay();
+        set("ended");
+      }
+    };
+    element.addEventListener("error", nativeError);
+    element.addEventListener("ended", nativeEnded);
+    element.disableRemotePlayback = true;
+    const append = (kind, index, bytes9) => {
+      if (closed || !ownsSession() || ending || state === "error") return Promise.reject(Error("Audio is closed, ending or failed"));
+      if (!Number.isSafeInteger(index) || index < 0 || !(bytes9 instanceof Uint8Array) || !bytes9.length || bytes9.length > MAX_OBJECT || queuedBytes + bytes9.length > MAX_QUEUE) return Promise.reject(Error("Invalid or oversized audio object"));
+      const copy = bytes9.slice();
+      queuedBytes += copy.length;
+      const job = chain.then(async () => {
+        if (closed || !ownsSession() || state === "error") throw Error("Audio closed or failed");
+        if (index !== sequence || (index === 0 ? kind !== "init" : kind !== "media")) throw Error("Unexpected audio object sequence");
+        if (index === 0) {
+          set("opening");
+          if (closed || !ownsSession() || abort2.signal.aborted) throw Error("Audio closed or superseded");
+          media = new MediaSource();
+          const openAbort = new AbortController();
+          const cancelOpen = () => openAbort.abort();
+          if (abort2.signal.aborted) openAbort.abort();
+          else abort2.signal.addEventListener("abort", cancelOpen, { once: true });
+          const opened = wait5(media, "sourceopen", ["sourceclose"], "Audio source opening", openAbort.signal);
+          void opened.catch(() => {
+          });
+          url2 = URL.createObjectURL(media);
+          element.src = url2;
+          try {
+            if (media.readyState !== "open") await opened;
+            else {
+              openAbort.abort();
+              await opened.catch(() => {
+              });
+            }
+          } finally {
+            abort2.signal.removeEventListener("abort", cancelOpen);
+          }
+          if (closed || !ownsElement()) throw Error("Audio closed or replaced");
+          buffer = media.addSourceBuffer(mime);
+          buffer.mode = "segments";
+        }
+        if (rolling && kind === "media" && buffer?.buffered.length) {
+          const cutoff = element.currentTime - rolling.retainSeconds;
+          if (cutoff > 0 && buffer.buffered.start(0) < cutoff) await update(() => buffer.remove(0, cutoff));
+          if (closed || !ownsElement()) throw Error("Audio closed or replaced");
+          if (!firstMedia && buffer.buffered.length && buffer.buffered.end(buffer.buffered.length - 1) - element.currentTime > rolling.maxForwardSeconds) throw Error("Audio forward buffer limit exceeded; rejoin live");
+        }
+        await update(() => buffer.appendBuffer(copy));
+        if (closed || !ownsElement()) throw Error("Audio closed or replaced");
+        if (rolling && kind === "media") {
+          if (firstMedia && buffer.buffered.length && element.currentTime < buffer.buffered.start(0)) element.currentTime = buffer.buffered.start(0);
+          firstMedia = false;
+          if (buffer.buffered.length && buffer.buffered.end(buffer.buffered.length - 1) - element.currentTime > rolling.maxForwardSeconds) throw Error("Audio forward buffer limit exceeded; rejoin live");
+        }
+        sequence = index === 0 ? rolling?.firstMediaSequence ?? 1 : index + 1;
+        if (state === "opening") set("ready");
+        else emit();
+      });
+      chain = job.catch(fail);
+      return job.finally(() => {
+        queuedBytes -= copy.length;
+      });
+    };
+    const play = async () => {
+      if (closed || element.ended || state === "error" || state === "ended" || !ownsElement()) throw Error("Audio cannot play");
+      invalidatePlay();
+      const attempt = epoch;
+      intent = true;
+      let timer;
+      const cancelled6 = new Promise((resolve) => {
+        cancelPlay = () => resolve("cancelled");
+      });
+      const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(Error("Audio play timed out")), TIMEOUT2);
+      });
+      try {
+        const native = Promise.resolve(element.play());
+        void native.then(() => {
+          if (attempt !== epoch && !intent && ownsElement()) {
+            try {
+              element.pause();
+            } catch (error) {
+              fail(error);
+            }
+          }
+        }, () => {
+        });
+        const result = await Promise.race([native.then(() => "played"), cancelled6, timeout]);
+        if (result === "played" && !closed && ownsElement() && epoch === attempt && intent) set("playing");
+      } catch (error) {
+        if (closed || !ownsElement() || epoch !== attempt || !intent) return;
+        intent = false;
+        invalidatePlay();
+        if (ownsElement()) {
+          try {
+            element.pause();
+          } catch (pauseError) {
+            observerError ??= String(pauseError);
+          }
+        }
+        set("blocked", error instanceof Error ? error.message : String(error));
+        throw error;
+      } finally {
+        if (timer) clearTimeout(timer);
+        if (attempt === epoch) cancelPlay = void 0;
+      }
+    };
+    const pause = () => {
+      if (closed || !ownsSession() || url2 && !ownsElement()) return;
+      intent = false;
+      invalidatePlay();
+      if (ownsElement()) element.pause();
+      if (state !== "error" && state !== "ended") set("paused");
+    };
+    const end2 = () => {
+      if (closed || ending || state === "error") return;
+      ending = true;
+      void chain.then(() => {
+        if (closed || state === "error" || state === "ended" || element.ended || !ownsElement()) return;
+        if (media?.readyState === "open" && !buffer?.updating) media.endOfStream();
+        if (state !== "ended" && !element.ended) set("ending");
+      }).catch(fail);
+    };
+    const close = () => {
+      if (closing) return closing;
+      if (closed) return Promise.resolve();
+      closed = true;
+      intent = false;
+      invalidatePlay();
+      state = "closed";
+      abort2.abort();
+      const errors = [];
+      const attempt = (action) => {
+        try {
+          action();
+        } catch (error) {
+          errors.push(error);
+        }
+      };
+      attempt(() => element.removeEventListener("error", nativeError));
+      attempt(() => element.removeEventListener("ended", nativeEnded));
+      const owned = ownsElement(), ownedUrl = url2;
+      if (owned && ownsElement()) attempt(() => element.pause());
+      attempt(() => {
+        if (buffer?.updating) buffer.abort();
+      });
+      if (owned && ownsElement()) attempt(() => element.removeAttribute("src"));
+      if (owned && ownsSession() && (!element.src || element.src === ownedUrl)) attempt(() => element.load());
+      if (ownedUrl) attempt(() => URL.revokeObjectURL(ownedUrl));
+      url2 = void 0;
+      if (owned && ownsSession() && !superseded) notify();
+      if (ownsSession()) owners.delete(element);
+      closing = (async () => {
+        try {
+          await chain;
+        } catch (error) {
+          errors.push(error);
+        }
+        if (observerError) errors.push(Error(`Audio observer: ${observerError}`));
+        if (errors.length) throw new AggregateError(errors, "Audio cleanup failed");
+      })();
+      return closing;
+    };
+    const previous = owners.get(element);
+    previous?.supersede();
+    owners.set(element, token2);
+    return { append, play, pause, end: end2, close, snapshot: snapshot3 };
+  }
+
+  // src/live-audio-viewer.ts
+  var LIVE_AUDIO_START_RESERVE_SECONDS = 1.5;
+  var LIVE_AUDIO_RETURN_CUSHION_SECONDS = 2;
+  function liveReturnPosition(start, end2) {
+    if (!Number.isFinite(start) || !Number.isFinite(end2) || start < 0 || end2 < start) throw Error("Invalid live audio range");
+    return Math.max(start, end2 - LIVE_AUDIO_RETURN_CUSHION_SECONDS);
+  }
+  function createLiveAudioViewer(o) {
+    const now = o.now ?? Date.now;
+    let head, player2, inspector, abort2 = new AbortController(), generation = 0, next = 0, working = false, closed = false, error = "", lastProgress = 0, progressSince, lastHeadReceived = 0, receivedEdgeMs = null, receivedBytes = 0, startedAt = 0, native, positionExpired = false, joiningLatest = false, keepLatestWhilePaused = false, userIntentPaused = false, retryAt = 0, retryAttempts = 0, failureClass = null, exhaustedAt = 0, exhaustedSequence = -1, exhaustedEndTicks = -1;
+    const notify = () => {
+      try {
+        o.onChange?.();
+      } catch {
+      }
+    };
+    const reset = () => {
+      generation++;
+      abort2.abort();
+      abort2 = new AbortController();
+      const old = player2;
+      player2 = void 0;
+      inspector = void 0;
+      next = 0;
+      native = void 0;
+      receivedEdgeMs = null;
+      if (old)
+        void old.close().catch(() => {
+        });
+    };
+    const clearFailure = () => {
+      error = "";
+      retryAt = 0;
+      retryAttempts = 0;
+      failureClass = null;
+      exhaustedAt = 0;
+      exhaustedSequence = -1;
+      exhaustedEndTicks = -1;
+    };
+    const progress = () => {
+      const d = head?.media.at(-1);
+      return d ? { sequence: d.sequence, end: d.startTicks + d.durationTicks } : void 0;
+    };
+    const markAvailability = (message2) => {
+      if (userIntentPaused) positionExpired = true;
+      error = message2;
+      failureClass = "availability";
+      retryAttempts++;
+      retryAt = now() + 3e3;
+      if (retryAttempts >= 3) {
+        const d = progress();
+        exhaustedAt = now();
+        exhaustedSequence = d?.sequence ?? -1;
+        exhaustedEndTicks = d?.end ?? -1;
+      }
+    };
+    const current = (g) => !closed && generation === g && !abort2.signal.aborted;
+    const pump = () => {
+      if (working || closed || positionExpired || error && (retryAttempts >= 3 || now() < retryAt) || !head || head.expiresAtMs <= now() || !head.media.length)
+        return;
+      working = true;
+      const g = generation;
+      let failed = false;
+      void (async () => {
+        const h = head;
+        if (!player2) {
+          const first = h.media[Math.max(0, h.media.length - 3)];
+          const bytes9 = await o.fetch(h.init, abort2.signal);
+          if (!current(g))
+            return;
+          inspector = new AudioMp4Timing(bytes9, h.map.firstCommonTicks / h.map.commonTimescale, h.map.commonTimescale);
+          player2 = createExperimentalNativeAudio(o.element, LIVE_AUDIO_MIME, (s) => {
+            if (current(g)) {
+              native = s;
+              notify();
+            }
+          }, { retainSeconds: 20, maxForwardSeconds: 30, firstMediaSequence: first.sequence });
+          await player2.append("init", 0, bytes9);
+          if (!current(g))
+            return;
+          next = first.sequence;
+          receivedBytes += bytes9.length;
+          startedAt ||= now();
+        }
+        while (current(g) && head && head.epochId === h.epochId) {
+          const d = head.media.find((x) => x.sequence === next);
+          if (!d) {
+            if (head.media[0].sequence > next) {
+              if (keepLatestWhilePaused || player2?.snapshot().intent === true) {
+                markAvailability("Waiting for live sound");
+              } else {
+                positionExpired = true;
+                error = "Sound fell behind; this position is no longer available. Use Back to live.";
+              }
+              reset();
+              notify();
+            }
+            break;
+          }
+          const bytes9 = await o.fetch(d, abort2.signal);
+          if (!current(g))
+            return;
+          const checked = inspector.inspect(bytes9), m = checked.mapping;
+          if (m.timescale !== h.map.timescale || m.movieTimescale !== h.map.movieTimescale || m.editMediaTimeTicks !== h.map.editMediaTimeTicks || m.firstCommonTicks !== h.map.firstCommonTicks || m.commonTimescale !== h.map.commonTimescale || d.sequence === 1 && m.firstPtsTicks !== h.map.firstPtsTicks || checked.fragment.startTicks !== d.startTicks || checked.fragment.durationTicks !== d.durationTicks || d.startTicks < h.map.firstPtsTicks)
+            throw Error("Audio fragment timing rejected");
+          const state = player2.snapshot(), ranges = state.buffered, last2 = ranges.at(-1), end2 = last2?.[1];
+          if (end2 !== void 0 && last2 && keepLatestWhilePaused && end2 - state.currentTime + d.durationTicks / h.map.timescale > 28.5) {
+            o.element.currentTime = liveReturnPosition(last2[0], end2);
+          }
+          if (end2 !== void 0 && end2 - o.element.currentTime + d.durationTicks / h.map.timescale > 29.5) {
+            positionExpired = true;
+            error = "Sound fell behind; this position is no longer available. Use Back to live.";
+            reset();
+            notify();
+            return;
+          }
+          await player2.append("media", d.sequence, bytes9);
+          if (!current(g))
+            return;
+          next++;
+          clearFailure();
+          lastProgress = now();
+          progressSince = lastProgress;
+          receivedEdgeMs = 1e3 * (h.map.firstCommonTicks / h.map.commonTimescale + (d.startTicks + d.durationTicks - h.map.firstPtsTicks) / h.map.timescale);
+          receivedBytes += bytes9.length;
+          notify();
+        }
+        if (current(g) && head && next > head.media.at(-1).sequence && joiningLatest) {
+          joiningLatest = false;
+          notify();
+        }
+        if (current(g) && head?.state === "ended" && next > head.media.at(-1).sequence)
+          player2?.end();
+      })().catch((e) => {
+        if (current(g)) {
+          failed = true;
+          if (userIntentPaused) positionExpired = true;
+          if (e instanceof PeerFetchUnavailable) markAvailability(e.message);
+          else {
+            error = e instanceof Error ? e.message : String(e);
+            failureClass = "unrecoverable";
+            retryAttempts = 3;
+            retryAt = 0;
+          }
+          joiningLatest = false;
+          reset();
+          notify();
+        }
+      }).finally(() => {
+        working = false;
+        if (!failed && !closed && head && (g !== generation || !error && next && head.media.some((d) => d.sequence === next)))
+          pump();
+      });
+    };
+    return {
+      update(h) {
+        if (closed)
+          return;
+        if (!head || h.epochId !== head.epochId) {
+          if (head)
+            reset();
+          clearFailure();
+          lastProgress = 0;
+          progressSince = now();
+        }
+        head = h;
+        lastHeadReceived = now();
+        notify();
+        pump();
+      },
+      tick() {
+        if (!closed) {
+          const d = progress();
+          if (!positionExpired && !userIntentPaused && failureClass === "availability" && retryAttempts >= 3 && head?.state === "running" && head.expiresAtMs > now() && now() - exhaustedAt >= 3e4 && d && d.sequence > exhaustedSequence && d.end > exhaustedEndTicks) {
+            clearFailure();
+          }
+          if (head && head.expiresAtMs > now() && !working) pump();
+          notify();
+        }
+      },
+      /** Explicitly discard an expired or failed position. No sound starts here. */
+      rejoin() {
+        if (closed) return false;
+        positionExpired = false;
+        userIntentPaused = false;
+        joiningLatest = true;
+        clearFailure();
+        progressSince = now();
+        reset();
+        notify();
+        pump();
+        return true;
+      },
+      async play() {
+        if (!player2)
+          throw Error("Waiting for live sound");
+        keepLatestWhilePaused = false;
+        userIntentPaused = false;
+        await player2.play();
+      },
+      pause(options) {
+        keepLatestWhilePaused = options?.keepLatest === true;
+        userIntentPaused = !keepLatestWhilePaused;
+        if (userIntentPaused && !player2 && !!error) positionExpired = true;
+        player2?.pause();
+      },
+      async backToLive() {
+        if (!head || head.expiresAtMs <= now())
+          throw Error("Waiting for live sound");
+        if (positionExpired || !player2) {
+          if (!this.rejoin()) throw Error("Live sound cannot be rejoined");
+          const fence2 = generation, deadline2 = performance.now() + 1e4;
+          while (current(fence2) && performance.now() < deadline2 && (joiningLatest || !player2 || !player2.snapshot().buffered.length)) await new Promise((resolve) => setTimeout(resolve, 50));
+          if (!current(fence2)) throw Error("Live audio changed while waiting");
+        }
+        if (joiningLatest || !player2) throw Error("Waiting for live sound");
+        const b = player2.snapshot().buffered;
+        if (!b.length) throw Error("Waiting for live sound");
+        const [start, end2] = b[b.length - 1];
+        o.element.currentTime = liveReturnPosition(start, end2);
+        keepLatestWhilePaused = false;
+        await player2.play();
+      },
+      status() {
+        const age = head ? Math.max(0, now() - lastHeadReceived) : Infinity, b = native?.buffered ?? [], position = native?.currentTime ?? 0, containing = b.find(([start, stop]) => position >= start - 0.05 && position < stop), contiguousAhead = containing ? Math.max(0, containing[1] - Math.max(containing[0], position)) : 0, startReady = contiguousAhead >= LIVE_AUDIO_START_RESERVE_SECONDS || head?.state === "ended" && contiguousAhead > 0;
+        return { epochId: head?.epochId ?? null, positionExpired, joiningLatest, recordingId: receivedEdgeMs === null ? null : head?.epochId ?? null, receivedEdgeMs, sourceState: head?.state ?? "unknown", state: !head || head.expiresAtMs <= now() || head.state === "running" && (age > 5e3 || progressSince !== void 0 && now() - progressSince > 5e3) ? "waiting" : error || head?.state === "error" ? "error" : native?.state ?? "waiting", failureClass, retryAttempts, retryExhausted: retryAttempts >= 3, detail: error || native?.detail || "", headAgeMs: age, bufferSeconds: contiguousAhead, startReady, stalled: !!head && head.state === "running" && (age > 5e3 || progressSince !== void 0 && now() - progressSince > 5e3), bytesReceived: receivedBytes, rateBitsPerSecond: startedAt && now() > startedAt ? receivedBytes * 8e3 / (now() - startedAt) : 0, native };
+      },
+      detach() {
+        reset();
+        head = void 0;
+        clearFailure();
+        positionExpired = false;
+        joiningLatest = false;
+        keepLatestWhilePaused = false;
+        userIntentPaused = false;
+        notify();
+      },
+      close() {
+        closed = true;
+        reset();
+        head = void 0;
+        notify();
+      }
+    };
+  }
+
+  // src/experimental-audio.ts
+  var MAX_PACKETS2 = 256;
+  var MAX_BYTES = 2 * 1024 * 1024;
+  var MAX_AGE_MS = 5e3;
+  var MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
+  var CLOSE_MS = 5e3;
+  function copyConfig(config2) {
+    if (!config2.codec || !Number.isFinite(config2.sampleRate) || config2.sampleRate <= 0 || !Number.isInteger(config2.numberOfChannels) || config2.numberOfChannels <= 0)
+      throw new Error("Invalid AAC decoder configuration");
+    const description = config2.description;
+    let copy;
+    if (description) {
+      const bytes9 = ArrayBuffer.isView(description) ? new Uint8Array(description.buffer, description.byteOffset, description.byteLength) : new Uint8Array(description);
+      if (bytes9.byteLength > 4096)
+        throw new Error("AAC decoder configuration too large");
+      copy = bytes9.slice().buffer;
+    }
+    if (config2.codec !== "mp4a.40.2" || !copy || copy.byteLength < 2)
+      throw new Error("Invalid AAC decoder configuration");
+    const asc = new Uint8Array(copy);
+    const objectType = asc[0] >> 3, frequencyIndex = (asc[0] & 7) << 1 | asc[1] >> 7, channels = asc[1] >> 3 & 15;
+    const rates = [96e3, 88200, 64e3, 48e3, 44100, 32e3, 24e3, 22050, 16e3, 12e3, 11025, 8e3, 7350];
+    if (objectType !== 2 || rates[frequencyIndex] !== config2.sampleRate || (channels === 7 ? 8 : channels) !== config2.numberOfChannels || channels === 0 || channels > 7)
+      throw new Error("Unsupported AAC decoder configuration");
+    return { ...config2, description: copy };
+  }
+  function sameConfig(a, b) {
+    const bytes9 = (d) => d ? Array.from(ArrayBuffer.isView(d) ? new Uint8Array(d.buffer, d.byteOffset, d.byteLength) : new Uint8Array(d)) : [];
+    return a.codec === b.codec && a.sampleRate === b.sampleRate && a.numberOfChannels === b.numberOfChannels && JSON.stringify(bytes9(a.description)) === JSON.stringify(bytes9(b.description));
+  }
+  function bounded(p, ms) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("Experimental audio operation timed out")), ms);
+      p.then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      }, (error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+    });
+  }
+  function join(a, b) {
+    const out = new Uint8Array(a.length + b.length);
+    out.set(a);
+    out.set(b, a.length);
+    return out;
+  }
+  var ExperimentalAudioRemux = class {
+    constructor(streaming) {
+      this.streaming = streaming;
+    }
+    output;
+    source;
+    queue = [];
+    inFlight;
+    worker;
+    ready;
+    ageTimer;
+    config;
+    objects = [];
+    objectBytes = 0;
+    streamInit;
+    streamInspector;
+    firstPacketTimestamp;
+    streamQueue = [];
+    streamWorker;
+    streamBytes = 0;
+    streamCount = 0;
+    streamSequence = 0;
+    streamPacketTimes = [];
+    streamAgeTimer;
+    ftyp;
+    moof;
+    stopping;
+    inputClosed = false;
+    resolveSettled;
+    settled = new Promise((resolve) => {
+      this.resolveSettled = resolve;
+    });
+    /** Settles independently from primary publisher stop. */
+    whenSettled() {
+      return this.settled;
+    }
+    info = { state: "idle", packets: 0, queuedPackets: 0, queuedBytes: 0 };
+    status() {
+      return { ...this.info };
+    }
+    /** Settle a supplied handle when the selected capture has no audio track. */
+    skipNoAudio() {
+      if (this.info.state !== "idle")
+        return;
+      this.info.state = "skipped";
+      this.info.detail = "Capture has no audio track";
+      this.resolveSettled(this.status());
+    }
+    /** Copies prevent a consumer mutating the retained evidence. */
+    getObjects() {
+      if (this.streaming) throw Error("Streaming audio has no retained snapshot");
+      return this.objects.map((o) => ({ kind: o.kind, bytes: o.bytes.slice() }));
+    }
+    store(kind, bytes9) {
+      if (this.info.state !== "running")
+        return;
+      if (this.streaming) {
+        if (kind === "init") {
+          if (this.streamInit || this.streamInspector || bytes9.length > 256 * 1024 || this.firstPacketTimestamp === void 0 || !this.config) throw Error("Invalid streaming audio init");
+          this.streamInit = bytes9;
+          this.streamInspector = new AudioMp4Timing(bytes9, this.firstPacketTimestamp, this.config.sampleRate);
+          this.streamBytes += bytes9.length;
+          return;
+        }
+        if (!this.streamInit || !this.streamInspector) throw Error("Streaming media before init");
+        const timing = this.streamInspector.inspect(bytes9);
+        if (timing.samples.length > this.streamPacketTimes.length) throw Error("Fragment has unmatched AAC samples");
+        for (let i = 0; i < timing.samples.length; i++) {
+          const sample = timing.samples[i], packet = this.streamPacketTimes[i], m = timing.mapping;
+          const position = (BigInt(sample.ptsTicks) - BigInt(m.firstPtsTicks)) * BigInt(m.commonTimescale) - (BigInt(packet.start) - BigInt(m.firstCommonTicks)) * BigInt(m.timescale);
+          const duration = BigInt(sample.durationTicks) * BigInt(m.commonTimescale) - BigInt(packet.duration) * BigInt(m.timescale);
+          const tolerance = 2n * BigInt(m.timescale);
+          if ((position < 0n ? -position : position) > tolerance || (duration < 0n ? -duration : duration) > tolerance) throw Error("AAC sample and source packet timing disagree");
+        }
+        this.streamPacketTimes.splice(0, timing.samples.length);
+        if (!this.streamSequence) this.enqueueStream({ kind: "init", sequence: 0, bytes: this.streamInit, mapping: timing.mapping }, true);
+        this.enqueueStream({ kind: "media", sequence: ++this.streamSequence, bytes: bytes9, mapping: timing.mapping, fragment: timing.fragment });
+        return;
+      }
+      if (this.objectBytes + bytes9.length > MAX_OUTPUT_BYTES)
+        throw new Error("Experimental audio output limit exceeded");
+      this.objectBytes += bytes9.length;
+      this.objects.push({ kind, bytes: bytes9 });
+    }
+    enqueueStream(object, pinned = false) {
+      const extra2 = pinned ? 0 : object.bytes.length;
+      if (this.streamCount + 1 > 32 || this.streamBytes + extra2 > 2 * 1024 * 1024) throw Error("Streaming audio output queue exceeded");
+      this.streamBytes += extra2;
+      this.streamCount++;
+      this.streamQueue.push(object);
+      this.pumpStream();
+    }
+    pumpStream() {
+      if (this.streamWorker || this.info.state !== "running" || !this.streaming) return;
+      this.streamWorker = (async () => {
+        while (this.info.state === "running" && this.streamQueue.length) {
+          const item = this.streamQueue.shift();
+          clearTimeout(this.streamAgeTimer);
+          this.streamAgeTimer = setTimeout(() => this.fail(Error("Streaming audio consumer timed out")), MAX_AGE_MS);
+          await this.streaming.onObject({ ...item, bytes: item.bytes.slice(), mapping: { ...item.mapping }, fragment: item.fragment ? { ...item.fragment } : void 0 });
+          if (this.info.state !== "running") return;
+          clearTimeout(this.streamAgeTimer);
+          this.streamCount--;
+          if (item.kind === "media") this.streamBytes -= item.bytes.length;
+        }
+      })().catch((e) => this.fail(e)).finally(() => {
+        this.streamWorker = void 0;
+        if (this.streamQueue.length && this.info.state === "running") this.pumpStream();
+      });
+    }
+    async start() {
+      if (this.info.state !== "idle")
+        throw new Error("Experimental audio handle already used");
+      this.info.state = "running";
+      try {
+        const format2 = new Mp4OutputFormat({
+          fastStart: "fragmented",
+          minimumFragmentDuration: 0.5,
+          onFtyp: (data) => {
+            if (this.info.state !== "running")
+              return;
+            if (this.objectBytes + data.byteLength > MAX_OUTPUT_BYTES || this.streaming && data.byteLength > 256 * 1024)
+              throw new Error("Experimental audio output limit exceeded");
+            this.ftyp = data.slice();
+          },
+          onMoov: (data) => {
+            if (this.info.state !== "running")
+              return;
+            if (!this.ftyp)
+              throw new Error("Missing audio ftyp");
+            if (this.streaming && this.ftyp.byteLength + data.byteLength > 256 * 1024) throw Error("Streaming audio init too large");
+            this.store("init", join(this.ftyp, data));
+            this.ftyp = void 0;
+          },
+          onMoof: (data) => {
+            if (this.info.state !== "running")
+              return;
+            if (this.moof)
+              throw new Error("Overlapping audio fragments");
+            if (this.objectBytes + data.byteLength > MAX_OUTPUT_BYTES || this.streaming && this.streamBytes + data.byteLength > 2 * 1024 * 1024)
+              throw new Error("Experimental audio output limit exceeded");
+            this.moof = data.slice();
+          },
+          onMdat: (data) => {
+            if (this.info.state !== "running")
+              return;
+            if (!this.moof)
+              throw new Error("Missing audio moof");
+            if (this.streaming && this.streamBytes + this.moof.byteLength + data.byteLength > 2 * 1024 * 1024) throw Error("Streaming audio output queue exceeded");
+            this.store("media", join(this.moof, data));
+            this.moof = void 0;
+          }
+        });
+        this.source = new EncodedAudioPacketSource("aac");
+        this.output = new Output({ format: format2, target: new AppendOnlyStreamTarget(new WritableStream({ write() {
+        } })) });
+        this.output.addAudioTrack(this.source);
+        this.ready = bounded(this.output.start(), CLOSE_MS);
+        await this.ready;
+      } catch (e) {
+        this.fail(e);
+      }
+    }
+    /** Synchronous encoder callback: never throws and does not provide encoder backpressure. */
+    tap(packet, metadata) {
+      if (this.info.state !== "running")
+        return false;
+      if (this.inputClosed) {
+        this.fail(new Error("AAC packet after experimental input closed"));
+        return false;
+      }
+      try {
+        const side = packet.sideData;
+        const descSize = metadata?.decoderConfig?.description?.byteLength ?? 0;
+        const bytes9 = packet.data.byteLength + (side.alpha?.byteLength ?? 0) + descSize;
+        if (bytes9 > 256 * 1024)
+          throw new Error("Experimental audio packet limit exceeded");
+        if (this.info.queuedPackets + 1 > MAX_PACKETS2 || this.info.queuedBytes + bytes9 > MAX_BYTES)
+          throw new Error("Experimental audio queue limit exceeded");
+        let meta;
+        if (metadata?.decoderConfig) {
+          const config2 = copyConfig(metadata.decoderConfig);
+          if (this.config && !sameConfig(this.config, config2))
+            throw new Error("AAC decoder configuration changed");
+          this.config = copyConfig(config2);
+          meta = { ...metadata, decoderConfig: config2 };
+        }
+        if (!this.config)
+          throw new Error("First AAC packet lacks decoder configuration");
+        this.firstPacketTimestamp ??= packet.timestamp;
+        if (this.streaming) {
+          const rate = this.config.sampleRate, start = packet.timestamp * rate, duration = packet.duration * rate, startTicks = Math.round(start), durationTicks = Math.round(duration);
+          if (!Number.isSafeInteger(startTicks) || !Number.isSafeInteger(durationTicks) || durationTicks <= 0 || Math.abs(start - startTicks) > 1e-4 || Math.abs(duration - durationTicks) > 1e-4) throw Error("AAC packet timing is not on the sample grid");
+          if (this.streamPacketTimes.length >= 256) throw Error("Streaming audio timing queue exceeded");
+          this.streamPacketTimes.push({ start: startTicks, duration: durationTicks });
+        }
+        const copy = packet.clone({ data: packet.data.slice(), sideData: { ...side, alpha: side.alpha?.slice() } });
+        this.queue.push({ packet: copy, meta, bytes: bytes9, at: performance.now() });
+        this.info.queuedPackets++;
+        this.info.queuedBytes += bytes9;
+        this.armAge();
+        this.pump();
+        return true;
+      } catch (e) {
+        this.fail(e);
+        return false;
+      }
+    }
+    armAge() {
+      clearTimeout(this.ageTimer);
+      const first = this.inFlight ?? this.queue[0];
+      if (first)
+        this.ageTimer = setTimeout(() => this.fail(new Error("Experimental audio queue age exceeded")), Math.max(0, MAX_AGE_MS - (performance.now() - first.at)));
+    }
+    pump() {
+      if (this.worker || this.info.state !== "running")
+        return;
+      this.worker = (async () => {
+        await this.ready;
+        while (this.info.state === "running" && this.queue.length) {
+          let item = this.queue.shift();
+          this.inFlight = item;
+          this.armAge();
+          const bytes9 = item.bytes;
+          const pending = this.source.add(item.packet, item.meta);
+          item = void 0;
+          await pending;
+          if (this.info.state !== "running")
+            return;
+          this.inFlight = void 0;
+          this.info.queuedPackets--;
+          this.info.queuedBytes -= bytes9;
+          this.info.packets++;
+          this.armAge();
+        }
+      })().catch((e) => this.fail(e)).finally(() => {
+        this.worker = void 0;
+        if (this.queue.length && this.info.state === "running")
+          this.pump();
+      });
+    }
+    fail(error) {
+      if (this.info.state !== "running")
+        return;
+      this.info.state = "failed";
+      this.info.detail = error instanceof Error ? error.message : String(error);
+      this.objects = [];
+      this.objectBytes = 0;
+      this.release();
+      this.resolveSettled(this.status());
+      void this.cancelOutput();
+    }
+    release() {
+      clearTimeout(this.ageTimer);
+      clearTimeout(this.streamAgeTimer);
+      this.streamQueue = [];
+      this.streamInit = void 0;
+      this.streamInspector = void 0;
+      this.streamBytes = 0;
+      this.streamCount = 0;
+      this.firstPacketTimestamp = void 0;
+      this.streamPacketTimes = [];
+      this.config = void 0;
+      this.queue = [];
+      this.inFlight = void 0;
+      this.info.queuedBytes = 0;
+      this.info.queuedPackets = 0;
+      this.ftyp = void 0;
+      this.moof = void 0;
+    }
+    async cancelOutput() {
+      try {
+        if (this.output)
+          await bounded(this.output.cancel(), CLOSE_MS);
+      } catch {
+      }
+    }
+    cancel() {
+      if (this.info.state !== "running" && this.info.state !== "idle")
+        return;
+      this.info.state = "cancelled";
+      this.objects = [];
+      this.objectBytes = 0;
+      this.release();
+      this.resolveSettled(this.status());
+      void this.cancelOutput();
+    }
+    finish() {
+      if (this.stopping)
+        return this.stopping;
+      this.inputClosed = true;
+      this.stopping = (async () => {
+        if (this.info.state !== "running")
+          return;
+        try {
+          while (this.worker && this.info.state === "running")
+            await bounded(this.worker, CLOSE_MS);
+          if (this.info.state !== "running")
+            return;
+          if (!this.info.packets)
+            throw new Error("No AAC packets received");
+          await bounded(this.output.finalize(), CLOSE_MS);
+          if (this.info.state !== "running")
+            return;
+          if (this.moof)
+            throw new Error("Incomplete audio fragment");
+          if (this.streaming) {
+            if (!this.streamSequence) throw Error("No streaming audio fragments");
+            if (this.streamPacketTimes.length) throw Error("Unmatched AAC packets at end");
+            while (this.streamWorker && this.info.state === "running") await bounded(this.streamWorker, CLOSE_MS);
+            if (this.info.state !== "running") return;
+          }
+          this.info.state = "finished";
+          this.release();
+          this.resolveSettled(this.status());
+        } catch (e) {
+          this.fail(e);
+        }
+      })();
+      return this.stopping;
+    }
+  };
+  var StreamingAudioRemux = class extends ExperimentalAudioRemux {
+    constructor(options) {
+      super(options);
+    }
+  };
 
   // src/stream-director-policy.ts
   function directorEntryEligible(item, commentaryState) {
@@ -29664,7 +33939,7 @@ THE SOFTWARE.
     const now = ctx.now || Date.now, mono = ctx.monotonic || (ctx.now ? ctx.now : () => performance.now()), video = ctx.video;
     const clock = () => ({ wall: now(), mono: mono() });
     const elapsed2 = (start) => Math.max(0, now() - start.wall, mono() - start.mono);
-    let epoch = 0, enabled2 = false, mode = "pictures", suspended = false, held = false, paused = false, blocked = false, userPaused = false;
+    let epoch = 0, enabled2 = false, mode = "pictures", suspended = false, held = false, automaticHeld = false, manualHold = false, paused = false, blocked = false, userPaused = false;
     let active, pending, scheduled = false;
     let ready2;
     let current;
@@ -29729,6 +34004,7 @@ THE SOFTWARE.
     }
     function observe() {
       if (current && !card(current.id)) {
+        ctx.programmeEnd?.(current.id, "error");
         consumed.add(current.id);
         clearPlayer();
         say("This clip is no longer available.");
@@ -29839,6 +34115,7 @@ THE SOFTWARE.
     }
     function request2(id, action, manualReplayCue) {
       if (!ctx.current() || !card(id)) return;
+      if (action === "play" || action === "skip") ctx.programmeSelect?.(id, action);
       const presentation = manualReplayCue && manualReplayCue.clipId === id && typeof manualReplayCue.id === "string" && manualReplayCue.id.length > 0 && manualReplayCue.id.length <= 256 && Number.isSafeInteger(manualReplayCue.issuedAtMs) && Number.isSafeInteger(manualReplayCue.expiresAtMs) && manualReplayCue.issuedAtMs <= now() + 6e4 && manualReplayCue.expiresAtMs > now() && manualReplayCue.expiresAtMs > manualReplayCue.issuedAtMs && manualReplayCue.expiresAtMs - manualReplayCue.issuedAtMs <= 3e5 ? { ...manualReplayCue } : void 0;
       if (action === "skip") {
         if (ready2?.request.id === id) clearReady();
@@ -29903,7 +34180,7 @@ THE SOFTWARE.
         clearReady();
         return;
       }
-      if (suspended || held || paused || blocked || current || !item.request.replay && ctx.beforeAutomaticPlay?.() === false) return;
+      if (suspended || held || manualHold || paused || blocked || current || !item.request.replay && ctx.beforeAutomaticPlay?.() === false) return;
       clearReady();
       mount(item.request, item.card, item.signature, item.stamp, item.chunks);
     }
@@ -29918,6 +34195,7 @@ THE SOFTWARE.
       }
       if (active || suspended || held || !ctx.current() || !pending || ctx.busy?.()) return;
       const request3 = pending;
+      if (request3.action === "auto" && manualHold) return;
       if (request3.action === "auto" && automaticWait?.clipId === request3.id && budgetTimer) return;
       if (request3.action === "auto" && (!enabled2 || mode !== "highlights" || paused || blocked || current)) return;
       const c = card(request3.id);
@@ -29934,6 +34212,13 @@ THE SOFTWARE.
       const policy = request3.action === "auto" ? ctx.delivery?.() : void 0;
       let reservationId, probeTimeoutMs;
       const wasLocal = ctx.has(c.clipId);
+      if (request3.action === "auto" && automaticHeld && !wasLocal) {
+        if (automaticWait?.clipId !== c.clipId || automaticWait.reason !== "live-audio-critical") {
+          automaticWait = { clipId: c.clipId, reason: "live-audio-critical", retryAtMs: Infinity };
+          notify();
+        }
+        return;
+      }
       if (request3.action === "auto") {
         if (!request3.replay && consumed.has(c.clipId)) {
           pending = void 0;
@@ -29998,9 +34283,9 @@ THE SOFTWARE.
         budgetTimer = void 0;
       }
       pending = void 0;
-      const abort2 = new AbortController(), stamp3 = epoch, start = clock(), signature = JSON.stringify(c);
-      const stillValid = () => valid2(stamp3, c.clipId, abort2.signal) && (!request3.replay || request3.replay.expiresAtMs > now()) && JSON.stringify(card(c.clipId)) === signature;
-      active = { request: request3, abort: abort2 };
+      const abort2 = new AbortController(), stamp3 = epoch, start = clock(), signature2 = JSON.stringify(c);
+      const stillValid = () => valid2(stamp3, c.clipId, abort2.signal) && (!request3.replay || request3.replay.expiresAtMs > now()) && JSON.stringify(card(c.clipId)) === signature2;
+      active = { request: request3, abort: abort2, local: wasLocal };
       notify();
       let timeout = false, timeoutReason, lastProgress = clock(), lastPeerProgress, peerVerified = 0, verified = 0, idleGeneration = 0, probeDeadlineMs = probeTimeoutMs;
       const timedOut = (reason) => {
@@ -30103,9 +34388,9 @@ THE SOFTWARE.
           const chunks = await ctx.download(c.clipId, abort2.signal, progress, !!policy && wasLocal && request3.action === "auto");
           if (!stillValid()) return;
           if (request3.action === "auto" && deadlineExceeded()) return;
-          const bytes8 = chunks.reduce((n, x) => n + x.byteLength, 0), ms = Math.max(1, elapsed2(start));
-          if (!wasLocal) lastTransfer = `Last completed clip: ${(bytes8 / MIB).toFixed(2)} MiB of application payload in ${(ms / 1e3).toFixed(1)} seconds (about ${(bytes8 * 8 / ms / 1e3).toFixed(2)} Mbit/s). May include cached objects; this is not line capacity, total network traffic or a speed test.`;
-          else lastTransfer = `Last completed clip: ${(bytes8 / MIB).toFixed(2)} MiB read from a local copy in ${(ms / 1e3).toFixed(1)} seconds. No network throughput measured.`;
+          const bytes9 = chunks.reduce((n, x) => n + x.byteLength, 0), ms = Math.max(1, elapsed2(start));
+          if (!wasLocal) lastTransfer = `Last completed clip: ${(bytes9 / MIB).toFixed(2)} MiB of application payload in ${(ms / 1e3).toFixed(1)} seconds (about ${(bytes9 * 8 / ms / 1e3).toFixed(2)} Mbit/s). May include cached objects; this is not line capacity, total network traffic or a speed test.`;
+          else lastTransfer = `Last completed clip: ${(bytes9 / MIB).toFixed(2)} MiB read from a local copy in ${(ms / 1e3).toFixed(1)} seconds. No network throughput measured.`;
           progressTransfer = "";
           showTransfer();
           if (request3.action === "get") {
@@ -30125,8 +34410,8 @@ THE SOFTWARE.
                 notify();
               }
             }, Math.max(0, c.expiresAtMs - now()));
-            ready2 = { request: request3, card: c, signature, stamp: stamp3, chunks, timer };
-          } else mount(request3, c, signature, stamp3, chunks);
+            ready2 = { request: request3, card: c, signature: signature2, stamp: stamp3, chunks, timer };
+          } else mount(request3, c, signature2, stamp3, chunks);
         } catch {
           if (stillValid() && policy && wasLocal && request3.action === "auto" && !ctx.has(c.clipId)) {
             pending = request3;
@@ -30177,9 +34462,9 @@ THE SOFTWARE.
         }
       })();
     }
-    function mount(request3, c, signature, stamp3, chunks) {
+    function mount(request3, c, signature2, stamp3, chunks) {
       const url2 = URL.createObjectURL(new Blob(chunks, { type: "video/mp4" }));
-      if (!valid2(stamp3, c.clipId) || JSON.stringify(card(c.clipId)) !== signature) {
+      if (!valid2(stamp3, c.clipId) || JSON.stringify(card(c.clipId)) !== signature2) {
         URL.revokeObjectURL(url2);
         return;
       }
@@ -30190,19 +34475,22 @@ THE SOFTWARE.
         handlers.push([name, fn]);
         video.addEventListener(name, fn);
       };
-      const owned = () => current?.url === url2 && valid2(stamp3, c.clipId) && JSON.stringify(card(c.clipId)) === signature;
+      const owned = () => current?.url === url2 && valid2(stamp3, c.clipId) && JSON.stringify(card(c.clipId)) === signature2;
       on("ended", () => {
-        if (!owned()) return;
+        if (!owned() || !video.ended) return;
+        ctx.programmeEnd?.(c.clipId, "ended");
         consumed.add(c.clipId);
         blocked = false;
         clearPlayer();
         if (request3.action === "auto" && !request3.replay && !(pending?.replay && pending.replay.expiresAtMs > now()) && !(deferredAuto?.replay && deferredAuto.replay.expiresAtMs > now())) ctx.onAutomaticEnd?.();
         say("Highlight finished.");
         observe();
+        notify();
         schedule();
       });
       on("pause", () => {
-        if (owned() && !suppressPause && !video.ended) {
+        if (owned() && video.paused && !suppressPause && !video.ended) {
+          if (ctx.programmePause?.()) return;
           playAttempt++;
           paused = true;
           userPaused = true;
@@ -30211,22 +34499,37 @@ THE SOFTWARE.
         }
       });
       on("error", () => {
-        if (!owned()) return;
+        if (!owned() || !video.error) return;
+        ctx.programmeEnd?.(c.clipId, "error");
         blocked = true;
         say("Clip could not play. Choose another clip or try again.");
         notify();
       });
       const expiry = setTimeout(() => {
         if (current?.url !== url2 || stamp3 !== epoch) return;
+        ctx.programmeEnd?.(c.clipId, "error");
         consumed.add(c.clipId);
         clearPlayer();
         say("Clip expired.");
         observe();
+        notify();
         schedule();
       }, Math.max(0, c.expiresAtMs - now()));
-      current = { id: c.clipId, origin: request3.action === "auto" ? "auto" : "manual", replay: request3.replay, presentation: request3.presentation, url: url2, expires: c.expiresAtMs, timer: expiry, handlers };
+      current = { id: c.clipId, origin: request3.action === "auto" ? "auto" : "manual", replay: request3.replay, presentation: request3.presentation, url: url2, expires: c.expiresAtMs, timer: expiry, handlers, promote: () => {
+        request3.action = "play";
+      }, canPromote: owned };
+      if (ctx.programmeReady) {
+        on("canplay", () => {
+          if (owned()) ctx.programmeReady?.(c.clipId, current.origin);
+        });
+        video.preload = "auto";
+      }
       video.src = url2;
       video.classList.remove("hidden");
+      if (ctx.programmeReady) {
+        notify();
+        return;
+      }
       try {
         const attempt = ++playAttempt, playing2 = video.play();
         void Promise.resolve(playing2).then(() => {
@@ -30267,6 +34570,11 @@ THE SOFTWARE.
       const owned = current, stamp3 = epoch, attempt = ++playAttempt;
       paused = false;
       blocked = false;
+      if (ctx.programmeResume) {
+        ctx.programmeResume();
+        notify();
+        return;
+      }
       let play;
       try {
         play = video.play();
@@ -30293,6 +34601,7 @@ THE SOFTWARE.
     }
     return {
       start(selected) {
+        manualHold = false;
         invalidate();
         newestAutomatic = -Infinity;
         enabled2 = true;
@@ -30310,6 +34619,7 @@ THE SOFTWARE.
         notify();
       },
       stop() {
+        manualHold = false;
         invalidate();
         enabled2 = false;
         suspended = false;
@@ -30358,6 +34668,44 @@ THE SOFTWARE.
         }
         notify();
       },
+      setAutomaticHeld(value) {
+        if (automaticHeld === value) return;
+        automaticHeld = value;
+        if (value) {
+          if (active?.request.action === "auto" && !active.local) {
+            if (!pending) pending = active.request;
+            active.abort.abort();
+          }
+          schedule();
+        } else {
+          if (automaticWait?.reason === "live-audio-critical") automaticWait = void 0;
+          observe();
+          schedule();
+        }
+        notify();
+      },
+      canTakeManualControl(id, url2) {
+        return !!current && current.id === id && current.url === url2 && video.getAttribute("src") === url2 && current.canPromote();
+      },
+      takeManualControl(id, url2) {
+        if (!current || current.id !== id || current.url !== url2 || video.getAttribute("src") !== url2 || !current.canPromote()) return false;
+        current.origin = "manual";
+        current.promote();
+        manualHold = true;
+        return true;
+      },
+      holdAutomaticForManual() {
+        manualHold = true;
+      },
+      releaseManualHold() {
+        manualHold = false;
+        observe();
+        schedule();
+      },
+      debugSnapshot() {
+        const summarize = (r) => r ? { clipId: r.id, action: r.action, replay: !!r.replay } : null;
+        return { enabled: enabled2, mode, suspended, held, automaticHeld, manualHold, paused, blocked, userPaused, manualIntent: manualHold || userPaused || current?.origin === "manual" || !!(active && active.request.action !== "auto") || !!(pending && pending.action !== "auto"), ownership: current ? { origin: current.origin, clipId: current.id, phase: "playing" } : active ? { origin: active.request.action === "auto" ? "auto" : "manual", clipId: active.request.id, phase: "fetching" } : null, pending: summarize(pending), deferredAuto: summarize(deferredAuto), active: active ? { ...summarize(active.request), local: active.local, aborted: active.abort.signal.aborted } : null, ready: ready2 ? { clipId: ready2.request.id, action: ready2.request.action } : null, current: current ? { clipId: current.id, origin: current.origin } : null, automaticWait: pending?.action === "auto" && pending.id === automaticWait?.clipId ? { clipId: automaticWait.clipId, reason: automaticWait.reason, retryAtMs: Number.isFinite(automaticWait.retryAtMs) ? automaticWait.retryAtMs : null } : null, seenCount: seen.size, consumedCount: consumed.size, failedCount: failed.size, scheduled };
+      },
       get held() {
         return held;
       },
@@ -30388,7 +34736,7 @@ THE SOFTWARE.
         return selected;
       },
       get hasManualIntent() {
-        return userPaused || current?.origin === "manual" || !!(active && active.request.action !== "auto") || !!(pending && pending.action !== "auto");
+        return manualHold || userPaused || current?.origin === "manual" || !!(active && active.request.action !== "auto") || !!(pending && pending.action !== "auto");
       },
       get userPaused() {
         return userPaused;
@@ -30411,6 +34759,187 @@ THE SOFTWARE.
     };
   }
 
+  // src/programme-media-controls.ts
+  var same3 = (a, b) => !!a && !!b && a.kind === b.kind && a.id === b.id && a.token === b.token && a.media === b.media && a.source === b.source;
+  var format = (seconds) => {
+    const total = Math.max(0, Math.floor(seconds));
+    return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+  };
+  function createProgrammeMediaControls(o) {
+    let source, disposed = false, range = o.range;
+    let requestGeneration = 0, latestRequest, exitPending = false, managedFullscreen = false, reconcileAfterExit = false;
+    const mediaEvents = ["durationchange", "timeupdate", "progress", "loadedmetadata", "emptied", "ended"];
+    const current = () => !disposed && !!source && source.media.getAttribute("src") === source.source;
+    const seekable = () => {
+      if (!current() || !source || !Number.isFinite(source.media.duration) || source.media.duration <= 0) return [];
+      const ranges = [];
+      try {
+        for (let i = 0; i < source.media.seekable.length; i++) {
+          const start = Math.max(0, source.media.seekable.start(i)), end2 = Math.min(source.media.duration, source.media.seekable.end(i));
+          if (Number.isFinite(start) && Number.isFinite(end2) && end2 >= start) ranges.push([start, end2]);
+        }
+      } catch {
+        return [];
+      }
+      return ranges;
+    };
+    const supported = () => !!o.fullscreenTarget.requestFullscreen && !!o.document.exitFullscreen && o.document.fullscreenEnabled !== false;
+    function refresh() {
+      const valid2 = current(), duration = valid2 ? source.media.duration : NaN, ranges = seekable(), position = valid2 && Number.isFinite(source.media.currentTime) ? source.media.currentTime : 0;
+      range.disabled = !valid2 || !ranges.length;
+      range.min = "0";
+      range.max = Number.isFinite(duration) && duration > 0 ? String(duration) : "0";
+      range.step = "0.1";
+      range.value = String(Math.max(0, Math.min(Number.isFinite(duration) ? duration : 0, position)));
+      range.setAttribute("aria-valuetext", Number.isFinite(duration) && duration > 0 ? `${format(position)} of ${format(duration)}` : "Position unavailable");
+      o.time.textContent = Number.isFinite(duration) && duration > 0 ? `${format(position)} / ${format(duration)}` : "Position unavailable";
+      const full = o.document.fullscreenElement === o.fullscreenTarget;
+      o.fullscreen.hidden = !valid2 || !supported();
+      o.fullscreen.disabled = o.fullscreen.hidden || exitPending;
+      o.fullscreen.setAttribute("aria-pressed", String(full));
+      o.fullscreen.setAttribute("aria-label", full ? "Exit fullscreen" : "Enter fullscreen");
+    }
+    function unbind() {
+      if (source) for (const name of mediaEvents) source.media.removeEventListener(name, refresh);
+      source = void 0;
+    }
+    const input = (event) => {
+      if (event.currentTarget !== range || !current() || !source) return;
+      const captured = { ...source }, requested = Number(range.value), ranges = seekable();
+      if (!Number.isFinite(requested) || !ranges.length) return;
+      let chosen = ranges[0][0], distance = Infinity;
+      for (const [start, end2] of ranges) {
+        const point = Math.max(start, Math.min(end2, requested)), d = Math.abs(point - requested);
+        if (d < distance) {
+          chosen = point;
+          distance = d;
+        }
+      }
+      try {
+        if (!o.promoteManual(captured) || !current() || !same3(captured, source)) return;
+        captured.media.currentTime = chosen;
+      } catch {
+      } finally {
+        refresh();
+      }
+    };
+    function listenRange(node) {
+      node.addEventListener("input", input);
+      node.addEventListener("change", input);
+    }
+    function unlistenRange(node) {
+      node.removeEventListener("input", input);
+      node.removeEventListener("change", input);
+    }
+    function replaceRange() {
+      const old = range, hadFocus = o.document.activeElement === old, next = old.cloneNode(false);
+      unlistenRange(old);
+      range = next;
+      old.replaceWith(next);
+      listenRange(next);
+      if (hadFocus) {
+        try {
+          o.fullscreenTarget.focus({ preventScroll: true });
+        } catch {
+          o.fullscreenTarget.focus();
+        }
+      }
+    }
+    const currentRequest = () => !!latestRequest && latestRequest.state !== "failed" && current() && same3(latestRequest.identity, source);
+    const exitOwned = () => {
+      if (exitPending || o.document.fullscreenElement !== o.fullscreenTarget) return;
+      exitPending = true;
+      if (!disposed) refresh();
+      try {
+        void Promise.resolve(o.document.exitFullscreen()).then(() => {
+          exitPending = false;
+          const again = reconcileAfterExit;
+          reconcileAfterExit = false;
+          if (again) reconcileFullscreen();
+          else if (!disposed) refresh();
+        }, () => {
+          exitPending = false;
+          reconcileAfterExit = false;
+          if (!disposed) refresh();
+        });
+      } catch {
+        exitPending = false;
+        if (!disposed) refresh();
+      }
+    };
+    const reconcileFullscreen = () => {
+      if (o.document.fullscreenElement === o.fullscreenTarget && (disposed || managedFullscreen && !currentRequest())) {
+        if (exitPending) reconcileAfterExit = true;
+        else exitOwned();
+      } else if (!disposed) refresh();
+    };
+    const toggle = () => {
+      if (!current() || !supported() || exitPending) return;
+      if (o.document.fullscreenElement === o.fullscreenTarget) {
+        managedFullscreen = true;
+        requestGeneration++;
+        latestRequest = void 0;
+        exitOwned();
+        return;
+      }
+      managedFullscreen = true;
+      const request2 = { generation: ++requestGeneration, identity: { ...source }, state: "pending", observed: false };
+      latestRequest = request2;
+      try {
+        const operation = o.fullscreenTarget.requestFullscreen();
+        void Promise.resolve(operation).then(() => {
+          if (latestRequest === request2 && requestGeneration === request2.generation) request2.state = "fulfilled";
+          reconcileFullscreen();
+        }, () => {
+          if (latestRequest === request2 && requestGeneration === request2.generation) request2.state = "failed";
+          reconcileFullscreen();
+        });
+      } catch {
+        request2.state = "failed";
+        reconcileFullscreen();
+      }
+    };
+    const fullscreenChanged = () => {
+      if (o.document.fullscreenElement === o.fullscreenTarget && currentRequest() && latestRequest) latestRequest.observed = true;
+      if (o.document.fullscreenElement !== o.fullscreenTarget && latestRequest && (latestRequest.state === "fulfilled" || latestRequest.observed)) {
+        requestGeneration++;
+        latestRequest = void 0;
+      }
+      reconcileFullscreen();
+    };
+    listenRange(range);
+    o.fullscreen.addEventListener("click", toggle);
+    o.document.addEventListener?.("fullscreenchange", fullscreenChanged);
+    refresh();
+    return {
+      setSource(next) {
+        unbind();
+        replaceRange();
+        if (next && next.id && Number.isSafeInteger(next.token) && next.source) {
+          source = { ...next };
+          for (const name of mediaEvents) source.media.addEventListener(name, refresh);
+        }
+        reconcileFullscreen();
+      },
+      refresh,
+      get range() {
+        return range;
+      },
+      dispose() {
+        if (disposed) return;
+        unbind();
+        disposed = true;
+        unlistenRange(range);
+        o.fullscreen.removeEventListener("click", toggle);
+        o.document.removeEventListener?.("fullscreenchange", fullscreenChanged);
+        requestGeneration++;
+        latestRequest = void 0;
+        reconcileFullscreen();
+        refresh();
+      }
+    };
+  }
+
   // src/clip-card-stage.ts
   var VIEWPORT_EDGE_TOLERANCE_PX = 1;
   function createClipCardStage(options) {
@@ -30422,7 +34951,7 @@ THE SOFTWARE.
     const viewport = document2.defaultView;
     let ownScrollPosition;
     let lastObservedScrollY = viewport?.scrollY;
-    const key8 = (value) => value.replayId ? `replay:${value.replayId}` : `clip:${value.clipId}`;
+    const key9 = (value) => value.replayId ? `replay:${value.replayId}` : `clip:${value.clipId}`;
     const typing = () => {
       const element = document2.activeElement;
       return !!element && (element.matches?.("input, textarea, select") || element.isContentEditable);
@@ -30499,7 +35028,7 @@ THE SOFTWARE.
       }
       ownScrollPosition = viewport?.scrollY;
       lastObservedScrollY = viewport?.scrollY;
-      revealedKey = key8(selected);
+      revealedKey = key9(selected);
       syncFollowingMedia();
     }
     return {
@@ -30530,7 +35059,7 @@ THE SOFTWARE.
         options.jump.hidden = false;
         syncFollowingMedia();
         if (following && options.ready() && !typing()) {
-          if (key8(selection) !== revealedKey) reveal();
+          if (key9(selection) !== revealedKey) reveal();
           else if (viewport && viewport.scrollY === lastObservedScrollY && !options.media.paused && !options.media.ended) {
             const rect = options.media.getBoundingClientRect();
             const height = rect.bottom - rect.top, bounds = readableViewport(options.timeline);
@@ -30561,26 +35090,26 @@ THE SOFTWARE.
   }
 
   // src/clip-replay-contract.ts
-  var import_canonicalize6 = __toESM(require_canonicalize(), 1);
+  var import_canonicalize8 = __toESM(require_canonicalize(), 1);
   var REPLAY_LIFETIME_MS = 5 * 6e4;
-  var exact5 = (v, keys) => !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === keys.length && keys.every((k) => Object.hasOwn(v, k));
-  var key2 = (v) => typeof v === "string" && /^[A-Za-z0-9_-]{43}$/.test(v);
-  var integer3 = (v, min, max) => typeof v === "number" && Number.isSafeInteger(v) && v >= min && v <= max;
-  var replayPayload = (cue) => new TextEncoder().encode((0, import_canonicalize6.default)({ domain: "same-end.clip-replay.v1", cue }) || "");
+  var exact8 = (v, keys) => !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === keys.length && keys.every((k) => Object.hasOwn(v, k));
+  var key3 = (v) => typeof v === "string" && /^[A-Za-z0-9_-]{43}$/.test(v);
+  var integer5 = (v, min, max) => typeof v === "number" && Number.isSafeInteger(v) && v >= min && v <= max;
+  var replayPayload = (cue) => new TextEncoder().encode((0, import_canonicalize8.default)({ domain: "same-end.clip-replay.v1", cue }) || "");
   function validateClipReplay(value, roomId2, sourceKey2, card, now = Date.now()) {
     const e = value;
-    if (!exact5(e, ["type", "version", "roomId", "sourceKey", "id", "sequence", "clipId", "manifestSha256", "issuedAtMs", "expiresAtMs", "signature"]) || e.type !== "clip-replay" || e.version !== "semk2-clip-replay/1" || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key2(e.id) || !key2(e.clipId) || !integer3(e.sequence, 0, 1999) || !/^[a-f0-9]{64}$/.test(e.manifestSha256) || !integer3(e.issuedAtMs, 0, Number.MAX_SAFE_INTEGER - REPLAY_LIFETIME_MS) || !integer3(e.expiresAtMs, e.issuedAtMs + 1, e.issuedAtMs + REPLAY_LIFETIME_MS) || e.issuedAtMs > now + 6e4 || e.expiresAtMs <= now || JSON.stringify(e).length > 2048) throw Error("Invalid replay cue");
+    if (!exact8(e, ["type", "version", "roomId", "sourceKey", "id", "sequence", "clipId", "manifestSha256", "issuedAtMs", "expiresAtMs", "signature"]) || e.type !== "clip-replay" || e.version !== "semk2-clip-replay/1" || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key3(e.id) || !key3(e.clipId) || !integer5(e.sequence, 0, 1999) || !/^[a-f0-9]{64}$/.test(e.manifestSha256) || !integer5(e.issuedAtMs, 0, Number.MAX_SAFE_INTEGER - REPLAY_LIFETIME_MS) || !integer5(e.expiresAtMs, e.issuedAtMs + 1, e.issuedAtMs + REPLAY_LIFETIME_MS) || e.issuedAtMs > now + 6e4 || e.expiresAtMs <= now || JSON.stringify(e).length > 2048) throw Error("Invalid replay cue");
     const current = validateClipCard(card, roomId2, sourceKey2, now);
     if (current.clipId !== e.clipId || current.manifest.sha256 !== e.manifestSha256 || e.expiresAtMs > current.expiresAtMs || e.issuedAtMs < current.issuedAtMs) throw Error("Replay card mismatch");
-    const { signature, ...unsigned } = e;
-    if (!verifySourceSignature(signature, replayPayload(unsigned), sourceKey2)) throw Error("Replay signature rejected");
+    const { signature: signature2, ...unsigned } = e;
+    if (!verifySourceSignature(signature2, replayPayload(unsigned), sourceKey2)) throw Error("Replay signature rejected");
     return e;
   }
   async function signClipReplay(unsigned, privateKey, card, current = () => true) {
     if (!current()) return;
-    const signature = b642(new Uint8Array(await crypto.subtle.sign("Ed25519", privateKey, replayPayload(unsigned))));
+    const signature2 = b642(new Uint8Array(await crypto.subtle.sign("Ed25519", privateKey, replayPayload(unsigned))));
     if (!current()) return;
-    return validateClipReplay({ ...unsigned, signature }, unsigned.roomId, unsigned.sourceKey, card);
+    return validateClipReplay({ ...unsigned, signature: signature2 }, unsigned.roomId, unsigned.sourceKey, card);
   }
 
   // src/clip-replay-room.ts
@@ -30821,33 +35350,33 @@ THE SOFTWARE.
   }
 
   // src/clip-still-room.ts
-  var import_canonicalize7 = __toESM(require_canonicalize(), 1);
+  var import_canonicalize9 = __toESM(require_canonicalize(), 1);
 
   // src/clip-jpeg.ts
   var CLIP_JPEG_MAX_BYTES = 48 * 1024;
-  function validateClipJpeg(bytes8, expected) {
+  function validateClipJpeg(bytes9, expected) {
     const fail = () => {
       throw Error("Invalid clip JPEG.");
     };
-    if (!(bytes8 instanceof Uint8Array) || bytes8.length < 4 || bytes8.length > CLIP_JPEG_MAX_BYTES || bytes8[0] !== 255 || bytes8[1] !== 216) return fail();
+    if (!(bytes9 instanceof Uint8Array) || bytes9.length < 4 || bytes9.length > CLIP_JPEG_MAX_BYTES || bytes9[0] !== 255 || bytes9[1] !== 216) return fail();
     let pos = 2, markers = 0, dimensions, components = 0, metadata = 0;
     const ids = /* @__PURE__ */ new Set(), quant = /* @__PURE__ */ new Set(), dc = /* @__PURE__ */ new Set(), ac = /* @__PURE__ */ new Set();
     const componentQuant = /* @__PURE__ */ new Map();
-    while (pos < bytes8.length) {
-      if (++markers > 256 || bytes8[pos++] !== 255) return fail();
-      while (pos < bytes8.length && bytes8[pos] === 255) pos++;
-      const marker = bytes8[pos++];
+    while (pos < bytes9.length) {
+      if (++markers > 256 || bytes9[pos++] !== 255) return fail();
+      while (pos < bytes9.length && bytes9[pos] === 255) pos++;
+      const marker = bytes9[pos++];
       if (marker === void 0 || marker === 0 || marker === 216 || marker === 217 || marker === 1 || marker >= 208 && marker <= 215) return fail();
-      if (pos + 2 > bytes8.length) return fail();
-      const length2 = bytes8[pos] << 8 | bytes8[pos + 1], end2 = pos + length2;
-      if (length2 < 2 || end2 > bytes8.length) return fail();
+      if (pos + 2 > bytes9.length) return fail();
+      const length2 = bytes9[pos] << 8 | bytes9[pos + 1], end2 = pos + length2;
+      if (length2 < 2 || end2 > bytes9.length) return fail();
       if (marker === 192) {
-        if (dimensions || length2 < 11 || bytes8[pos + 2] !== 8) return fail();
-        const height = bytes8[pos + 3] << 8 | bytes8[pos + 4], width = bytes8[pos + 5] << 8 | bytes8[pos + 6];
-        components = bytes8[pos + 7];
+        if (dimensions || length2 < 11 || bytes9[pos + 2] !== 8) return fail();
+        const height = bytes9[pos + 3] << 8 | bytes9[pos + 4], width = bytes9[pos + 5] << 8 | bytes9[pos + 6];
+        components = bytes9[pos + 7];
         if (!width || !height || width > 640 || height > 360 || components !== 1 && components !== 3 || length2 !== 8 + 3 * components) return fail();
         for (let i = 0; i < components; i++) {
-          const p = pos + 8 + i * 3, id = bytes8[p], sampling = bytes8[p + 1], table = bytes8[p + 2];
+          const p = pos + 8 + i * 3, id = bytes9[p], sampling = bytes9[p + 1], table = bytes9[p + 2];
           if (ids.has(id) || !(sampling >> 4) || sampling >> 4 > 4 || !(sampling & 15) || (sampling & 15) > 4 || table > 3) return fail();
           ids.add(id);
           componentQuant.set(id, table);
@@ -30855,22 +35384,22 @@ THE SOFTWARE.
         dimensions = { width, height };
       } else if (marker === 219) {
         for (let p = pos + 2; p < end2; ) {
-          const info = bytes8[p++], table = info & 15;
+          const info = bytes9[p++], table = info & 15;
           if (info >> 4 !== 0 || table > 3 || p + 64 > end2 || quant.has(table)) return fail();
-          for (let i = 0; i < 64; i++) if (!bytes8[p + i]) return fail();
+          for (let i = 0; i < 64; i++) if (!bytes9[p + i]) return fail();
           quant.add(table);
           p += 64;
         }
       } else if (marker === 196) {
         for (let p = pos + 2; p < end2; ) {
           if (p + 17 > end2) return fail();
-          const info = bytes8[p++], kind = info >> 4, table = info & 15;
+          const info = bytes9[p++], kind = info >> 4, table = info & 15;
           if (kind > 1 || table > 3) return fail();
           let count = 0, remaining = 1;
           for (let i = 0; i < 16; i++) {
-            remaining = remaining * 2 - bytes8[p + i];
+            remaining = remaining * 2 - bytes9[p + i];
             if (remaining < 0) return fail();
-            count += bytes8[p + i];
+            count += bytes9[p + i];
           }
           p += 16;
           if (!count || count > 256 || p + count > end2 || (kind ? ac : dc).has(table)) return fail();
@@ -30879,21 +35408,21 @@ THE SOFTWARE.
         }
       } else if (marker >= 193 && marker <= 207) return fail();
       else if (marker === 218) {
-        if (!dimensions || length2 !== 6 + 2 * components || bytes8[pos + 2] !== components || bytes8[end2 - 3] !== 0 || bytes8[end2 - 2] !== 63 || bytes8[end2 - 1] !== 0) return fail();
+        if (!dimensions || length2 !== 6 + 2 * components || bytes9[pos + 2] !== components || bytes9[end2 - 3] !== 0 || bytes9[end2 - 2] !== 63 || bytes9[end2 - 1] !== 0) return fail();
         const scanned = /* @__PURE__ */ new Set();
         for (let i = 0; i < components; i++) {
-          const id = bytes8[pos + 3 + i * 2], tables = bytes8[pos + 4 + i * 2];
+          const id = bytes9[pos + 3 + i * 2], tables = bytes9[pos + 4 + i * 2];
           if (!ids.has(id) || scanned.has(id) || !quant.has(componentQuant.get(id)) || !dc.has(tables >> 4) || !ac.has(tables & 15)) return fail();
           scanned.add(id);
         }
         pos = end2;
         const scanStart = pos;
-        while (pos < bytes8.length) {
-          if (bytes8[pos++] !== 255) continue;
-          if (pos >= bytes8.length) return fail();
-          const next = bytes8[pos++];
+        while (pos < bytes9.length) {
+          if (bytes9[pos++] !== 255) continue;
+          if (pos >= bytes9.length) return fail();
+          const next = bytes9[pos++];
           if (next === 0 || next >= 208 && next <= 215) continue;
-          if (next === 217 && pos === bytes8.length && pos - 2 > scanStart) {
+          if (next === 217 && pos === bytes9.length && pos - 2 > scanStart) {
             if (expected && (expected.width !== dimensions.width || expected.height !== dimensions.height)) return fail();
             return dimensions;
           }
@@ -30913,8 +35442,8 @@ THE SOFTWARE.
 
   // src/clip-still-room.ts
   var extra = (id) => id.startsWith("extra:");
-  var same2 = (a, b) => (0, import_canonicalize7.default)(a) === (0, import_canonicalize7.default)(b);
-  var size = (s) => new TextEncoder().encode(s).length;
+  var same4 = (a, b) => (0, import_canonicalize9.default)(a) === (0, import_canonicalize9.default)(b);
+  var size2 = (s) => new TextEncoder().encode(s).length;
   function createClipStillRoom(added = () => {
   }) {
     let ctx, version = 0, binding2 = "";
@@ -30992,11 +35521,11 @@ THE SOFTWARE.
       }
     };
     const check = (c, v, clip, signal, stillCurrent = () => true) => {
-      if (ctx !== c || version !== v || !c.current() || signal?.aborted || !stillCurrent() || !same2(currentClip(c, clip.clipId), clip)) throw new DOMException("Still cancelled", "AbortError");
+      if (ctx !== c || version !== v || !c.current() || signal?.aborted || !stillCurrent() || !same4(currentClip(c, clip.clipId), clip)) throw new DOMException("Still cancelled", "AbortError");
     };
     const send2 = (id, m) => {
       const raw = JSON.stringify(m);
-      return size(raw) <= 4096 && !!ctx?.send(id, raw);
+      return size2(raw) <= 4096 && !!ctx?.send(id, raw);
     };
     const broadcast = (m) => {
       for (const peer of ctx?.peers() || []) send2(peer, m);
@@ -31118,8 +35647,8 @@ THE SOFTWARE.
     };
     return {
       attach(c) {
-        const key8 = JSON.stringify([c.roomId, c.sourceKey]);
-        if (binding2 && binding2 !== key8) {
+        const key9 = JSON.stringify([c.roomId, c.sourceKey]);
+        if (binding2 && binding2 !== key9) {
           const oldItems = [...stored.values()];
           cards.clear();
           clipSignatures.clear();
@@ -31129,7 +35658,7 @@ THE SOFTWARE.
           availability.clear();
           for (const item of oldItems) dropLater(item.descriptor.infoHash, storedLedger(item));
         }
-        binding2 = key8;
+        binding2 = key9;
         ledger = ledgers.get(c.engine);
         if (!ledger) {
           ledger = { engine: c.engine, owner: Symbol("still-engine"), holds: /* @__PURE__ */ new Map(), pendingDrops: /* @__PURE__ */ new Set(), puts: /* @__PURE__ */ new Set() };
@@ -31246,11 +35775,11 @@ THE SOFTWARE.
           const data = await c.engine.fetch(card.imageDescriptor, suppliers2, signal);
           check(c, v, clip, signal);
           validateClipStillCard(card, c.roomId, c.sourceKey, clip);
-          if (!same2(cards.get(id), card) || !await verifyObjectBytes(data, card.imageDescriptor)) throw Error("Still integrity failed");
+          if (!same4(cards.get(id), card) || !await verifyObjectBytes(data, card.imageDescriptor)) throw Error("Still integrity failed");
           validateClipJpeg(data, { width: card.width, height: card.height });
           check(c, v, clip, signal);
           validateClipStillCard(card, c.roomId, c.sourceKey, clip);
-          if (!same2(cards.get(id), card)) throw Error("Still changed");
+          if (!same4(cards.get(id), card)) throw Error("Still changed");
           stored.set(id, { descriptor: card.imageDescriptor, bytes: data.slice(), owner: owned.owner, engine: new WeakRef(c.engine) });
           committed = true;
           have(id);
@@ -31280,7 +35809,7 @@ THE SOFTWARE.
         }
       },
       receive(peer, raw) {
-        if (size(raw) > 4096) return false;
+        if (size2(raw) > 4096) return false;
         let m;
         try {
           m = JSON.parse(raw);
@@ -31311,7 +35840,7 @@ THE SOFTWARE.
           if (Object.keys(m).sort().join(",") === (isExtra ? "imageId,type" : "clipId,type") && typeof id === "string") {
             const card = cards.get(id), v = version;
             if (card && extra(id) === isExtra && (c.privateKey || c.canForward())) void pacedCard(peer, card).then((sent) => {
-              if (sent && ctx === c && version === v && c.current() && c.peers().includes(peer) && c.canForward() && same2(cards.get(id), card) && stored.has(id)) send2(peer, isExtra ? { type: "clip-still-v2-have", imageIds: [id] } : { type: "clip-still-have", clipIds: [id] });
+              if (sent && ctx === c && version === v && c.current() && c.peers().includes(peer) && c.canForward() && same4(cards.get(id), card) && stored.has(id)) send2(peer, isExtra ? { type: "clip-still-v2-have", imageIds: [id] } : { type: "clip-still-have", clipIds: [id] });
             });
           }
           return true;
@@ -31341,7 +35870,7 @@ THE SOFTWARE.
       },
       canSend(peer, raw) {
         const c = ctx;
-        if (!c || !c.current() || !c.peers().includes(peer) || size(raw) > 4096) return false;
+        if (!c || !c.current() || !c.peers().includes(peer) || size2(raw) > 4096) return false;
         let m;
         try {
           m = JSON.parse(raw);
@@ -31367,8 +35896,8 @@ THE SOFTWARE.
           }
         }
         if (m.type === "clip-still-card" || m.type === "clip-still-v2-card") {
-          const key8 = m.type === "clip-still-v2-card" ? extraId(m.clipId) : m.clipId, accepted = key8 ? cards.get(key8) : void 0;
-          return !!accepted && (!!c.privateKey || c.canForward()) && same2(accepted, m);
+          const key9 = m.type === "clip-still-v2-card" ? extraId(m.clipId) : m.clipId, accepted = key9 ? cards.get(key9) : void 0;
+          return !!accepted && (!!c.privateKey || c.canForward()) && same4(accepted, m);
         }
         if (m.type === "clip-still-have" || m.type === "clip-still-v2-have") {
           const isExtra = m.type === "clip-still-v2-have", list = isExtra ? m.imageIds : m.clipIds;
@@ -31437,13 +35966,13 @@ THE SOFTWARE.
     if (typeof VideoDecoder === "undefined") throw Error("Local video decoder unavailable.");
     if (!Array.isArray(parts) || parts.length < 2 || parts.length > CLIP_MAX_OBJECTS || parts.length !== card.objectCount || !Number.isSafeInteger(card.durationMs) || card.durationMs < 1 || card.durationMs > 18e4) throw Error("Invalid clip still input.");
     const targetMs = clipStillTargetMs(card.durationMs, focus);
-    let size2 = 0;
+    let size3 = 0;
     for (const part of parts) {
       if (!(part instanceof Uint8Array) || !(part.buffer instanceof ArrayBuffer) || !part.byteLength) throw Error("Invalid clip still input.");
-      size2 += part.byteLength;
-      if (size2 > CLIP_MAX_BYTES) throw Error("Clip still input too large.");
+      size3 += part.byteLength;
+      if (size3 > CLIP_MAX_BYTES) throw Error("Clip still input too large.");
     }
-    if (size2 !== card.totalBytes) throw Error("Incomplete clip still input.");
+    if (size3 !== card.totalBytes) throw Error("Incomplete clip still input.");
     const input = new Input({ source: new BlobSource(new Blob(parts.map((p) => new Uint8Array(p.buffer, p.byteOffset, p.byteLength)))), formats: [MP4] });
     let stopped = false, rejectInterrupt = () => {
     };
@@ -31505,10 +36034,10 @@ THE SOFTWARE.
           } else throw Error("Canvas unavailable.");
           check();
           if (blob.size > CLIP_JPEG_MAX_BYTES) continue;
-          const bytes8 = new Uint8Array(await blob.arrayBuffer());
+          const bytes9 = new Uint8Array(await blob.arrayBuffer());
           check();
-          validateClipJpeg(bytes8, { width, height });
-          return { bytes: bytes8, width, height, atMs };
+          validateClipJpeg(bytes9, { width, height });
+          return { bytes: bytes9, width, height, atMs };
         }
         throw Error("Clip still exceeds size limit.");
       } finally {
@@ -31544,10 +36073,10 @@ THE SOFTWARE.
     async function run() {
       const c = ctx, job = pending;
       if (!c || !enabled2 || !job || abort2 || !c.current()) return;
-      const { card, signature, focus } = job;
+      const { card, signature: signature2, focus } = job;
       pending = void 0;
       const v = generation, a = abort2 = new AbortController();
-      const current = () => ctx === c && enabled2 && generation === v && !a.signal.aborted && c.current() && card.expiresAtMs > Date.now() && card.signature === signature && c.card(card.clipId)?.signature === signature;
+      const current = () => ctx === c && enabled2 && generation === v && !a.signal.aborted && c.current() && card.expiresAtMs > Date.now() && card.signature === signature2 && c.card(card.clipId)?.signature === signature2;
       const check = () => {
         if (!current()) throw new DOMException("Clip picture cancelled.", "AbortError");
       };
@@ -31556,7 +36085,7 @@ THE SOFTWARE.
         c.status("Making a picture from this recorded clip\u2026");
         const input = await c.read(card.clipId, a.signal);
         check();
-        if (input.card.signature !== signature) throw Error("Clip changed.");
+        if (input.card.signature !== signature2) throw Error("Clip changed.");
         const still = await extractClipStill(card, input.parts, a.signal, focus);
         check();
         await c.publish(card, still, a.signal, current);
@@ -31620,7 +36149,7 @@ THE SOFTWARE.
     const mono = () => performance.now();
     const cache = /* @__PURE__ */ new Map();
     const failed = /* @__PURE__ */ new Map();
-    const key8 = (card) => JSON.stringify(card);
+    const key9 = (card) => JSON.stringify(card);
     const cards = () => ctx.current() ? ctx.cards().filter((c) => c.expiresAtMs > Date.now()).sort((a, b) => b.issuedAtMs - a.issuedAtMs) : [];
     const cardFor = (id) => cards().find((c) => stillId(c) === id);
     const usable = (id) => ctx.has(id) || ctx.available(id) > 0;
@@ -31647,7 +36176,7 @@ THE SOFTWARE.
       let removed = false;
       for (const [id, item] of cache) {
         const c = list.find((x) => stillId(x) === id);
-        if (!c || key8(c) !== item.cardKey || !keep.has(id)) {
+        if (!c || key9(c) !== item.cardKey || !keep.has(id)) {
           revoke(id);
           removed = true;
         }
@@ -31683,7 +36212,7 @@ THE SOFTWARE.
     }
     function valid2(card, stamp3, signal) {
       const now = cardFor(stillId(card));
-      return !signal.aborted && stamp3 === generation && !!now && key8(now) === key8(card);
+      return !signal.aborted && stamp3 === generation && !!now && key9(now) === key9(card);
     }
     async function load(card, kind, abort2, admission) {
       const stamp3 = generation, signal = abort2.signal;
@@ -31703,11 +36232,11 @@ THE SOFTWARE.
         if (!valid2(card, stamp3, signal)) throw new DOMException("Picture cancelled.", "AbortError");
       };
       const work = async () => {
-        const bytes8 = await ctx.download(stillId(card), signal, admission?.local);
+        const bytes9 = await ctx.download(stillId(card), signal, admission?.local);
         check();
-        validateClipJpeg(bytes8, { width: card.width, height: card.height });
+        validateClipJpeg(bytes9, { width: card.width, height: card.height });
         if (typeof createImageBitmap !== "function") throw Error("Picture decoding is unavailable.");
-        const blob = new Blob([bytes8], { type: "image/jpeg" });
+        const blob = new Blob([bytes9], { type: "image/jpeg" });
         const bitmapPromise = createImageBitmap(blob);
         let bitmapClosed = false;
         const closeBitmap = (bitmap2) => {
@@ -31734,7 +36263,7 @@ THE SOFTWARE.
           throw new DOMException("Picture cancelled.", "AbortError");
         }
         revoke(stillId(card));
-        cache.set(stillId(card), { cardKey: key8(card), picture: { url: url2, width: card.width, height: card.height } });
+        cache.set(stillId(card), { cardKey: key9(card), picture: { url: url2, width: card.width, height: card.height } });
         failed.delete(stillId(card));
         prune();
         ctx.status("");
@@ -31752,7 +36281,7 @@ THE SOFTWARE.
         await Promise.race([operation, stopped]);
       } catch (error) {
         const present = cardFor(stillId(card));
-        if ((!signal.aborted || timedOut) && ctx.current() && stamp3 === generation && present && key8(present) === key8(card)) {
+        if ((!signal.aborted || timedOut) && ctx.current() && stamp3 === generation && present && key9(present) === key9(card)) {
           const previous = failed.get(stillId(card)), attempt = Math.min(3, (previous?.attempt ?? 0) + 1);
           const delay = [5e3, 15e3, 6e4][attempt - 1];
           failed.set(stillId(card), { signature: card.signature, availability: availability(stillId(card)), next: Date.now() + delay, attempt });
@@ -32014,37 +36543,37 @@ THE SOFTWARE.
   }
 
   // src/match-contract.ts
-  var import_canonicalize8 = __toESM(require_canonicalize(), 1);
+  var import_canonicalize10 = __toESM(require_canonicalize(), 1);
   var MATCH_LIFETIME_MS = 4 * 60 * 60 * 1e3;
   var matchBytes = (value) => new TextEncoder().encode(value).length;
-  var exact6 = (value, keys) => !!value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === keys.length && keys.every((key8) => Object.hasOwn(value, key8));
-  var integer4 = (n, min, max) => typeof n === "number" && Number.isSafeInteger(n) && n >= min && n <= max;
-  var text = (s, chars, bytes8, multiline = false) => typeof s === "string" && !!s.trim() && [...s].length <= chars && matchBytes(s) <= bytes8 && !(multiline ? /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/ : /[\u0000-\u001f\u007f]/).test(s);
-  var key3 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s);
-  var matchPayload = (entry) => new TextEncoder().encode((0, import_canonicalize8.default)({ domain: "same-end.match-update.v1", entry }) || "");
+  var exact9 = (value, keys) => !!value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === keys.length && keys.every((key9) => Object.hasOwn(value, key9));
+  var integer6 = (n, min, max) => typeof n === "number" && Number.isSafeInteger(n) && n >= min && n <= max;
+  var text = (s, chars, bytes9, multiline = false) => typeof s === "string" && !!s.trim() && [...s].length <= chars && matchBytes(s) <= bytes9 && !(multiline ? /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/ : /[\u0000-\u001f\u007f]/).test(s);
+  var key4 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s);
+  var matchPayload = (entry) => new TextEncoder().encode((0, import_canonicalize10.default)({ domain: "same-end.match-update.v1", entry }) || "");
   function validateMatchUpdate(value, roomId2, sourceKey2, now = Date.now()) {
     const e = value;
-    if (!exact6(e, ["type", "version", "roomId", "sourceKey", "id", "revision", "sequence", "issuedAtMs", "expiresAtMs", "kind", "score", "editorial", "signature"]) || e.type !== "match-update" || e.version !== "semk2-match/1" || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key3(e.id) || !integer4(e.revision, 0, 99) || !integer4(e.sequence, 0, 1999) || !integer4(e.issuedAtMs, 0, Number.MAX_SAFE_INTEGER - MATCH_LIFETIME_MS) || !integer4(e.expiresAtMs, e.issuedAtMs + 1, e.issuedAtMs + MATCH_LIFETIME_MS) || e.issuedAtMs > now + 6e4 || e.expiresAtMs <= now || matchBytes(JSON.stringify(e)) > 4096) throw Error("Invalid match update");
+    if (!exact9(e, ["type", "version", "roomId", "sourceKey", "id", "revision", "sequence", "issuedAtMs", "expiresAtMs", "kind", "score", "editorial", "signature"]) || e.type !== "match-update" || e.version !== "semk2-match/1" || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key4(e.id) || !integer6(e.revision, 0, 99) || !integer6(e.sequence, 0, 1999) || !integer6(e.issuedAtMs, 0, Number.MAX_SAFE_INTEGER - MATCH_LIFETIME_MS) || !integer6(e.expiresAtMs, e.issuedAtMs + 1, e.issuedAtMs + MATCH_LIFETIME_MS) || e.issuedAtMs > now + 6e4 || e.expiresAtMs <= now || matchBytes(JSON.stringify(e)) > 4096) throw Error("Invalid match update");
     if (e.kind === "score") {
       const s = e.score;
-      if (e.revision !== 0 || e.editorial !== null || !exact6(s, ["home", "away", "homeGoals", "awayGoals", "minute"]) || !text(s?.home, 40, 80) || !text(s?.away, 40, 80) || s.home.trim().toLowerCase() === s.away.trim().toLowerCase() || !integer4(s.homeGoals, 0, 30) || !integer4(s.awayGoals, 0, 30) || !(s.minute === null || integer4(s.minute, 0, 150))) throw Error("Invalid score");
+      if (e.revision !== 0 || e.editorial !== null || !exact9(s, ["home", "away", "homeGoals", "awayGoals", "minute"]) || !text(s?.home, 40, 80) || !text(s?.away, 40, 80) || s.home.trim().toLowerCase() === s.away.trim().toLowerCase() || !integer6(s.homeGoals, 0, 30) || !integer6(s.awayGoals, 0, 30) || !(s.minute === null || integer6(s.minute, 0, 150))) throw Error("Invalid score");
     } else if (e.kind === "editorial") {
       const d = e.editorial;
-      if (e.score !== null || !exact6(d, ["title", "text", "removed"]) || typeof d?.removed !== "boolean" || (d.removed ? e.revision === 0 || d.title !== "" || d.text !== "" : !text(d.title, 100, 400) || !text(d.text, 600, 1e3, true) || matchBytes(d.title + d.text) > 1e3)) throw Error("Invalid editorial");
+      if (e.score !== null || !exact9(d, ["title", "text", "removed"]) || typeof d?.removed !== "boolean" || (d.removed ? e.revision === 0 || d.title !== "" || d.text !== "" : !text(d.title, 100, 400) || !text(d.text, 600, 1e3, true) || matchBytes(d.title + d.text) > 1e3)) throw Error("Invalid editorial");
     } else throw Error("Invalid match kind");
-    const { signature, ...unsigned } = e;
-    if (!verifySourceSignature(signature, matchPayload(unsigned), sourceKey2)) throw Error("Match signature rejected");
+    const { signature: signature2, ...unsigned } = e;
+    if (!verifySourceSignature(signature2, matchPayload(unsigned), sourceKey2)) throw Error("Match signature rejected");
     return e;
   }
   async function signMatchUpdate(unsigned, privateKey, stillCurrent = () => true) {
     if (!stillCurrent()) return;
-    const signature = b642(new Uint8Array(await crypto.subtle.sign("Ed25519", privateKey, matchPayload(unsigned))));
+    const signature2 = b642(new Uint8Array(await crypto.subtle.sign("Ed25519", privateKey, matchPayload(unsigned))));
     if (!stillCurrent()) return;
-    return validateMatchUpdate({ ...unsigned, signature }, unsigned.roomId, unsigned.sourceKey);
+    return validateMatchUpdate({ ...unsigned, signature: signature2 }, unsigned.roomId, unsigned.sourceKey);
   }
 
   // src/match-room.ts
-  var LIMIT = 2e3;
+  var LIMIT4 = 2e3;
   var VISIBLE = 60;
   var FRAME_MS2 = 250;
   var MAX_PEERS2 = 8;
@@ -32090,7 +36619,7 @@ THE SOFTWARE.
       Object.freeze(e);
       purge();
       const previous = revisions.get(e.id), known = sequences.get(e.sequence);
-      if (known !== void 0 || sequences.size >= LIMIT || e.kind === "editorial" && !editorialIds.has(e.id) && editorialIds.size >= VISIBLE || previous && (previous.kind !== e.kind || e.revision <= previous.revision || e.sequence <= previous.sequence) || e.kind === "score" && e.sequence <= scoreHigh) return false;
+      if (known !== void 0 || sequences.size >= LIMIT4 || e.kind === "editorial" && !editorialIds.has(e.id) && editorialIds.size >= VISIBLE || previous && (previous.kind !== e.kind || e.revision <= previous.revision || e.sequence <= previous.sequence) || e.kind === "score" && e.sequence <= scoreHigh) return false;
       sequences.set(e.sequence, e.signature);
       revisions.set(e.id, { revision: e.revision, sequence: e.sequence, kind: e.kind });
       nextSequence2 = Math.max(nextSequence2, e.sequence + 1);
@@ -32183,7 +36712,7 @@ THE SOFTWARE.
     }
     async function publish(kind, score, editorial, id, revision, stillCurrent) {
       const c = ctx, v = generation;
-      if (!c?.privateKey || !c.current() || !stillCurrent() || pending || nextSequence2 >= LIMIT || sequences.size >= LIMIT) throw Error("Match updates unavailable");
+      if (!c?.privateKey || !c.current() || !stillCurrent() || pending || nextSequence2 >= LIMIT4 || sequences.size >= LIMIT4) throw Error("Match updates unavailable");
       const now = Date.now(), unsigned = { type: "match-update", version: "semk2-match/1", roomId: c.roomId, sourceKey: c.sourceKey, id, revision, sequence: nextSequence2, issuedAtMs: now, expiresAtMs: now + MATCH_LIFETIME_MS, kind, score, editorial };
       const operation = {};
       pending = operation;
@@ -32231,11 +36760,11 @@ THE SOFTWARE.
         purge();
         return latestScore;
       },
-      isCurrent(id, signature) {
+      isCurrent(id, signature2) {
         const c = ctx;
         if (!c || !c.current()) return false;
         purge();
-        return latestScore?.id === id && latestScore.signature === signature || retained.get(id)?.signature === signature;
+        return latestScore?.id === id && latestScore.signature === signature2 || retained.get(id)?.signature === signature2;
       },
       publishScore(score, stillCurrent = () => true) {
         return publish("score", score, null, randomKey(), 0, stillCurrent);
@@ -32287,15 +36816,15 @@ THE SOFTWARE.
   }
 
   // src/match-context-view.ts
-  var bytes3 = (value) => new TextEncoder().encode(value).length;
-  var validText = (value, chars, maxBytes, multiline = false) => !!value.trim() && [...value].length <= chars && bytes3(value) <= maxBytes && !(multiline ? /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/ : /[\u0000-\u001f\u007f]/).test(value);
-  var integer5 = (value, max) => /^\d+$/.test(value.trim()) && Number(value) <= max ? Number(value) : null;
+  var bytes4 = (value) => new TextEncoder().encode(value).length;
+  var validText = (value, chars, maxBytes, multiline = false) => !!value.trim() && [...value].length <= chars && bytes4(value) <= maxBytes && !(multiline ? /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/ : /[\u0000-\u001f\u007f]/).test(value);
+  var integer7 = (value, max) => /^\d+$/.test(value.trim()) && Number(value) <= max ? Number(value) : null;
   function validateScore(home, away, homeGoals, awayGoals, minute) {
     home = home.trim();
     away = away.trim();
     if (!validText(home, 40, 80) || !validText(away, 40, 80)) return "Enter both team names (up to 40 characters each; some characters take more space).";
     if (home.toLowerCase() === away.toLowerCase()) return "Enter different team names.";
-    const h = integer5(homeGoals, 30), a = integer5(awayGoals, 30), m = minute.trim() ? integer5(minute, 150) : null;
+    const h = integer7(homeGoals, 30), a = integer7(awayGoals, 30), m = minute.trim() ? integer7(minute, 150) : null;
     if (h === null || a === null) return "Enter whole-number scores from 0 to 30.";
     if (minute.trim() && m === null) return "Enter a whole-number minute from 0 to 150, or leave it blank.";
     return { home, away, homeGoals: h, awayGoals: a, minute: m };
@@ -32305,7 +36834,7 @@ THE SOFTWARE.
     text2 = text2.trim();
     if (!validText(title, 100, 400)) return "Enter a title of up to 100 characters.";
     if (!validText(text2, 600, 1e3, true)) return "Enter a note of up to 600 characters.";
-    if (bytes3(title + text2) > 1e3) return "The title and note together are too long; please shorten them.";
+    if (bytes4(title + text2) > 1e3) return "The title and note together are too long; please shorten them.";
     return { title, text: text2 };
   }
   function usableScore(value) {
@@ -32411,12 +36940,12 @@ THE SOFTWARE.
         scoreError.textContent = score;
         return;
       }
-      const key8 = which === "home" ? "homeGoals" : "awayGoals";
-      if (score[key8] >= 30) {
+      const key9 = which === "home" ? "homeGoals" : "awayGoals";
+      if (score[key9] >= 30) {
         scoreError.textContent = "Scores cannot be higher than 30.";
         return;
       }
-      score[key8]++;
+      score[key9]++;
       scoreError.textContent = "";
       if (which === "home") homeGoals.value = String(score.homeGoals);
       else awayGoals.value = String(score.awayGoals);
@@ -32450,9 +36979,10 @@ THE SOFTWARE.
   var MAX_ATTEMPTS = 16;
   var TRANSCRIPT_WINDOW = 1e4;
   var MAX_TRANSCRIPTS = 30;
+  var PACE_MS = 65;
   var MAX_PEERS3 = 8;
   var MAX_FRAMES = 64;
-  var MAX_BYTES = 128 * 1024;
+  var MAX_BYTES2 = 128 * 1024;
   var DEADLINE = 1e4;
   var RETRY = 50;
   function transcriptFrame(raw) {
@@ -32474,11 +37004,17 @@ THE SOFTWARE.
     const setTimer = timers.setTimeout ?? ((fn, ms) => setTimeout(fn, ms));
     const clearTimer = timers.clearTimeout ?? ((handle) => clearTimeout(handle));
     const peers2 = /* @__PURE__ */ new Map();
-    let lastTime = -Infinity, timer;
+    let lastTime = -Infinity, timer, clockNotified = false;
     function readTime() {
-      const time = now();
+      let time;
+      try {
+        time = now();
+      } catch {
+        return;
+      }
       if (!Number.isFinite(time) || time < lastTime) return;
       lastTime = time;
+      clockNotified = false;
       return time;
     }
     function cancelTimer() {
@@ -32487,17 +37023,44 @@ THE SOFTWARE.
         timer = void 0;
       }
     }
-    function prune(peer, time) {
+    function report(reason) {
+      try {
+        timers.onFailure?.(reason);
+      } catch {
+      }
+    }
+    function reportClock() {
+      if (!clockNotified) {
+        clockNotified = true;
+        report("clock");
+      }
+    }
+    function discarded(peer, raw) {
+      try {
+        const m = JSON.parse(raw);
+        if (m?.type === "text" && typeof m.id === "string" && /^[a-f0-9-]{36}$/.test(m.id)) timers.onDiscardedText?.(peer, m.id);
+      } catch {
+      }
+    }
+    function prune(peer, time, id) {
       while (peer.attempts.length && peer.attempts[0] <= time - WINDOW2) peer.attempts.shift();
       while (peer.transcripts.length && peer.transcripts[0] <= time - TRANSCRIPT_WINDOW) peer.transcripts.shift();
       while (peer.frames.length && peer.frames[0].queuedAt + DEADLINE <= time) {
         const frame2 = peer.frames.shift();
         peer.bytes -= frame2.bytes;
+        let valid2 = true;
+        try {
+          valid2 = timers.valid?.(id, frame2.raw) !== false;
+        } catch {
+          valid2 = false;
+        }
+        report(valid2 ? "expired" : "invalidated");
+        discarded(id, frame2.raw);
       }
     }
     function clean2(time) {
       for (const [id, peer] of peers2) {
-        prune(peer, time);
+        prune(peer, time, id);
         if (!peer.frames.length && !peer.attempts.length && !peer.transcripts.length) peers2.delete(id);
       }
     }
@@ -32510,6 +37073,7 @@ THE SOFTWARE.
       timer = void 0;
       const time = readTime();
       if (time === void 0) {
+        reportClock();
         schedule(RETRY);
         return;
       }
@@ -32538,9 +37102,15 @@ THE SOFTWARE.
             valid2 = false;
           }
           if (!valid2) {
+            report("invalidated");
+            discarded(id, frame2.raw);
             peer.frames.splice(index, 1);
             peer.bytes -= frame2.bytes;
             progressed = true;
+            continue;
+          }
+          if (time < peer.nextAt) {
+            delay = Math.min(delay, peer.nextAt - time);
             continue;
           }
           if (peer.attempts.length >= MAX_ATTEMPTS) {
@@ -32548,6 +37118,7 @@ THE SOFTWARE.
             continue;
           }
           peer.attempts.push(time);
+          peer.nextAt = time + PACE_MS;
           let accepted = false;
           try {
             accepted = engineSend(id, frame2.raw) === true;
@@ -32570,29 +37141,41 @@ THE SOFTWARE.
     return {
       send(id, raw) {
         if (typeof id !== "string" || !id || typeof raw !== "string" || raw.length > 4096) return false;
-        const bytes8 = new TextEncoder().encode(raw).length;
-        if (bytes8 > 4096) return false;
+        const bytes9 = new TextEncoder().encode(raw).length;
+        if (bytes9 > 4096) return false;
         let valid2 = true;
         try {
           valid2 = timers.valid?.(id, raw) !== false;
         } catch {
           valid2 = false;
         }
-        if (!valid2) return false;
+        if (!valid2) {
+          report("invalidated");
+          return false;
+        }
         const time = readTime();
-        if (time === void 0) return false;
+        if (time === void 0) {
+          reportClock();
+          return false;
+        }
         clean2(time);
         let peer = peers2.get(id);
         if (!peer) {
-          if (peers2.size >= MAX_PEERS3) return false;
-          peer = { attempts: [], transcripts: [], frames: [], bytes: 0 };
+          if (peers2.size >= MAX_PEERS3) {
+            report("peer-limit");
+            return false;
+          }
+          peer = { attempts: [], transcripts: [], frames: [], bytes: 0, nextAt: time };
           peers2.set(id, peer);
         }
         if (peer.frames.some((frame2) => frame2.raw === raw)) return true;
         const background = backgroundFrame(raw);
-        if (peer.frames.length >= (background ? MAX_FRAMES - 8 : MAX_FRAMES) || peer.bytes + bytes8 > (background ? MAX_BYTES - 16384 : MAX_BYTES)) return false;
-        peer.frames.push({ raw, bytes: bytes8, queuedAt: time, ...transcriptFrame(raw) });
-        peer.bytes += bytes8;
+        if (peer.frames.length >= (background ? MAX_FRAMES - 8 : MAX_FRAMES) || peer.bytes + bytes9 > (background ? MAX_BYTES2 - 16384 : MAX_BYTES2)) {
+          report("queue-full");
+          return false;
+        }
+        peer.frames.push({ raw, bytes: bytes9, queuedAt: time, ...transcriptFrame(raw) });
+        peer.bytes += bytes9;
         pump(time);
         return true;
       },
@@ -32611,11 +37194,14 @@ THE SOFTWARE.
         if ([...peers2.values()].some((peer) => peer.frames.length)) schedule(1);
       },
       forget(id) {
+        const peer = peers2.get(id);
+        if (peer) for (const frame2 of peer.frames) discarded(id, frame2.raw);
         peers2.delete(id);
         cancelTimer();
-        if ([...peers2.values()].some((peer) => peer.frames.length)) schedule(1);
+        if ([...peers2.values()].some((peer2) => peer2.frames.length)) schedule(1);
       },
-      clear() {
+      clear(reportDiscarded = false) {
+        if (reportDiscarded) for (const [id, peer] of peers2) for (const frame2 of peer.frames) discarded(id, frame2.raw);
         peers2.clear();
         cancelTimer();
       }
@@ -32627,14 +37213,14 @@ THE SOFTWARE.
     if (typeof text2 !== "string" || text2.length < 90 || text2.length > 32064) return false;
     const words = text2.normalize("NFKC").toLowerCase().match(/[\p{L}\p{N}]+/gu) || [];
     if (words.length < 24 || words.length > 16032) return false;
-    const size2 = 8;
+    const size3 = 8;
     const seen = /* @__PURE__ */ new Map();
-    for (let i = 0; i + size2 <= words.length; i++) {
-      const phrase = words.slice(i, i + size2).join(" ");
+    for (let i = 0; i + size3 <= words.length; i++) {
+      const phrase = words.slice(i, i + size3).join(" ");
       const previous = seen.get(phrase);
       if (!previous) {
         seen.set(phrase, { last: i, count: 1 });
-      } else if (i >= previous.last + size2) {
+      } else if (i >= previous.last + size3) {
         previous.last = i;
         if (++previous.count >= 3) return true;
       }
@@ -32677,18 +37263,18 @@ THE SOFTWARE.
     const readJson = async (response, limit2, exactFailure = false) => {
       if (!response.body) throw Error("Response body missing");
       reader = response.body.getReader();
-      let size2 = 0;
+      let size3 = 0;
       const chunks = [];
       try {
         while (true) {
           const part = await reader.read();
           if (signal.aborted) throw Error("Request cancelled");
           if (part.done) break;
-          size2 += part.value.byteLength;
-          if (size2 > limit2) throw Error("Response too large");
+          size3 += part.value.byteLength;
+          if (size3 > limit2) throw Error("Response too large");
           chunks.push(part.value);
         }
-        const joined = new Uint8Array(size2);
+        const joined = new Uint8Array(size3);
         let offset = 0;
         for (const chunk of chunks) {
           joined.set(chunk, offset);
@@ -32760,8 +37346,8 @@ THE SOFTWARE.
   }
   async function decodeClipAudio(card, parts, signal, focus) {
     if (signal.aborted) throw abortError();
-    const bytes8 = parts.reduce((n, p) => n + p.byteLength, 0);
-    if (parts.some((p) => !(p.buffer instanceof ArrayBuffer)) || parts.length !== card.objectCount || bytes8 !== card.totalBytes || bytes8 > CLIP_MAX_BYTES) throw Error("Incomplete clip audio.");
+    const bytes9 = parts.reduce((n, p) => n + p.byteLength, 0);
+    if (parts.some((p) => !(p.buffer instanceof ArrayBuffer)) || parts.length !== card.objectCount || bytes9 !== card.totalBytes || bytes9 > CLIP_MAX_BYTES) throw Error("Incomplete clip audio.");
     const input = new Input({ source: new BlobSource(new Blob(parts.map((p) => new Uint8Array(p.buffer, p.byteOffset, p.byteLength)))), formats: [MP4] });
     let rejectAbort = () => {
     };
@@ -32964,7 +37550,7 @@ THE SOFTWARE.
   // src/shared-speech-worker.ts
   var MAX_HEAP = 768 * 1024 * 1024;
   var MIN_SAMPLES = 16e3;
-  var MAX_SAMPLES = 16e4;
+  var MAX_SAMPLES2 = 16e4;
   var cancelled3 = () => new DOMException("Transcription cancelled.", "AbortError");
   var safely = (fn) => {
     try {
@@ -33148,7 +37734,7 @@ THE SOFTWARE.
           safely(() => callbacks.error(cancelled3()));
           return;
         }
-        if (!(pcm instanceof Float32Array) || pcm.length < MIN_SAMPLES || pcm.length > MAX_SAMPLES || pcm.byteOffset !== 0 || pcm.byteLength !== pcm.buffer.byteLength || pcm.some((sample) => !Number.isFinite(sample) || Math.abs(sample) > 1)) {
+        if (!(pcm instanceof Float32Array) || pcm.length < MIN_SAMPLES || pcm.length > MAX_SAMPLES2 || pcm.byteOffset !== 0 || pcm.byteLength !== pcm.buffer.byteLength || pcm.some((sample) => !Number.isFinite(sample) || Math.abs(sample) > 1)) {
           safely(() => callbacks.error(Error("Invalid speech audio window.")));
           return;
         }
@@ -33178,10 +37764,10 @@ THE SOFTWARE.
   var assertActive = (signal) => {
     if (signal?.aborted) throw aborted3();
   };
-  var sha256 = async (bytes8) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes8.buffer))].map((n) => n.toString(16).padStart(2, "0")).join("");
+  var sha256 = async (bytes9) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes9.buffer))].map((n) => n.toString(16).padStart(2, "0")).join("");
   var localTranscriberPrepared = () => !!prepared;
   var localTranscriberSupported = () => typeof Worker === "function" && typeof AudioContext === "function" && typeof AudioWorkletNode === "function" && typeof crypto === "object" && typeof crypto.subtle?.digest === "function" && globalThis.isSecureContext === true;
-  async function bounded(promise, timeout, signal) {
+  async function bounded2(promise, timeout, signal) {
     let timer;
     const cancel = () => reject?.(aborted3());
     let reject;
@@ -33197,22 +37783,22 @@ THE SOFTWARE.
       signal?.removeEventListener("abort", cancel);
     }
   }
-  async function readExact(response, bytes8, progress, signal, timeout) {
+  async function readExact(response, bytes9, progress, signal, timeout) {
     if (!response.ok || !response.body) throw Error("The local transcription model is unavailable.");
     const reader = response.body.getReader();
-    let output = new Uint8Array(bytes8), received = 0, closed = false;
+    let output = new Uint8Array(bytes9), received = 0, closed = false;
     try {
-      return await bounded((async () => {
+      return await bounded2((async () => {
         while (true) {
           const next = await reader.read();
           if (closed || !output) throw aborted3();
           if (next.done) break;
-          if (received + next.value.byteLength > bytes8) throw Error("Model download exceeded its size limit.");
+          if (received + next.value.byteLength > bytes9) throw Error("Model download exceeded its size limit.");
           output.set(next.value, received);
           received += next.value.byteLength;
           progress?.(received);
         }
-        if (received !== bytes8) throw Error("Model download was incomplete.");
+        if (received !== bytes9) throw Error("Model download was incomplete.");
         return output;
       })(), timeout, signal);
     } finally {
@@ -33236,57 +37822,57 @@ THE SOFTWARE.
       }
     };
     let cache;
-    const key8 = new URL("/asr/cached-model-" + ASR_MODEL.sha256, location.href).href;
+    const key9 = new URL("/asr/cached-model-" + ASR_MODEL.sha256, location.href).href;
     try {
       if (typeof caches !== "undefined" && !pendingCacheWrite) {
         try {
-          cache = await bounded(caches.open("same-end-local-asr-v1"), 3e3, controller2.signal);
-          const saved = await bounded(cache.match(key8), 3e3, controller2.signal);
+          cache = await bounded2(caches.open("same-end-local-asr-v1"), 3e3, controller2.signal);
+          const saved = await bounded2(cache.match(key9), 3e3, controller2.signal);
           if (saved) {
-            const bytes9 = await readExact(saved, ASR_MODEL.bytes, void 0, controller2.signal, 5e3);
-            if (await sha256(bytes9) === ASR_MODEL.sha256) {
+            const bytes10 = await readExact(saved, ASR_MODEL.bytes, void 0, controller2.signal, 5e3);
+            if (await sha256(bytes10) === ASR_MODEL.sha256) {
               assertActive(controller2.signal);
-              prepared = bytes9;
-              progress(bytes9.byteLength);
-              return { modelBytes: bytes9.byteLength, fromCache: true };
+              prepared = bytes10;
+              progress(bytes10.byteLength);
+              return { modelBytes: bytes10.byteLength, fromCache: true };
             }
-            await bounded(cache.delete(key8), 3e3, controller2.signal);
+            await bounded2(cache.delete(key9), 3e3, controller2.signal);
           }
         } catch {
           assertActive(controller2.signal);
           cache = void 0;
         }
       }
-      const bytes8 = new Uint8Array(ASR_MODEL.bytes);
+      const bytes9 = new Uint8Array(ASR_MODEL.bytes);
       let loaded = 0;
       for (const part of ASR_MODEL.parts) {
         assertActive(controller2.signal);
-        const response = await bounded(fetch(part.path, { signal: controller2.signal, redirect: "error", credentials: "omit" }), 2e4, controller2.signal);
+        const response = await bounded2(fetch(part.path, { signal: controller2.signal, redirect: "error", credentials: "omit" }), 2e4, controller2.signal);
         const chunk = await readExact(response, part.bytes, (n) => progress(loaded + n), controller2.signal, 3e4);
         if (await sha256(chunk) !== part.sha256) throw Error("Model download integrity check failed.");
-        bytes8.set(chunk, loaded);
+        bytes9.set(chunk, loaded);
         loaded += chunk.byteLength;
       }
-      if (await sha256(bytes8) !== ASR_MODEL.sha256) throw Error("Local model integrity check failed.");
+      if (await sha256(bytes9) !== ASR_MODEL.sha256) throw Error("Local model integrity check failed.");
       assertActive(controller2.signal);
       if (cache && !pendingCacheWrite) {
         try {
-          const write = Promise.resolve(cache.put(key8, new Response(bytes8.buffer, { headers: { "Content-Type": "application/octet-stream" } })));
+          const write = Promise.resolve(cache.put(key9, new Response(bytes9.buffer, { headers: { "Content-Type": "application/octet-stream" } })));
           pendingCacheWrite = write;
           void write.then(() => {
             if (pendingCacheWrite === write) pendingCacheWrite = void 0;
           }, () => {
             if (pendingCacheWrite === write) pendingCacheWrite = void 0;
           });
-          await bounded(write, 5e3, controller2.signal);
+          await bounded2(write, 5e3, controller2.signal);
         } catch {
           assertActive(controller2.signal);
         }
       }
       assertActive(controller2.signal);
-      prepared = bytes8;
-      progress(bytes8.byteLength);
-      return { modelBytes: bytes8.byteLength, fromCache: false };
+      prepared = bytes9;
+      progress(bytes9.byteLength);
+      return { modelBytes: bytes9.byteLength, fromCache: false };
     } finally {
       controller2.abort();
       options.signal?.removeEventListener("abort", cancel);
@@ -33335,7 +37921,7 @@ THE SOFTWARE.
     };
     const stop = async () => {
       stopNow();
-      if (context && context.state !== "closed") await bounded(context.close(), 2500).catch(() => {
+      if (context && context.state !== "closed") await bounded2(context.close(), 2500).catch(() => {
       });
     };
     const fail = (error) => {
@@ -33395,7 +37981,7 @@ THE SOFTWARE.
       lease = acquireLocalSpeechLease("live", { signal: options.signal, onFatal: fail });
       await lease.ready;
       current();
-      await bounded(context.audioWorklet.addModule(ASR_RUNTIME.worklet), 15e3, options.signal);
+      await bounded2(context.audioWorklet.addModule(ASR_RUNTIME.worklet), 15e3, options.signal);
       current();
       node = new AudioWorkletNode(context, "same-end-shared-audio-v1", { numberOfInputs: 1, numberOfOutputs: 1, channelCount: 1, channelCountMode: "explicit", outputChannelCount: [1] });
       source = context.createMediaStreamSource(new MediaStream([clone]));
@@ -33434,7 +38020,7 @@ THE SOFTWARE.
       };
       source.connect(node);
       node.connect(context.destination);
-      await bounded(context.resume(), 5e3, options.signal);
+      await bounded2(context.resume(), 5e3, options.signal);
       current();
       watch = setInterval(() => {
         if (options.track.readyState !== "live") ended();
@@ -33448,72 +38034,22 @@ THE SOFTWARE.
     }
   }
 
-  // src/paced-room-snapshot.ts
-  function createPacedRoomSnapshot(options) {
-    const now = options.now ?? (() => performance.now());
-    const setTimer = options.setTimer ?? setTimeout;
-    const clearTimer = options.clearTimer ?? clearTimeout;
-    const jobs = /* @__PURE__ */ new Map();
-    let nextSweep = 0;
-    function forget(peer) {
-      const job = jobs.get(peer);
-      if (job?.timer !== void 0) clearTimer(job.timer);
-      jobs.delete(peer);
-    }
-    function step(peer, job) {
-      job.timer = void 0;
-      if (jobs.get(peer) !== job || !options.peers().includes(peer) || now() - job.started > 9e4) {
-        forget(peer);
-        return;
-      }
-      while (job.index < job.frames.length && !options.valid(peer, job.frames[job.index])) job.index++;
-      if (job.index >= job.frames.length) {
-        forget(peer);
-        return;
-      }
-      if (options.send(peer, job.frames[job.index])) job.index++;
-      job.timer = setTimer(() => step(peer, job), 500);
-    }
-    function start(peer) {
-      if (jobs.has(peer) || jobs.size >= 8 || !options.peers().includes(peer)) return;
-      const frames = options.frames().slice(0, CLIP_ROOM_CARD_LIMIT).filter((raw) => new TextEncoder().encode(raw).length <= 4096);
-      if (!frames.length) return;
-      const job = { frames, index: 0, started: now() };
-      jobs.set(peer, job);
-      step(peer, job);
-    }
-    return {
-      start,
-      forget,
-      tick() {
-        for (const peer of jobs.keys()) if (!options.peers().includes(peer)) forget(peer);
-        if (now() < nextSweep) return;
-        nextSweep = now() + 45e3;
-        for (const peer of options.peers().slice(0, 8)) start(peer);
-      },
-      clear() {
-        for (const peer of [...jobs.keys()]) forget(peer);
-        nextSweep = 0;
-      }
-    };
-  }
-
   // src/clip-caption-room.ts
-  var import_canonicalize11 = __toESM(require_canonicalize(), 1);
+  var import_canonicalize13 = __toESM(require_canonicalize(), 1);
 
   // clip-caption-contract.mjs
-  var import_canonicalize9 = __toESM(require_canonicalize(), 1);
-  var enc = new TextEncoder();
-  var exact7 = (v, keys) => !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).sort().join(",") === keys.sort().join(",");
-  var key4 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s) && "AEIMQUYcgkosw048".includes(s[42]);
-  var integer6 = (n, min, max) => Number.isSafeInteger(n) && n >= min && n <= max;
-  var clipAudioPayload = (entry) => enc.encode((0, import_canonicalize9.default)({ domain: "same-end.clip-audio-transcript.v1", entry }) || "");
+  var import_canonicalize11 = __toESM(require_canonicalize(), 1);
+  var enc2 = new TextEncoder();
+  var exact10 = (v, keys) => !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).sort().join(",") === keys.sort().join(",");
+  var key5 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s) && "AEIMQUYcgkosw048".includes(s[42]);
+  var integer8 = (n, min, max) => Number.isSafeInteger(n) && n >= min && n <= max;
+  var clipAudioPayload = (entry) => enc2.encode((0, import_canonicalize11.default)({ domain: "same-end.clip-audio-transcript.v1", entry }) || "");
   function validateClipAudioProof(value, roomId2, sourceKey2, binding2) {
     const e = value;
-    if (!exact7(e, ["type", "version", "roomId", "sourceKey", "clipId", "manifestSha256", "durationMs", "sampleStartMs", "sampleEndMs", "id", "revision", "text", "signature"]) || e.type !== "clip-audio-transcript" || e.version !== "semk2-clip-audio/1" || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key4(sourceKey2) || !key4(e.clipId) || !key4(e.id) || typeof e.manifestSha256 !== "string" || !/^[a-f0-9]{64}$/.test(e.manifestSha256) || !integer6(e.durationMs, 1, 18e4) || !integer6(e.sampleStartMs, 0, e.durationMs - 1) || !integer6(e.sampleEndMs, e.sampleStartMs + 1, Math.min(e.durationMs, e.sampleStartMs + 1e4)) || !integer6(e.revision, 0, 99) || typeof e.text !== "string" || !e.text.trim() || e.text.length > 500 || enc.encode(JSON.stringify(e)).length > 1200) throw Error("Invalid clip audio proof");
+    if (!exact10(e, ["type", "version", "roomId", "sourceKey", "clipId", "manifestSha256", "durationMs", "sampleStartMs", "sampleEndMs", "id", "revision", "text", "signature"]) || e.type !== "clip-audio-transcript" || e.version !== "semk2-clip-audio/1" || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key5(sourceKey2) || !key5(e.clipId) || !key5(e.id) || typeof e.manifestSha256 !== "string" || !/^[a-f0-9]{64}$/.test(e.manifestSha256) || !integer8(e.durationMs, 1, 18e4) || !integer8(e.sampleStartMs, 0, e.durationMs - 1) || !integer8(e.sampleEndMs, e.sampleStartMs + 1, Math.min(e.durationMs, e.sampleStartMs + 1e4)) || !integer8(e.revision, 0, 99) || typeof e.text !== "string" || !e.text.trim() || e.text.length > 500 || enc2.encode(JSON.stringify(e)).length > 1200) throw Error("Invalid clip audio proof");
     if (binding2 && (e.clipId !== binding2.clipId || e.manifestSha256 !== binding2.manifestSha256 || e.durationMs !== binding2.durationMs)) throw Error("Clip binding mismatch");
-    const { signature, ...unsigned } = e;
-    if (!verifySourceSignature(signature, clipAudioPayload(unsigned), sourceKey2)) throw Error("Clip audio signature rejected");
+    const { signature: signature2, ...unsigned } = e;
+    if (!verifySourceSignature(signature2, clipAudioPayload(unsigned), sourceKey2)) throw Error("Clip audio signature rejected");
     return e;
   }
   function validateClipCaptionInput(value, roomId2, sourceKey2) {
@@ -33537,32 +38073,32 @@ THE SOFTWARE.
   var validateClipCaptionInput2 = (value, roomId2, sourceKey2) => validateClipCaptionInput(value, roomId2, sourceKey2);
 
   // transcript-contract.mjs
-  var import_canonicalize10 = __toESM(require_canonicalize(), 1);
-  var key5 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s) && "AEIMQUYcgkosw048".includes(s[42]);
-  var transcriptPayload = (entry) => new TextEncoder().encode((0, import_canonicalize10.default)({ domain: entry.version === "semk2-transcript/2" ? "same-end.automatic-transcript.v2" : "same-end.automatic-transcript.v1", entry }) || "");
+  var import_canonicalize12 = __toESM(require_canonicalize(), 1);
+  var key6 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s) && "AEIMQUYcgkosw048".includes(s[42]);
+  var transcriptPayload = (entry) => new TextEncoder().encode((0, import_canonicalize12.default)({ domain: entry.version === "semk2-transcript/2" ? "same-end.automatic-transcript.v2" : "same-end.automatic-transcript.v1", entry }) || "");
   var number = (x, min, max) => typeof x === "number" && Number.isSafeInteger(x) && x >= min && x <= max;
   function validateTranscript(value, roomId2, sourceKey2) {
     const e = value;
-    if (!e || typeof e !== "object" || Array.isArray(e) || Object.keys(e).sort().join(",") !== (e.version === "semk2-transcript/2" ? ["concern", "endMs", "id", "revision", "roomId", "signature", "sourceKey", "startMs", "text", "type", "version"] : ["endMs", "id", "revision", "roomId", "signature", "sourceKey", "startMs", "text", "type", "version"]).sort().join(",") || e.type !== "automatic-transcript" || !["semk2-transcript/1", "semk2-transcript/2"].includes(e.version) || e.version === "semk2-transcript/2" && (e.concern !== "repetitive-speech" || e.revision !== 0) || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key5(sourceKey2) || !key5(e.id) || !number(e.revision, 0, 99) || typeof e.text !== "string" || !e.text.trim() || e.text.length > 500 || !number(e.startMs, 0, 864e5) || !number(e.endMs, e.startMs, 864e5)) throw Error("Invalid transcript");
-    const { signature, ...unsigned } = e;
-    if (!verifySourceSignature(signature, transcriptPayload(unsigned), sourceKey2)) throw Error("Transcript signature rejected");
+    if (!e || typeof e !== "object" || Array.isArray(e) || Object.keys(e).sort().join(",") !== (e.version === "semk2-transcript/2" ? ["concern", "endMs", "id", "revision", "roomId", "signature", "sourceKey", "startMs", "text", "type", "version"] : ["endMs", "id", "revision", "roomId", "signature", "sourceKey", "startMs", "text", "type", "version"]).sort().join(",") || e.type !== "automatic-transcript" || !["semk2-transcript/1", "semk2-transcript/2"].includes(e.version) || e.version === "semk2-transcript/2" && (e.concern !== "repetitive-speech" || e.revision !== 0) || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key6(sourceKey2) || !key6(e.id) || !number(e.revision, 0, 99) || typeof e.text !== "string" || !e.text.trim() || e.text.length > 500 || !number(e.startMs, 0, 864e5) || !number(e.endMs, e.startMs, 864e5)) throw Error("Invalid transcript");
+    const { signature: signature2, ...unsigned } = e;
+    if (!verifySourceSignature(signature2, transcriptPayload(unsigned), sourceKey2)) throw Error("Transcript signature rejected");
     return e;
   }
 
   // commentary-contract.mjs
-  var bytes4 = (s) => new TextEncoder().encode(s).length;
+  var bytes5 = (s) => new TextEncoder().encode(s).length;
   var shape = (v, keys) => !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).sort().join(",") === keys.sort().join(",");
   function validateCommentaryInput(value, roomId2, sourceKey2) {
     if (!Array.isArray(value) || value.length < 1 || value.length > 6) throw Error("Invalid commentary transcripts");
     const seen = /* @__PURE__ */ new Set();
     let total = 0;
     return value.map((v) => {
-      if (bytes4(JSON.stringify(v)) > 1200) throw Error("Transcript frame too large");
+      if (bytes5(JSON.stringify(v)) > 1200) throw Error("Transcript frame too large");
       const e = validateTranscript(v, roomId2, sourceKey2);
       if (e.version === "semk2-transcript/2") throw Error("Transcript requires review");
       if (seen.has(e.id)) throw Error("Duplicate transcript");
       seen.add(e.id);
-      total += bytes4(e.text);
+      total += bytes5(e.text);
       if (total > 6e3) throw Error("Transcript text too large");
       return e;
     });
@@ -33572,10 +38108,10 @@ THE SOFTWARE.
     const maxChars = purpose === "clip-caption" ? 120 : 400, maxBytes = purpose === "clip-caption" ? 240 : 640;
     if (!shape(value, ["text", "evidence", "model"])) throw Error("Invalid commentary result");
     const v = value;
-    if (typeof v.text !== "string" || v.text.length > maxChars || bytes4(v.text) > maxBytes || v.model !== "deepseek-flash" || !Array.isArray(v.evidence) || v.evidence.length > 2 || !v.text.trim() && v.evidence.length || !v.text.trim() && v.text !== "") throw Error("Invalid commentary result");
+    if (typeof v.text !== "string" || v.text.length > maxChars || bytes5(v.text) > maxBytes || v.model !== "deepseek-flash" || !Array.isArray(v.evidence) || v.evidence.length > 2 || !v.text.trim() && v.evidence.length || !v.text.trim() && v.text !== "") throw Error("Invalid commentary result");
     const seen = /* @__PURE__ */ new Set();
     for (const e of v.evidence) {
-      if (!shape(e, ["id", "revision", "quote"]) || typeof e.id !== "string" || !Number.isInteger(e.revision) || typeof e.quote !== "string" || !e.quote.trim() || e.quote.length > 120 || bytes4(e.quote) > 160 || seen.has(e.id)) throw Error("Invalid commentary evidence");
+      if (!shape(e, ["id", "revision", "quote"]) || typeof e.id !== "string" || !Number.isInteger(e.revision) || typeof e.quote !== "string" || !e.quote.trim() || e.quote.length > 120 || bytes5(e.quote) > 160 || seen.has(e.id)) throw Error("Invalid commentary evidence");
       const t = transcripts2.find((t2) => t2.id === e.id && t2.revision === e.revision);
       if (!t || !t.text.includes(e.quote)) throw Error("Unmatched commentary evidence");
       seen.add(e.id);
@@ -33589,30 +38125,30 @@ THE SOFTWARE.
   var validateCommentaryResult2 = (value, transcripts2, purpose = "commentary") => validateCommentaryResult(value, transcripts2, purpose);
 
   // src/clip-caption-room.ts
-  var bytes5 = (s) => new TextEncoder().encode(s).length;
-  var payload4 = (entry) => new TextEncoder().encode((0, import_canonicalize11.default)({ domain: "same-end.ai-clip-caption.v1", entry }) || "");
+  var bytes6 = (s) => new TextEncoder().encode(s).length;
+  var payload6 = (entry) => new TextEncoder().encode((0, import_canonicalize13.default)({ domain: "same-end.ai-clip-caption.v1", entry }) || "");
   var binding = (card) => ({ clipId: card.clipId, manifestSha256: card.manifest.sha256, durationMs: card.durationMs });
-  var sameCard = (a, b) => !!a && (0, import_canonicalize11.default)(a) === (0, import_canonicalize11.default)(b);
+  var sameCard = (a, b) => !!a && (0, import_canonicalize13.default)(a) === (0, import_canonicalize13.default)(b);
   async function signClipAudioProof(unsigned, privateKey, card, stillCurrent = () => true) {
     validateClipCard(card, card.roomId, card.sourceKey);
     if (!stillCurrent()) return;
-    const signature = b642(new Uint8Array(await crypto.subtle.sign("Ed25519", privateKey, clipAudioPayload2(unsigned))));
+    const signature2 = b642(new Uint8Array(await crypto.subtle.sign("Ed25519", privateKey, clipAudioPayload2(unsigned))));
     if (!stillCurrent()) return;
     validateClipCard(card, card.roomId, card.sourceKey);
-    return validateClipAudioProof2({ ...unsigned, signature }, card.roomId, card.sourceKey, binding(card));
+    return validateClipAudioProof2({ ...unsigned, signature: signature2 }, card.roomId, card.sourceKey, binding(card));
   }
   function validateClipCaptionEntry(value, roomId2, sourceKey2, card) {
     validateClipCard(card, roomId2, sourceKey2);
     const e = value;
-    if (!e || typeof e !== "object" || Array.isArray(e) || Object.keys(e).sort().join(",") !== ["type", "version", "roomId", "sourceKey", "clipId", "manifestSha256", "durationMs", "text", "model", "evidence", "signature"].sort().join(",") || e.type !== "ai-clip-caption" || e.version !== "semk2-clip-caption/1" || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || e.clipId !== card.clipId || e.manifestSha256 !== card.manifest.sha256 || e.durationMs !== card.durationMs || typeof e.text !== "string" || !e.text.trim() || e.model !== "deepseek-flash" || !Array.isArray(e.evidence) || e.evidence.length < 1 || e.evidence.length > 2 || bytes5(JSON.stringify(e)) > 4096) throw Error("Invalid clip caption");
+    if (!e || typeof e !== "object" || Array.isArray(e) || Object.keys(e).sort().join(",") !== ["type", "version", "roomId", "sourceKey", "clipId", "manifestSha256", "durationMs", "text", "model", "evidence", "signature"].sort().join(",") || e.type !== "ai-clip-caption" || e.version !== "semk2-clip-caption/1" || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || e.clipId !== card.clipId || e.manifestSha256 !== card.manifest.sha256 || e.durationMs !== card.durationMs || typeof e.text !== "string" || !e.text.trim() || e.model !== "deepseek-flash" || !Array.isArray(e.evidence) || e.evidence.length < 1 || e.evidence.length > 2 || bytes6(JSON.stringify(e)) > 4096) throw Error("Invalid clip caption");
     const proofs = e.evidence.map((p) => {
       if (!p || typeof p !== "object" || Array.isArray(p) || Object.keys(p).sort().join(",") !== "quote,transcript") throw Error("Invalid caption evidence");
       return validateClipAudioProof2(p.transcript, roomId2, sourceKey2, binding(card));
     });
     validateClipCaptionInput2(proofs, roomId2, sourceKey2);
     validateCommentaryResult2({ text: e.text, model: e.model, evidence: e.evidence.map((p) => ({ id: p.transcript.id, revision: p.transcript.revision, quote: p.quote })) }, proofs, "clip-caption");
-    const { signature, ...unsigned } = e;
-    if (!verifySourceSignature(signature, payload4(unsigned), sourceKey2)) throw Error("Caption signature rejected");
+    const { signature: signature2, ...unsigned } = e;
+    if (!verifySourceSignature(signature2, payload6(unsigned), sourceKey2)) throw Error("Caption signature rejected");
     return e;
   }
   function createClipCaptionRoom(added = () => {
@@ -33652,11 +38188,11 @@ THE SOFTWARE.
       return true;
     }
     function send2(peer, raw) {
-      if (bytes5(raw) <= 4096) ctx?.send(peer, raw);
+      if (bytes6(raw) <= 4096) ctx?.send(peer, raw);
     }
     function currentFrame(peer, raw) {
       const c = ctx;
-      if (!c?.current() || !c.peers().includes(peer) || bytes5(raw) > 4096) return false;
+      if (!c?.current() || !c.peers().includes(peer) || bytes6(raw) > 4096) return false;
       let m;
       try {
         m = JSON.parse(raw);
@@ -33709,9 +38245,9 @@ THE SOFTWARE.
         pending++;
         try {
           const unsigned = { type: "ai-clip-caption", version: "semk2-clip-caption/1", roomId: c.roomId, sourceKey: c.sourceKey, clipId: card.clipId, manifestSha256: card.manifest.sha256, durationMs: card.durationMs, text: valid2.text, model: valid2.model, evidence: valid2.evidence.map((p) => ({ transcript: input.find((t) => t.id === p.id && t.revision === p.revision), quote: p.quote })) };
-          const signature = b642(new Uint8Array(await crypto.subtle.sign("Ed25519", c.privateKey, payload4(unsigned))));
+          const signature2 = b642(new Uint8Array(await crypto.subtle.sign("Ed25519", c.privateKey, payload6(unsigned))));
           if (ctx !== c || v !== version || !c.current() || !stillCurrent() || !sameCard(validCard(c, card.clipId), card)) return;
-          const e = validateClipCaptionEntry({ ...unsigned, signature }, c.roomId, c.sourceKey, card);
+          const e = validateClipCaptionEntry({ ...unsigned, signature: signature2 }, c.roomId, c.sourceKey, card);
           if (!apply(e)) throw Error("Clip caption already exists or limit reached");
           const raw = JSON.stringify(e);
           for (const peer of c.peers()) send2(peer, raw);
@@ -33731,7 +38267,7 @@ THE SOFTWARE.
       tick: sync.tick,
       canSend: currentFrame,
       receive(peer, raw) {
-        if (bytes5(raw) > 4096) return false;
+        if (bytes6(raw) > 4096) return false;
         let m;
         try {
           m = JSON.parse(raw);
@@ -33777,13 +38313,13 @@ THE SOFTWARE.
     if (!a.focus || !b.focus) return !a.focus && !b.focus;
     return a.focus.startMs === b.focus.startMs && a.focus.endMs === b.focus.endMs;
   }
-  async function prepareProofs(c, card, signature, focus, signal, current, check) {
+  async function prepareProofs(c, card, signature2, focus, signal, current, check) {
     check();
     if (!localTranscriberPrepared()) throw Error("Prepare English model before captioning.");
     c.status("Reading this clip\u2019s sampled audio locally\u2026");
     const input = await c.read(card.clipId, signal);
     check();
-    if (input.card.signature !== signature) throw Error("Clip changed.");
+    if (input.card.signature !== signature2) throw Error("Clip changed.");
     const windows = await decodeClipAudio(card, input.parts, signal, focus);
     check();
     if (!windows.length) return [];
@@ -33829,16 +38365,16 @@ THE SOFTWARE.
         return;
       }
       if (ctx !== c || generation !== v || pending !== job || abort2) return;
-      const { card, signature, focus } = job;
+      const { card, signature: signature2, focus } = job;
       pending = void 0;
       activeJob = job;
       const a = abort2 = new AbortController();
-      const current = () => ctx === c && enabled2 && v === generation && !a.signal.aborted && c.current() && card.expiresAtMs > Date.now() && card.signature === signature && c.card(card.clipId)?.signature === signature;
+      const current = () => ctx === c && enabled2 && v === generation && !a.signal.aborted && c.current() && card.expiresAtMs > Date.now() && card.signature === signature2 && c.card(card.clipId)?.signature === signature2;
       const check = () => {
         if (!current()) throw new DOMException("Clip caption cancelled.", "AbortError");
       };
       try {
-        const proofs = await prepareProofs(c, card, signature, focus, a.signal, current, check);
+        const proofs = await prepareProofs(c, card, signature2, focus, a.signal, current, check);
         check();
         if (!proofs.length) {
           c.status("No usable speech sample, or repetitive speech needs review. Original clip caption kept.");
@@ -34119,7 +38655,7 @@ THE SOFTWARE.
   }
 
   // src/commentary-room.ts
-  var import_canonicalize12 = __toESM(require_canonicalize(), 1);
+  var import_canonicalize14 = __toESM(require_canonicalize(), 1);
 
   // src/transcript-room.ts
   function validateTranscript2(value, roomId2, sourceKey2) {
@@ -34157,12 +38693,13 @@ THE SOFTWARE.
       pending++;
       try {
         const unsigned = { type: "automatic-transcript", version: concern ? "semk2-transcript/2" : "semk2-transcript/1", ...concern ? { concern } : {}, roomId: c.roomId, sourceKey: c.sourceKey, id, revision, text: text2.trim(), startMs: Math.round(startMs), endMs: Math.round(endMs) };
-        const signature = b642(new Uint8Array(await crypto.subtle.sign("Ed25519", c.privateKey, transcriptPayload(unsigned))));
+        const signature2 = b642(new Uint8Array(await crypto.subtle.sign("Ed25519", c.privateKey, transcriptPayload(unsigned))));
         if (ctx !== c || v !== version || !c.current() || !stillCurrent()) return;
-        const e = validateTranscript2({ ...unsigned, signature }, c.roomId, c.sourceKey);
+        const e = validateTranscript2({ ...unsigned, signature: signature2 }, c.roomId, c.sourceKey);
         if (!apply(e)) throw Error("Transcript limit or stale revision");
         const raw = JSON.stringify(e);
         for (const peer of c.peers()) c.send(peer, raw);
+        return e;
       } finally {
         pending--;
       }
@@ -34213,22 +38750,22 @@ THE SOFTWARE.
   }
 
   // src/commentary-room.ts
-  var bytes6 = (s) => new TextEncoder().encode(s).length;
-  var key6 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s) && "AEIMQUYcgkosw048".includes(s[42]);
-  var payload5 = (entry) => new TextEncoder().encode((0, import_canonicalize12.default)({ domain: "same-end.ai-commentary.v1", entry }) || "");
+  var bytes7 = (s) => new TextEncoder().encode(s).length;
+  var key7 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s) && "AEIMQUYcgkosw048".includes(s[42]);
+  var payload7 = (entry) => new TextEncoder().encode((0, import_canonicalize14.default)({ domain: "same-end.ai-commentary.v1", entry }) || "");
   function validateCommentaryEntry(value, roomId2, sourceKey2, known = []) {
     const e = value;
-    if (!e || typeof e !== "object" || Array.isArray(e) || Object.keys(e).sort().join(",") !== ["type", "version", "roomId", "sourceKey", "id", "revision", "text", "model", "evidence", "edited", "withdrawn", "signature"].sort().join(",") || e.type !== "ai-commentary" || e.version !== "semk2-commentary/1" || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key6(sourceKey2) || !key6(e.id) || !Number.isInteger(e.revision) || e.revision < 0 || e.revision > 99 || typeof e.edited !== "boolean" || typeof e.withdrawn !== "boolean" || typeof e.text !== "string" || e.text.length > 400 || bytes6(e.text) > 640 || e.model !== "deepseek-flash" || !Array.isArray(e.evidence) || e.evidence.length < 1 || e.evidence.length > 2 || bytes6(JSON.stringify(e)) > 4096 || !e.withdrawn && !e.text.trim() || e.withdrawn && e.text !== "") throw Error("Invalid commentary");
+    if (!e || typeof e !== "object" || Array.isArray(e) || Object.keys(e).sort().join(",") !== ["type", "version", "roomId", "sourceKey", "id", "revision", "text", "model", "evidence", "edited", "withdrawn", "signature"].sort().join(",") || e.type !== "ai-commentary" || e.version !== "semk2-commentary/1" || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key7(sourceKey2) || !key7(e.id) || !Number.isInteger(e.revision) || e.revision < 0 || e.revision > 99 || typeof e.edited !== "boolean" || typeof e.withdrawn !== "boolean" || typeof e.text !== "string" || e.text.length > 400 || bytes7(e.text) > 640 || e.model !== "deepseek-flash" || !Array.isArray(e.evidence) || e.evidence.length < 1 || e.evidence.length > 2 || bytes7(JSON.stringify(e)) > 4096 || !e.withdrawn && !e.text.trim() || e.withdrawn && e.text !== "") throw Error("Invalid commentary");
     const evidence = e.evidence.map((p) => {
-      if (!p || typeof p !== "object" || Array.isArray(p) || Object.keys(p).sort().join(",") !== "quote,transcript" || bytes6(JSON.stringify(p.transcript)) > 1200) throw Error("Invalid proof");
+      if (!p || typeof p !== "object" || Array.isArray(p) || Object.keys(p).sort().join(",") !== "quote,transcript" || bytes7(JSON.stringify(p.transcript)) > 1200) throw Error("Invalid proof");
       const t = validateTranscript2(p.transcript, roomId2, sourceKey2);
       const existing = known.find((k) => k.id === t.id && k.revision === t.revision);
-      if (existing && (0, import_canonicalize12.default)(existing) !== (0, import_canonicalize12.default)(t)) throw Error("Conflicting transcript");
+      if (existing && (0, import_canonicalize14.default)(existing) !== (0, import_canonicalize14.default)(t)) throw Error("Conflicting transcript");
       return { id: t.id, revision: t.revision, quote: p.quote };
     });
     validateCommentaryResult2({ text: e.withdrawn ? "withdrawn" : e.text, evidence, model: e.model }, e.evidence.map((p) => p.transcript));
-    const { signature, ...unsigned } = e;
-    if (!verifySourceSignature(signature, payload5(unsigned), sourceKey2)) throw Error("Commentary signature rejected");
+    const { signature: signature2, ...unsigned } = e;
+    if (!verifySourceSignature(signature2, payload7(unsigned), sourceKey2)) throw Error("Commentary signature rejected");
     return e;
   }
   function createCommentaryRoom(added) {
@@ -34240,12 +38777,12 @@ THE SOFTWARE.
       for (const t of (ctx?.transcripts() ?? []).slice(-200)) pinned.add(t.id);
       for (const e of entries2.values()) for (const p of e.evidence) pinned.add(p.transcript.id);
       for (const t of transcripts2) {
-        if (!t || !key6(t.id) || !Number.isInteger(t.revision) || t.revision < 0 || t.revision > 99 || typeof t.text !== "string" || t.text.length > 500) continue;
+        if (!t || !key7(t.id) || !Number.isInteger(t.revision) || t.revision < 0 || t.revision > 99 || typeof t.text !== "string" || t.text.length > 500) continue;
         const previous = history.get(t.id);
         if (previous && t.revision <= previous.revision) continue;
         let canonical;
         try {
-          canonical = (0, import_canonicalize12.default)(t) || "";
+          canonical = (0, import_canonicalize14.default)(t) || "";
         } catch {
           continue;
         }
@@ -34275,7 +38812,7 @@ THE SOFTWARE.
           continue;
         }
         if (h.revision > p.transcript.revision) return "stale";
-        if (h.revision !== p.transcript.revision || h.canonical !== (0, import_canonicalize12.default)(p.transcript)) unknown = true;
+        if (h.revision !== p.transcript.revision || h.canonical !== (0, import_canonicalize14.default)(p.transcript)) unknown = true;
       }
       return unknown ? "unknown" : "current";
     }
@@ -34283,13 +38820,13 @@ THE SOFTWARE.
     function validateKnown(e) {
       for (const p of e.evidence) {
         const h = history.get(p.transcript.id);
-        if (h && h.revision === p.transcript.revision && h.canonical !== (0, import_canonicalize12.default)(p.transcript)) throw Error("Conflicting transcript history");
+        if (h && h.revision === p.transcript.revision && h.canonical !== (0, import_canonicalize14.default)(p.transcript)) throw Error("Conflicting transcript history");
       }
     }
     function apply(e) {
       const old = entries2.get(e.id);
       if (!old && (seen.has(e.id) || seen.size >= 2e3)) return false;
-      if (old && (e.revision <= old.revision || (0, import_canonicalize12.default)(e.evidence) !== (0, import_canonicalize12.default)(old.evidence) || old.withdrawn)) return false;
+      if (old && (e.revision <= old.revision || (0, import_canonicalize14.default)(e.evidence) !== (0, import_canonicalize14.default)(old.evidence) || old.withdrawn)) return false;
       if (!old && entries2.size >= 200) entries2.delete(entries2.keys().next().value);
       entries2.set(e.id, e);
       if (!old) {
@@ -34305,9 +38842,9 @@ THE SOFTWARE.
       pending++;
       try {
         const unsigned = { type: "ai-commentary", version: "semk2-commentary/1", roomId: c.roomId, sourceKey: c.sourceKey, id, revision, ...base };
-        const signature = b642(new Uint8Array(await crypto.subtle.sign("Ed25519", c.privateKey, payload5(unsigned))));
+        const signature2 = b642(new Uint8Array(await crypto.subtle.sign("Ed25519", c.privateKey, payload7(unsigned))));
         if (ctx !== c || version !== v || !c.current() || !stillCurrent()) return;
-        const e = validateCommentaryEntry({ ...unsigned, signature }, c.roomId, c.sourceKey, c.transcripts());
+        const e = validateCommentaryEntry({ ...unsigned, signature: signature2 }, c.roomId, c.sourceKey, c.transcripts());
         validateKnown(e);
         if (!e.withdrawn && stale(e) || !apply(e)) throw Error("Commentary stale or limit reached");
         const raw = JSON.stringify(e);
@@ -35609,15 +40146,15 @@ THE SOFTWARE.
     let best;
     let coreSeen = false;
     for (let first = 0; first < media.length; first++) {
-      let bytes8 = objects[0].bytes.byteLength;
+      let bytes9 = objects[0].bytes.byteLength;
       for (let last2 = first; last2 < media.length; last2++) {
         if (last2 > first && !follows(media[last2 - 1], media[last2])) break;
-        bytes8 += media[last2].bytes.byteLength;
+        bytes9 += media[last2].bytes.byteLength;
         const left = media[first].mediaStartMs, right = fragmentEnd(media[last2]);
         if (right - left > CONTEXT_WINDOW_MAX_MS - CONTEXT_WINDOW_REMUX_HEADROOM_MS || last2 - first + 1 > 23) break;
         if (left > cueStart + 5 || right < cueEnd - 5) continue;
         coreSeen = true;
-        if (bytes8 > CONTEXT_WINDOW_INPUT_MAX_BYTES) continue;
+        if (bytes9 > CONTEXT_WINDOW_INPUT_MAX_BYTES) continue;
         const complete = left <= start + 5 && right >= end2 - 5;
         const overlap = Math.max(0, Math.min(right, end2) - Math.max(left, start));
         const balancedContext = Math.min(Math.max(0, cueStart - left), Math.max(0, right - cueEnd));
@@ -35637,14 +40174,14 @@ THE SOFTWARE.
     const candidates = [];
     let overBudget = false;
     for (let i = 0; i < media.length; i++) {
-      let bytes8 = objects[0].bytes.byteLength;
+      let bytes9 = objects[0].bytes.byteLength;
       for (let j = i; j < media.length; j++) {
         if (j > i && !follows(media[j - 1], media[j])) break;
-        bytes8 += media[j].bytes.byteLength;
+        bytes9 += media[j].bytes.byteLength;
         const duration = fragmentEnd(media[j]) - media[i].mediaStartMs;
         if (duration > MOMENT_DRAFT_MS + 6e3) break;
         if (duration >= MOMENT_DRAFT_MS - 100) {
-          if (bytes8 > CONTEXT_WINDOW_INPUT_MAX_BYTES) overBudget = true;
+          if (bytes9 > CONTEXT_WINDOW_INPUT_MAX_BYTES) overBudget = true;
           else candidates.push(media.slice(i, j + 1));
           break;
         }
@@ -35661,226 +40198,30 @@ THE SOFTWARE.
     return ready(objects[0], parts, start, end2, start, end2);
   }
 
-  // src/audio-mp4-timing.ts
-  var MAX_INIT = 256 * 1024;
-  var MAX_FRAGMENT = 2 * 1024 * 1024;
-  var MAX_SAMPLES2 = 256;
-  function readBoundedMp4(bytes8, max) {
-    if (!(bytes8 instanceof Uint8Array) || !bytes8.length || bytes8.length > max) throw Error("Invalid audio MP4 size");
-    const view2 = new DataView(bytes8.buffer, bytes8.byteOffset, bytes8.byteLength);
-    const boxes = (start, end2) => {
-      const out = [];
-      for (let p = start; p < end2; ) {
-        if (p + 8 > end2) throw Error("Truncated MP4 header");
-        const size2 = view2.getUint32(p), type = String.fromCharCode(...bytes8.subarray(p + 4, p + 8));
-        if (size2 < 8 || p + size2 > end2) throw Error(`Unsupported or truncated MP4 box ${type}`);
-        out.push({ type, data: p + 8, end: p + size2 });
-        if (out.length > 64) throw Error("MP4 box count limit");
-        p += size2;
-      }
-      return out;
-    };
-    const one = (list, type) => {
-      const found = list.filter((x) => x.type === type);
-      if (found.length !== 1) throw Error(`Expected one ${type}`);
-      return found[0];
-    };
-    const children = (b) => boxes(b.data, b.end);
-    const field = (b, p, n) => {
-      if (p < b.data || p + n > b.end) throw Error(`Truncated ${b.type}`);
-    };
-    const u322 = (b, p) => {
-      field(b, p, 4);
-      return view2.getUint32(p);
-    };
-    const i322 = (b, p) => {
-      field(b, p, 4);
-      return view2.getInt32(p);
-    };
-    const u642 = (b, p) => {
-      field(b, p, 8);
-      const n = view2.getBigUint64(p);
-      if (n > BigInt(Number.MAX_SAFE_INTEGER)) throw Error("MP4 integer exceeds safe range");
-      return Number(n);
-    };
-    const i642 = (b, p) => {
-      field(b, p, 8);
-      const n = view2.getBigInt64(p);
-      if (n > BigInt(Number.MAX_SAFE_INTEGER) || n < BigInt(Number.MIN_SAFE_INTEGER)) throw Error("MP4 integer exceeds safe range");
-      return Number(n);
-    };
-    const full = (b) => {
-      field(b, b.data, 4);
-      return { version: bytes8[b.data], flags: bytes8[b.data + 1] << 16 | bytes8[b.data + 2] << 8 | bytes8[b.data + 3], p: b.data + 4 };
-    };
-    return { bytes: bytes8, view: view2, boxes, one, children, field, u32: u322, i32: i322, u64: u642, i64: i642, full };
-  }
-  var AudioMp4Timing = class {
-    id = 0;
-    timescale = 0;
-    movieTimescale = 0;
-    editMediaTimeTicks = 0;
-    defaultDuration = 0;
-    firstCommonTicks = 0;
-    commonTimescale = 0;
-    firstPtsTicks;
-    nextTicks;
-    constructor(init, firstPacketSeconds, sampleRate) {
-      if (!Number.isSafeInteger(sampleRate) || sampleRate <= 0 || !Number.isFinite(firstPacketSeconds)) throw Error("Invalid first AAC timestamp");
-      const ticks = firstPacketSeconds * sampleRate, rounded = Math.round(ticks);
-      if (!Number.isSafeInteger(rounded) || Math.abs(ticks - rounded) > 1e-4) throw Error("AAC timestamp not on sample grid");
-      this.firstCommonTicks = rounded;
-      this.commonTimescale = sampleRate;
-      const r = readBoundedMp4(init, MAX_INIT), top = r.boxes(0, init.length);
-      r.one(top, "ftyp");
-      const moov2 = r.one(top, "moov"), root = r.children(moov2);
-      const mv = r.full(r.one(root, "mvhd"));
-      if (mv.version !== 0 && mv.version !== 1) throw Error("Unsupported movie header");
-      const mvbox = r.one(root, "mvhd");
-      this.movieTimescale = r.u32(mvbox, mv.p + (mv.version === 1 ? 16 : 8));
-      const tracks2 = root.filter((x) => x.type === "trak");
-      if (tracks2.length !== 1) throw Error("Expected one audio track");
-      const track = r.children(tracks2[0]), tkbox = r.one(track, "tkhd"), tk = r.full(tkbox);
-      if (tk.version !== 0 && tk.version !== 1) throw Error("Unsupported track header");
-      this.id = r.u32(tkbox, tk.p + (tk.version === 1 ? 16 : 8));
-      const media = r.children(r.one(track, "mdia"));
-      const md = r.one(media, "mdhd"), mdfull = r.full(md);
-      if (mdfull.version !== 0 && mdfull.version !== 1) throw Error("Unsupported media header");
-      this.timescale = r.u32(md, mdfull.p + (mdfull.version === 1 ? 16 : 8));
-      const h = r.one(media, "hdlr"), hf = r.full(h);
-      r.field(h, hf.p + 4, 4);
-      if (String.fromCharCode(...r.bytes.subarray(hf.p + 4, hf.p + 8)) !== "soun" || !this.id || !this.timescale || !this.movieTimescale) throw Error("Invalid audio track");
-      const edits2 = track.filter((x) => x.type === "edts");
-      if (edits2.length > 1) throw Error("Multiple edit containers");
-      if (edits2.length) {
-        const el = r.one(r.children(edits2[0]), "elst"), e = r.full(el);
-        if (e.version !== 0 && e.version !== 1 || r.u32(el, e.p) !== 1) throw Error("Unsupported audio edit list");
-        const p = e.p + 4;
-        const segmentDuration = e.version === 1 ? r.u64(el, p) : r.u32(el, p);
-        if (segmentDuration !== 0) throw Error("Unsupported finite audio edit");
-        this.editMediaTimeTicks = e.version === 1 ? r.i64(el, p + 8) : r.i32(el, p + 4);
-        const rate = p + (e.version === 1 ? 16 : 8);
-        r.field(el, rate, 4);
-        if (this.editMediaTimeTicks < 0 || r.view.getInt16(rate) !== 1 || r.view.getInt16(rate + 2) !== 0) throw Error("Unsupported audio edit");
-      }
-      const trex2 = r.children(r.one(root, "mvex")).filter((x) => x.type === "trex");
-      const matches = trex2.filter((t) => r.u32(t, r.full(t).p) === this.id);
-      if (matches.length !== 1) throw Error("Missing audio defaults");
-      const tr = matches[0], tf = r.full(tr);
-      this.defaultDuration = r.u32(tr, tf.p + 8);
-    }
-    inspect(fragment) {
-      const r = readBoundedMp4(fragment, MAX_FRAGMENT), top = r.boxes(0, fragment.length), moof2 = r.one(top, "moof");
-      r.one(top, "mdat");
-      const traf2 = r.children(moof2).filter((x) => x.type === "traf");
-      if (traf2.length !== 1) throw Error("Expected one audio fragment track");
-      const children = r.children(traf2[0]), header = r.one(children, "tfhd"), h = r.full(header);
-      if (h.version !== 0 || (h.flags & ~131131) !== 0) throw Error("Unsupported tfhd");
-      let p = h.p;
-      const id = r.u32(header, p);
-      p += 4;
-      if (id !== this.id) throw Error("Wrong audio track");
-      if (h.flags & 1) {
-        r.field(header, p, 8);
-        p += 8;
-      }
-      if (h.flags & 2) {
-        r.field(header, p, 4);
-        p += 4;
-      }
-      let defaultDuration = this.defaultDuration;
-      if (h.flags & 8) {
-        defaultDuration = r.u32(header, p);
-        p += 4;
-      }
-      if (h.flags & 16) {
-        r.field(header, p, 4);
-        p += 4;
-      }
-      if (h.flags & 32) {
-        r.field(header, p, 4);
-        p += 4;
-      }
-      const tfdt2 = r.one(children, "tfdt"), base = r.full(tfdt2);
-      if (base.version !== 0 && base.version !== 1) throw Error("Unsupported tfdt");
-      let decode2 = base.version === 1 ? r.u64(tfdt2, base.p) : r.u32(tfdt2, base.p);
-      let first, end2, count = 0;
-      const samples = [];
-      const runs = children.filter((x) => x.type === "trun");
-      if (!runs.length || runs.length > 8) throw Error("Invalid audio runs");
-      for (const box3 of runs) {
-        const run = r.full(box3);
-        if (run.version !== 0 && run.version !== 1 || (run.flags & ~3845) !== 0) throw Error("Unsupported trun");
-        p = run.p;
-        const n = r.u32(box3, p);
-        p += 4;
-        count += n;
-        if (!n || count > MAX_SAMPLES2) throw Error("Invalid audio sample count");
-        if (run.flags & 1) {
-          r.field(box3, p, 4);
-          p += 4;
-        }
-        if (run.flags & 4) {
-          r.field(box3, p, 4);
-          p += 4;
-        }
-        for (let i = 0; i < n; i++) {
-          let duration = defaultDuration, offset = 0;
-          if (run.flags & 256) {
-            duration = r.u32(box3, p);
-            p += 4;
-          }
-          if (run.flags & 512) {
-            r.field(box3, p, 4);
-            p += 4;
-          }
-          if (run.flags & 1024) {
-            r.field(box3, p, 4);
-            p += 4;
-          }
-          if (run.flags & 2048) {
-            offset = run.version === 1 ? r.i32(box3, p) : r.u32(box3, p);
-            p += 4;
-          }
-          const pts = decode2 + offset;
-          if (!duration || !Number.isSafeInteger(pts) || !Number.isSafeInteger(pts + duration) || end2 !== void 0 && pts !== end2) throw Error("Discontinuous or invalid audio samples");
-          first ??= pts;
-          end2 = pts + duration;
-          samples.push({ ptsTicks: pts, durationTicks: duration });
-          decode2 += duration;
-        }
-      }
-      if (first === void 0 || end2 === void 0 || this.nextTicks !== void 0 && first !== this.nextTicks) throw Error("Audio fragment discontinuity");
-      this.firstPtsTicks ??= first;
-      this.nextTicks = end2;
-      return { mapping: { timescale: this.timescale, movieTimescale: this.movieTimescale, editMediaTimeTicks: this.editMediaTimeTicks, firstPtsTicks: this.firstPtsTicks, firstCommonTicks: this.firstCommonTicks, commonTimescale: this.commonTimescale }, fragment: { startTicks: first, durationTicks: end2 - first }, samples };
-    }
-  };
-
   // src/clip-window-source.ts
-  var LIMIT2 = 3 * 1024 * 1024;
-  var OUTPUT_LIMIT = LIMIT2 - 65536;
-  var MAX_PACKETS2 = 2e4;
+  var LIMIT5 = 3 * 1024 * 1024;
+  var OUTPUT_LIMIT = LIMIT5 - 65536;
+  var MAX_PACKETS3 = 2e4;
   var MAX_MS = 40300;
-  var TIMEOUT = 15e3;
+  var TIMEOUT3 = 15e3;
   var cancelled5 = () => new DOMException("Clip window cancelled.", "AbortError");
   function concat2(...parts) {
-    const bytes8 = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
+    const bytes9 = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
     let position = 0;
     for (const part of parts) {
-      bytes8.set(part, position);
+      bytes9.set(part, position);
       position += part.length;
     }
-    return bytes8;
+    return bytes9;
   }
-  function exactBox(bytes8, type) {
-    if (bytes8.length < 8 || String.fromCharCode(...bytes8.subarray(4, 8)) !== type || new DataView(bytes8.buffer, bytes8.byteOffset, bytes8.byteLength).getUint32(0) !== bytes8.length) {
+  function exactBox(bytes9, type) {
+    if (bytes9.length < 8 || String.fromCharCode(...bytes9.subarray(4, 8)) !== type || new DataView(bytes9.buffer, bytes9.byteOffset, bytes9.byteLength).getUint32(0) !== bytes9.length) {
       throw Error("Invalid MP4 box");
     }
-    return bytes8.slice();
+    return bytes9.slice();
   }
-  function edits(bytes8) {
-    const v = new DataView(bytes8.buffer, bytes8.byteOffset, bytes8.byteLength);
+  function edits(bytes9) {
+    const v = new DataView(bytes9.buffer, bytes9.byteOffset, bytes9.byteLength);
     let count = 0;
     function walk(start, end2, depth) {
       if (depth > 4)
@@ -35889,7 +40230,7 @@ THE SOFTWARE.
         if (++count > 2e4 || end2 - p < 8)
           throw Error("Invalid MP4 structure");
         let n = v.getUint32(p), h = 8;
-        const t = String.fromCharCode(...bytes8.subarray(p + 4, p + 8));
+        const t = String.fromCharCode(...bytes9.subarray(p + 4, p + 8));
         if (n === 1) {
           if (end2 - p < 16)
             throw Error("Invalid MP4 box");
@@ -35921,10 +40262,10 @@ THE SOFTWARE.
         p += n;
       }
     }
-    walk(0, bytes8.length, 0);
+    walk(0, bytes9.length, 0);
   }
   function rawTimeOffsets(init) {
-    const r = readBoundedMp4(init, LIMIT2);
+    const r = readBoundedMp4(init, LIMIT5);
     const top = r.boxes(0, init.length);
     const root = r.children(r.one(top, "moov"));
     const result = /* @__PURE__ */ new Map();
@@ -35969,10 +40310,10 @@ THE SOFTWARE.
       if (!config2 || !Number.isFinite(first) || (kind === "video" ? codec !== "avc" || !config2.codec.startsWith("avc1.") : codec !== "aac" || config2.codec !== "mp4a.40.2"))
         throw Error("Unsupported clip codec");
       const packets = [];
-      let previous = -Infinity, bytes8 = 0;
+      let previous = -Infinity, bytes9 = 0;
       for await (const packet of new EncodedPacketSink(track).packets(void 0, void 0, { verifyKeyPackets: kind === "video" })) {
         check();
-        if (packets.length >= MAX_PACKETS2 || !Number.isFinite(packet.timestamp) || !Number.isFinite(packet.duration) || packet.duration <= 0 || packet.timestamp < previous - 1e-3 || (bytes8 += packet.data.byteLength) > LIMIT2 || !packet.data.byteLength)
+        if (packets.length >= MAX_PACKETS3 || !Number.isFinite(packet.timestamp) || !Number.isFinite(packet.duration) || packet.duration <= 0 || packet.timestamp < previous - 1e-3 || (bytes9 += packet.data.byteLength) > LIMIT5 || !packet.data.byteLength)
           throw Error("Unsupported packet timing or size");
         if (kind === "video" && packet.duration > 0.25)
           throw Error("Unsupported video packet duration");
@@ -35993,7 +40334,7 @@ THE SOFTWARE.
     if (value === void 0) return new Uint8Array();
     return ArrayBuffer.isView(value) ? new Uint8Array(value.buffer, value.byteOffset, value.byteLength) : new Uint8Array(value);
   }
-  function sameConfig(a, b) {
+  function sameConfig2(a, b) {
     const left = descriptionBytes(a.description), right = descriptionBytes(b.description);
     if (a.codec !== b.codec || left.length !== right.length || !left.every((n, i) => n === right[i])) return false;
     if ("codedWidth" in a) {
@@ -36010,10 +40351,10 @@ THE SOFTWARE.
     if (!Array.isArray(objects) || objects.length < 2 || objects.length > 24)
       throw Error("Invalid clip window");
     const init = objects[0];
-    let size2 = 0;
+    let size3 = 0;
     for (let i = 0; i < objects.length; i++) {
       const o = objects[i];
-      if (!o || !(o.bytes instanceof Uint8Array) || !o.bytes.length || (size2 += o.bytes.length) > LIMIT2 || o.track !== "muxed" || o.kind !== (i ? "media" : "init") || o.mime !== init.mime || o.codecConfigId !== init.codecConfigId || !o.mime || !o.codecConfigId || !Number.isSafeInteger(o.sequence) || !Number.isSafeInteger(o.mediaStartMs) || !Number.isSafeInteger(o.durationMs) || o.mediaStartMs < 0 || o.durationMs < 0)
+      if (!o || !(o.bytes instanceof Uint8Array) || !o.bytes.length || (size3 += o.bytes.length) > LIMIT5 || o.track !== "muxed" || o.kind !== (i ? "media" : "init") || o.mime !== init.mime || o.codecConfigId !== init.codecConfigId || !o.mime || !o.codecConfigId || !Number.isSafeInteger(o.sequence) || !Number.isSafeInteger(o.mediaStartMs) || !Number.isSafeInteger(o.durationMs) || o.mediaStartMs < 0 || o.durationMs < 0)
         throw Error("Invalid clip window object");
       if (i > 1 && (o.sequence !== objects[i - 1].sequence + 1 || Math.abs(o.mediaStartMs - objects[i - 1].mediaStartMs - objects[i - 1].durationMs) > 5))
         throw Error("Non-consecutive clip objects");
@@ -36055,7 +40396,7 @@ THE SOFTWARE.
       if (output)
         void output.cancel().catch(() => {
         });
-    }, TIMEOUT);
+    }, TIMEOUT3);
     const make = (parts) => {
       const input = inputFor(parts);
       inputs.add(input);
@@ -36083,7 +40424,7 @@ THE SOFTWARE.
           const part = make([init.bytes, objects[i].bytes]);
           try {
             const ts = await read(part, check);
-            if (ts.length !== tracks2.length || ts.some((t, j) => !sameConfig(t.config, tracks2[j].config)))
+            if (ts.length !== tracks2.length || ts.some((t, j) => !sameConfig2(t.config, tracks2[j].config)))
               throw Error("Incompatible fragment configuration");
             if (ts.some((t) => !offsets.has(t.track.id))) throw Error("Track timebase mismatch");
             const rawTime = (t, p) => p.timestamp + offsets.get(t.track.id);
@@ -36113,11 +40454,11 @@ THE SOFTWARE.
         const v = new EncodedVideoPacketSource("avc"), a = tracks2.length === 2 ? new EncodedAudioPacketSource("aac") : void 0;
         let ftyp2, moof2, pending, total = 0;
         const result = [];
-        const push = (kind, bytes8, start, duration) => {
+        const push = (kind, bytes9, start, duration) => {
           check();
-          if ((total += bytes8.length) > OUTPUT_LIMIT)
+          if ((total += bytes9.length) > OUTPUT_LIMIT)
             throw Error("Clip window exceeds output limit");
-          result.push({ kind, track: "muxed", sequence: kind === "init" ? 0 : result.length, mediaStartMs: Math.max(0, Math.round(start * 1e3)), durationMs: Math.round(duration * 1e3), mime: init.mime, codecConfigId: init.codecConfigId, bytes: bytes8 });
+          result.push({ kind, track: "muxed", sequence: kind === "init" ? 0 : result.length, mediaStartMs: Math.max(0, Math.round(start * 1e3)), durationMs: Math.round(duration * 1e3), mime: init.mime, codecConfigId: init.codecConfigId, bytes: bytes9 });
         };
         output = new Output({ format: new Mp4OutputFormat({ fastStart: "fragmented", minimumFragmentDuration: 1.8, onFtyp(data) {
           ftyp2 = exactBox(data, "ftyp");
@@ -36175,7 +40516,7 @@ THE SOFTWARE.
           throw Error("Remux track mismatch");
         for (let i = 0; i < tracks2.length; i++) {
           const src = tracks2[i], dst = outTracks[i];
-          if (!sameConfig(src.config, dst.config) || src.packets.length !== dst.packets.length)
+          if (!sameConfig2(src.config, dst.config) || src.packets.length !== dst.packets.length)
             throw Error("Remux packet mismatch");
           for (let j = 0; j < src.packets.length; j++) {
             const p = src.packets[j], q = dst.packets[j];
@@ -36265,11 +40606,26 @@ THE SOFTWARE.
       while (r.ring.length > 1 && (retained(r) + additional > LOCAL_LIMIT || r.ring.length > FRAGMENTS + 1 || end(r.ring.at(-1)) - r.ring[1].mediaStartMs > RING_MS)) r.ring.splice(1, 1);
       return retained(r) + additional <= LOCAL_LIMIT;
     }
+    function retireRecording(r, reason) {
+      if (!r.recording || r.recordingRetired) return;
+      r.recordingRetired = true;
+      const tap = r.audioTap;
+      r.audioTap = void 0;
+      try {
+        tap?.cancel();
+      } catch {
+      }
+      try {
+        deps.recordingEnded?.(r.recording.recordingId, reason);
+      } catch {
+      }
+    }
     function stop(message2 = "Automatic moments stopped.") {
       const r = run;
       if (!r) return;
       run = void 0;
       if (r.timer !== void 0) clear(r.timer);
+      retireRecording(r, "ended");
       r.abort.abort();
       r.childAbort.abort();
       if (r.fallback) {
@@ -36299,6 +40655,7 @@ THE SOFTWARE.
     function fallback(r, reason) {
       if (!valid2(r) || r.transitioning || r.fallback) return;
       r.transitioning = true;
+      retireRecording(r, "error");
       r.childAbort.abort();
       r.releaseChild?.();
       r.ring = [];
@@ -36408,7 +40765,7 @@ THE SOFTWARE.
           const originMidpoint = (r.clock.originEarliestMonoMs + r.clock.originLatestMonoMs) / 2;
           const startWall = r.source.wall + (originMidpoint - r.source.mono) + result.sourceStartMs;
           const caption = `Recorded moment \xB7 about ${new Date(startWall).toISOString().replace(".000Z", "Z")}${suffix}`.slice(0, 120);
-          const context = { cueMediaStartMs: job.cueStart, cueMediaEndMs: job.cueEnd, sourceStartMs: result.sourceStartMs, sourceEndMs: result.sourceEndMs, coverage, hint: job.cue?.hint };
+          const context = { recordingId: r.recording?.recordingId, cueMediaStartMs: job.cueStart, cueMediaEndMs: job.cueEnd, sourceStartMs: result.sourceStartMs, sourceEndMs: result.sourceEndMs, coverage, hint: job.cue?.hint };
           publishing = true;
           try {
             await deps.publish(caption, result.objects, result.durationMs, r.abort.signal, context);
@@ -36452,11 +40809,27 @@ THE SOFTWARE.
       schedule(r);
     }
     function startContinuous(r) {
-      if (!r.master || !r.source) return;
+      if (!valid2(r) || !r.master || !r.source) return;
       const clone = r.master.clone();
       r.child = clone;
       r.releaseChild = ownCaptureTracks(clone);
       r.earliest = now().mono;
+      r.recordingRetired = false;
+      r.recording = { recordingId: randomKey(), sourceMonoMs: r.source.mono, originEarliestMonoMs: r.earliest };
+      const recordingId = r.recording.recordingId;
+      let tap;
+      try {
+        tap = deps.recordingStarted?.({ ...r.recording });
+      } catch {
+      }
+      if (!valid2(r) || r.transitioning || r.recordingRetired) {
+        try {
+          tap?.cancel();
+        } catch {
+        }
+        return;
+      }
+      r.audioTap = tap;
       let started;
       try {
         started = deps.publisher(clone, {
@@ -36467,8 +40840,9 @@ THE SOFTWARE.
           audioBitrate: 96e3,
           fragmentSeconds: 2,
           signal: r.childAbort.signal,
+          experimentalAudio: tap,
           onObject: async (object) => {
-            if (!valid2(r) || r.transitioning) throw new DOMException("Moment cancelled", "AbortError");
+            if (!valid2(r) || r.transitioning || r.recordingRetired || r.recording?.recordingId !== recordingId) throw new DOMException("Moment cancelled", "AbortError");
             if (object.kind === "init") {
               if (r.ring.length || object.sequence !== 0) {
                 fallback(r, "The capture format changed.");
@@ -36476,10 +40850,18 @@ THE SOFTWARE.
               }
               const latest = now().mono;
               r.clock = { sourceMonoMs: r.source.mono, originEarliestMonoMs: r.earliest, originLatestMonoMs: latest };
-              if (latest - r.earliest > 4e3) {
+              if (!Number.isFinite(latest) || !Number.isFinite(r.earliest) || latest < r.earliest || latest - r.earliest > 4e3) {
                 fallback(r, "The capture clock is uncertain.");
                 return;
               }
+              if (r.recording && !r.recordingRetired) {
+                r.recording = { ...r.recording, originLatestMonoMs: latest };
+                try {
+                  deps.recordingClock?.({ ...r.recording, originLatestMonoMs: latest });
+                } catch {
+                }
+              }
+              if (!valid2(r) || r.transitioning) return;
             } else if (!r.ring.length) return;
             if (!evict(r, object.bytes.byteLength)) {
               say("A recording fragment was skipped because local memory is full.");
@@ -36490,7 +40872,7 @@ THE SOFTWARE.
             wake();
           },
           onState: (state, detail) => {
-            if (valid2(r) && !r.transitioning && (state === "error" || state === "capture-ended")) fallback(r, detail || "Recording could not continue.");
+            if (valid2(r) && !r.transitioning && !r.recordingRetired && r.recording?.recordingId === recordingId && (state === "error" || state === "capture-ended")) fallback(r, detail || "Recording could not continue.");
           }
         });
       } catch (error) {
@@ -36516,6 +40898,45 @@ THE SOFTWARE.
       void r.publisherOperation.finally(() => {
         r.publisherOperation = void 0;
       });
+    }
+    async function restartRecording() {
+      const r = run;
+      if (!r || !valid2(r) || !r.master || r.transitioning || r.fallback) return false;
+      r.transitioning = true;
+      retireRecording(r, "error");
+      r.childAbort.abort();
+      r.releaseChild?.();
+      r.child = void 0;
+      r.releaseChild = void 0;
+      r.ring = [];
+      r.cues = [];
+      r.queue = [];
+      r.clock = void 0;
+      r.ids.clear();
+      r.adjacentScore.reset();
+      closing++;
+      try {
+        await Promise.resolve();
+        if (r.publisherOperation) await r.publisherOperation;
+        const publisher2 = r.publisher;
+        r.publisher = void 0;
+        if (publisher2) await publisher2.stop().catch(() => {
+        });
+        if (r.workOperation) await r.workOperation;
+        if (!valid2(r) || !r.master || r.master.getTracks().some((t) => t.readyState !== "live")) return false;
+        r.childAbort = new AbortController();
+        r.source = now();
+        r.lastSelection = r.source;
+        r.baselineDone = false;
+        r.transitioning = false;
+        source({ track: r.master.getAudioTracks()[0], startedAt: r.source.mono, signal: r.abort.signal });
+        if (!valid2(r)) return false;
+        startContinuous(r);
+        schedule(r);
+        return true;
+      } finally {
+        closing--;
+      }
     }
     function start() {
       for (let i = retiredFallbacks.length - 1; i >= 0; i--) {
@@ -36596,7 +41017,7 @@ THE SOFTWARE.
       r.cues.push({ entry, hint, received: now() });
       wake();
     }
-    return { start, stop, wake, observeTranscript, resetTranscriptContext() {
+    return { start, stop, wake, restartRecording, observeTranscript, resetTranscriptContext() {
       run?.adjacentScore.reset();
       run?.fallback?.resetTranscriptContext();
     }, stats() {
@@ -36636,12 +41057,12 @@ THE SOFTWARE.
           return { reset: true, usable: false };
         }
         const old = previous;
-        const same3 = !!old && old.continuity === value.continuity && old.startMs === value.startMs && old.endMs === value.endMs;
-        if (old && !same3 && value.startMs < old.endMs - 1) {
+        const same5 = !!old && old.continuity === value.continuity && old.startMs === value.startMs && old.endMs === value.endMs;
+        if (old && !same5 && value.startMs < old.endMs - 1) {
           previous = void 0;
           return { reset: true, usable: false };
         }
-        const reset = !old || old.continuity !== value.continuity || !same3 && Math.abs(value.startMs - old.endMs) > 1;
+        const reset = !old || old.continuity !== value.continuity || !same5 && Math.abs(value.startMs - old.endMs) > 1;
         previous = { ...value };
         return { reset, usable: true };
       }
@@ -36654,7 +41075,7 @@ THE SOFTWARE.
     const schedule = options.setTimer ?? ((fn, ms) => setTimeout(fn, ms));
     const clear = options.clearTimer ?? ((id) => clearTimeout(id));
     let generation = 0, start, renewed, expires = 0;
-    let timer, running = false, again = false, attempts = 0;
+    let timer, running = false, again = false, attempts = 0, retryFailed = false;
     const elapsed2 = (from, to) => Math.max(0, to.mono - from.mono, to.wall - from.wall);
     const stopTimer = () => {
       if (timer !== void 0) clear(timer);
@@ -36667,6 +41088,7 @@ THE SOFTWARE.
       running = false;
       again = false;
       attempts = 0;
+      retryFailed = false;
     }
     function end2(text2) {
       stop();
@@ -36690,8 +41112,16 @@ THE SOFTWARE.
         again ||= lost;
         return;
       }
-      if (!lost && options.connected() && elapsed2(renewed, current) < 90 * 60 * 1e3) return arm(Math.min(6e4, 90 * 60 * 1e3 - elapsed2(renewed, current)));
-      if (options.connected() && !options.hasParticipants()) return arm(6e4);
+      if (!lost && !retryFailed && options.connected() && elapsed2(renewed, current) < 90 * 60 * 1e3) return arm(Math.min(6e4, 90 * 60 * 1e3 - elapsed2(renewed, current)));
+      if (options.connected() && !options.hasParticipants()) {
+        if (retryFailed) {
+          if (attempts >= 3) return end2("Recording could not restart. The room is still open; stop and start sharing again.");
+          attempts++;
+          options.status("Waiting for another participant before retrying the recording.");
+          return arm(2e3 * 2 ** Math.max(0, attempts - 2));
+        }
+        return arm(6e4);
+      }
       if (attempts >= 3) return end2("The match room could not reconnect. Recording stopped; start a new room to invite people again.");
       const version = generation;
       running = true;
@@ -36702,9 +41132,11 @@ THE SOFTWARE.
         if (version !== generation || !options.current()) return;
         renewed = now();
         attempts = 0;
+        retryFailed = false;
         options.status("Room reconnected. The same screen is still selected.");
       }, () => {
         if (version !== generation || !options.current()) return;
+        retryFailed = true;
         options.status("The room is still reconnecting. Your selected screen stays active.");
       }).finally(() => {
         if (version !== generation) return;
@@ -36713,7 +41145,7 @@ THE SOFTWARE.
           stop();
           return;
         }
-        const retry = again || !options.connected();
+        const retry = again || retryFailed || !options.connected();
         again = false;
         arm(retry ? 2e3 * 2 ** Math.max(0, attempts - 1) : 6e4);
       });
@@ -36748,87 +41180,87 @@ THE SOFTWARE.
     const transcriptKeys = /* @__PURE__ */ new Map();
     let lastTranscriptKey;
     function removeTranscript(id) {
-      const key8 = transcriptKeys.get(id);
-      if (!key8) return;
+      const key9 = transcriptKeys.get(id);
+      if (!key9) return;
       transcriptKeys.delete(id);
-      const item = entries2.get(key8);
+      const item = entries2.get(key9);
       if (item?.type === "transcript") {
         item.value.members = item.value.members.filter((member) => member.id !== id);
         if (!item.value.members.length) {
-          entries2.delete(key8);
-          if (lastTranscriptKey === key8) lastTranscriptKey = void 0;
+          entries2.delete(key9);
+          if (lastTranscriptKey === key9) lastTranscriptKey = void 0;
         }
       }
     }
     return {
       addMatch(value) {
-        const key8 = `match:${value.id}`;
-        if (entries2.has(key8)) return false;
+        const key9 = `match:${value.id}`;
+        if (entries2.has(key9)) return false;
         const old = [...entries2.values()].filter((e) => e.type === "match");
         if (old.length >= 60) entries2.delete(old[0].key);
-        entries2.set(key8, { key: key8, type: "match", value });
+        entries2.set(key9, { key: key9, type: "match", value });
         return true;
       },
       addText(value) {
         if (textKeys.has(value)) return false;
         if (textKeys.size >= 200) {
           const oldest = textKeys.keys().next().value;
-          const key9 = textKeys.get(oldest);
+          const key10 = textKeys.get(oldest);
           textKeys.delete(oldest);
-          entries2.delete(key9);
+          entries2.delete(key10);
         }
-        const key8 = `text:${++next}`;
-        textKeys.set(value, key8);
-        entries2.set(key8, { key: key8, type: "text", value });
+        const key9 = `text:${++next}`;
+        textKeys.set(value, key9);
+        entries2.set(key9, { key: key9, type: "text", value });
         return true;
       },
       addClip(value) {
-        const key8 = `clip:${value.clipId}`;
-        if (entries2.has(key8)) return false;
+        const key9 = `clip:${value.clipId}`;
+        if (entries2.has(key9)) return false;
         const clips2 = [...entries2.values()].filter((item) => item.type === "clip");
         if (clips2.length >= CLIP_ROOM_CARD_LIMIT) entries2.delete(clips2[0].key);
-        entries2.set(key8, { key: key8, type: "clip", value });
+        entries2.set(key9, { key: key9, type: "clip", value });
         return true;
       },
       addAudio(value) {
-        const key8 = `audio:${value.clipId}`;
-        if (entries2.has(key8)) return false;
+        const key9 = `audio:${value.clipId}`;
+        if (entries2.has(key9)) return false;
         const old = [...entries2.values()].filter((item) => item.type === "audio");
         if (old.length >= CLIP_ROOM_CARD_LIMIT) entries2.delete(old[0].key);
-        entries2.set(key8, { key: key8, type: "audio", value });
+        entries2.set(key9, { key: key9, type: "audio", value });
         return true;
       },
       addImage(value) {
-        const key8 = `image:${stillId(value)}`;
-        if (entries2.has(key8)) return false;
+        const key9 = `image:${stillId(value)}`;
+        if (entries2.has(key9)) return false;
         const old = [...entries2.values()].filter((item) => item.type === "image");
         if (old.length >= CLIP_ROOM_CARD_LIMIT) entries2.delete(old[0].key);
-        entries2.set(key8, { key: key8, type: "image", value });
+        entries2.set(key9, { key: key9, type: "image", value });
         return true;
       },
       addReplay(value) {
-        const key8 = `replay:${value.id}`;
-        if (entries2.has(key8)) return false;
+        const key9 = `replay:${value.id}`;
+        if (entries2.has(key9)) return false;
         const old = [...entries2.values()].filter((item) => item.type === "replay");
         if (old.length >= 12) entries2.delete(old[0].key);
-        entries2.set(key8, { key: key8, type: "replay", value });
+        entries2.set(key9, { key: key9, type: "replay", value });
         return true;
       },
       addTranscript(value) {
         if (transcriptKeys.has(value.id)) return false;
         while (transcriptKeys.size >= 200) removeTranscript(transcriptKeys.keys().next().value);
         const last2 = lastTranscriptKey ? entries2.get(lastTranscriptKey) : void 0;
-        const key8 = last2?.type === "transcript" && canAppendTranscript(last2.value, value) ? last2.key : `transcript:${++transcriptSequence}`;
-        if (last2?.type === "transcript" && key8 === last2.key) last2.value.members.push(value);
-        else entries2.set(key8, { key: key8, type: "transcript", value: { members: [value] } });
-        transcriptKeys.set(value.id, key8);
-        lastTranscriptKey = key8;
+        const key9 = last2?.type === "transcript" && canAppendTranscript(last2.value, value) ? last2.key : `transcript:${++transcriptSequence}`;
+        if (last2?.type === "transcript" && key9 === last2.key) last2.value.members.push(value);
+        else entries2.set(key9, { key: key9, type: "transcript", value: { members: [value] } });
+        transcriptKeys.set(value.id, key9);
+        lastTranscriptKey = key9;
         return true;
       },
       addCommentary(value) {
-        const key8 = `commentary:${value.id}`;
-        if (entries2.has(key8)) return false;
-        entries2.set(key8, { key: key8, type: "commentary", value });
+        const key9 = `commentary:${value.id}`;
+        if (entries2.has(key9)) return false;
+        entries2.set(key9, { key: key9, type: "commentary", value });
         return true;
       },
       reconcile(text2, clips2, transcripts2 = [], commentary2 = [], match = [], replays2 = [], images = [], audio = []) {
@@ -36836,31 +41268,31 @@ THE SOFTWARE.
         const liveMatch = new Map(match.map((entry) => [entry.id, entry]));
         const liveCommentary = new Map(commentary2.map((entry) => [entry.id, entry]));
         const liveImages = new Map(images.map((entry) => [stillId(entry), entry]));
-        const liveAudio = new Map(audio.map((entry) => [entry.clipId, entry]));
+        const liveAudio2 = new Map(audio.map((entry) => [entry.clipId, entry]));
         const liveReplays = new Map(replays2.map((entry) => [entry.id, entry]));
-        for (const [key8, item] of entries2) {
+        for (const [key9, item] of entries2) {
           if (item.type === "audio") {
-            const entry = liveAudio.get(item.value.clipId), parent = entry && liveClips.get(entry.clipId);
-            if (!entry || !parent || parent.manifest.sha256 !== entry.manifestSha256 || entry.expiresAtMs <= Date.now() || parent.expiresAtMs <= Date.now()) entries2.delete(key8);
+            const entry = liveAudio2.get(item.value.clipId), parent = entry && liveClips.get(entry.clipId);
+            if (!entry || !parent || parent.manifest.sha256 !== entry.manifestSha256 || entry.expiresAtMs <= Date.now() || parent.expiresAtMs <= Date.now()) entries2.delete(key9);
             else item.value = entry;
           } else if (item.type === "image") {
             const entry = liveImages.get(stillId(item.value)), parent = entry && liveClips.get(entry.clipId);
-            if (!entry || !parent || parent.manifest.sha256 !== entry.manifestSha256 || entry.expiresAtMs <= Date.now()) entries2.delete(key8);
+            if (!entry || !parent || parent.manifest.sha256 !== entry.manifestSha256 || entry.expiresAtMs <= Date.now()) entries2.delete(key9);
             else item.value = entry;
           } else if (item.type === "replay") {
             const entry = liveReplays.get(item.value.id), parent = entry && liveClips.get(entry.clipId);
-            if (!entry || !parent || parent.manifest.sha256 !== entry.manifestSha256) entries2.delete(key8);
+            if (!entry || !parent || parent.manifest.sha256 !== entry.manifestSha256) entries2.delete(key9);
             else item.value = entry;
           } else if (item.type === "match") {
             const entry = liveMatch.get(item.value.id);
-            if (!entry) entries2.delete(key8);
+            if (!entry) entries2.delete(key9);
             else item.value = entry;
           } else if (item.type === "text" && !liveText.has(item.value)) {
-            entries2.delete(key8);
+            entries2.delete(key9);
             textKeys.delete(item.value);
           } else if (item.type === "commentary") {
             const entry = liveCommentary.get(item.value.id);
-            if (!entry) entries2.delete(key8);
+            if (!entry) entries2.delete(key9);
             else item.value = entry;
           } else if (item.type === "transcript") {
             for (const member of [...item.value.members]) {
@@ -36873,7 +41305,7 @@ THE SOFTWARE.
             }
           } else if (item.type === "clip") {
             const card = liveClips.get(item.value.clipId);
-            if (!card) entries2.delete(key8);
+            if (!card) entries2.delete(key9);
             else item.value = card;
           }
         }
@@ -36893,10 +41325,10 @@ THE SOFTWARE.
           rebuilt.push(item);
           const wasLast = lastTranscriptKey === item.key;
           for (const group of groups.slice(1)) {
-            const key8 = `transcript:${++transcriptSequence}`;
-            rebuilt.push({ key: key8, type: "transcript", value: group });
-            for (const member of group.members) transcriptKeys.set(member.id, key8);
-            if (wasLast) lastTranscriptKey = key8;
+            const key9 = `transcript:${++transcriptSequence}`;
+            rebuilt.push({ key: key9, type: "transcript", value: group });
+            for (const member of group.members) transcriptKeys.set(member.id, key9);
+            if (wasLast) lastTranscriptKey = key9;
           }
         }
         entries2.clear();
@@ -37032,9 +41464,9 @@ THE SOFTWARE.
         continue;
       }
       const ms = item.value.arrivedAtMs, date = typeof ms === "number" && Number.isFinite(ms) ? new Date(ms) : void 0;
-      const key8 = date && Number.isFinite(date.getTime()) ? [Math.floor(ms / 6e4), date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getTimezoneOffset()].join(":") : void 0;
-      if (key8 !== void 0 && key8 === previous) result.add(item.key);
-      previous = key8;
+      const key9 = date && Number.isFinite(date.getTime()) ? [Math.floor(ms / 6e4), date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getTimezoneOffset()].join(":") : void 0;
+      if (key9 !== void 0 && key9 === previous) result.add(item.key);
+      previous = key9;
     }
     return result;
   }
@@ -37049,8 +41481,31 @@ THE SOFTWARE.
     element.dataset.timeSource = time.source;
   };
   function createTimelineView(container, announce, latest, state, action, correct, canCorrect = () => false, commentaryAction, commentaryState = () => "unknown", matchAction, pictureAction, replayAction, audioOptions, directorScroll2) {
-    const rows = /* @__PURE__ */ new Map(), newBelow = /* @__PURE__ */ new Set();
+    const rows = /* @__PURE__ */ new Map(), newBelow = /* @__PURE__ */ new Set(), programmeLabels = /* @__PURE__ */ new Map();
+    let programmeTime = () => void 0;
     let announcementVersion = 0, readerIntent = false, preferReaderAnchor = false, editingIntent = false, initialised = false, ownedScrollY, ownedElementScrollTop;
+    const programmeLabel = (kind, id) => {
+      try {
+        return programmeTime(kind, id);
+      } catch {
+        return "Programme position unknown";
+      }
+    };
+    function updateProgrammeLabel(item, row) {
+      const clipId = item.type === "clip" ? item.value.clipId : ["audio", "image", "replay"].includes(item.type) ? item.value.clipId : void 0;
+      const label = clipId ? programmeLabel("clip", clipId) : void 0;
+      let element = programmeLabels.get(item.key);
+      if (!element && label) {
+        element = document.createElement("p");
+        element.className = "programme-time";
+        row.element.children[0].append(element);
+        programmeLabels.set(item.key, element);
+      }
+      if (element) {
+        element.hidden = !label;
+        setText(element, label || "");
+      }
+    }
     const viewport = container.ownerDocument?.defaultView;
     const panel = container.closest?.("#session-panel");
     const mediaFollowing = () => !!panel?.classList.contains("media-following");
@@ -37127,9 +41582,9 @@ THE SOFTWARE.
     const pruneBelow = () => {
       if (!viewport) return;
       const bottom = readableViewport(container, true, latest).bottom;
-      for (const key8 of newBelow) {
-        const row = rows.get(key8);
-        if (!row || row.element.getBoundingClientRect().top < bottom) newBelow.delete(key8);
+      for (const key9 of newBelow) {
+        const row = rows.get(key9);
+        if (!row || row.element.getBoundingClientRect().top < bottom) newBelow.delete(key9);
       }
       syncLatest();
     };
@@ -37350,9 +41805,10 @@ THE SOFTWARE.
       pictureButton.addEventListener("click", () => {
         if (pictureButton.getAttribute("aria-disabled") !== "true") pictureAction?.(cue.clipId);
       });
+      provenance.className = "small replay-provenance";
       media.append(figure, play);
-      details.append(summary, timing, provenance, original, pictureButton);
-      content.append(media, body, details);
+      details.append(summary, timing, original, pictureButton);
+      content.append(media, body, provenance, details);
       element.append(content);
       return { type: "replay", element, media, heading, body, timing, provenance, original, play, pictureButton, picture, figure };
     }
@@ -37505,7 +41961,8 @@ THE SOFTWARE.
         const gapMs = index ? entry.startMs - passage.members[index - 1].endMs : 0;
         member.gap.hidden = gapMs <= 0;
         setText(member.gap, gapMs > 0 ? gapMs < 50 ? "No excerpt for less than 0.1s" : `No excerpt for ~${(gapMs / 1e3).toFixed(1)}s` : "");
-        setText(member.time, entry.revision ? "Transcript excerpt \xB7 corrected by host" : "Transcript excerpt");
+        const position = programmeLabel("transcript", entry.id);
+        setText(member.time, `${entry.revision ? "Transcript excerpt \xB7 corrected by host" : "Transcript excerpt"}${position ? ` \xB7 ${position}` : ""}`);
         setText(member.offset, `Audio ${(entry.startMs / 1e3).toFixed(1)}\u2013${(entry.endMs / 1e3).toFixed(1)}s`);
         const review = transcriptNeedsReview(entry);
         member.correct.hidden = !canCorrect();
@@ -37551,8 +42008,8 @@ THE SOFTWARE.
     function updateText(row, e) {
       setText(row.who, (e.own ? "You" : e.name || "Participant") + ": ");
       setText(row.body, e.text);
-      setText(row.receipt, e.own ? `Accepted by ${e.accepted.length} of ${e.recipients.length} devices; not read receipts.` : "");
-      setText(row.receiptDetail, e.own ? `Queued for ${e.queued.length} of ${e.recipients.length} ready connections at send; accepted by ${e.accepted.length}; ${e.queued.length - e.accepted.length} not yet confirmed or unknown.` : "");
+      setText(row.receipt, e.own ? `Accepted by ${e.accepted.length} of ${e.recipients.length} devices${e.notSent?.length ? `; not sent to ${e.notSent.length} connection${e.notSent.length === 1 ? "" : "s"}` : ""}; not read receipts.` : "");
+      setText(row.receiptDetail, e.own ? `Queued for ${e.queued.length} of ${e.recipients.length} ready connections at send; accepted by ${e.accepted.length}; ${e.notSent?.length ?? 0} not sent to their connection; ${e.queued.length - e.accepted.length - (e.notSent?.length ?? 0)} not yet confirmed or unknown.` : "");
       row.receiptDetails.hidden = !e.own;
     }
     function updateClip(row, card) {
@@ -37606,14 +42063,15 @@ THE SOFTWARE.
       const snapshot3 = captureTimelineScroll(container, [...rows.values()].map((row) => row.element), preferReaderAnchor);
       const bottom = container.scrollHeight - container.scrollTop - container.clientHeight <= 24;
       const top = container.getBoundingClientRect().top, keys = new Set(items.map((item) => item.key));
-      const anchor = [...rows].filter(([key8]) => keys.has(key8)).map(([, row]) => row.element).find((node) => node.isConnected && node.getBoundingClientRect().bottom > top);
+      const anchor = [...rows].filter(([key9]) => keys.has(key9)).map(([, row]) => row.element).find((node) => node.isConnected && node.getBoundingClientRect().bottom > top);
       const before = anchor?.getBoundingClientRect().top;
       const active = document.activeElement;
       let removedFocus = false, added = false;
-      for (const [key8, row] of rows) if (!keys.has(key8)) {
+      for (const [key9, row] of rows) if (!keys.has(key9)) {
         if (active && row.element.contains(active)) removedFocus = true;
         row.element.remove();
-        rows.delete(key8);
+        rows.delete(key9);
+        programmeLabels.delete(key9);
       }
       for (const [itemIndex, item] of items.entries()) {
         let row = rows.get(item.key);
@@ -37656,12 +42114,13 @@ THE SOFTWARE.
           removedFocus = result.removedFocus || removedFocus;
           if (result.added && items.at(-1)?.key === item.key) added = true;
         }
+        updateProgrammeLabel(item, row);
       }
       const roles = momentRoles(items), continued = chatContinuations(items);
-      for (const [key8, row] of rows) {
-        const role2 = roles.get(key8);
+      for (const [key9, row] of rows) {
+        const role2 = roles.get(key9);
         if (row.type === "text") {
-          if (continued.has(key8)) row.element.dataset.chatContinuation = "true";
+          if (continued.has(key9)) row.element.dataset.chatContinuation = "true";
           else delete row.element.dataset.chatContinuation;
         }
         if (row.type === "audio") {
@@ -37673,7 +42132,7 @@ THE SOFTWARE.
           if (row.element.dataset.moment !== role2) row.element.dataset.moment = role2;
         } else if (row.element.dataset.moment !== void 0) delete row.element.dataset.moment;
       }
-      for (const key8 of newBelow) if (!keys.has(key8) || roles.get(key8) === "part") newBelow.delete(key8);
+      for (const key9 of newBelow) if (!keys.has(key9) || roles.get(key9) === "part") newBelow.delete(key9);
       if (initialised && readerIntent && !mediaFollowing() && snapshot3 && !snapshot3.atBottom) {
         const bottom2 = readableViewport(container, true, latest).bottom;
         for (const item of items) {
@@ -37762,8 +42221,10 @@ THE SOFTWARE.
         return [{ key: item.key, kind, words, readable, version }];
       });
     }
-    return { render, setDeliveryHold, refreshLatest: syncLatest, directorCandidates, directorTarget(key8) {
-      return rows.get(key8)?.element;
+    return { render, setProgrammeTime(provider) {
+      programmeTime = provider ?? (() => void 0);
+    }, setDeliveryHold, refreshLatest: syncLatest, directorCandidates, directorTarget(key9) {
+      return rows.get(key9)?.element;
     }, audioMediaTarget(id) {
       const row = rows.get(`audio:${id}`);
       return row?.type === "audio" && row.element.dataset.parentClipId === id ? row.media : void 0;
@@ -37791,6 +42252,7 @@ THE SOFTWARE.
       ownedElementScrollTop = void 0;
       for (const row of rows.values()) row.element.remove();
       rows.clear();
+      programmeLabels.clear();
       setText(announce, "");
     } };
   }
@@ -37798,20 +42260,20 @@ THE SOFTWARE.
   // src/clip-storage.ts
   var CLIP_DB_NAME = "same-end-temporary-clips-v1";
   var CLIP_DISK_CAP = 128 * 1024 * 1024;
-  function planDiskEvictions(candidates, total, bytes8, protectedIds = []) {
-    if (!Number.isSafeInteger(total) || total < 0 || !Number.isSafeInteger(bytes8) || bytes8 <= 0 || bytes8 > CLIP_ROOM_RETAINED_BYTES || candidates.some((x) => !Number.isSafeInteger(x.bytes) || x.bytes <= 0 || !Number.isSafeInteger(x.issuedAtMs))) throw Error("Invalid temporary storage quota");
+  function planDiskEvictions(candidates, total, bytes9, protectedIds = []) {
+    if (!Number.isSafeInteger(total) || total < 0 || !Number.isSafeInteger(bytes9) || bytes9 <= 0 || bytes9 > CLIP_ROOM_RETAINED_BYTES || candidates.some((x) => !Number.isSafeInteger(x.bytes) || x.bytes <= 0 || !Number.isSafeInteger(x.issuedAtMs))) throw Error("Invalid temporary storage quota");
     let count = candidates.length, roomBytes = candidates.reduce((n, x) => n + x.bytes, 0);
     if (!Number.isSafeInteger(roomBytes) || roomBytes > total) throw Error("Invalid temporary storage quota");
     const selected = [], protectedSet = new Set(protectedIds);
     for (const h of [...candidates].sort((a, b) => a.issuedAtMs - b.issuedAtMs || a.id.localeCompare(b.id))) {
-      if (count < CLIP_ROOM_CARD_LIMIT && roomBytes + bytes8 <= CLIP_ROOM_RETAINED_BYTES) break;
+      if (count < CLIP_ROOM_CARD_LIMIT && roomBytes + bytes9 <= CLIP_ROOM_RETAINED_BYTES) break;
       if (protectedSet.has(h.id)) continue;
       selected.push(h.id);
       count--;
       roomBytes -= h.bytes;
       total -= h.bytes;
     }
-    if (count >= CLIP_ROOM_CARD_LIMIT || roomBytes + bytes8 > CLIP_ROOM_RETAINED_BYTES || total + bytes8 > CLIP_DISK_CAP) throw Error("Temporary browser storage is full");
+    if (count >= CLIP_ROOM_CARD_LIMIT || roomBytes + bytes9 > CLIP_ROOM_RETAINED_BYTES || total + bytes9 > CLIP_DISK_CAP) throw Error("Temporary browser storage is full");
     return selected;
   }
   var expiredTransactions = /* @__PURE__ */ new WeakSet();
@@ -37847,7 +42309,7 @@ THE SOFTWARE.
     });
     return p;
   }
-  async function bounded2(work) {
+  async function bounded3(work) {
     let timer;
     try {
       return await Promise.race([work, new Promise((_, reject) => {
@@ -38003,7 +42465,7 @@ THE SOFTWARE.
       throw Error("Temporary browser storage unavailable");
     const db = opened;
     try {
-      await bounded2(initialization);
+      await bounded3(initialization);
     } catch (error) {
       db.close();
       throw error;
@@ -38067,17 +42529,17 @@ THE SOFTWARE.
         const cleanup = [], candidates = [], evicted = [];
         const protectedSet = new Set(protectedIds);
         await each(clips2, (c) => {
-          const key8 = c.primaryKey, h2 = c.value;
-          const own = Array.isArray(key8) && key8[0] === ns;
+          const key9 = c.primaryKey, h2 = c.value;
+          const own = Array.isArray(key9) && key9[0] === ns;
           if (!own) {
-            if (!validHeader(h2) || !Array.isArray(key8) || key8[0] !== h2.ns || key8[1] !== h2.id)
+            if (!validHeader(h2) || !Array.isArray(key9) || key9[0] !== h2.ns || key9[1] !== h2.id)
               throw Error("Temporary storage quota cannot be verified");
             total += h2.bytes;
             return;
           }
-          if (!validHeader(h2) || key8[1] !== h2.id || h2.ns !== ns) {
+          if (!validHeader(h2) || key9[1] !== h2.id || h2.ns !== ns) {
             c.delete();
-            if (typeof key8[1] === "string") cleanup.push(deletePartKeys(parts, ns, key8[1]));
+            if (typeof key9[1] === "string") cleanup.push(deletePartKeys(parts, ns, key9[1]));
             return;
           }
           if (h2.expiresAtMs <= Date.now() || !validLiveHeader(h2)) {
@@ -38094,10 +42556,10 @@ THE SOFTWARE.
         });
         await Promise.all(cleanup);
         assertTransaction(tx);
-        const bytes8 = items.reduce((n, x) => n + x.bytes.byteLength, 0);
-        if (items.length < 3 || items.length > 97 || bytes8 !== card.totalBytes + card.manifest.lengthBytes || bytes8 > CLIP_ROOM_RETAINED_BYTES)
+        const bytes9 = items.reduce((n, x) => n + x.bytes.byteLength, 0);
+        if (items.length < 3 || items.length > 97 || bytes9 !== card.totalBytes + card.manifest.lengthBytes || bytes9 > CLIP_ROOM_RETAINED_BYTES)
           throw Error("Invalid temporary clip size");
-        const selected = planDiskEvictions(candidates.map((h2) => ({ id: h2.id, bytes: h2.bytes, issuedAtMs: h2.card.issuedAtMs })), total, bytes8, protectedIds);
+        const selected = planDiskEvictions(candidates.map((h2) => ({ id: h2.id, bytes: h2.bytes, issuedAtMs: h2.card.issuedAtMs })), total, bytes9, protectedIds);
         const byId = new Map(candidates.map((h2) => [h2.id, h2]));
         for (const id of selected) {
           const h2 = byId.get(id);
@@ -38113,7 +42575,7 @@ THE SOFTWARE.
         assertTransaction(tx);
         if (card.expiresAtMs <= Date.now())
           throw Error("Clip expired");
-        const h = { ns, id: card.clipId, card, count: items.length, bytes: bytes8, expiresAtMs: card.expiresAtMs, writeId: crypto.randomUUID() };
+        const h = { ns, id: card.clipId, card, count: items.length, bytes: bytes9, expiresAtMs: card.expiresAtMs, writeId: crypto.randomUUID() };
         clips2.put(h);
         items.forEach((part, index) => parts.put({ ns, id: card.clipId, index, descriptor: part.descriptor, data: new Blob([part.bytes]) }));
         await done;
@@ -38139,11 +42601,11 @@ THE SOFTWARE.
         if (!p || !(p.data instanceof Blob) || !Number.isSafeInteger(expected.lengthBytes) || expected.lengthBytes < 1 || expected.lengthBytes > (index === 0 ? 65536 : 8 * 1024 * 1024) || p.data.size !== expected.lengthBytes || JSON.stringify(p.descriptor) !== JSON.stringify(expected))
           throw Error("Temporary clip incomplete");
         await done;
-        const bytes8 = new Uint8Array(await bounded2(p.data.arrayBuffer()));
+        const bytes9 = new Uint8Array(await bounded3(p.data.arrayBuffer()));
         await validClip(id, h.writeId);
         if (h.expiresAtMs <= Date.now())
           throw Error("Temporary clip expired");
-        return { header: h, descriptor: p.descriptor, bytes: bytes8 };
+        return { header: h, descriptor: p.descriptor, bytes: bytes9 };
       } catch (e) {
         abort(tx);
         await done.catch(() => {
@@ -38209,8 +42671,8 @@ THE SOFTWARE.
           throw Error("Temporary storage generation exhausted");
         names.put({ ns, epoch: next });
         await each(tx.objectStore("clips"), (c) => {
-          const key8 = c.primaryKey;
-          if (Array.isArray(key8) && key8[0] === ns)
+          const key9 = c.primaryKey;
+          if (Array.isArray(key9) && key9[0] === ns)
             c.delete();
         });
         await deletePartKeys(tx.objectStore("parts"), ns);
@@ -38224,13 +42686,13 @@ THE SOFTWARE.
       }
     }
     return {
-      headers: () => bounded2(headers()),
-      save: (card, items, signal, protectedIds) => bounded2(save(card, items, signal, protectedIds)),
-      read: (id, index, expected, expectedWriteId) => bounded2(read3(id, index, expected, expectedWriteId)),
-      valid: () => bounded2(valid2()),
-      validClip: (id, writeId) => bounded2(validClip(id, writeId)),
-      remove: (id, expectedWriteId) => bounded2(remove(id, expectedWriteId)),
-      clear: () => bounded2(clear()),
+      headers: () => bounded3(headers()),
+      save: (card, items, signal, protectedIds) => bounded3(save(card, items, signal, protectedIds)),
+      read: (id, index, expected, expectedWriteId) => bounded3(read3(id, index, expected, expectedWriteId)),
+      valid: () => bounded3(valid2()),
+      validClip: (id, writeId) => bounded3(validClip(id, writeId)),
+      remove: (id, expectedWriteId) => bounded3(remove(id, expectedWriteId)),
+      clear: () => bounded3(clear()),
       close() {
         closed = true;
         db.close();
@@ -38273,8 +42735,8 @@ THE SOFTWARE.
               throw Error("Temporary storage generation exhausted");
             names.put({ ns, epoch });
             await each(active.objectStore("clips"), (c) => {
-              const key8 = c.primaryKey;
-              if (Array.isArray(key8) && key8[0] === ns)
+              const key9 = c.primaryKey;
+              if (Array.isArray(key9) && key9[0] === ns)
                 c.delete();
             });
             await deletePartKeys(active.objectStore("parts"), ns);
@@ -38524,7 +42986,7 @@ THE SOFTWARE.
           const manifest = validateClipManifest(JSON.parse(decoder2.decode(manifestBytes)), clip.card);
           if (JSON.stringify([clip.card.manifest, ...manifest.objects]) !== JSON.stringify(clip.descriptors))
             throw Error("Temporary clip manifest changed");
-          const bytes8 = index === 0 ? manifestBytes : await verify(c, v, store, id, index, clip.descriptors[index], clip.writeId);
+          const bytes9 = index === 0 ? manifestBytes : await verify(c, v, store, id, index, clip.descriptors[index], clip.writeId);
           current(c, v);
           await store.valid();
           current(c, v);
@@ -38532,7 +42994,7 @@ THE SOFTWARE.
           current(c, v);
           if (entries2.get(id) !== clip || clip.card.expiresAtMs <= Date.now())
             throw Error("Temporary clip expired or changed");
-          return { descriptor: clip.descriptors[index], bytes: bytes8 };
+          return { descriptor: clip.descriptors[index], bytes: bytes9 };
         } catch (error) {
           if (context === c && version === v) {
             try {
@@ -38654,6 +43116,10 @@ THE SOFTWARE.
     return { enable, rebind, save, authorize, load, readClip, clear, discard, discardById, expire, close, has(id) {
       const c = entries2.get(id);
       return !!c && c.card.expiresAtMs > Date.now() && !revoked;
+    }, debugDescribe(id) {
+      const item = entries2.get(id);
+      if (!item) return void 0;
+      return { validNow: !revoked && item.card.expiresAtMs > Date.now(), indexed: true, descriptors: item.descriptors.slice(0, 97).map((d) => ({ kind: d.kind, infoHash: d.infoHash, sha256: d.sha256 })), truncated: item.descriptors.length > 97 };
     }, hasHash(hash) {
       return !revoked && [...entries2.values()].some((x) => x.card.expiresAtMs > Date.now() && x.descriptors.some((d) => d.infoHash === hash));
     }, hashes() {
@@ -38666,7 +43132,7 @@ THE SOFTWARE.
   }
 
   // src/clip-room.ts
-  var encoder3 = new TextEncoder();
+  var encoder4 = new TextEncoder();
   var decoder3 = new TextDecoder("utf-8", { fatal: true });
   function createClipRoom(added) {
     const emitAdded = (card) => {
@@ -38741,7 +43207,7 @@ THE SOFTWARE.
     };
     const send2 = (id, value) => {
       const raw = JSON.stringify(value);
-      if (encoder3.encode(raw).length <= 4096) ctx?.send(id, raw);
+      if (encoder4.encode(raw).length <= 4096) ctx?.send(id, raw);
     };
     const broadcast = (value) => {
       for (const id of ctx?.peers() || []) send2(id, value);
@@ -38775,18 +43241,18 @@ THE SOFTWARE.
         if (!claims.size) availability.delete(peer);
       }
     }
-    function planMemory(bytes8) {
-      if (!Number.isSafeInteger(bytes8) || bytes8 < 0 || bytes8 > CLIP_ROOM_RETAINED_BYTES) throw Error("Not enough room in the temporary clip memory");
+    function planMemory(bytes9) {
+      if (!Number.isSafeInteger(bytes9) || bytes9 < 0 || bytes9 > CLIP_ROOM_RETAINED_BYTES) throw Error("Not enough room in the temporary clip memory");
       const protectedSet = protectedIds();
       let remaining = used;
       const victims = [];
       const candidates = [...stored.values()].filter((x) => !protectedSet.has(x.card.clipId)).sort((a, b) => a.card.issuedAtMs - b.card.issuedAtMs || a.card.clipId.localeCompare(b.card.clipId));
       for (const item of candidates) {
-        if (remaining + bytes8 <= CLIP_ROOM_RETAINED_BYTES) break;
+        if (remaining + bytes9 <= CLIP_ROOM_RETAINED_BYTES) break;
         victims.push(item.card.clipId);
         remaining -= item.items.reduce((n, x) => n + x.bytes.length, 0);
       }
-      if (remaining + bytes8 > CLIP_ROOM_RETAINED_BYTES) throw Error("Not enough room in the temporary clip memory");
+      if (remaining + bytes9 > CLIP_ROOM_RETAINED_BYTES) throw Error("Not enough room in the temporary clip memory");
       return victims;
     }
     function cardVictim(incoming) {
@@ -38847,7 +43313,7 @@ THE SOFTWARE.
         if (ctx === c && v === version && c?.canForward()) {
           const authorized = await disk.authorize("");
           if (ctx !== c || v !== version || !c.current()) return;
-          const ids = [...cards.keys()].filter((key8) => stored.has(key8) || authorized && disk.has(key8));
+          const ids = [...cards.keys()].filter((key9) => stored.has(key9) || authorized && disk.has(key9));
           chunks(ids, (part) => send2(id, { type: "clip-have", clipIds: part }));
         }
       } finally {
@@ -38940,8 +43406,8 @@ THE SOFTWARE.
         purge();
         if (!caption.trim() || caption.length > 120) throw Error("Enter a caption of up to 120 characters");
         if (objects.length < 2 || objects.length > CLIP_MAX_OBJECTS || durationMs < 1 || durationMs > 18e4) throw Error("Clip is incomplete or too long");
-        const size2 = objects.reduce((n, x) => n + x.bytes.length, 0);
-        planMemory(size2 + 65536);
+        const size3 = objects.reduce((n, x) => n + x.bytes.length, 0);
+        planMemory(size3 + 65536);
         const parts = [];
         for (const object of objects) {
           assertCurrent();
@@ -38950,12 +43416,12 @@ THE SOFTWARE.
           assertCurrent();
           parts.push({ descriptor, bytes: object.bytes });
         }
-        const clipId = randomKey(), manifest = { version: "semk2-clip-manifest/1", roomId: c.roomId, sourceKey: c.sourceKey, clipId, objects: parts.map((p) => p.descriptor) }, manifestBytes = encoder3.encode(JSON.stringify(manifest));
-        if (manifestBytes.length > 65536 || size2 + manifestBytes.length > CLIP_ROOM_RETAINED_BYTES) throw Error("Clip manifest exceeds available memory");
+        const clipId = randomKey(), manifest = { version: "semk2-clip-manifest/1", roomId: c.roomId, sourceKey: c.sourceKey, clipId, objects: parts.map((p) => p.descriptor) }, manifestBytes = encoder4.encode(JSON.stringify(manifest));
+        if (manifestBytes.length > 65536 || size3 + manifestBytes.length > CLIP_ROOM_RETAINED_BYTES) throw Error("Clip manifest exceeds available memory");
         const md = await c.engine.put({ kind: "init", track: "muxed", sequence: 0, mediaStartMs: 0, durationMs: 0, mime: CLIP_MANIFEST_MIME, codecConfigId: "clip-manifest/1", bytes: manifestBytes });
         added2.push(md.infoHash);
         assertCurrent();
-        const now = Date.now(), unsigned = { type: "clip-card", version: "semk2-clip/1", roomId: c.roomId, sourceKey: c.sourceKey, clipId, caption: caption.trim(), issuedAtMs: now, expiresAtMs: now + CLIP_MAX_AGE, durationMs, totalBytes: size2, objectCount: parts.length, manifest: md };
+        const now = Date.now(), unsigned = { type: "clip-card", version: "semk2-clip/1", roomId: c.roomId, sourceKey: c.sourceKey, clipId, caption: caption.trim(), issuedAtMs: now, expiresAtMs: now + CLIP_MAX_AGE, durationMs, totalBytes: size3, objectCount: parts.length, manifest: md };
         const card = await signClipCard(unsigned, c.privateKey);
         assertCurrent();
         validateClipCard(card, c.roomId, c.sourceKey);
@@ -38975,7 +43441,7 @@ THE SOFTWARE.
             saved = false;
             assertCurrent();
           }
-          const victim = cardVictim(card), memoryVictims = saved ? [] : planMemory(size2 + manifestBytes.length);
+          const victim = cardVictim(card), memoryVictims = saved ? [] : planMemory(size3 + manifestBytes.length);
           assertCurrent();
           const staged = new Set(added2);
           if (victim) evictCard(victim, staged);
@@ -38983,7 +43449,7 @@ THE SOFTWARE.
           cards.set(clipId, card);
           if (saved) diskOnly.add(clipId);
           if (!saved) {
-            used += size2 + manifestBytes.length;
+            used += size3 + manifestBytes.length;
             stored.set(clipId, { card, items: all });
           } else dropHashes(all.map((part) => part.descriptor.infoHash));
           committed = true;
@@ -39004,7 +43470,7 @@ THE SOFTWARE.
     }
     function receive(peer, raw) {
       const c = ctx;
-      if (!c || !c.current() || !c.peers().includes(peer) || encoder3.encode(raw).length > 4096) return false;
+      if (!c || !c.current() || !c.peers().includes(peer) || encoder4.encode(raw).length > 4096) return false;
       let m;
       try {
         m = JSON.parse(raw);
@@ -39049,7 +43515,7 @@ THE SOFTWARE.
     }
     function canSend(peer, raw) {
       const c = ctx;
-      if (!c || !c.current() || !c.peers().includes(peer) || encoder3.encode(raw).length > 4096) return false;
+      if (!c || !c.current() || !c.peers().includes(peer) || encoder4.encode(raw).length > 4096) return false;
       let m;
       try {
         m = JSON.parse(raw);
@@ -39105,11 +43571,11 @@ THE SOFTWARE.
           notify();
         }
         try {
-          const bytes8 = await disk.readClip(id, signal);
+          const bytes9 = await disk.readClip(id, signal);
           assertCurrent();
           report(card.totalBytes, "local");
           assertCurrent();
-          return bytes8;
+          return bytes9;
         } finally {
           if (!reserved) finishBusy(c, v);
         }
@@ -39300,7 +43766,18 @@ THE SOFTWARE.
       await disk.clear();
       notify();
     }
-    return { attach, restore, publish, receive, canSend, tick, download, audioInput, enableStorage, deleteStorage, clearStorage, closeStorage, storageEnabled: () => disk.enabled, authorizeObject: async (hash) => await disk.authorize(hash) || [...stored.values()].some((item) => item.items.some((part) => part.descriptor.infoHash === hash)), loadObject: (hash) => disk.load(hash), get diskBytes() {
+    function debugSnapshot() {
+      const t = stamp3(), livePeers = new Set(ctx?.peers() || []), all = [...cards.values()];
+      return { busy, storedBytes: used, totalCards: all.length, truncated: all.length > 64, cards: all.slice(-64).map((card) => {
+        const cached = stored.get(card.clipId), diskEntry = disk.debugDescribe(card.clipId);
+        const freshClaims = [...availability].filter(([peer, claims]) => {
+          const at = claims.get(card.clipId);
+          return livePeers.has(peer) && !!at && elapsed2(at, t) < CLIP_AVAILABILITY_TTL_MS;
+        }).length;
+        return { clipId: card.clipId, issuedAtMs: card.issuedAtMs, expiresAtMs: card.expiresAtMs, validNow: card.expiresAtMs > t.wall, totalBytes: card.totalBytes, objectCount: card.objectCount, manifest: { infoHash: card.manifest.infoHash, sha256: card.manifest.sha256 }, freshAvailabilityClaims: freshClaims, memory: cached ? { complete: cached.items.length === card.objectCount + 1, descriptors: cached.items.slice(0, 97).map((x) => ({ kind: x.descriptor.kind, infoHash: x.descriptor.infoHash, sha256: x.descriptor.sha256 })), truncated: cached.items.length > 97 } : null, disk: diskEntry ?? null };
+      }) };
+    }
+    return { debugSnapshot, attach, restore, publish, receive, canSend, tick, download, audioInput, enableStorage, deleteStorage, clearStorage, closeStorage, storageEnabled: () => disk.enabled, authorizeObject: async (hash) => await disk.authorize(hash) || [...stored.values()].some((item) => item.items.some((part) => part.descriptor.infoHash === hash)), loadObject: (hash) => disk.load(hash), get diskBytes() {
       return disk.bytes;
     }, ready(id) {
       send2(id, { type: "clip-hello" });
@@ -39376,23 +43853,23 @@ THE SOFTWARE.
   var CHAT_ROOM_PROFILE = "semk2-room/1";
 
   // src/room-feed.ts
-  var bytes7 = (s) => new TextEncoder().encode(s).length;
+  var bytes8 = (s) => new TextEncoder().encode(s).length;
   var validId = (s) => typeof s === "string" && /^[a-f0-9-]{36}$/.test(s);
   function createRoomFeed(send2, changed, now = () => Date.now(), added) {
     const entries2 = [], seen = /* @__PURE__ */ new Set(), seenOrder = [];
     const rate = /* @__PURE__ */ new Map();
-    const allowed = (key8) => {
-      const t = now(), r = rate.get(key8);
+    const allowed = (key9) => {
+      const t = now(), r = rate.get(key9);
       if (!r || t - r.at >= 1e3) {
         if (!r && rate.size >= 32) rate.delete(rate.keys().next().value);
-        rate.set(key8, { at: t, n: 1 });
+        rate.set(key9, { at: t, n: 1 });
         return true;
       }
       return ++r.n <= 10;
     };
-    const remember = (key8) => {
-      seen.add(key8);
-      seenOrder.push(key8);
+    const remember = (key9) => {
+      seen.add(key9);
+      seenOrder.push(key9);
       if (seenOrder.length > 400) seen.delete(seenOrder.shift());
     };
     const notify = () => {
@@ -39420,14 +43897,14 @@ THE SOFTWARE.
         const ids = [...new Set(peers2)].slice(0, 7);
         if (!ids.length || !text2 || text2.length > 1e3 || name.length > 40 || !allowed("local")) return false;
         const id = crypto.randomUUID(), raw = JSON.stringify({ type: "text", id, name, text: text2 });
-        if (bytes7(raw) > 4096) return false;
+        if (bytes8(raw) > 4096) return false;
         const sent = ids.filter((peer) => send2(peer, raw));
         if (!sent.length) return false;
         add2({ id, name, text: text2, role: role2, own: true, recipients: ids, queued: sent, accepted: [] });
         return true;
       },
       receive(peer, role2, raw) {
-        if (typeof raw !== "string" || raw.length > 4096 || !allowed(peer) || bytes7(raw) > 4096) return;
+        if (typeof raw !== "string" || raw.length > 4096 || !allowed(peer) || bytes8(raw) > 4096) return;
         let m;
         try {
           m = JSON.parse(raw);
@@ -39439,18 +43916,25 @@ THE SOFTWARE.
           const e = entries2.find((e2) => e2.own && e2.id === m.id);
           if (e && e.queued.includes(peer) && !e.accepted.includes(peer)) {
             e.accepted.push(peer);
+            if (e.notSent) e.notSent = e.notSent.filter((id) => id !== peer);
             notify();
             return true;
           }
           return;
         }
         if (m.type !== "text" || Object.keys(m).length !== 4 || typeof m.name !== "string" || m.name.length > 40 || typeof m.text !== "string" || !m.text.trim() || m.text.length > 1e3) return;
-        const key8 = peer + ":" + m.id;
-        if (seen.has(key8)) return;
-        remember(key8);
+        const key9 = peer + ":" + m.id;
+        if (seen.has(key9)) return;
+        remember(key9);
         add2({ id: m.id, name: m.name, text: m.text, role: role2, own: false, recipients: [], queued: [], accepted: [] });
         if (allowed("local")) send2(peer, JSON.stringify({ type: "ack", id: m.id }));
         return true;
+      },
+      markNotSent(peer, id) {
+        const e = entries2.find((e2) => e2.own && e2.id === id);
+        if (!e || !e.queued.includes(peer) || e.accepted.includes(peer) || e.notSent?.includes(peer)) return;
+        (e.notSent ??= []).push(peer);
+        notify();
       },
       clear() {
         entries2.length = 0;
@@ -39524,14 +44008,14 @@ THE SOFTWARE.
   var isValid = (n) => typeof n === "number" && Number.isFinite(n) && n >= 0;
   function trackDemand(objects) {
     const media = objects.filter((o) => o.kind === "media" && Number.isFinite(o.durationMs) && o.durationMs > 0 && isValid(o.lengthBytes)).slice().sort((a, b) => b.sequence - a.sequence);
-    let duration = 0, bytes8 = 0;
+    let duration = 0, bytes9 = 0;
     for (const object of media) {
       const take = Math.min(object.durationMs, 1e4 - duration);
       if (take <= 0) break;
-      bytes8 += object.lengthBytes * take / object.durationMs;
+      bytes9 += object.lengthBytes * take / object.durationMs;
       duration += take;
     }
-    return duration ? bytes8 * 8 / duration / 1e3 : void 0;
+    return duration ? bytes9 * 8 / duration / 1e3 : void 0;
   }
   function combinedDemand(tracks2) {
     const rates = tracks2.map(trackDemand);
@@ -39565,24 +44049,24 @@ THE SOFTWARE.
         if (lastPaused !== void 0 && lastPaused !== input.paused || lastActive !== void 0 && lastActive !== active) samples = [];
         lastPaused = input.paused;
         lastActive = active;
-        const { time, bytes: bytes8 } = input;
+        const { time, bytes: bytes9 } = input;
         const buffer = isValid(input.buffer) ? input.buffer : void 0;
         const dropped = isValid(input.dropped) ? input.dropped : void 0;
         const demand = isValid(input.demand) ? input.demand : void 0;
         const result = { state: input.paused ? "Paused" : "Measuring", demand, buffer, trend: "Unavailable" };
-        if (!isValid(time) || !isValid(bytes8)) {
+        if (!isValid(time) || !isValid(bytes9)) {
           samples = [];
           return result;
         }
         const last2 = samples.at(-1);
-        if (last2 && (time < last2.time || bytes8 < last2.bytes || time - last2.time > MAX_GAP_MS || dropped !== void 0 && last2.dropped !== void 0 && dropped < last2.dropped)) samples = [];
+        if (last2 && (time < last2.time || bytes9 < last2.bytes || time - last2.time > MAX_GAP_MS || dropped !== void 0 && last2.dropped !== void 0 && dropped < last2.dropped)) samples = [];
         const previous = samples.at(-1);
         if (previous && time - previous.time < 1e3) return result;
-        samples.push({ time, bytes: bytes8, buffer, dropped });
+        samples.push({ time, bytes: bytes9, buffer, dropped });
         while (samples.length > 2 && time - samples[1].time >= WINDOW_MS) samples.shift();
         const first = samples[0], seconds = (time - first.time) / 1e3;
         if (seconds < 1) return result;
-        result.received = (bytes8 - first.bytes) * 8 / seconds / 1e6;
+        result.received = (bytes9 - first.bytes) * 8 / seconds / 1e6;
         result.windowSeconds = seconds;
         if (buffer !== void 0 && first.buffer !== void 0) {
           const change = buffer - first.buffer;
@@ -39625,7 +44109,7 @@ THE SOFTWARE.
   var GATEWAY_ERROR = "The room service could not deliver a connection update. Use Rejoin live to retry.";
   var GATEWAY_BUSY = "The room service is busy. Use Rejoin live to retry.";
   var SEND_INTERVAL_MS = 500;
-  var MAX_AGE_MS = 1e4;
+  var MAX_AGE_MS2 = 1e4;
   var MAX_PENDING = 64;
   var MAX_PENDING_BYTES = 512 * 1024;
   var MAX_MESSAGE_BYTES = 30 * 1024;
@@ -39634,8 +44118,8 @@ THE SOFTWARE.
       if (!value || typeof value !== "object" || Array.isArray(value)) return GATEWAY_ERROR;
       const frame2 = value;
       const keys = Object.keys(frame2);
-      const validKeys = keys.every((key8) => ["message", "requestId", "connectionId"].includes(key8));
-      const validValues = keys.every((key8) => typeof frame2[key8] === "string" && frame2[key8].length <= 256);
+      const validKeys = keys.every((key9) => ["message", "requestId", "connectionId"].includes(key9));
+      const validValues = keys.every((key9) => typeof frame2[key9] === "string" && frame2[key9].length <= 256);
       if (!validKeys || !validValues || typeof frame2.message !== "string" || frame2.message.length > 128) return GATEWAY_ERROR;
       if (frame2.message === "LimitExceededException" || frame2.message === "TooManyRequestsException") return GATEWAY_BUSY;
     } catch {
@@ -39702,7 +44186,7 @@ THE SOFTWARE.
             pendingBytes -= job2.bytes;
             return false;
           }
-          if (time - job2.created >= MAX_AGE_MS) {
+          if (time - job2.created >= MAX_AGE_MS2) {
             pendingBytes -= job2.bytes;
             expired = true;
             return false;
@@ -39713,7 +44197,7 @@ THE SOFTWARE.
         if (!jobs.length) return;
         const delay = Math.max(0, SEND_INTERVAL_MS - (time - lastSent));
         if (delay > 0) {
-          const expiry = Math.min(...jobs.map((job2) => Math.max(0, MAX_AGE_MS - (time - job2.created))));
+          const expiry = Math.min(...jobs.map((job2) => Math.max(0, MAX_AGE_MS2 - (time - job2.created))));
           timer = schedule(pump, Math.min(delay, expiry));
           return;
         }
@@ -39743,16 +44227,16 @@ THE SOFTWARE.
         if (closed) return;
         try {
           const wire = JSON.stringify({ type: "signal", to, data });
-          const bytes8 = new TextEncoder().encode(wire).length;
-          if (bytes8 > MAX_MESSAGE_BYTES || jobs.length >= MAX_PENDING || pendingBytes + bytes8 > MAX_PENDING_BYTES) {
+          const bytes9 = new TextEncoder().encode(wire).length;
+          if (bytes9 > MAX_MESSAGE_BYTES || jobs.length >= MAX_PENDING || pendingBytes + bytes9 > MAX_PENDING_BYTES) {
             reportBusy();
             return;
           }
           const value = JSON.parse(wire).data;
           const description = !!(value?.description || value?.signal?.description);
           const routed = isRoutedCandidate(value?.candidate) || isRoutedCandidate(value?.signal?.candidate);
-          jobs.push({ wire, bytes: bytes8, priority: description ? 0 : routed ? 1 : 2, created: now(), current });
-          pendingBytes += bytes8;
+          jobs.push({ wire, bytes: bytes9, priority: description ? 0 : routed ? 1 : 2, created: now(), current });
+          pendingBytes += bytes9;
           if (timer === void 0) pump();
         } catch {
           reportBusy();
@@ -39762,10 +44246,10 @@ THE SOFTWARE.
   }
 
   // src/forwarding-default.ts
-  function read2(object, key8) {
+  function read2(object, key9) {
     try {
       if ((typeof object !== "object" || object === null) && typeof object !== "function") return void 0;
-      return object[key8];
+      return object[key9];
     } catch {
       return void 0;
     }
@@ -39831,2091 +44315,6 @@ THE SOFTWARE.
     throw new ViewingUnavailableError();
   }
 
-  // src/pipeline-trace.ts
-  var LIMIT3 = 4096;
-  var enabled = false;
-  var entries = [];
-  function enableTrace() {
-    entries = [];
-    enabled = true;
-  }
-  function traceSnapshot() {
-    return entries.slice();
-  }
-  function trace(event, fields2 = {}) {
-    if (!enabled || entries.length >= LIMIT3) return;
-    entries.push({ event, at: performance.timeOrigin + performance.now(), ...fields2 });
-  }
-
-  // src/piece-window.ts
-  async function fetchPieceWindow(length2, pieceSize, window2, request2, waitFor, check) {
-    if (!Number.isSafeInteger(length2) || length2 < 1 || !Number.isSafeInteger(pieceSize) || pieceSize < 1 || !Number.isInteger(window2) || window2 < 1 || window2 > 4) throw Error("invalid piece window");
-    const bytes8 = new Uint8Array(length2), count = Math.ceil(length2 / pieceSize);
-    let next = 0, inflight = 0, completed2 = 0, active = true, failed;
-    try {
-      while (completed2 < count) {
-        check();
-        if (failed) throw failed;
-        while (active && !failed && inflight < window2 && next < count) {
-          check();
-          const index = next++, size2 = Math.min(pieceSize, length2 - index * pieceSize);
-          inflight++;
-          let settled = false;
-          request2(index, size2, (error, block) => {
-            if (!active || settled) return;
-            settled = true;
-            inflight--;
-            if (error) {
-              failed = error;
-              return;
-            }
-            if (!(block instanceof Uint8Array) || block.length !== size2) {
-              failed = Error("short piece");
-              return;
-            }
-            bytes8.set(block, index * pieceSize);
-            completed2++;
-          });
-        }
-        if (failed) throw failed;
-        if (completed2 < count) {
-          const before = completed2;
-          await waitFor(() => completed2 !== before || !!failed);
-        }
-      }
-      check();
-      if (failed) throw failed;
-      return bytes8;
-    } finally {
-      active = false;
-    }
-  }
-
-  // src/peer-delivery-observer.ts
-  var NOOP_FETCH = { piece(_index, _bytes) {
-  }, complete() {
-  }, fail() {
-  } };
-  var NOOP_OBSERVER = { resetPath() {
-  }, start(_expectedBytes) {
-    return NOOP_FETCH;
-  } };
-  var MAX_OBSERVED_FETCHES = 128;
-  function createDeliveryObserver(observer) {
-    if (!observer) return NOOP_OBSERVER;
-    let nextId = 0, pathEpoch = 0, lastAt = 0;
-    const active = /* @__PURE__ */ new Set();
-    const now = () => {
-      const value = performance.now();
-      lastAt = Math.max(lastAt, Number.isFinite(value) ? value : lastAt);
-      return lastAt;
-    };
-    const emit = (event) => {
-      try {
-        observer?.(event);
-      } catch {
-      }
-    };
-    return {
-      resetPath() {
-        pathEpoch++;
-        for (const item of active) item.reset();
-      },
-      start(expectedBytes) {
-        if (active.size >= MAX_OBSERVED_FETCHES) return NOOP_FETCH;
-        const id = ++nextId, startedAtMs = now(), pieces = /* @__PURE__ */ new Set();
-        let remoteVerifiedBytes = 0, done = false;
-        const send2 = (kind) => emit({ kind, id, atMs: now(), startedAtMs, expectedBytes, remoteVerifiedBytes, pathEpoch });
-        const item = { reset: () => {
-          if (!done) send2("path-reset");
-        } };
-        active.add(item);
-        send2("start");
-        return {
-          piece(index, bytes8) {
-            if (done || pieces.has(index)) return;
-            pieces.add(index);
-            remoteVerifiedBytes += bytes8;
-            send2("progress");
-          },
-          complete() {
-            if (done) return;
-            done = true;
-            active.delete(item);
-            send2("complete");
-          },
-          fail() {
-            if (done) return;
-            done = true;
-            active.delete(item);
-            send2("failed");
-          }
-        };
-      }
-    };
-  }
-
-  // node_modules/bitfield/dist/index.js
-  function bitsToBytes(numberOfBits) {
-    return (numberOfBits >> 3) + Number(numberOfBits % 8 !== 0);
-  }
-  var BitField = class {
-    /**
-     * Grow the bitfield up to this number of entries.
-     * @default 0.
-     */
-    grow;
-    /** The internal storage of the bitfield. */
-    buffer;
-    /** The number of bits in the bitfield. */
-    get length() {
-      return this.buffer.length << 3;
-    }
-    /**
-     * Constructs a BitField.
-     * @param data Either a number representing the maximum number of supported bits, or a Uint8Array.
-     * @param options Configuration for bitfield growth behavior.
-     */
-    constructor(data = 0, options) {
-      const grow = options?.grow;
-      this.grow = grow ? Number.isFinite(grow) ? bitsToBytes(grow) : grow : 0;
-      this.buffer = typeof data === "number" ? new Uint8Array(bitsToBytes(data)) : data;
-    }
-    /**
-     * Get a particular bit.
-     * @param bitIndex Bit index to retrieve.
-     * @returns A boolean indicating whether the `i`th bit is set.
-     */
-    get(bitIndex) {
-      const byteIndex = bitIndex >> 3;
-      return byteIndex < this.buffer.length && !!(this.buffer[byteIndex] & 128 >> bitIndex % 8);
-    }
-    /**
-     * Set a particular bit.
-     *
-     * Will grow the underlying array if the bit is out of bounds and the `grow` option is set.
-     * @param bitIndex Bit index to set.
-     * @param value Value to set the bit to. Defaults to `true`.
-     */
-    set(bitIndex, value = true) {
-      const byteIndex = bitIndex >> 3;
-      if (value) {
-        if (byteIndex >= this.buffer.length) {
-          const newLength = Math.max(byteIndex + 1, Math.min(2 * this.buffer.length, this.grow));
-          if (newLength <= this.grow) {
-            const newBuffer = new Uint8Array(newLength);
-            newBuffer.set(this.buffer);
-            this.buffer = newBuffer;
-          }
-        }
-        this.buffer[byteIndex] |= 128 >> bitIndex % 8;
-      } else if (byteIndex < this.buffer.length) {
-        this.buffer[byteIndex] &= ~(128 >> bitIndex % 8);
-      }
-    }
-    /**
-     * Sets a value or an array of values.
-     * @param array An array of booleans to set.
-     * @param offset The bit offset at which the values are to be written.
-     */
-    setAll(array, offset = 0) {
-      const targetLength = Math.min(bitsToBytes(offset + array.length), this.grow);
-      if (this.buffer.length < targetLength) {
-        const newBuffer = new Uint8Array(targetLength);
-        newBuffer.set(this.buffer);
-        this.buffer = newBuffer;
-      }
-      let byteIndex = offset >> 3;
-      let bitMask2 = 128 >> offset % 8;
-      for (let index = 0; index < array.length; index++) {
-        const element = array[index];
-        if (element) {
-          this.buffer[byteIndex] |= bitMask2;
-        } else {
-          this.buffer[byteIndex] &= ~bitMask2;
-        }
-        if (bitMask2 === 1) {
-          byteIndex += 1;
-          if (byteIndex >= this.buffer.length) {
-            break;
-          }
-          bitMask2 = 128;
-        } else {
-          bitMask2 >>= 1;
-        }
-      }
-    }
-    /**
-     * Loop through the bits in the bitfield.
-     * @param callbackfn Function to be called with the bit value and index.
-     * @param start Index of the first bit to look at.
-     * @param end Index of the first bit that should no longer be considered.
-     */
-    forEach(callbackfn, start = 0, end2 = this.buffer.length * 8) {
-      let byteIndex = start >> 3;
-      let bitMask2 = 128 >> start % 8;
-      for (let bitIndex = start; bitIndex < end2; bitIndex++) {
-        callbackfn(!!(this.buffer[byteIndex] & bitMask2), bitIndex);
-        if (bitMask2 === 1) {
-          byteIndex += 1;
-          bitMask2 = 128;
-        } else {
-          bitMask2 >>= 1;
-        }
-      }
-    }
-    /**
-     * Check if all bits in the Bitfield are unset.
-     * @returns A boolean indicating whether all bits are unset.
-     */
-    isEmpty() {
-      for (let index = 0; index < this.buffer.length; index++) {
-        if (this.buffer[index] !== 0) {
-          return false;
-        }
-      }
-      return true;
-    }
-  };
-
-  // node_modules/bittorrent-protocol/index.js
-  var import_debug = __toESM(require_browser(), 1);
-  var import_streamx = __toESM(require_streamx(), 1);
-  var import_throughput = __toESM(require_throughput(), 1);
-  var import_unordered_array_remove = __toESM(require_unordered_array_remove(), 1);
-  var debug = (0, import_debug.default)("bittorrent-protocol");
-  var BITFIELD_GROW = 4e5;
-  var KEEP_ALIVE_TIMEOUT = 55e3;
-  var ALLOWED_FAST_SET_MAX_LENGTH = 100;
-  var MESSAGE_PROTOCOL = text2arr("BitTorrent protocol");
-  var MESSAGE_KEEP_ALIVE = new Uint8Array([0, 0, 0, 0]);
-  var MESSAGE_CHOKE = new Uint8Array([0, 0, 0, 1, 0]);
-  var MESSAGE_UNCHOKE = new Uint8Array([0, 0, 0, 1, 1]);
-  var MESSAGE_INTERESTED = new Uint8Array([0, 0, 0, 1, 2]);
-  var MESSAGE_UNINTERESTED = new Uint8Array([0, 0, 0, 1, 3]);
-  var MESSAGE_RESERVED = [0, 0, 0, 0, 0, 0, 0, 0];
-  var MESSAGE_PORT = [0, 0, 0, 3, 9, 0, 0];
-  var MESSAGE_HAVE_ALL = new Uint8Array([0, 0, 0, 1, 14]);
-  var MESSAGE_HAVE_NONE = new Uint8Array([0, 0, 0, 1, 15]);
-  function getUint32(buffer, at = 0) {
-    return buffer[at] << 24 | buffer[at + 1] << 16 | buffer[at + 2] << 8 | buffer[at + 3];
-  }
-  function setUint32(buffer, at, value) {
-    buffer[at] = value >>> 24 & 255;
-    buffer[at + 1] = value >>> 16 & 255;
-    buffer[at + 2] = value >>> 8 & 255;
-    buffer[at + 3] = value & 255;
-  }
-  function indexOfBytes(haystack, needle) {
-    if (needle.length === 0) return 0;
-    if (haystack.length < needle.length) return -1;
-    const max = haystack.length - needle.length;
-    for (let i = 0; i <= max; i++) {
-      let match = true;
-      for (let j = 0; j < needle.length; j++) {
-        if (haystack[i + j] !== needle[j]) {
-          match = false;
-          break;
-        }
-      }
-      if (match) return i;
-    }
-    return -1;
-  }
-  var Request2 = class {
-    constructor(piece, offset, length2, callback) {
-      this.piece = piece;
-      this.offset = offset;
-      this.length = length2;
-      this.callback = callback;
-    }
-  };
-  var HaveAllBitField = class {
-    constructor() {
-      this.buffer = new Uint8Array();
-    }
-    get(index) {
-      return true;
-    }
-    set(index) {
-    }
-  };
-  var Wire = class extends import_streamx.Duplex {
-    static nativeRC4 = void 0;
-    // true if Node's crypto supports RC4 (avoids slower JS fallback) Node 17+ (requires `--openssl-legacy-provider`)
-    constructor(type = "", peEnabled = 0) {
-      super();
-      this._debugId = arr2hex(randomBytes3(4));
-      this._debug("new wire");
-      this.peerId = null;
-      this.peerIdBuffer = null;
-      this.type = type;
-      this.amChoking = true;
-      this.amInterested = false;
-      this.peerChoking = true;
-      this.peerInterested = false;
-      this.peerPieces = new BitField(0, { grow: BITFIELD_GROW });
-      this.extensions = {};
-      this.peerExtensions = {};
-      this.requests = [];
-      this.peerRequests = [];
-      this.extendedMapping = {};
-      this.peerExtendedMapping = {};
-      this.extendedHandshake = {};
-      this.peerExtendedHandshake = {};
-      this.hasFast = false;
-      this.allowedFastSet = [];
-      this.peerAllowedFastSet = [];
-      this._ext = {};
-      this._nextExt = 1;
-      this.uploaded = 0;
-      this.downloaded = 0;
-      this.uploadSpeed = (0, import_throughput.default)();
-      this.downloadSpeed = (0, import_throughput.default)();
-      this._keepAliveInterval = null;
-      this._timeout = null;
-      this._timeoutMs = 0;
-      this._timeoutExpiresAt = null;
-      this._finished = false;
-      this._parserSize = 0;
-      this._parser = null;
-      this._buffer = [];
-      this._bufferSize = 0;
-      this._peEnabled = peEnabled;
-      this._encryptor = null;
-      this._infoHash = null;
-      this._cryptoSyncPattern = null;
-      this._pePending = false;
-      this._waitMaxBytes = null;
-      this.on("finish", this._onFinish);
-      this._debug("type:", this.type);
-      if (this._peEnabled) {
-        this._encryptor = new (void 0)(this);
-        if (this.type.includes("Incoming")) {
-          this._encryptor.handleIncoming();
-        } else if (this.type.includes("Outgoing")) {
-          this._encryptor.handleOutgoing();
-        }
-      } else {
-        this._parseHandshake(null);
-      }
-    }
-    get _peState() {
-      return this._encryptor?.state ?? "idle";
-    }
-    get _encryptionMethod() {
-      return this._encryptor?.encryptionMethod;
-    }
-    get _cryptoHandshakeDone() {
-      return !!this._encryptor?.cryptoHandshakeDone;
-    }
-    /**
-     * Set whether to send a "keep-alive" ping (sent every 55s)
-     * @param {boolean} enable
-     */
-    setKeepAlive(enable) {
-      this._debug("setKeepAlive %s", enable);
-      clearInterval(this._keepAliveInterval);
-      if (enable === false) return;
-      this._keepAliveInterval = setInterval(() => {
-        this.keepAlive();
-      }, KEEP_ALIVE_TIMEOUT);
-    }
-    /**
-     * Set the amount of time to wait before considering a request to be "timed out"
-     * @param {number} ms
-     * @param {boolean=} unref (should the timer be unref'd? default: false)
-     */
-    setTimeout(ms, unref) {
-      this._debug("setTimeout ms=%d unref=%s", ms, unref);
-      this._timeoutMs = ms;
-      this._timeoutUnref = !!unref;
-      this._resetTimeout(true);
-    }
-    destroy() {
-      if (this.destroyed) return;
-      this._debug("destroy");
-      this.end();
-      return this;
-    }
-    end(data) {
-      if (this.destroyed || this.destroying) return;
-      this._debug("end");
-      this._onUninterested();
-      this._onChoke();
-      return super.end(data);
-    }
-    /**
-     * Use the specified protocol extension.
-     * @param  {function} Extension
-     */
-    use(Extension) {
-      const name = Extension.prototype.name;
-      if (!name) {
-        throw new Error('Extension class requires a "name" property on the prototype');
-      }
-      this._debug("use extension.name=%s", name);
-      const ext = this._nextExt;
-      const handler = new Extension(this);
-      function noop() {
-      }
-      if (typeof handler.onHandshake !== "function") {
-        handler.onHandshake = noop;
-      }
-      if (typeof handler.onExtendedHandshake !== "function") {
-        handler.onExtendedHandshake = noop;
-      }
-      if (typeof handler.onMessage !== "function") {
-        handler.onMessage = noop;
-      }
-      this.extendedMapping[ext] = name;
-      this._ext[name] = handler;
-      this[name] = handler;
-      this._nextExt += 1;
-    }
-    //
-    // OUTGOING MESSAGES
-    //
-    /**
-     * Message "keep-alive": <len=0000>
-     */
-    keepAlive() {
-      this._debug("keep-alive");
-      this._push(MESSAGE_KEEP_ALIVE);
-    }
-    /**
-     * Start the PE/MSE handshake as initiator.
-     * @param {string} infoHash hex-encoded info hash
-     */
-    startEncryption(infoHash) {
-      if (!this._peEnabled) return;
-      this._infoHash = infoHash;
-      this._encryptor.startAsInitiator(infoHash);
-    }
-    /**
-     * Message: "handshake" <pstrlen><pstr><reserved><info_hash><peer_id>
-     * @param  {Uint8Array|string} infoHash (as Buffer or *hex* string)
-     * @param  {Uint8Array|string} peerId
-     * @param  {Object} extensions
-     */
-    handshake(infoHash, peerId, extensions) {
-      let infoHashBuffer;
-      let peerIdBuffer;
-      if (typeof infoHash === "string") {
-        infoHash = infoHash.toLowerCase();
-        infoHashBuffer = hex2arr(infoHash);
-      } else {
-        infoHashBuffer = infoHash;
-        infoHash = arr2hex(infoHashBuffer);
-      }
-      if (typeof peerId === "string") {
-        peerIdBuffer = hex2arr(peerId);
-      } else {
-        peerIdBuffer = peerId;
-        peerId = arr2hex(peerIdBuffer);
-      }
-      this._infoHash = infoHashBuffer;
-      if (infoHashBuffer.length !== 20 || peerIdBuffer.length !== 20) {
-        throw new Error("infoHash and peerId MUST have length 20");
-      }
-      this._debug("handshake i=%s p=%s exts=%o", infoHash, peerId, extensions);
-      const reserved = new Uint8Array(MESSAGE_RESERVED);
-      this.extensions = {
-        extended: true,
-        dht: !!(extensions && extensions.dht),
-        fast: !!(extensions && extensions.fast)
-      };
-      reserved[5] |= 16;
-      if (this.extensions.dht) reserved[7] |= 1;
-      if (this.extensions.fast) reserved[7] |= 4;
-      if (this.extensions.fast && this.peerExtensions.fast) {
-        this._debug("fast extension is enabled");
-        this.hasFast = true;
-      }
-      this._push(concat([MESSAGE_PROTOCOL, reserved, infoHashBuffer, peerIdBuffer]));
-      this._handshakeSent = true;
-      if (this.peerExtensions.extended && !this._extendedHandshakeSent) {
-        this._sendExtendedHandshake();
-      }
-    }
-    /* Peer supports BEP-0010, send extended handshake.
-     *
-     * This comes after the 'handshake' event to give the user a chance to populate
-     * `this.extendedHandshake` and `this.extendedMapping` before the extended handshake
-     * is sent to the remote peer.
-     */
-    _sendExtendedHandshake() {
-      const msg = Object.assign({}, this.extendedHandshake);
-      msg.m = {};
-      for (const ext in this.extendedMapping) {
-        const name = this.extendedMapping[ext];
-        msg.m[name] = Number(ext);
-      }
-      this.extended(0, bencode_default.encode(msg));
-      this._extendedHandshakeSent = true;
-    }
-    /**
-     * Message "choke": <len=0001><id=0>
-     */
-    choke() {
-      if (this.amChoking) return;
-      this.amChoking = true;
-      this._debug("choke");
-      this._push(MESSAGE_CHOKE);
-      if (this.hasFast) {
-        let allowedCount = 0;
-        while (this.peerRequests.length > allowedCount) {
-          const request2 = this.peerRequests[allowedCount];
-          if (this.allowedFastSet.includes(request2.piece)) {
-            ++allowedCount;
-          } else {
-            this.reject(request2.piece, request2.offset, request2.length);
-          }
-        }
-      } else {
-        while (this.peerRequests.length) {
-          this.peerRequests.pop();
-        }
-      }
-    }
-    /**
-     * Message "unchoke": <len=0001><id=1>
-     */
-    unchoke() {
-      if (!this.amChoking) return;
-      this.amChoking = false;
-      this._debug("unchoke");
-      this._push(MESSAGE_UNCHOKE);
-    }
-    /**
-     * Message "interested": <len=0001><id=2>
-     */
-    interested() {
-      if (this.amInterested) return;
-      this.amInterested = true;
-      this._debug("interested");
-      this._push(MESSAGE_INTERESTED);
-    }
-    /**
-     * Message "uninterested": <len=0001><id=3>
-     */
-    uninterested() {
-      if (!this.amInterested) return;
-      this.amInterested = false;
-      this._debug("uninterested");
-      this._push(MESSAGE_UNINTERESTED);
-    }
-    /**
-     * Message "have": <len=0005><id=4><piece index>
-     * @param  {number} index
-     */
-    have(index) {
-      this._debug("have %d", index);
-      this._message(4, [index], null);
-    }
-    /**
-     * Message "bitfield": <len=0001+X><id=5><bitfield>
-     * @param  {BitField|Buffer} bitfield
-     */
-    bitfield(bitfield) {
-      this._debug("bitfield");
-      if (!ArrayBuffer.isView(bitfield)) bitfield = bitfield.buffer;
-      this._message(5, [], bitfield);
-    }
-    /**
-     * Message "request": <len=0013><id=6><index><begin><length>
-     * @param  {number}   index
-     * @param  {number}   offset
-     * @param  {number}   length
-     * @param  {function} cb
-     */
-    request(index, offset, length2, cb) {
-      if (!cb) cb = () => {
-      };
-      if (this._finished) return cb(new Error("wire is closed"));
-      if (this.peerChoking && !(this.hasFast && this.peerAllowedFastSet.includes(index))) {
-        return cb(new Error("peer is choking"));
-      }
-      this._debug("request index=%d offset=%d length=%d", index, offset, length2);
-      this.requests.push(new Request2(index, offset, length2, cb));
-      if (!this._timeout) {
-        this._resetTimeout(true);
-      }
-      this._message(6, [index, offset, length2], null);
-    }
-    /**
-     * Message "piece": <len=0009+X><id=7><index><begin><block>
-     * @param  {number} index
-     * @param  {number} offset
-     * @param  {Uint8Array} buffer
-     */
-    piece(index, offset, buffer) {
-      this._debug("piece index=%d offset=%d", index, offset);
-      this._message(7, [index, offset], buffer);
-      this.uploaded += buffer.length;
-      this.uploadSpeed(buffer.length);
-      this.emit("upload", buffer.length);
-    }
-    /**
-     * Message "cancel": <len=0013><id=8><index><begin><length>
-     * @param  {number} index
-     * @param  {number} offset
-     * @param  {number} length
-     */
-    cancel(index, offset, length2) {
-      this._debug("cancel index=%d offset=%d length=%d", index, offset, length2);
-      this._callback(
-        this._pull(this.requests, index, offset, length2),
-        new Error("request was cancelled"),
-        null
-      );
-      this._message(8, [index, offset, length2], null);
-    }
-    /**
-     * Message: "port" <len=0003><id=9><listen-port>
-     * @param {Number} port
-     */
-    port(port) {
-      this._debug("port %d", port);
-      const message2 = new Uint8Array(MESSAGE_PORT);
-      const view2 = new DataView(message2.buffer);
-      view2.setUint16(5, port);
-      this._push(message2);
-    }
-    /**
-     * Message: "suggest" <len=0x0005><id=0x0D><piece index> (BEP6)
-     * @param {number} index
-     */
-    suggest(index) {
-      if (!this.hasFast) throw Error("fast extension is disabled");
-      this._debug("suggest %d", index);
-      this._message(13, [index], null);
-    }
-    /**
-     * Message: "have-all" <len=0x0001><id=0x0E> (BEP6)
-     */
-    haveAll() {
-      if (!this.hasFast) throw Error("fast extension is disabled");
-      this._debug("have-all");
-      this._push(MESSAGE_HAVE_ALL);
-    }
-    /**
-     * Message: "have-none" <len=0x0001><id=0x0F> (BEP6)
-     */
-    haveNone() {
-      if (!this.hasFast) throw Error("fast extension is disabled");
-      this._debug("have-none");
-      this._push(MESSAGE_HAVE_NONE);
-    }
-    /**
-     * Message "reject": <len=0x000D><id=0x10><index><offset><length> (BEP6)
-     * @param  {number}   index
-     * @param  {number}   offset
-     * @param  {number}   length
-     */
-    reject(index, offset, length2) {
-      if (!this.hasFast) throw Error("fast extension is disabled");
-      this._debug("reject index=%d offset=%d length=%d", index, offset, length2);
-      this._pull(this.peerRequests, index, offset, length2);
-      this._message(16, [index, offset, length2], null);
-    }
-    /**
-     * Message: "allowed-fast" <len=0x0005><id=0x11><piece index> (BEP6)
-     * @param {number} index
-     */
-    allowedFast(index) {
-      if (!this.hasFast) throw Error("fast extension is disabled");
-      this._debug("allowed-fast %d", index);
-      if (!this.allowedFastSet.includes(index)) this.allowedFastSet.push(index);
-      this._message(17, [index], null);
-    }
-    /**
-     * Message: "extended" <len=0005+X><id=20><ext-number><payload>
-     * @param  {number|string} ext
-     * @param  {Object} obj
-     */
-    extended(ext, obj) {
-      this._debug("extended ext=%s", ext);
-      if (typeof ext === "string" && this.peerExtendedMapping[ext]) {
-        ext = this.peerExtendedMapping[ext];
-      }
-      if (typeof ext === "number") {
-        const extId = new Uint8Array([ext]);
-        const buf = ArrayBuffer.isView(obj) ? obj : bencode_default.encode(obj);
-        this._message(20, [], concat([extId, buf]));
-      } else {
-        throw new Error(`Unrecognized extension: ${ext}`);
-      }
-    }
-    /**
-     * Sets the encryption method for this wire, as per PSE/ME specification
-     * Called by conn-pool when it resolves the infoHash from a crypto-infohash event.
-     * Initializes the responder's ciphers and resumes pe3 processing.
-     * @param {string} infoHash hex-encoded info hash
-     */
-    setInfoHash(infoHash) {
-      this._infoHash = infoHash;
-      if (this._encryptor) this._encryptor.setInfoHash(infoHash);
-    }
-    /**
-     * Send a message to the remote peer.
-     */
-    _message(id, numbers, data) {
-      const dataLength = data ? data.length : 0;
-      const buffer = new Uint8Array(5 + 4 * numbers.length);
-      setUint32(buffer, 0, buffer.length + dataLength - 4);
-      buffer[4] = id;
-      for (let i = 0; i < numbers.length; i++) {
-        setUint32(buffer, 5 + 4 * i, numbers[i]);
-      }
-      this._push(buffer);
-      if (data) this._push(data);
-    }
-    _push(data) {
-      if (this._finished) return;
-      if (this._encryptor) data = this._encryptor.encrypt(data);
-      return this.push(data);
-    }
-    //
-    // INCOMING MESSAGES
-    //
-    _onKeepAlive() {
-      this._debug("got keep-alive");
-      this.emit("keep-alive");
-    }
-    _onHandshake(infoHashBuffer, peerIdBuffer, extensions) {
-      const infoHash = arr2hex(infoHashBuffer);
-      const peerId = arr2hex(peerIdBuffer);
-      this._debug("got handshake i=%s p=%s exts=%o", infoHash, peerId, extensions);
-      this.peerId = peerId;
-      this.peerIdBuffer = peerIdBuffer;
-      this.peerExtensions = extensions;
-      if (this.extensions.fast && this.peerExtensions.fast) {
-        this._debug("fast extension is enabled");
-        this.hasFast = true;
-      }
-      this.emit("handshake", infoHash, peerId, extensions);
-      for (const name in this._ext) {
-        this._ext[name].onHandshake(infoHash, peerId, extensions);
-      }
-      if (extensions.extended && this._handshakeSent && !this._extendedHandshakeSent) {
-        this._sendExtendedHandshake();
-      }
-    }
-    _onChoke() {
-      this.peerChoking = true;
-      this._debug("got choke");
-      this.emit("choke");
-      if (!this.hasFast) {
-        while (this.requests.length) {
-          this._callback(this.requests.pop(), new Error("peer is choking"), null);
-        }
-      }
-    }
-    _onUnchoke() {
-      this.peerChoking = false;
-      this._debug("got unchoke");
-      this.emit("unchoke");
-    }
-    _onInterested() {
-      this.peerInterested = true;
-      this._debug("got interested");
-      this.emit("interested");
-    }
-    _onUninterested() {
-      this.peerInterested = false;
-      this._debug("got uninterested");
-      this.emit("uninterested");
-    }
-    _onHave(index) {
-      if (this.peerPieces.get(index)) return;
-      this._debug("got have %d", index);
-      this.peerPieces.set(index, true);
-      this.emit("have", index);
-    }
-    _onBitField(buffer) {
-      this.peerPieces = new BitField(buffer);
-      this._debug("got bitfield");
-      this.emit("bitfield", this.peerPieces);
-    }
-    _onRequest(index, offset, length2) {
-      if (this.amChoking && !(this.hasFast && this.allowedFastSet.includes(index))) {
-        if (this.hasFast) this.reject(index, offset, length2);
-        return;
-      }
-      this._debug("got request index=%d offset=%d length=%d", index, offset, length2);
-      const respond = (err, buffer) => {
-        if (request2 !== this._pull(this.peerRequests, index, offset, length2)) return;
-        if (err) {
-          this._debug("error satisfying request index=%d offset=%d length=%d (%s)", index, offset, length2, err.message);
-          if (this.hasFast) this.reject(index, offset, length2);
-          return;
-        }
-        this.piece(index, offset, buffer);
-      };
-      const request2 = new Request2(index, offset, length2, respond);
-      this.peerRequests.push(request2);
-      this.emit("request", index, offset, length2, respond);
-    }
-    _onPiece(index, offset, buffer) {
-      this._debug("got piece index=%d offset=%d", index, offset);
-      this._callback(this._pull(this.requests, index, offset, buffer.length), null, buffer);
-      this.downloaded += buffer.length;
-      this.downloadSpeed(buffer.length);
-      this.emit("download", buffer.length);
-      this.emit("piece", index, offset, buffer);
-    }
-    _onCancel(index, offset, length2) {
-      this._debug("got cancel index=%d offset=%d length=%d", index, offset, length2);
-      this._pull(this.peerRequests, index, offset, length2);
-      this.emit("cancel", index, offset, length2);
-    }
-    _onPort(port) {
-      this._debug("got port %d", port);
-      this.emit("port", port);
-    }
-    _onSuggest(index) {
-      if (!this.hasFast) {
-        this._debug("Error: got suggest whereas fast extension is disabled");
-        this.destroy();
-        return;
-      }
-      this._debug("got suggest %d", index);
-      this.emit("suggest", index);
-    }
-    _onHaveAll() {
-      if (!this.hasFast) {
-        this._debug("Error: got have-all whereas fast extension is disabled");
-        this.destroy();
-        return;
-      }
-      this._debug("got have-all");
-      this.peerPieces = new HaveAllBitField();
-      this.emit("have-all");
-    }
-    _onHaveNone() {
-      if (!this.hasFast) {
-        this._debug("Error: got have-none whereas fast extension is disabled");
-        this.destroy();
-        return;
-      }
-      this._debug("got have-none");
-      this.emit("have-none");
-    }
-    _onReject(index, offset, length2) {
-      if (!this.hasFast) {
-        this._debug("Error: got reject whereas fast extension is disabled");
-        this.destroy();
-        return;
-      }
-      this._debug("got reject index=%d offset=%d length=%d", index, offset, length2);
-      this._callback(
-        this._pull(this.requests, index, offset, length2),
-        new Error("request was rejected"),
-        null
-      );
-      this.emit("reject", index, offset, length2);
-    }
-    _onAllowedFast(index) {
-      if (!this.hasFast) {
-        this._debug("Error: got allowed-fast whereas fast extension is disabled");
-        this.destroy();
-        return;
-      }
-      this._debug("got allowed-fast %d", index);
-      if (!this.peerAllowedFastSet.includes(index)) this.peerAllowedFastSet.push(index);
-      if (this.peerAllowedFastSet.length > ALLOWED_FAST_SET_MAX_LENGTH) this.peerAllowedFastSet.shift();
-      this.emit("allowed-fast", index);
-    }
-    _onExtended(ext, buf) {
-      if (ext === 0) {
-        let info;
-        try {
-          info = bencode_default.decode(buf);
-        } catch (err) {
-          this._debug("ignoring invalid extended handshake: %s", err.message || err);
-        }
-        if (!info) return;
-        this.peerExtendedHandshake = info;
-        if (typeof info.m === "object") {
-          for (const name in info.m) {
-            this.peerExtendedMapping[name] = Number(info.m[name].toString());
-          }
-        }
-        for (const name in this._ext) {
-          if (this.peerExtendedMapping[name]) {
-            this._ext[name].onExtendedHandshake(this.peerExtendedHandshake);
-          }
-        }
-        this._debug("got extended handshake");
-        this.emit("extended", "handshake", this.peerExtendedHandshake);
-      } else {
-        if (this.extendedMapping[ext]) {
-          ext = this.extendedMapping[ext];
-          if (this._ext[ext]) {
-            this._ext[ext].onMessage(buf);
-          }
-        }
-        this._debug("got extended message ext=%s", ext);
-        this.emit("extended", ext, buf);
-      }
-    }
-    _onTimeout() {
-      this._debug("request timed out");
-      this._callback(this.requests.shift(), new Error("request has timed out"), null);
-      this.emit("timeout");
-    }
-    /**
-     * Duplex stream method. Called whenever the remote peer has data for us. Data that the
-     * remote peer sends gets buffered (i.e. not actually processed) until the right number
-     * of bytes have arrived, determined by the last call to `this._parse(number, callback)`.
-     * Once enough bytes have arrived to process the message, the callback function
-     * (i.e. `this._parser`) gets called with the full buffer of data.
-     * @param  {Uint8Array} data
-     * @param  {function} cb
-     */
-    _write(data, cb) {
-      if (this._encryptor) data = this._encryptor.decrypt(data);
-      this._bufferSize += data.length;
-      this._buffer.push(data);
-      if (this._buffer.length > 1) {
-        this._buffer = [concat(this._buffer, this._bufferSize)];
-      }
-      this._processBuffer();
-      cb(null);
-    }
-    _processBuffer() {
-      if (this._cryptoSyncPattern) {
-        const index = indexOfBytes(this._buffer[0], this._cryptoSyncPattern);
-        if (index !== -1) {
-          this._buffer[0] = this._buffer[0].slice(index + this._cryptoSyncPattern.length);
-          this._bufferSize -= index + this._cryptoSyncPattern.length;
-          this._cryptoSyncPattern = null;
-        } else if (this._bufferSize > this._waitMaxBytes + this._cryptoSyncPattern.length) {
-          this._debug("Error: could not resynchronize");
-          this.destroy();
-          return;
-        }
-        if (this._cryptoSyncPattern) return;
-      }
-      while (this._bufferSize >= this._parserSize) {
-        if (this._cryptoSyncPattern || this._pePending) break;
-        if (this._parserSize === 0) {
-          this._parser(new Uint8Array());
-        } else {
-          const buffer = this._buffer[0];
-          this._bufferSize -= this._parserSize;
-          this._buffer = this._bufferSize ? [buffer.subarray(this._parserSize)] : [];
-          this._parser(buffer.subarray(0, this._parserSize));
-        }
-      }
-    }
-    _callback(request2, err, buffer) {
-      if (!request2) return;
-      this._resetTimeout(!this.peerChoking && !this._finished);
-      request2.callback(err, buffer);
-    }
-    _resetTimeout(setAgain) {
-      if (!setAgain || !this._timeoutMs || !this.requests.length) {
-        clearTimeout(this._timeout);
-        this._timeout = null;
-        this._timeoutExpiresAt = null;
-        return;
-      }
-      const timeoutExpiresAt = Date.now() + this._timeoutMs;
-      if (this._timeout) {
-        if (timeoutExpiresAt - this._timeoutExpiresAt < this._timeoutMs * 0.05) {
-          return;
-        }
-        clearTimeout(this._timeout);
-      }
-      this._timeoutExpiresAt = timeoutExpiresAt;
-      this._timeout = setTimeout(() => this._onTimeout(), this._timeoutMs);
-      if (this._timeoutUnref && this._timeout.unref) this._timeout.unref();
-    }
-    /**
-     * Takes a number of bytes that the local peer is waiting to receive from the remote peer
-     * in order to parse a complete message, and a callback function to be called once enough
-     * bytes have arrived.
-     * @param  {number} size
-     * @param  {function} parser
-     */
-    _parse(size2, parser) {
-      this._parserSize = size2;
-      this._parser = parser;
-    }
-    _parseUntil(pattern, maxBytes) {
-      this._cryptoSyncPattern = pattern;
-      this._waitMaxBytes = maxBytes;
-    }
-    /**
-     * Handle the first 4 bytes of a message, to determine the length of bytes that must be
-     * waited for in order to have the whole message.
-     * @param  {Uint8Array} buffer
-     */
-    _onMessageLength(buffer) {
-      const length2 = getUint32(buffer);
-      if (length2 > 0) {
-        this._parse(length2, this._onMessage);
-      } else {
-        this._onKeepAlive();
-        this._parse(4, this._onMessageLength);
-      }
-    }
-    /**
-     * Handle a message from the remote peer.
-     * @param  {Uint8Array} buffer
-     */
-    _onMessage(buffer) {
-      this._parse(4, this._onMessageLength);
-      switch (buffer[0]) {
-        case 0:
-          return this._onChoke();
-        case 1:
-          return this._onUnchoke();
-        case 2:
-          return this._onInterested();
-        case 3:
-          return this._onUninterested();
-        case 4:
-          return this._onHave(getUint32(buffer, 1));
-        case 5:
-          return this._onBitField(buffer.subarray(1));
-        case 6:
-          return this._onRequest(
-            getUint32(buffer, 1),
-            getUint32(buffer, 5),
-            getUint32(buffer, 9)
-          );
-        case 7:
-          return this._onPiece(
-            getUint32(buffer, 1),
-            getUint32(buffer, 5),
-            buffer.subarray(9)
-          );
-        case 8:
-          return this._onCancel(
-            getUint32(buffer, 1),
-            getUint32(buffer, 5),
-            getUint32(buffer, 9)
-          );
-        case 9:
-          return this._onPort(buffer[1] << 8 | buffer[2]);
-        case 13:
-          return this._onSuggest(getUint32(buffer, 1));
-        case 14:
-          return this._onHaveAll();
-        case 15:
-          return this._onHaveNone();
-        case 16:
-          return this._onReject(
-            getUint32(buffer, 1),
-            getUint32(buffer, 5),
-            getUint32(buffer, 9)
-          );
-        case 17:
-          return this._onAllowedFast(getUint32(buffer, 1));
-        case 20:
-          return this._onExtended(buffer[1], buffer.subarray(2));
-        default:
-          this._debug("got unknown message");
-          return this.emit("unknownmessage", buffer);
-      }
-    }
-    /**
-     * Reads the handshake as specified by the bittorrent wire protocol.
-     */
-    _parseHandshake() {
-      this._parse(1, (buffer) => {
-        const pstrlen = buffer[0];
-        if (pstrlen !== 19) {
-          this._debug("Error: wire not speaking BitTorrent protocol (%s)", pstrlen.toString());
-          this.end();
-          return;
-        }
-        this._parse(pstrlen + 48, this._onHandshakeBuffer);
-      });
-    }
-    _onHandshakeBuffer(handshake) {
-      const protocol = handshake.slice(0, 19);
-      if (arr2text(protocol) !== "BitTorrent protocol") {
-        this._debug("Error: wire not speaking BitTorrent protocol (%s)", arr2text(protocol));
-        this.end();
-        return;
-      }
-      handshake = handshake.slice(19);
-      this._onHandshake(handshake.slice(8, 28), handshake.slice(28, 48), {
-        dht: !!(handshake[7] & 1),
-        // see bep_0005
-        fast: !!(handshake[7] & 4),
-        // see bep_0006
-        extended: !!(handshake[5] & 16)
-        // see bep_0010
-      });
-      this._parse(4, this._onMessageLength);
-    }
-    _onFinish() {
-      this._finished = true;
-      this.push(null);
-      while (this.read()) {
-      }
-      clearInterval(this._keepAliveInterval);
-      this._parse(Number.MAX_VALUE, () => {
-      });
-      while (this.peerRequests.length) {
-        this.peerRequests.pop();
-      }
-      while (this.requests.length) {
-        this._callback(this.requests.pop(), new Error("wire was closed"), null);
-      }
-    }
-    _debug(...args) {
-      args[0] = `[${this._debugId}] ${args[0]}`;
-      debug(...args);
-    }
-    _pull(requests, piece, offset, length2) {
-      for (let i = 0; i < requests.length; i++) {
-        const req = requests[i];
-        if (req.piece === piece && req.offset === offset && req.length === length2) {
-          (0, import_unordered_array_remove.default)(requests, i);
-          return req;
-        }
-      }
-      return null;
-    }
-  };
-  var bittorrent_protocol_default = Wire;
-
-  // src/peer-engine.ts
-  var PIECE2 = 16384;
-  var TTL = 12e4;
-  var TIMEOUT2 = 12e3;
-  var CANCEL_TIMEOUT = TIMEOUT2;
-  var LIMIT4 = 65536;
-  var hex2 = (b) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
-  var digest2 = async (algorithm, b) => new Uint8Array(await crypto.subtle.digest(algorithm, b));
-  var wait2 = (ms) => new Promise((r) => setTimeout(r, ms));
-  var validHash = (x, n) => typeof x === "string" && new RegExp(`^[0-9a-f]{${n}}$`).test(x);
-  var b643 = (b) => {
-    let s = "";
-    for (let i = 0; i < b.length; i += 8192) s += String.fromCharCode(...b.subarray(i, i + 8192));
-    return btoa(s);
-  };
-  var unb642 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
-  var frame = (g, type, bytes8 = new Uint8Array()) => {
-    const a = new Uint8Array(5 + bytes8.length);
-    new DataView(a.buffer).setUint32(0, g);
-    a[4] = type;
-    a.set(bytes8, 5);
-    return a;
-  };
-  function createObjectPeerEngine(options, track, namespace2 = "") {
-    const pieceWindow = options.pieceWindow ?? 1;
-    if (!Number.isInteger(pieceWindow) || pieceWindow < 1 || pieceWindow > 4) throw Error("invalid piece window");
-    const maxObject = options.maxObjectBytes ?? 8 * 1024 * 1024, maxCache = options.maxCacheBytes ?? 64 * 1024 * 1024;
-    const links = /* @__PURE__ */ new Map(), cache = /* @__PURE__ */ new Map();
-    let closed = false, cacheBytes = 0, progressDigests = 0;
-    const pendingLoads = /* @__PURE__ */ new Map();
-    let loadTail = Promise.resolve();
-    const delivery = createDeliveryObserver(options.onDelivery);
-    const counters = { pcCreated: 0, activePC: 0, channels: 0, offers: 0, bytesSent: 0, bytesReceived: 0, objectsVerified: 0, objectsServed: 0, integrityRejected: 0, staleFrames: 0, staleIceCandidates: 0, route: "unknown" };
-    const count = (k, n = 1) => {
-      counters[k] = Number(counters[k] || 0) + n;
-    };
-    const report = () => options.onStats?.({ ...counters, cacheBytes });
-    const ensureOpen = () => {
-      if (closed) throw Error("engine closed");
-    };
-    const servingAllowed = (hash) => (typeof options.canServe === "function" ? options.canServe() : options.canServe !== false) && (options.canServeHash?.(hash) ?? true);
-    const purge = () => {
-      const now = Date.now();
-      for (const [key8, entry] of cache) if ((options.expireInit || entry.descriptor.kind !== "init") && now - entry.touched > (options.cacheTtlMs ?? TTL)) {
-        cache.delete(key8);
-        cacheBytes -= entry.bytes.length;
-      }
-    };
-    const get = (key8) => {
-      purge();
-      const e = cache.get(key8);
-      if (e) {
-        e.touched = Date.now();
-        cache.delete(key8);
-        cache.set(key8, e);
-      }
-      return e;
-    };
-    const store = (e) => {
-      ensureOpen();
-      purge();
-      const previous = cache.get(e.descriptor.infoHash);
-      if (previous) {
-        cache.delete(e.descriptor.infoHash);
-        cacheBytes -= previous.bytes.length;
-      }
-      while (cacheBytes + e.bytes.length > maxCache && cache.size) {
-        const key8 = options.cacheEviction === "lru" ? cache.keys().next().value : [...cache].find(([, value]) => value.descriptor.kind !== "init")?.[0] ?? cache.keys().next().value;
-        const old = cache.get(key8);
-        cache.delete(key8);
-        cacheBytes -= old.bytes.length;
-      }
-      if (e.bytes.length <= maxCache) {
-        cache.set(e.descriptor.infoHash, e);
-        cacheBytes += e.bytes.length;
-      }
-      report();
-    };
-    const validateDescriptor2 = (d) => {
-      if (!d || !validHash(d.infoHash, 40) || !validHash(d.sha256, 64) || !Number.isSafeInteger(d.lengthBytes) || d.lengthBytes <= 0 || d.lengthBytes > maxObject || !["init", "media"].includes(d.kind) || d.track !== track || !Number.isSafeInteger(d.sequence) || d.sequence < 0 || !Number.isFinite(d.mediaStartMs) || !Number.isFinite(d.durationMs) || typeof d.mime !== "string" || d.mime.length > 256 || typeof d.codecConfigId !== "string" || d.codecConfigId.length > 256) throw Error("invalid descriptor");
-    };
-    const getInfo = buildObjectInfo;
-    const parseInfo = async (info, d) => {
-      if (info.length > Math.ceil(maxObject / PIECE2) * 20 + 256 || hex2(await digest2("SHA-1", info)) !== d.infoHash) throw Error("invalid info hash");
-      let parsed;
-      try {
-        parsed = bencode_default.decode(info);
-      } catch {
-        throw Error("invalid metadata");
-      }
-      if (!parsed || parsed.length !== d.lengthBytes || parsed["piece length"] !== PIECE2 || !(parsed.pieces instanceof Uint8Array) || parsed.pieces.length !== Math.ceil(d.lengthBytes / PIECE2) * 20 || new TextDecoder().decode(parsed.name) !== "object" || hex2(new Uint8Array(bencode_default.encode(parsed))) !== hex2(info)) throw Error("invalid metadata");
-      return new Uint8Array(parsed.pieces);
-    };
-    const verify = async (bytes8, d, hashes) => {
-      if (bytes8.length !== d.lengthBytes) throw Error("object length mismatch");
-      for (let i = 0; i < bytes8.length; i += PIECE2) if (hex2(await digest2("SHA-1", bytes8.subarray(i, i + PIECE2))) !== hex2(hashes.subarray(i / PIECE2 * 20, i / PIECE2 * 20 + 20))) throw Error("piece hash mismatch");
-      if (hex2(await digest2("SHA-256", bytes8)) !== d.sha256) throw Error("object hash mismatch");
-    };
-    const sendControl = (l, data) => {
-      if (l.control?.readyState !== "open") throw Error("control unavailable");
-      if (l.control.bufferedAmount > LIMIT4) throw Error("control backpressure");
-      l.control.send(JSON.stringify(data));
-    };
-    const failure2 = (t, error) => {
-      if (t && !t.failed) t.failed = error;
-    };
-    const stop = (id, reason = "closed", expected) => {
-      const l = links.get(id);
-      if (!l || l.closed || expected && l !== expected) return;
-      if (l.chat) try {
-        options.onChatState?.(id, false);
-      } catch {
-      }
-      l.closed = true;
-      links.delete(id);
-      delivery.resetPath();
-      for (const m of l.metas.values()) m.reject(Error(reason));
-      l.metas.clear();
-      for (const slot of l.slots) {
-        for (const job of slot.queue.splice(0)) {
-          if (job.abort) job.signal?.removeEventListener("abort", job.abort);
-          job.reject(Error(reason));
-        }
-        failure2(slot.transfer, Error(reason));
-        try {
-          slot.transfer?.wire.destroy();
-          slot.channel?.close();
-        } catch {
-        }
-      }
-      try {
-        l.chat?.close();
-        l.control?.close();
-        l.pc.close();
-      } catch {
-      }
-      counters.activePC = Math.max(0, Number(counters.activePC) - 1);
-      options.onState(id, "closed", reason);
-      report();
-    };
-    const until = async (predicate, l, t, signal, ms = TIMEOUT2) => {
-      const end2 = Date.now() + ms;
-      while (true) {
-        if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-        if (l.closed) throw Error("peer closed");
-        if (t?.failed) throw t.failed;
-        if (predicate()) return;
-        if (Date.now() > end2) throw Error("peer timeout");
-        await wait2(10);
-      }
-    };
-    const enqueue = (s, task, signal) => {
-      ensureOpen();
-      if (signal?.aborted) return Promise.reject(new DOMException("Aborted", "AbortError"));
-      if (s.queue.length >= 16) return Promise.reject(Error("peer queue full"));
-      return new Promise((resolve, reject) => {
-        const pump = () => {
-          if (s.active) return;
-          const next = s.queue.shift();
-          if (!next) return;
-          s.active = true;
-          if (next.abort) next.signal?.removeEventListener("abort", next.abort);
-          next.run();
-        };
-        const job = { signal, reject, run: () => {
-          Promise.resolve().then(task).then(resolve, reject).finally(() => {
-            s.active = false;
-            pump();
-          });
-        } };
-        job.abort = () => {
-          const index = s.queue.indexOf(job);
-          if (index < 0) return;
-          s.queue.splice(index, 1);
-          signal?.removeEventListener("abort", job.abort);
-          reject(new DOMException("Aborted", "AbortError"));
-        };
-        s.queue.push(job);
-        signal?.addEventListener("abort", job.abort, { once: true });
-        pump();
-      });
-    };
-    const attach = (id, l, slotIndex, gen, hash, serving, entry) => {
-      const s = l.slots[slotIndex], w = new bittorrent_protocol_default("webrtc");
-      const t = { gen, hash, wire: w, serving, pending: Promise.resolve(), queued: 0, remoteFin: false, closeAck: false, ownFin: false, handshake: false, ack: false, finished: false };
-      s.transfer = t;
-      w.on("error", (e) => failure2(t, e));
-      w.on("data", (chunk) => {
-        const copy = new Uint8Array(chunk);
-        t.queued += copy.length;
-        if (t.queued > LIMIT4 * 4) {
-          failure2(t, Error("wire queue exceeded"));
-          return;
-        }
-        t.pending = t.pending.then(async () => {
-          for (let i = 0; i < copy.length; ) {
-            await until(() => !!s.channel && s.channel.readyState === "open" && s.channel.bufferedAmount <= LIMIT4, l, t);
-            const size2 = Math.min(16379, Math.max(1, (l.pc.sctp?.maxMessageSize || 16384) - 5), copy.length - i);
-            const data = frame(gen, 0, copy.subarray(i, i + size2));
-            s.channel.send(data);
-            count("bytesSent", size2);
-            i += size2;
-          }
-          t.queued -= copy.length;
-        }).catch((e) => failure2(t, e));
-      });
-      w.on("handshake", (h) => {
-        if (h !== hash) {
-          failure2(t, Error("wrong handshake"));
-          return;
-        }
-        t.handshake = true;
-        if (serving) w.unchoke();
-      });
-      if (serving && entry) w.on("request", (index, offset, length2, cb) => {
-        const start = index * PIECE2 + offset;
-        if (!Number.isSafeInteger(index) || !Number.isSafeInteger(offset) || !Number.isSafeInteger(length2) || index < 0 || offset < 0 || length2 <= 0 || length2 > PIECE2 || offset + length2 > PIECE2 || start + length2 > entry.bytes.length) {
-          cb(Error("invalid request"));
-          return;
-        }
-        cb(null, entry.bytes.slice(start, start + length2));
-      });
-      return t;
-    };
-    const startHandshake = (t) => t.wire.handshake(t.hash, crypto.getRandomValues(new Uint8Array(20)));
-    const retire = (s, t) => {
-      if (t.finished) return;
-      t.finished = true;
-      if (t.serving) {
-        count("objectsServed");
-        report();
-      }
-      t.wire.destroy();
-      if (s.transfer === t) s.transfer = void 0;
-    };
-    const finish = async (l, s, t, signal) => {
-      await t.pending;
-      if (l.closed || s.transfer !== t && !t.finished) throw Error("peer closed");
-      if (t.failed) throw t.failed;
-      if (!t.ownFin) {
-        s.channel.send(frame(t.gen, 1));
-        t.ownFin = true;
-      }
-      await until(() => t.finished || t.remoteFin && t.closeAck, l, t, signal);
-      retire(s, t);
-    };
-    const cancelTransfer = async (l, s, t) => {
-      let timer;
-      try {
-        await Promise.race([
-          (async () => {
-            await until(() => t.ack, l, t);
-            await finish(l, s, t);
-          })(),
-          new Promise((_, reject) => {
-            timer = setTimeout(() => reject(Error("cancel cleanup timeout")), CANCEL_TIMEOUT);
-          })
-        ]);
-      } finally {
-        if (timer) clearTimeout(timer);
-      }
-    };
-    const setupChat = (id, l, ch) => {
-      const current = () => !closed && !l.closed && links.get(id) === l && l.chat === ch && !!options.chatAllowed?.(id);
-      try {
-        if (!options.chatAllowed?.(id) || l.chat || !ch.ordered || ch.maxRetransmits !== null || ch.maxPacketLifeTime !== null) {
-          ch.close();
-          return;
-        }
-        l.chat = ch;
-        ch.onopen = () => {
-          if (current()) try {
-            options.onChatState?.(id, true);
-          } catch {
-          }
-        };
-        ch.onclose = () => {
-          if (current()) try {
-            options.onChatState?.(id, false);
-          } catch {
-          }
-        };
-        ch.onerror = () => {
-          try {
-            ch.close();
-          } catch {
-          }
-        };
-        ch.onmessage = (e) => {
-          if (!current()) return;
-          const now = Date.now();
-          if (now - l.chatAt >= 1e3) {
-            l.chatAt = now;
-            l.chatCount = 0;
-          }
-          if (++l.chatCount > 20 || typeof e.data !== "string" || e.data.length > 4096 || new TextEncoder().encode(e.data).length > 4096) {
-            try {
-              ch.close();
-            } catch {
-            }
-            return;
-          }
-          try {
-            options.onChatMessage?.(id, e.data);
-          } catch {
-          }
-        };
-      } catch {
-        try {
-          ch.close();
-        } catch {
-        }
-      }
-    };
-    const setupChannel = (id, l, ch) => {
-      if (ch.label === namespace2 + "room-chat-1") {
-        setupChat(id, l, ch);
-        return;
-      }
-      if (closed || l.closed) {
-        ch.close();
-        return;
-      }
-      if (!ch.label.startsWith(namespace2)) {
-        ch.close();
-        stop(id, "invalid channel namespace", l);
-        return;
-      }
-      const label = ch.label.slice(namespace2.length);
-      if (label === "control") {
-        if (l.control) {
-          stop(id, "duplicate control", l);
-          return;
-        }
-        l.control = ch;
-        ch.onmessage = (e) => {
-          if (!options.loadObject && !options.authorizeObject) {
-            void controlMessage(id, l, e.data);
-            return;
-          }
-          if (++l.controlQueued > 16) {
-            stop(id, "control queue exceeded", l);
-            return;
-          }
-          l.controlChain = l.controlChain.then(() => controlMessage(id, l, e.data)).finally(() => {
-            l.controlQueued--;
-          });
-        };
-        ch.onopen = () => {
-          if (closed || l.closed || links.get(id) !== l) return;
-          options.onState(id, "connected");
-          report();
-        };
-        ch.onclose = () => stop(id, "control closed", l);
-        ch.onerror = () => stop(id, "control error", l);
-      } else {
-        const match = /^slot-([01])$/.exec(label);
-        if (!match) {
-          ch.close();
-          stop(id, "invalid channel", l);
-          return;
-        }
-        const index = Number(match[1]), s = l.slots[index];
-        if (s.channel) {
-          ch.close();
-          stop(id, "duplicate slot", l);
-          return;
-        }
-        s.channel = ch;
-        ch.binaryType = "arraybuffer";
-        ch.onclose = () => stop(id, "slot closed", l);
-        ch.onerror = () => stop(id, "slot error", l);
-        ch.onmessage = (e) => {
-          if (closed || l.closed || links.get(id) !== l) return;
-          try {
-            if (!(e.data instanceof ArrayBuffer) || e.data.byteLength < 5 || e.data.byteLength > 16384) throw Error("bad frame");
-            const a = new Uint8Array(e.data), g = new DataView(a.buffer).getUint32(0), t = s.transfer;
-            if (g < s.gen) {
-              count("staleFrames");
-              return;
-            }
-            if (g !== s.gen || !t || t.gen !== g) throw Error("unexpected generation");
-            if (a[4] === 0 && a.length > 5 && !t.remoteFin) {
-              count("bytesReceived", a.length - 5);
-              t.wire.write(a.subarray(5));
-            } else if (a[4] === 1 && a.length === 5 && !t.remoteFin) {
-              t.remoteFin = true;
-              sendControl(l, { op: "CLOSE_ACK", slot: index, g });
-              if (t.serving) void finish(l, s, t).catch((err) => stop(id, err.message, l));
-            } else throw Error("bad frame");
-          } catch (err) {
-            stop(id, err.message, l);
-          }
-        };
-      }
-    };
-    const within = async (work, ms = 5e3) => {
-      let timer;
-      try {
-        return await Promise.race([work, new Promise((_, reject) => {
-          timer = setTimeout(() => reject(Error("Object storage timed out")), ms);
-        })]);
-      } finally {
-        if (timer) clearTimeout(timer);
-      }
-    };
-    function loadVerified(hash) {
-      const existing = pendingLoads.get(hash);
-      if (existing) return existing;
-      if (pendingLoads.size >= 16) return Promise.reject(Error("Object storage queue full"));
-      const task = loadTail.catch(() => {
-      }).then(async () => {
-        if (closed || !servingAllowed(hash) || !options.loadObject) return;
-        const loaded = await options.loadObject(hash);
-        if (closed || !servingAllowed(hash) || !loaded) return;
-        const d = loaded.descriptor;
-        validateDescriptor2(d);
-        if (d.infoHash !== hash || loaded.bytes.length !== d.lengthBytes) return;
-        const { info, hashes } = await getInfo(loaded.bytes);
-        if (closed || !servingAllowed(hash) || hex2(await digest2("SHA-1", info)) !== hash || hex2(await digest2("SHA-256", loaded.bytes)) !== d.sha256) return;
-        store({ bytes: loaded.bytes, info, hashes, descriptor: Object.freeze({ ...d }), touched: Date.now() });
-      });
-      pendingLoads.set(hash, task);
-      loadTail = task.catch(() => {
-      });
-      void task.finally(() => {
-        if (pendingLoads.get(hash) === task) pendingLoads.delete(hash);
-      }).catch(() => {
-      });
-      return task;
-    }
-    async function getForServe(hash, id, l) {
-      const current = () => !closed && !l.closed && links.get(id) === l && servingAllowed(hash);
-      if (!current()) return void 0;
-      try {
-        if (options.authorizeObject && !await within(options.authorizeObject(hash))) return void 0;
-      } catch {
-        return void 0;
-      }
-      if (!current()) return void 0;
-      let entry = get(hash);
-      if (!entry && options.loadObject) {
-        try {
-          await within(loadVerified(hash));
-        } catch {
-          return void 0;
-        }
-        if (!current()) return void 0;
-        entry = get(hash);
-      }
-      if (!current()) return void 0;
-      try {
-        if (options.authorizeObject && !await within(options.authorizeObject(hash))) return void 0;
-      } catch {
-        return void 0;
-      }
-      if (!current()) return void 0;
-      return entry;
-    }
-    async function controlMessage(id, l, raw) {
-      if (closed || l.closed || links.get(id) !== l) return;
-      try {
-        if (typeof raw !== "string" || raw.length > Math.ceil(maxObject / PIECE2) * 30 + 1024) throw Error("invalid control");
-        const m = JSON.parse(raw);
-        if (!m || typeof m !== "object" || typeof m.op !== "string") throw Error("invalid control");
-        if (m.op === "META_REQ") {
-          if (!validHash(m.hash, 40) || typeof m.req !== "string" || m.req.length > 80) throw Error("invalid metadata request");
-          const e = options.loadObject || options.authorizeObject ? await getForServe(m.hash, id, l) : servingAllowed(m.hash) ? get(m.hash) : void 0;
-          if (closed || l.closed || links.get(id) !== l) return;
-          sendControl(l, { op: "META", req: m.req, hash: m.hash, info: e ? b643(e.info) : null });
-        } else if (m.op === "META") {
-          if (typeof m.req !== "string" || !validHash(m.hash, 40) || !(m.info === null || typeof m.info === "string")) throw Error("invalid metadata response");
-          const pending = l.metas.get(m.req);
-          if (pending) {
-            l.metas.delete(m.req);
-            if (m.info === null) pending.reject(Error("object unavailable"));
-            else pending.resolve(unb642(m.info));
-          }
-        } else if (m.op === "OPEN") {
-          if (!Number.isInteger(m.slot) || m.slot < 0 || m.slot > 1 || !Number.isInteger(m.g) || m.g < 1 || !validHash(m.hash, 40)) throw Error("invalid open");
-          const s = l.slots[m.slot], expectedRemoteSlot = options.selfId < id ? 1 : 0;
-          if (m.slot !== expectedRemoteSlot || s.transfer || m.g !== s.gen + 1 || s.channel?.readyState !== "open") throw Error("slot unavailable");
-          const entry = options.loadObject || options.authorizeObject ? await getForServe(m.hash, id, l) : servingAllowed(m.hash) ? get(m.hash) : void 0;
-          if (closed || l.closed || links.get(id) !== l) return;
-          if (s.transfer || m.g !== s.gen + 1 || s.channel?.readyState !== "open") throw Error("slot unavailable");
-          if (!entry) {
-            sendControl(l, { op: "OPEN_FAIL", slot: m.slot, g: m.g });
-            s.gen = m.g;
-            return;
-          }
-          s.gen = m.g;
-          const t = attach(id, l, m.slot, m.g, m.hash, true, entry);
-          sendControl(l, { op: "OPEN_ACK", slot: m.slot, g: m.g, hash: m.hash });
-          startHandshake(t);
-        } else if (m.op === "OPEN_ACK" || m.op === "OPEN_FAIL" || m.op === "CLOSE_ACK") {
-          if (!Number.isInteger(m.slot) || m.slot < 0 || m.slot > 1 || !Number.isInteger(m.g)) throw Error("invalid ack");
-          const s = l.slots[m.slot], t = s.transfer;
-          if (m.g < s.gen) {
-            count("staleFrames");
-            return;
-          }
-          if (!t || t.gen !== m.g) throw Error("unexpected ack");
-          if (m.op === "OPEN_ACK") {
-            if (m.hash !== t.hash || t.serving || t.ack) throw Error("invalid open ack");
-            t.ack = true;
-          } else if (m.op === "OPEN_FAIL") failure2(t, Error("object unavailable"));
-          else {
-            if (t.closeAck || !t.ownFin) throw Error("unexpected close ack");
-            t.closeAck = true;
-            if (t.serving && t.remoteFin) retire(s, t);
-          }
-        } else throw Error("unknown control");
-      } catch (e) {
-        stop(id, e.message, l);
-      }
-    }
-    const descriptionUfrag = (description) => {
-      if (typeof description.sdp !== "string") return void 0;
-      const values = [...description.sdp.matchAll(/^a=ice-ufrag:([^\r\n]+)\r?$/gm)].map((match) => match[1]);
-      if (!values.length || values.some((value) => !/^[A-Za-z0-9+/]{1,256}$/.test(value) || value !== values[0])) return void 0;
-      return values[0];
-    };
-    const supersedeIce = (l) => {
-      if (l.iceUfrag) {
-        if (l.oldIceUfrags.size >= 8 && !l.oldIceUfrags.has(l.iceUfrag)) return false;
-        l.oldIceUfrags.add(l.iceUfrag);
-      }
-      l.iceSuperseded = true;
-      l.iceUfrag = void 0;
-      delivery.resetPath();
-      return true;
-    };
-    const failIceOwnership = (id, l) => {
-      stop(id, "signalling failed", l);
-      try {
-        options.onSignalError?.();
-      } catch {
-      }
-    };
-    const signalOwner = (id, link) => {
-      const generation = link.signalGeneration;
-      return () => !closed && !link.closed && links.get(id) === link && link.signalGeneration === generation;
-    };
-    const create = (id, initiator) => {
-      if (closed) throw Error("engine closed");
-      if (!id || id === options.selfId || id.length > 256) throw Error("invalid peer");
-      let l = links.get(id);
-      if (l) return l;
-      const pc = new RTCPeerConnection({ iceServers: options.iceServers });
-      l = { pc, chatAt: 0, chatCount: 0, slots: [{ gen: 0, active: false, queue: [] }, { gen: 0, active: false, queue: [] }], candidates: [], makingOffer: false, signalGeneration: 0, oldIceUfrags: /* @__PURE__ */ new Set(), iceSuperseded: false, closed: false, metas: /* @__PURE__ */ new Map(), signalChain: Promise.resolve(), controlChain: Promise.resolve(), controlQueued: 0 };
-      links.set(id, l);
-      delivery.resetPath();
-      count("pcCreated");
-      count("activePC");
-      const link = l;
-      pc.onicecandidate = (e) => {
-        if (!e.candidate || link.closed || links.get(id) !== link) return;
-        try {
-          const candidate = e.candidate.toJSON();
-          const fragment = e.candidate.usernameFragment ?? candidate.usernameFragment;
-          if (link.iceSuperseded) {
-            if (!link.iceUfrag || typeof fragment !== "string" || !fragment) {
-              failIceOwnership(id, link);
-              return;
-            }
-            if (fragment !== link.iceUfrag) {
-              if (link.oldIceUfrags.has(fragment)) {
-                counters.staleIceCandidates = Math.min(255, Number(counters.staleIceCandidates) + 1);
-                report();
-                return;
-              }
-              failIceOwnership(id, link);
-              return;
-            }
-          }
-          const current = signalOwner(id, link);
-          options.sendSignal(id, { candidate }, current);
-        } catch {
-          failIceOwnership(id, link);
-        }
-      };
-      pc.ondatachannel = (e) => setupChannel(id, link, e.channel);
-      pc.onconnectionstatechange = () => {
-        if (closed || link.closed) return;
-        options.onState(id, pc.connectionState);
-        if (pc.connectionState === "disconnected") delivery.resetPath();
-        if (["failed", "closed"].includes(pc.connectionState)) stop(id, pc.connectionState, link);
-        if (pc.connectionState === "connected") void pc.getStats().then((stats) => {
-          if (closed || link.closed) return;
-          stats.forEach((x) => {
-            if (x.type === "transport" && x.selectedCandidatePairId) {
-              const pair = stats.get(x.selectedCandidatePairId), local = pair && stats.get(pair.localCandidateId), remote = pair && stats.get(pair.remoteCandidateId);
-              counters.route = [local?.candidateType, remote?.candidateType].filter(Boolean).join("/") || "unknown";
-              report();
-            }
-          });
-        }).catch(() => {
-        });
-      };
-      if (initiator) {
-        for (const name of ["control", "slot-0", "slot-1"]) {
-          setupChannel(id, link, pc.createDataChannel(namespace2 + name, { ordered: true }));
-          count("channels");
-        }
-        if (options.chatAllowed?.(id)) try {
-          setupChat(id, link, pc.createDataChannel(namespace2 + "room-chat-1", { ordered: true }));
-        } catch {
-        }
-      }
-      return l;
-    };
-    const api = {
-      async connect(id, initiator) {
-        initiator = initiator && options.selfId < id;
-        const l = create(id, initiator);
-        if (!initiator || l.makingOffer || l.pc.signalingState !== "stable") return;
-        l.makingOffer = true;
-        if (l.signalGeneration > 0 && !supersedeIce(l)) {
-          failIceOwnership(id, l);
-          l.makingOffer = false;
-          return;
-        }
-        l.signalGeneration++;
-        const current = signalOwner(id, l);
-        try {
-          const offer = await l.pc.createOffer();
-          ensureOpen();
-          if (l.closed || links.get(id) !== l) throw Error("peer closed");
-          if (!current()) return;
-          l.iceUfrag = descriptionUfrag(offer);
-          await l.pc.setLocalDescription(offer);
-          ensureOpen();
-          if (l.closed || links.get(id) !== l) throw Error("peer closed");
-          if (!current()) return;
-          count("offers");
-          options.sendSignal(id, { description: l.pc.localDescription?.toJSON() }, current);
-          report();
-        } catch (e) {
-          if (current()) stop(id, "offer failed", l);
-          throw e;
-        } finally {
-          l.makingOffer = false;
-        }
-      },
-      async handleSignal(id, data) {
-        const l = create(id, false);
-        let owned = signalOwner(id, l);
-        l.signalChain = l.signalChain.then(async () => {
-          owned = signalOwner(id, l);
-          ensureOpen();
-          if (l.closed) throw Error("peer closed");
-          if (!data || typeof data !== "object") throw Error("invalid signal");
-          const msg = data;
-          if (msg.description) {
-            const d = msg.description;
-            if (!["offer", "answer"].includes(d.type) || typeof d.sdp !== "string" || d.sdp.length > 1e5) throw Error("invalid description");
-            if (d.type === "offer") {
-              if ((l.makingOffer || l.pc.signalingState !== "stable") && options.selfId < id) return;
-              if ((l.signalGeneration > 0 || l.iceUfrag !== void 0) && !supersedeIce(l)) {
-                failIceOwnership(id, l);
-                return;
-              }
-              l.signalGeneration++;
-              if (l.makingOffer || l.pc.signalingState !== "stable") {
-                await l.pc.setLocalDescription({ type: "rollback" });
-                ensureOpen();
-                if (l.closed || links.get(id) !== l) throw Error("peer closed");
-              }
-            }
-            const current = owned = signalOwner(id, l);
-            await l.pc.setRemoteDescription(d);
-            if (l.closed || links.get(id) !== l) throw Error("peer closed");
-            if (!current()) return;
-            for (const c of l.candidates.splice(0)) {
-              await l.pc.addIceCandidate(c);
-              if (l.closed || links.get(id) !== l) throw Error("peer closed");
-              if (!current()) return;
-            }
-            if (d.type === "offer") {
-              const answer = await l.pc.createAnswer();
-              if (l.closed || links.get(id) !== l) throw Error("peer closed");
-              if (!current()) return;
-              l.iceUfrag = descriptionUfrag(answer);
-              await l.pc.setLocalDescription(answer);
-              ensureOpen();
-              if (l.closed || links.get(id) !== l) throw Error("peer closed");
-              if (!current()) return;
-              options.sendSignal(id, { description: l.pc.localDescription?.toJSON() }, current);
-            }
-          } else if (msg.candidate) {
-            if (typeof msg.candidate.candidate !== "string" || msg.candidate.candidate.length > 4096) throw Error("invalid candidate");
-            if (l.pc.remoteDescription) await l.pc.addIceCandidate(msg.candidate);
-            else {
-              if (l.candidates.length >= 128) throw Error("too many candidates");
-              l.candidates.push(msg.candidate);
-            }
-          } else throw Error("invalid signal");
-        }).catch((e) => {
-          if (owned()) stop(id, "signalling failed", l);
-          throw e;
-        });
-        return l.signalChain;
-      },
-      async put(input) {
-        trace("put-start", { seq: input.sequence, bytes: input.bytes.length });
-        if (closed) throw Error("engine closed");
-        const bytes8 = new Uint8Array(input.bytes);
-        if (!bytes8.length || bytes8.length > maxObject) throw Error("object too large or empty");
-        const { info, hashes } = await getInfo(bytes8);
-        ensureOpen();
-        const descriptor = { kind: input.kind, track: input.track, sequence: input.sequence, mediaStartMs: input.mediaStartMs, durationMs: input.durationMs, mime: input.mime, codecConfigId: input.codecConfigId, lengthBytes: bytes8.length, infoHash: hex2(await digest2("SHA-1", info)), sha256: hex2(await digest2("SHA-256", bytes8)) };
-        ensureOpen();
-        validateDescriptor2(descriptor);
-        store({ bytes: bytes8, info, hashes, descriptor: Object.freeze({ ...descriptor }), touched: Date.now() });
-        ensureOpen();
-        trace("put-end", { seq: input.sequence, bytes: bytes8.length });
-        return Object.freeze(descriptor);
-      },
-      async fetch(d, suppliers2, signal, onProgress) {
-        trace("fetch-start", { seq: d.sequence, bytes: d.lengthBytes });
-        ensureOpen();
-        validateDescriptor2(d);
-        const observation = delivery.start(d.lengthBytes);
-        try {
-          if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-          const own = get(d.infoHash);
-          if (own) {
-            try {
-              await verify(own.bytes, d, own.hashes);
-              ensureOpen();
-              if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-              trace("fetch-end", { seq: d.sequence, bytes: own.bytes.length });
-              observation.complete();
-              return own.bytes.slice();
-            } catch (e) {
-              ensureOpen();
-              count("integrityRejected");
-            }
-          }
-          const ordered = [...new Set(suppliers2)], ready2 = [], waiting = [];
-          const reportedPieces = /* @__PURE__ */ new Set();
-          let verifiedBytes = 0;
-          for (const id of ordered) {
-            const l = links.get(id), slot = l?.slots[options.selfId < id ? 0 : 1];
-            (l && !l.closed && l.control?.readyState === "open" && slot?.channel?.readyState === "open" ? ready2 : waiting).push(id);
-          }
-          let last2 = Error("no supplier available");
-          for (const id of [...ready2, ...waiting]) {
-            ensureOpen();
-            if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-            const l = links.get(id);
-            if (!l || l.closed) continue;
-            const slotIndex = options.selfId < id ? 0 : 1, s = l.slots[slotIndex];
-            const task = async () => {
-              await until(() => l.control?.readyState === "open" && s.channel?.readyState === "open", l, void 0, signal);
-              const req = crypto.randomUUID();
-              let info, metaError;
-              l.metas.set(req, { resolve: (v) => {
-                info = v;
-              }, reject: (e) => {
-                metaError = e;
-              } });
-              try {
-                sendControl(l, { op: "META_REQ", hash: d.infoHash, req });
-                await until(() => !!info || !!metaError, l, void 0, signal);
-                if (metaError) throw metaError;
-              } finally {
-                l.metas.delete(req);
-              }
-              const hashes = await parseInfo(info, d);
-              ensureOpen();
-              if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-              if (s.gen >= 4294967294) throw Error("generation exhausted");
-              const gen = ++s.gen, t = attach(id, l, slotIndex, gen, d.infoHash, false);
-              try {
-                sendControl(l, { op: "OPEN", slot: slotIndex, g: gen, hash: d.infoHash });
-                await until(() => t.ack, l, t, signal);
-                startHandshake(t);
-                await until(() => t.handshake, l, t, signal);
-                t.wire.interested();
-                await until(() => !t.wire.peerChoking, l, t, signal);
-                const bytes8 = await fetchPieceWindow(d.lengthBytes, PIECE2, pieceWindow, (index, length2, callback) => {
-                  if (!onProgress && !options.onDelivery) {
-                    t.wire.request(index, 0, length2, callback);
-                    return;
-                  }
-                  let received = false;
-                  t.wire.request(index, 0, length2, (error, block) => {
-                    if (received) return;
-                    received = true;
-                    if (error || !(block instanceof Uint8Array) || block.length !== length2) {
-                      callback(error, block);
-                      return;
-                    }
-                    const owned = block.slice();
-                    void (async () => {
-                      while (true) {
-                        await until(() => progressDigests < pieceWindow, l, t, signal);
-                        if (closed || signal?.aborted || l.closed || links.get(id) !== l || s.transfer !== t || s.gen !== gen || t.failed) throw Error("stale piece");
-                        if (progressDigests < pieceWindow) {
-                          progressDigests++;
-                          break;
-                        }
-                      }
-                      try {
-                        return await digest2("SHA-1", owned);
-                      } finally {
-                        progressDigests--;
-                      }
-                    })().then((hash) => {
-                      if (closed || signal?.aborted || l.closed || links.get(id) !== l || s.transfer !== t || s.gen !== gen || t.failed) return;
-                      if (hex2(hash) !== hex2(hashes.subarray(index * 20, index * 20 + 20))) {
-                        count("integrityRejected");
-                        callback(Error("piece hash mismatch"));
-                        return;
-                      }
-                      callback(null, owned);
-                      if (!reportedPieces.has(index)) {
-                        reportedPieces.add(index);
-                        verifiedBytes += owned.length;
-                        observation.piece(index, owned.length);
-                        try {
-                          onProgress?.({ verifiedBytes, totalBytes: d.lengthBytes });
-                        } catch {
-                        }
-                      }
-                    }).catch((error2) => {
-                      if (!closed && !signal?.aborted && !l.closed && links.get(id) === l && s.transfer === t && s.gen === gen && !t.failed) callback(error2 instanceof Error ? error2 : Error("piece digest failed"));
-                    });
-                  });
-                }, (predicate) => until(predicate, l, t, signal), () => {
-                  ensureOpen();
-                  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-                  if (l.closed) throw Error("peer closed");
-                  if (t.failed) throw t.failed;
-                });
-                try {
-                  await verify(bytes8, d, hashes);
-                } catch (e) {
-                  count("integrityRejected");
-                  throw e;
-                }
-                await finish(l, s, t, signal);
-                ensureOpen();
-                if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-                store({ bytes: bytes8.slice(), info, hashes, descriptor: Object.freeze({ ...d }), touched: Date.now() });
-                count("objectsVerified");
-                report();
-                ensureOpen();
-                trace("fetch-end", { seq: d.sequence, bytes: bytes8.length });
-                observation.complete();
-                return bytes8;
-              } catch (e) {
-                if (e?.name === "AbortError" && signal?.aborted && !t.failed) {
-                  try {
-                    await cancelTransfer(l, s, t);
-                  } catch {
-                    stop(id, "cancel cleanup failed", l);
-                  }
-                } else {
-                  failure2(t, e);
-                  stop(id, "transfer failed", l);
-                }
-                throw e;
-              }
-            };
-            try {
-              return await enqueue(s, task, signal);
-            } catch (e) {
-              ensureOpen();
-              if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-              last2 = e;
-            }
-          }
-          throw last2;
-        } catch (error) {
-          observation.fail();
-          throw error;
-        }
-      },
-      sendChat(id, raw) {
-        const l = links.get(id), ch = l?.chat;
-        if (!l || l.closed || !options.chatAllowed?.(id) || !ch || ch.readyState !== "open" || typeof raw !== "string" || raw.length > 4096) return false;
-        const bytes8 = new TextEncoder().encode(raw).length;
-        if (bytes8 > 4096 || !Number.isFinite(ch.bufferedAmount) || ch.bufferedAmount < 0 || ch.bufferedAmount + bytes8 > 16384) return false;
-        try {
-          ch.send(raw);
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      has(hash) {
-        return !closed && !!get(hash);
-      },
-      peek(hash) {
-        if (closed) return false;
-        purge();
-        return cache.has(hash);
-      },
-      drop(hash) {
-        const e = cache.get(hash);
-        if (e) {
-          cache.delete(hash);
-          cacheBytes -= e.bytes.length;
-          report();
-        }
-      },
-      closePeer(id) {
-        stop(id);
-      },
-      stats() {
-        purge();
-        return { ...counters, cacheBytes };
-      },
-      close() {
-        if (closed) return;
-        closed = true;
-        for (const id of [...links.keys()]) stop(id);
-        cache.clear();
-        cacheBytes = 0;
-        report();
-      }
-    };
-    return api;
-  }
-  function createPeerEngine(options) {
-    return createObjectPeerEngine(options, "muxed");
-  }
-
   // src/peer-engine-v2.ts
   var tracks = ["muxed", "audio"];
   var isTrack = (value) => value === "muxed" || value === "audio";
@@ -41942,9 +44341,9 @@ THE SOFTWARE.
       const result = { peerCount: peers2.size, maxConnectionsPerPeer: 2, observerErrors: observerErrors.length };
       const values = { muxed: muxed.stats(), audio: audio.stats() };
       for (const track of tracks) {
-        for (const [key8, value] of Object.entries(values[track])) {
-          result[`${track}.${key8}`] = value;
-          if (typeof value === "number") result[key8] = Number(result[key8] ?? 0) + value;
+        for (const [key9, value] of Object.entries(values[track])) {
+          result[`${track}.${key9}`] = value;
+          if (typeof value === "number") result[key9] = Number(result[key9] ?? 0) + value;
         }
       }
       result.route = tracks.map((track) => `${track}:${values[track].route}`).join(";");
@@ -42076,11 +44475,11 @@ THE SOFTWARE.
         const run = async () => {
           ensureOpen();
           keepInit(owned);
-          const bytes8 = owned.track === "audio" ? await audio.fetch({ ...owned, track: "audio" }, peersSnapshot, signal) : await muxed.fetch({ ...owned, track: "muxed" }, peersSnapshot, signal);
+          const bytes9 = owned.track === "audio" ? await audio.fetch({ ...owned, track: "audio" }, peersSnapshot, signal) : await muxed.fetch({ ...owned, track: "muxed" }, peersSnapshot, signal);
           ensureOpen();
           if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
           if (owned.kind === "init") initHashes[owned.track] = owned.sha256;
-          return bytes8;
+          return bytes9;
         };
         if (owned.kind !== "init") return run();
         return withInitLock(owned.track, run);
@@ -42112,405 +44511,29 @@ THE SOFTWARE.
     };
   }
 
-  // src/experimental-audio.ts
-  var MAX_PACKETS3 = 256;
-  var MAX_BYTES2 = 2 * 1024 * 1024;
-  var MAX_AGE_MS2 = 5e3;
-  var MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
-  var CLOSE_MS = 5e3;
-  function copyConfig(config2) {
-    if (!config2.codec || !Number.isFinite(config2.sampleRate) || config2.sampleRate <= 0 || !Number.isInteger(config2.numberOfChannels) || config2.numberOfChannels <= 0)
-      throw new Error("Invalid AAC decoder configuration");
-    const description = config2.description;
-    let copy;
-    if (description) {
-      const bytes8 = ArrayBuffer.isView(description) ? new Uint8Array(description.buffer, description.byteOffset, description.byteLength) : new Uint8Array(description);
-      if (bytes8.byteLength > 4096)
-        throw new Error("AAC decoder configuration too large");
-      copy = bytes8.slice().buffer;
-    }
-    if (config2.codec !== "mp4a.40.2" || !copy || copy.byteLength < 2)
-      throw new Error("Invalid AAC decoder configuration");
-    const asc = new Uint8Array(copy);
-    const objectType = asc[0] >> 3, frequencyIndex = (asc[0] & 7) << 1 | asc[1] >> 7, channels = asc[1] >> 3 & 15;
-    const rates = [96e3, 88200, 64e3, 48e3, 44100, 32e3, 24e3, 22050, 16e3, 12e3, 11025, 8e3, 7350];
-    if (objectType !== 2 || rates[frequencyIndex] !== config2.sampleRate || (channels === 7 ? 8 : channels) !== config2.numberOfChannels || channels === 0 || channels > 7)
-      throw new Error("Unsupported AAC decoder configuration");
-    return { ...config2, description: copy };
-  }
-  function sameConfig2(a, b) {
-    const bytes8 = (d) => d ? Array.from(ArrayBuffer.isView(d) ? new Uint8Array(d.buffer, d.byteOffset, d.byteLength) : new Uint8Array(d)) : [];
-    return a.codec === b.codec && a.sampleRate === b.sampleRate && a.numberOfChannels === b.numberOfChannels && JSON.stringify(bytes8(a.description)) === JSON.stringify(bytes8(b.description));
-  }
-  function bounded3(p, ms) {
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("Experimental audio operation timed out")), ms);
-      p.then((value) => {
-        clearTimeout(timer);
-        resolve(value);
-      }, (error) => {
-        clearTimeout(timer);
-        reject(error);
-      });
-    });
-  }
-  function join(a, b) {
-    const out = new Uint8Array(a.length + b.length);
-    out.set(a);
-    out.set(b, a.length);
-    return out;
-  }
-  var ExperimentalAudioRemux = class {
-    constructor(streaming) {
-      this.streaming = streaming;
-    }
-    output;
-    source;
-    queue = [];
-    inFlight;
-    worker;
-    ready;
-    ageTimer;
-    config;
-    objects = [];
-    objectBytes = 0;
-    streamInit;
-    streamInspector;
-    firstPacketTimestamp;
-    streamQueue = [];
-    streamWorker;
-    streamBytes = 0;
-    streamCount = 0;
-    streamSequence = 0;
-    streamPacketTimes = [];
-    streamAgeTimer;
-    ftyp;
-    moof;
-    stopping;
-    inputClosed = false;
-    resolveSettled;
-    settled = new Promise((resolve) => {
-      this.resolveSettled = resolve;
-    });
-    /** Settles independently from primary publisher stop. */
-    whenSettled() {
-      return this.settled;
-    }
-    info = { state: "idle", packets: 0, queuedPackets: 0, queuedBytes: 0 };
-    status() {
-      return { ...this.info };
-    }
-    /** Settle a supplied handle when the selected capture has no audio track. */
-    skipNoAudio() {
-      if (this.info.state !== "idle")
-        return;
-      this.info.state = "skipped";
-      this.info.detail = "Capture has no audio track";
-      this.resolveSettled(this.status());
-    }
-    /** Copies prevent a consumer mutating the retained evidence. */
-    getObjects() {
-      if (this.streaming) throw Error("Streaming audio has no retained snapshot");
-      return this.objects.map((o) => ({ kind: o.kind, bytes: o.bytes.slice() }));
-    }
-    store(kind, bytes8) {
-      if (this.info.state !== "running")
-        return;
-      if (this.streaming) {
-        if (kind === "init") {
-          if (this.streamInit || this.streamInspector || bytes8.length > 256 * 1024 || this.firstPacketTimestamp === void 0 || !this.config) throw Error("Invalid streaming audio init");
-          this.streamInit = bytes8;
-          this.streamInspector = new AudioMp4Timing(bytes8, this.firstPacketTimestamp, this.config.sampleRate);
-          this.streamBytes += bytes8.length;
-          return;
-        }
-        if (!this.streamInit || !this.streamInspector) throw Error("Streaming media before init");
-        const timing = this.streamInspector.inspect(bytes8);
-        if (timing.samples.length > this.streamPacketTimes.length) throw Error("Fragment has unmatched AAC samples");
-        for (let i = 0; i < timing.samples.length; i++) {
-          const sample = timing.samples[i], packet = this.streamPacketTimes[i], m = timing.mapping;
-          const position = (BigInt(sample.ptsTicks) - BigInt(m.firstPtsTicks)) * BigInt(m.commonTimescale) - (BigInt(packet.start) - BigInt(m.firstCommonTicks)) * BigInt(m.timescale);
-          const duration = BigInt(sample.durationTicks) * BigInt(m.commonTimescale) - BigInt(packet.duration) * BigInt(m.timescale);
-          const tolerance = 2n * BigInt(m.timescale);
-          if ((position < 0n ? -position : position) > tolerance || (duration < 0n ? -duration : duration) > tolerance) throw Error("AAC sample and source packet timing disagree");
-        }
-        this.streamPacketTimes.splice(0, timing.samples.length);
-        if (!this.streamSequence) this.enqueueStream({ kind: "init", sequence: 0, bytes: this.streamInit, mapping: timing.mapping }, true);
-        this.enqueueStream({ kind: "media", sequence: ++this.streamSequence, bytes: bytes8, mapping: timing.mapping, fragment: timing.fragment });
-        return;
-      }
-      if (this.objectBytes + bytes8.length > MAX_OUTPUT_BYTES)
-        throw new Error("Experimental audio output limit exceeded");
-      this.objectBytes += bytes8.length;
-      this.objects.push({ kind, bytes: bytes8 });
-    }
-    enqueueStream(object, pinned = false) {
-      const extra2 = pinned ? 0 : object.bytes.length;
-      if (this.streamCount + 1 > 32 || this.streamBytes + extra2 > 2 * 1024 * 1024) throw Error("Streaming audio output queue exceeded");
-      this.streamBytes += extra2;
-      this.streamCount++;
-      this.streamQueue.push(object);
-      this.pumpStream();
-    }
-    pumpStream() {
-      if (this.streamWorker || this.info.state !== "running" || !this.streaming) return;
-      this.streamWorker = (async () => {
-        while (this.info.state === "running" && this.streamQueue.length) {
-          const item = this.streamQueue.shift();
-          clearTimeout(this.streamAgeTimer);
-          this.streamAgeTimer = setTimeout(() => this.fail(Error("Streaming audio consumer timed out")), MAX_AGE_MS2);
-          await this.streaming.onObject({ ...item, bytes: item.bytes.slice(), mapping: { ...item.mapping }, fragment: item.fragment ? { ...item.fragment } : void 0 });
-          if (this.info.state !== "running") return;
-          clearTimeout(this.streamAgeTimer);
-          this.streamCount--;
-          if (item.kind === "media") this.streamBytes -= item.bytes.length;
-        }
-      })().catch((e) => this.fail(e)).finally(() => {
-        this.streamWorker = void 0;
-        if (this.streamQueue.length && this.info.state === "running") this.pumpStream();
-      });
-    }
-    async start() {
-      if (this.info.state !== "idle")
-        throw new Error("Experimental audio handle already used");
-      this.info.state = "running";
-      try {
-        const format = new Mp4OutputFormat({
-          fastStart: "fragmented",
-          minimumFragmentDuration: 0.5,
-          onFtyp: (data) => {
-            if (this.info.state !== "running")
-              return;
-            if (this.objectBytes + data.byteLength > MAX_OUTPUT_BYTES || this.streaming && data.byteLength > 256 * 1024)
-              throw new Error("Experimental audio output limit exceeded");
-            this.ftyp = data.slice();
-          },
-          onMoov: (data) => {
-            if (this.info.state !== "running")
-              return;
-            if (!this.ftyp)
-              throw new Error("Missing audio ftyp");
-            if (this.streaming && this.ftyp.byteLength + data.byteLength > 256 * 1024) throw Error("Streaming audio init too large");
-            this.store("init", join(this.ftyp, data));
-            this.ftyp = void 0;
-          },
-          onMoof: (data) => {
-            if (this.info.state !== "running")
-              return;
-            if (this.moof)
-              throw new Error("Overlapping audio fragments");
-            if (this.objectBytes + data.byteLength > MAX_OUTPUT_BYTES || this.streaming && this.streamBytes + data.byteLength > 2 * 1024 * 1024)
-              throw new Error("Experimental audio output limit exceeded");
-            this.moof = data.slice();
-          },
-          onMdat: (data) => {
-            if (this.info.state !== "running")
-              return;
-            if (!this.moof)
-              throw new Error("Missing audio moof");
-            if (this.streaming && this.streamBytes + this.moof.byteLength + data.byteLength > 2 * 1024 * 1024) throw Error("Streaming audio output queue exceeded");
-            this.store("media", join(this.moof, data));
-            this.moof = void 0;
-          }
-        });
-        this.source = new EncodedAudioPacketSource("aac");
-        this.output = new Output({ format, target: new AppendOnlyStreamTarget(new WritableStream({ write() {
-        } })) });
-        this.output.addAudioTrack(this.source);
-        this.ready = bounded3(this.output.start(), CLOSE_MS);
-        await this.ready;
-      } catch (e) {
-        this.fail(e);
-      }
-    }
-    /** Synchronous encoder callback: never throws and does not provide encoder backpressure. */
-    tap(packet, metadata) {
-      if (this.info.state !== "running")
-        return false;
-      if (this.inputClosed) {
-        this.fail(new Error("AAC packet after experimental input closed"));
-        return false;
-      }
-      try {
-        const side = packet.sideData;
-        const descSize = metadata?.decoderConfig?.description?.byteLength ?? 0;
-        const bytes8 = packet.data.byteLength + (side.alpha?.byteLength ?? 0) + descSize;
-        if (bytes8 > 256 * 1024)
-          throw new Error("Experimental audio packet limit exceeded");
-        if (this.info.queuedPackets + 1 > MAX_PACKETS3 || this.info.queuedBytes + bytes8 > MAX_BYTES2)
-          throw new Error("Experimental audio queue limit exceeded");
-        let meta;
-        if (metadata?.decoderConfig) {
-          const config2 = copyConfig(metadata.decoderConfig);
-          if (this.config && !sameConfig2(this.config, config2))
-            throw new Error("AAC decoder configuration changed");
-          this.config = copyConfig(config2);
-          meta = { ...metadata, decoderConfig: config2 };
-        }
-        if (!this.config)
-          throw new Error("First AAC packet lacks decoder configuration");
-        this.firstPacketTimestamp ??= packet.timestamp;
-        if (this.streaming) {
-          const rate = this.config.sampleRate, start = packet.timestamp * rate, duration = packet.duration * rate, startTicks = Math.round(start), durationTicks = Math.round(duration);
-          if (!Number.isSafeInteger(startTicks) || !Number.isSafeInteger(durationTicks) || durationTicks <= 0 || Math.abs(start - startTicks) > 1e-4 || Math.abs(duration - durationTicks) > 1e-4) throw Error("AAC packet timing is not on the sample grid");
-          if (this.streamPacketTimes.length >= 256) throw Error("Streaming audio timing queue exceeded");
-          this.streamPacketTimes.push({ start: startTicks, duration: durationTicks });
-        }
-        const copy = packet.clone({ data: packet.data.slice(), sideData: { ...side, alpha: side.alpha?.slice() } });
-        this.queue.push({ packet: copy, meta, bytes: bytes8, at: performance.now() });
-        this.info.queuedPackets++;
-        this.info.queuedBytes += bytes8;
-        this.armAge();
-        this.pump();
-        return true;
-      } catch (e) {
-        this.fail(e);
-        return false;
-      }
-    }
-    armAge() {
-      clearTimeout(this.ageTimer);
-      const first = this.inFlight ?? this.queue[0];
-      if (first)
-        this.ageTimer = setTimeout(() => this.fail(new Error("Experimental audio queue age exceeded")), Math.max(0, MAX_AGE_MS2 - (performance.now() - first.at)));
-    }
-    pump() {
-      if (this.worker || this.info.state !== "running")
-        return;
-      this.worker = (async () => {
-        await this.ready;
-        while (this.info.state === "running" && this.queue.length) {
-          let item = this.queue.shift();
-          this.inFlight = item;
-          this.armAge();
-          const bytes8 = item.bytes;
-          const pending = this.source.add(item.packet, item.meta);
-          item = void 0;
-          await pending;
-          if (this.info.state !== "running")
-            return;
-          this.inFlight = void 0;
-          this.info.queuedPackets--;
-          this.info.queuedBytes -= bytes8;
-          this.info.packets++;
-          this.armAge();
-        }
-      })().catch((e) => this.fail(e)).finally(() => {
-        this.worker = void 0;
-        if (this.queue.length && this.info.state === "running")
-          this.pump();
-      });
-    }
-    fail(error) {
-      if (this.info.state !== "running")
-        return;
-      this.info.state = "failed";
-      this.info.detail = error instanceof Error ? error.message : String(error);
-      this.objects = [];
-      this.objectBytes = 0;
-      this.release();
-      this.resolveSettled(this.status());
-      void this.cancelOutput();
-    }
-    release() {
-      clearTimeout(this.ageTimer);
-      clearTimeout(this.streamAgeTimer);
-      this.streamQueue = [];
-      this.streamInit = void 0;
-      this.streamInspector = void 0;
-      this.streamBytes = 0;
-      this.streamCount = 0;
-      this.firstPacketTimestamp = void 0;
-      this.streamPacketTimes = [];
-      this.config = void 0;
-      this.queue = [];
-      this.inFlight = void 0;
-      this.info.queuedBytes = 0;
-      this.info.queuedPackets = 0;
-      this.ftyp = void 0;
-      this.moof = void 0;
-    }
-    async cancelOutput() {
-      try {
-        if (this.output)
-          await bounded3(this.output.cancel(), CLOSE_MS);
-      } catch {
-      }
-    }
-    cancel() {
-      if (this.info.state !== "running" && this.info.state !== "idle")
-        return;
-      this.info.state = "cancelled";
-      this.objects = [];
-      this.objectBytes = 0;
-      this.release();
-      this.resolveSettled(this.status());
-      void this.cancelOutput();
-    }
-    finish() {
-      if (this.stopping)
-        return this.stopping;
-      this.inputClosed = true;
-      this.stopping = (async () => {
-        if (this.info.state !== "running")
-          return;
-        try {
-          while (this.worker && this.info.state === "running")
-            await bounded3(this.worker, CLOSE_MS);
-          if (this.info.state !== "running")
-            return;
-          if (!this.info.packets)
-            throw new Error("No AAC packets received");
-          await bounded3(this.output.finalize(), CLOSE_MS);
-          if (this.info.state !== "running")
-            return;
-          if (this.moof)
-            throw new Error("Incomplete audio fragment");
-          if (this.streaming) {
-            if (!this.streamSequence) throw Error("No streaming audio fragments");
-            if (this.streamPacketTimes.length) throw Error("Unmatched AAC packets at end");
-            while (this.streamWorker && this.info.state === "running") await bounded3(this.streamWorker, CLOSE_MS);
-            if (this.info.state !== "running") return;
-          }
-          this.info.state = "finished";
-          this.release();
-          this.resolveSettled(this.status());
-        } catch (e) {
-          this.fail(e);
-        }
-      })();
-      return this.stopping;
-    }
-  };
-  var StreamingAudioRemux = class extends ExperimentalAudioRemux {
-    constructor(options) {
-      super(options);
-    }
-  };
-
   // src/authority-v2.ts
-  var import_canonicalize13 = __toESM(require_canonicalize(), 1);
+  var import_canonicalize15 = __toESM(require_canonicalize(), 1);
 
   // protocol-v2.mjs
   var PROFILE_V2 = "independent-audio-v2";
   var CONTROL_LIMIT_V2 = 30 * 1024;
-  var exact8 = (o, k) => !!o && typeof o === "object" && !Array.isArray(o) && Object.keys(o).length === k.length && Object.keys(o).every((x) => k.includes(x));
-  var integer7 = (n, min, max) => Number.isSafeInteger(n) && n >= min && n <= max;
+  var exact11 = (o, k) => !!o && typeof o === "object" && !Array.isArray(o) && Object.keys(o).length === k.length && Object.keys(o).every((x) => k.includes(x));
+  var integer9 = (n, min, max) => Number.isSafeInteger(n) && n >= min && n <= max;
   var MAX = Number.MAX_SAFE_INTEGER;
-  var key7 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s) && "AEIMQUYcgkosw048".includes(s[42]);
+  var key8 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s) && "AEIMQUYcgkosw048".includes(s[42]);
   var sig = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{86}$/.test(s) && "AQgw".includes(s[85]);
   var utf8 = (s) => new TextEncoder().encode(s).length;
   var stable = (o) => JSON.stringify(o, Object.keys(o).sort());
   function validateHeadV2(h, roomId2, sourceKey2, now = Date.now()) {
-    if (!exact8(h, ["version", "roomId", "sourceKey", "epochId", "sequence", "issuedAtMs", "expiresAtMs", "tracks", "signature"]) || h.version !== "semk2-pilot/2" || h.roomId !== roomId2 || typeof roomId2 !== "string" || !roomId2 || roomId2.length > 128 || h.sourceKey !== sourceKey2 || !key7(sourceKey2) || !key7(h.epochId) || !integer7(h.sequence, 0, MAX) || !integer7(h.issuedAtMs, 0, MAX) || !integer7(h.expiresAtMs, h.issuedAtMs, Math.min(MAX, h.issuedAtMs + 6e4)) || Math.abs(now - h.issuedAtMs) > 6e4 || h.expiresAtMs < now || !sig(h.signature) || !exact8(h.tracks, ["muxed", "audio"]) || utf8(JSON.stringify({ type: "head", head: h })) > CONTROL_LIMIT_V2) throw Error("Invalid v2 live metadata");
+    if (!exact11(h, ["version", "roomId", "sourceKey", "epochId", "sequence", "issuedAtMs", "expiresAtMs", "tracks", "signature"]) || h.version !== "semk2-pilot/2" || h.roomId !== roomId2 || typeof roomId2 !== "string" || !roomId2 || roomId2.length > 128 || h.sourceKey !== sourceKey2 || !key8(sourceKey2) || !key8(h.epochId) || !integer9(h.sequence, 0, MAX) || !integer9(h.issuedAtMs, 0, MAX) || !integer9(h.expiresAtMs, h.issuedAtMs, Math.min(MAX, h.issuedAtMs + 6e4)) || Math.abs(now - h.issuedAtMs) > 6e4 || h.expiresAtMs < now || !sig(h.signature) || !exact11(h.tracks, ["muxed", "audio"]) || utf8(JSON.stringify({ type: "head", head: h })) > CONTROL_LIMIT_V2) throw Error("Invalid v2 live metadata");
     const unique = /* @__PURE__ */ new Set();
     for (const name of ["muxed", "audio"]) {
       const t = h.tracks[name];
-      if (!exact8(t, ["state", "error", "mime", "codecConfigId", "map", "init", "media"]) || !["running", "ended", "error"].includes(t.state) || (t.state === "error" ? typeof t.error !== "string" || !t.error || t.error.length > 128 : t.error !== null) || typeof t.mime !== "string" || t.mime.length > 180 || !(name === "audio" ? /^audio\/mp4;\s*codecs="mp4a\.40\.2"$/.test(t.mime) : /^video\/mp4;\s*codecs=/.test(t.mime)) || typeof t.codecConfigId !== "string" || !t.codecConfigId || t.codecConfigId.length > 128 || !Array.isArray(t.media) || t.media.length > 32) throw Error("Invalid v2 track");
+      if (!exact11(t, ["state", "error", "mime", "codecConfigId", "map", "init", "media"]) || !["running", "ended", "error"].includes(t.state) || (t.state === "error" ? typeof t.error !== "string" || !t.error || t.error.length > 128 : t.error !== null) || typeof t.mime !== "string" || t.mime.length > 180 || !(name === "audio" ? /^audio\/mp4;\s*codecs="mp4a\.40\.2"$/.test(t.mime) : /^video\/mp4;\s*codecs=/.test(t.mime)) || typeof t.codecConfigId !== "string" || !t.codecConfigId || t.codecConfigId.length > 128 || !Array.isArray(t.media) || t.media.length > 32) throw Error("Invalid v2 track");
       const m = t.map;
-      if (!exact8(m, ["timescale", "firstPtsTicks", "firstCommonTicks", "commonTimescale", "editMediaTimeTicks", "movieTimescale"]) || !integer7(m.timescale, 1, 1e9) || !integer7(m.commonTimescale, 1, 1e9) || !integer7(m.movieTimescale, 1, 1e9) || !integer7(m.firstPtsTicks, -MAX, MAX) || !integer7(m.firstCommonTicks, -MAX, MAX) || !integer7(m.editMediaTimeTicks, 0, MAX) || BigInt(m.firstPtsTicks) - BigInt(m.editMediaTimeTicks) > BigInt(MAX) || BigInt(m.firstPtsTicks) - BigInt(m.editMediaTimeTicks) < -BigInt(MAX)) throw Error("Invalid v2 timeline");
+      if (!exact11(m, ["timescale", "firstPtsTicks", "firstCommonTicks", "commonTimescale", "editMediaTimeTicks", "movieTimescale"]) || !integer9(m.timescale, 1, 1e9) || !integer9(m.commonTimescale, 1, 1e9) || !integer9(m.movieTimescale, 1, 1e9) || !integer9(m.firstPtsTicks, -MAX, MAX) || !integer9(m.firstCommonTicks, -MAX, MAX) || !integer9(m.editMediaTimeTicks, 0, MAX) || BigInt(m.firstPtsTicks) - BigInt(m.editMediaTimeTicks) > BigInt(MAX) || BigInt(m.firstPtsTicks) - BigInt(m.editMediaTimeTicks) < -BigInt(MAX)) throw Error("Invalid v2 timeline");
       const descriptor = (o, kind) => {
-        if (!exact8(o, ["kind", "track", "sequence", "mediaStartMs", "durationMs", "startTicks", "durationTicks", "mime", "codecConfigId", "lengthBytes", "infoHash", "sha256"]) || o.kind !== kind || o.track !== name || !integer7(o.sequence, 0, MAX) || !integer7(o.mediaStartMs, 0, MAX) || !integer7(o.durationMs, kind === "init" ? 0 : 1, kind === "init" ? 0 : 6e3) || !integer7(o.startTicks, kind === "init" ? 0 : -MAX, kind === "init" ? 0 : MAX) || !integer7(o.durationTicks, kind === "init" ? 0 : 1, kind === "init" ? 0 : MAX) || BigInt(o.startTicks) + BigInt(o.durationTicks) > BigInt(MAX) || o.mime !== t.mime || o.codecConfigId !== t.codecConfigId || !integer7(o.lengthBytes, 1, kind === "init" ? 256 * 1024 : name === "audio" ? 2 * 1024 * 1024 : 8 * 1024 * 1024) || typeof o.infoHash !== "string" || !/^[a-f0-9]{40}$/.test(o.infoHash) || typeof o.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(o.sha256)) throw Error("Invalid v2 object");
+        if (!exact11(o, ["kind", "track", "sequence", "mediaStartMs", "durationMs", "startTicks", "durationTicks", "mime", "codecConfigId", "lengthBytes", "infoHash", "sha256"]) || o.kind !== kind || o.track !== name || !integer9(o.sequence, 0, MAX) || !integer9(o.mediaStartMs, 0, MAX) || !integer9(o.durationMs, kind === "init" ? 0 : 1, kind === "init" ? 0 : 6e3) || !integer9(o.startTicks, kind === "init" ? 0 : -MAX, kind === "init" ? 0 : MAX) || !integer9(o.durationTicks, kind === "init" ? 0 : 1, kind === "init" ? 0 : MAX) || BigInt(o.startTicks) + BigInt(o.durationTicks) > BigInt(MAX) || o.mime !== t.mime || o.codecConfigId !== t.codecConfigId || !integer9(o.lengthBytes, 1, kind === "init" ? 256 * 1024 : name === "audio" ? 2 * 1024 * 1024 : 8 * 1024 * 1024) || typeof o.infoHash !== "string" || !/^[a-f0-9]{40}$/.test(o.infoHash) || typeof o.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(o.sha256)) throw Error("Invalid v2 object");
         const k = `${name}:${kind}:${o.sequence}`;
         if (unique.has(k)) throw Error("Duplicate v2 object");
         unique.add(k);
@@ -42547,7 +44570,7 @@ THE SOFTWARE.
   }
 
   // src/authority-v2.ts
-  var encode5 = (value) => new TextEncoder().encode((0, import_canonicalize13.default)(value) || "");
+  var encode5 = (value) => new TextEncoder().encode((0, import_canonicalize15.default)(value) || "");
   function snapshot(input, roomId2, sourceKey2) {
     validateHeadV2(input, roomId2, sourceKey2);
     const copy = JSON.parse(JSON.stringify(input));
@@ -42569,8 +44592,8 @@ THE SOFTWARE.
   }
   async function verifyHeadV2(input, roomId2, sourceKey2, previous) {
     const head = snapshot(input, roomId2, sourceKey2);
-    const { signature, ...unsigned } = head;
-    if (!verifySourceSignature(signature, encode5(unsigned), sourceKey2)) throw Error("Source signature rejected");
+    const { signature: signature2, ...unsigned } = head;
+    if (!verifySourceSignature(signature2, encode5(unsigned), sourceKey2)) throw Error("Source signature rejected");
     validateHeadTransitionV2(head, previous);
     return freeze(head);
   }
@@ -42831,7 +44854,7 @@ THE SOFTWARE.
   }
 
   // src/independent-viewer.ts
-  var import_canonicalize14 = __toESM(require_canonicalize(), 1);
+  var import_canonicalize16 = __toESM(require_canonicalize(), 1);
 
   // src/video-mp4-timing.ts
   var COMMON_SCALE = 1e9;
@@ -43011,19 +45034,19 @@ THE SOFTWARE.
   var OP_TIMEOUT_MS = 12e3;
   var RETAIN_SECONDS = 30;
   var MAX_FORWARD_SECONDS = 60;
-  var owners = /* @__PURE__ */ new WeakMap();
+  var owners2 = /* @__PURE__ */ new WeakMap();
   function createPlayout(options) {
     const element = options.element;
     const token2 = { supersede: () => {
       void close().catch(() => {
       });
     } };
-    const previous = owners.get(element);
+    const previous = owners2.get(element);
     previous?.supersede();
-    if (owners.get(element)) throw Error("A newer video owner was installed during replacement");
+    if (owners2.get(element)) throw Error("A newer video owner was installed during replacement");
     const initialSrc = element.src;
-    owners.set(element, token2);
-    const ownsSession = () => owners.get(element) === token2;
+    owners2.set(element, token2);
+    const ownsSession = () => owners2.get(element) === token2;
     const ownsElement = () => ownsSession() && element.src === (url2 ?? initialSrc);
     element.disableRemotePlayback = true;
     element.playsInline = true;
@@ -43149,13 +45172,13 @@ THE SOFTWARE.
         notify("error", e instanceof Error ? e.message : String(e));
       }
     };
-    const append = (descriptor, bytes8) => {
-      trace("append-start", { seq: descriptor.sequence, bytes: bytes8.length });
+    const append = (descriptor, bytes9) => {
+      trace("append-start", { seq: descriptor.sequence, bytes: bytes9.length });
       if (closed || !ownsElement() || ended) return Promise.reject(new Error("Playout is closed or ended"));
-      if (!(bytes8 instanceof Uint8Array) || bytes8.length !== descriptor.lengthBytes || bytes8.length === 0 || bytes8.length > MAX_OBJECT_BYTES) return Promise.reject(new Error("Invalid media object length"));
+      if (!(bytes9 instanceof Uint8Array) || bytes9.length !== descriptor.lengthBytes || bytes9.length === 0 || bytes9.length > MAX_OBJECT_BYTES) return Promise.reject(new Error("Invalid media object length"));
       if (descriptor.track !== "muxed" || !descriptor.codecConfigId || !descriptor.mime || !Number.isSafeInteger(descriptor.sequence) || descriptor.sequence < 0 || !Number.isFinite(descriptor.mediaStartMs) || descriptor.mediaStartMs < 0 || !Number.isFinite(descriptor.durationMs) || descriptor.durationMs < 0) return Promise.reject(new Error("Invalid media descriptor"));
-      if (queuedBytes + bytes8.length > MAX_QUEUED_BYTES) return Promise.reject(new Error("Media append queue exceeded its limit"));
-      const copy = bytes8.slice();
+      if (queuedBytes + bytes9.length > MAX_QUEUED_BYTES) return Promise.reject(new Error("Media append queue exceeded its limit"));
+      const copy = bytes9.slice();
       queuedBytes += copy.length;
       const job = chain.then(async () => {
         if (fatal) throw fatal;
@@ -43238,7 +45261,7 @@ THE SOFTWARE.
     function close() {
       if (closing) return closing;
       if (closed) {
-        if (ownsSession()) owners.delete(element);
+        if (ownsSession()) owners2.delete(element);
         return Promise.resolve();
       }
       closed = true;
@@ -43267,7 +45290,7 @@ THE SOFTWARE.
       if (ownedUrl && ownsSession() && (!element.src || element.src === ownedUrl)) attempt(() => element.load());
       if (ownedUrl) attempt(() => URL.revokeObjectURL(ownedUrl));
       url2 = void 0;
-      if (ownsSession()) owners.delete(element);
+      if (ownsSession()) owners2.delete(element);
       closing = (async () => {
         try {
           await chain;
@@ -43332,281 +45355,6 @@ THE SOFTWARE.
       close,
       stats
     };
-  }
-
-  // src/experimental-native-audio.ts
-  var owners2 = /* @__PURE__ */ new WeakMap();
-  var MAX_OBJECT = 2 * 1024 * 1024;
-  var MAX_QUEUE = 4 * 1024 * 1024;
-  var TIMEOUT3 = 1e4;
-  function createExperimentalNativeAudio(element, mime, onState, rolling) {
-    if (rolling && (!Number.isFinite(rolling.retainSeconds) || rolling.retainSeconds < 1 || rolling.retainSeconds > 120 || !Number.isFinite(rolling.maxForwardSeconds) || rolling.maxForwardSeconds < 1 || rolling.maxForwardSeconds > 120 || !Number.isSafeInteger(rolling.firstMediaSequence ?? 1) || (rolling.firstMediaSequence ?? 1) < 1)) throw Error("Invalid audio rolling limits");
-    if (!/^audio\/mp4;\s*codecs="mp4a\.40\.2"$/i.test(mime) || !MediaSource.isTypeSupported(mime)) throw Error("Unsupported validated AAC MIME");
-    let state = "idle", detail, intent = false, closed = false, ending = false;
-    let media, buffer, url2;
-    let queuedBytes = 0, sequence = 0, epoch = 0, firstMedia = true;
-    let observerError, closing;
-    let cancelPlay;
-    const invalidatePlay = () => {
-      epoch++;
-      cancelPlay?.();
-      cancelPlay = void 0;
-    };
-    let superseded = false;
-    const token2 = { supersede: () => {
-      superseded = true;
-      void close().catch(() => {
-      });
-    } };
-    const ownsSession = () => owners2.get(element) === token2;
-    const ownsElement = () => ownsSession() && !!url2 && element.src === url2;
-    let chain = Promise.resolve();
-    const abort2 = new AbortController();
-    const snapshot3 = () => {
-      const buffered = [];
-      for (let i = 0; i < element.buffered.length; i++) buffered.push([element.buffered.start(i), element.buffered.end(i)]);
-      return { state, intent, currentTime: element.currentTime, buffered, queuedBytes, detail, observerError };
-    };
-    const notify = () => {
-      try {
-        onState?.(snapshot3());
-      } catch (error) {
-        observerError ??= error instanceof Error ? error.message : String(error);
-      }
-    };
-    const emit = () => {
-      if (ownsSession() && (!url2 || ownsElement())) notify();
-    };
-    const set = (value, message2) => {
-      if (!closed) {
-        state = value;
-        detail = message2;
-        emit();
-      }
-    };
-    const wait5 = (target, success, failures, label, signal = abort2.signal) => new Promise((resolve, reject) => {
-      let timer;
-      const done = (error) => {
-        if (timer) clearTimeout(timer);
-        target.removeEventListener(success, ok);
-        failures.forEach((e) => target.removeEventListener(e, bad));
-        signal.removeEventListener("abort", cancel);
-        error ? reject(error) : resolve();
-      };
-      const ok = () => done(), bad = () => done(Error(`${label} failed`)), cancel = () => done(Error("Audio closed"));
-      if (signal.aborted) return cancel();
-      target.addEventListener(success, ok, { once: true });
-      failures.forEach((e) => target.addEventListener(e, bad, { once: true }));
-      signal.addEventListener("abort", cancel, { once: true });
-      timer = setTimeout(() => done(Error(`${label} timed out`)), TIMEOUT3);
-    });
-    const update = async (fn) => {
-      if (!buffer || buffer.updating) throw Error("Audio source buffer unavailable");
-      const operationAbort = new AbortController();
-      const cancel = () => operationAbort.abort();
-      abort2.signal.addEventListener("abort", cancel, { once: true });
-      const pending = wait5(buffer, "updateend", ["error", "abort"], "Audio append", operationAbort.signal);
-      try {
-        fn();
-        await pending;
-      } catch (error) {
-        operationAbort.abort();
-        void pending.catch(() => {
-        });
-        throw error;
-      } finally {
-        abort2.signal.removeEventListener("abort", cancel);
-      }
-    };
-    const fail = (error) => {
-      if (!closed && state !== "error") {
-        intent = false;
-        invalidatePlay();
-        abort2.abort();
-        if (ownsElement()) {
-          try {
-            element.pause();
-          } catch (pauseError) {
-            observerError ??= String(pauseError);
-          }
-        }
-        set("error", error instanceof Error ? error.message : String(error));
-      }
-    };
-    const nativeError = () => {
-      if (ownsElement()) fail(Error(`Native audio error ${element.error?.code ?? "unknown"}`));
-    };
-    const nativeEnded = () => {
-      if (!closed && ownsElement() && state !== "error") {
-        intent = false;
-        invalidatePlay();
-        set("ended");
-      }
-    };
-    element.addEventListener("error", nativeError);
-    element.addEventListener("ended", nativeEnded);
-    element.disableRemotePlayback = true;
-    const append = (kind, index, bytes8) => {
-      if (closed || !ownsSession() || ending || state === "error") return Promise.reject(Error("Audio is closed, ending or failed"));
-      if (!Number.isSafeInteger(index) || index < 0 || !(bytes8 instanceof Uint8Array) || !bytes8.length || bytes8.length > MAX_OBJECT || queuedBytes + bytes8.length > MAX_QUEUE) return Promise.reject(Error("Invalid or oversized audio object"));
-      const copy = bytes8.slice();
-      queuedBytes += copy.length;
-      const job = chain.then(async () => {
-        if (closed || !ownsSession() || state === "error") throw Error("Audio closed or failed");
-        if (index !== sequence || (index === 0 ? kind !== "init" : kind !== "media")) throw Error("Unexpected audio object sequence");
-        if (index === 0) {
-          set("opening");
-          if (closed || !ownsSession() || abort2.signal.aborted) throw Error("Audio closed or superseded");
-          media = new MediaSource();
-          const openAbort = new AbortController();
-          const cancelOpen = () => openAbort.abort();
-          if (abort2.signal.aborted) openAbort.abort();
-          else abort2.signal.addEventListener("abort", cancelOpen, { once: true });
-          const opened = wait5(media, "sourceopen", ["sourceclose"], "Audio source opening", openAbort.signal);
-          void opened.catch(() => {
-          });
-          url2 = URL.createObjectURL(media);
-          element.src = url2;
-          try {
-            if (media.readyState !== "open") await opened;
-            else {
-              openAbort.abort();
-              await opened.catch(() => {
-              });
-            }
-          } finally {
-            abort2.signal.removeEventListener("abort", cancelOpen);
-          }
-          if (closed || !ownsElement()) throw Error("Audio closed or replaced");
-          buffer = media.addSourceBuffer(mime);
-          buffer.mode = "segments";
-        }
-        if (rolling && kind === "media" && buffer?.buffered.length) {
-          const cutoff = element.currentTime - rolling.retainSeconds;
-          if (cutoff > 0 && buffer.buffered.start(0) < cutoff) await update(() => buffer.remove(0, cutoff));
-          if (closed || !ownsElement()) throw Error("Audio closed or replaced");
-          if (!firstMedia && buffer.buffered.length && buffer.buffered.end(buffer.buffered.length - 1) - element.currentTime > rolling.maxForwardSeconds) throw Error("Audio forward buffer limit exceeded; rejoin live");
-        }
-        await update(() => buffer.appendBuffer(copy));
-        if (closed || !ownsElement()) throw Error("Audio closed or replaced");
-        if (rolling && kind === "media") {
-          if (firstMedia && buffer.buffered.length && element.currentTime < buffer.buffered.start(0)) element.currentTime = buffer.buffered.start(0);
-          firstMedia = false;
-          if (buffer.buffered.length && buffer.buffered.end(buffer.buffered.length - 1) - element.currentTime > rolling.maxForwardSeconds) throw Error("Audio forward buffer limit exceeded; rejoin live");
-        }
-        sequence = index === 0 ? rolling?.firstMediaSequence ?? 1 : index + 1;
-        if (state === "opening") set("ready");
-        else emit();
-      });
-      chain = job.catch(fail);
-      return job.finally(() => {
-        queuedBytes -= copy.length;
-      });
-    };
-    const play = async () => {
-      if (closed || element.ended || state === "error" || state === "ended" || !ownsElement()) throw Error("Audio cannot play");
-      invalidatePlay();
-      const attempt = epoch;
-      intent = true;
-      let timer;
-      const cancelled6 = new Promise((resolve) => {
-        cancelPlay = () => resolve("cancelled");
-      });
-      const timeout = new Promise((_, reject) => {
-        timer = setTimeout(() => reject(Error("Audio play timed out")), TIMEOUT3);
-      });
-      try {
-        const native = Promise.resolve(element.play());
-        void native.then(() => {
-          if (attempt !== epoch && !intent && ownsElement()) {
-            try {
-              element.pause();
-            } catch (error) {
-              fail(error);
-            }
-          }
-        }, () => {
-        });
-        const result = await Promise.race([native.then(() => "played"), cancelled6, timeout]);
-        if (result === "played" && !closed && ownsElement() && epoch === attempt && intent) set("playing");
-      } catch (error) {
-        if (closed || !ownsElement() || epoch !== attempt || !intent) return;
-        intent = false;
-        invalidatePlay();
-        if (ownsElement()) {
-          try {
-            element.pause();
-          } catch (pauseError) {
-            observerError ??= String(pauseError);
-          }
-        }
-        set("blocked", error instanceof Error ? error.message : String(error));
-        throw error;
-      } finally {
-        if (timer) clearTimeout(timer);
-        if (attempt === epoch) cancelPlay = void 0;
-      }
-    };
-    const pause = () => {
-      if (closed || !ownsSession() || url2 && !ownsElement()) return;
-      intent = false;
-      invalidatePlay();
-      if (ownsElement()) element.pause();
-      if (state !== "error" && state !== "ended") set("paused");
-    };
-    const end2 = () => {
-      if (closed || ending || state === "error") return;
-      ending = true;
-      void chain.then(() => {
-        if (closed || state === "error" || state === "ended" || element.ended || !ownsElement()) return;
-        if (media?.readyState === "open" && !buffer?.updating) media.endOfStream();
-        if (state !== "ended" && !element.ended) set("ending");
-      }).catch(fail);
-    };
-    const close = () => {
-      if (closing) return closing;
-      if (closed) return Promise.resolve();
-      closed = true;
-      intent = false;
-      invalidatePlay();
-      state = "closed";
-      abort2.abort();
-      const errors = [];
-      const attempt = (action) => {
-        try {
-          action();
-        } catch (error) {
-          errors.push(error);
-        }
-      };
-      attempt(() => element.removeEventListener("error", nativeError));
-      attempt(() => element.removeEventListener("ended", nativeEnded));
-      const owned = ownsElement(), ownedUrl = url2;
-      if (owned && ownsElement()) attempt(() => element.pause());
-      attempt(() => {
-        if (buffer?.updating) buffer.abort();
-      });
-      if (owned && ownsElement()) attempt(() => element.removeAttribute("src"));
-      if (owned && ownsSession() && (!element.src || element.src === ownedUrl)) attempt(() => element.load());
-      if (ownedUrl) attempt(() => URL.revokeObjectURL(ownedUrl));
-      url2 = void 0;
-      if (owned && ownsSession() && !superseded) notify();
-      if (ownsSession()) owners2.delete(element);
-      closing = (async () => {
-        try {
-          await chain;
-        } catch (error) {
-          errors.push(error);
-        }
-        if (observerError) errors.push(Error(`Audio observer: ${observerError}`));
-        if (errors.length) throw new AggregateError(errors, "Audio cleanup failed");
-      })();
-      return closing;
-    };
-    const previous = owners2.get(element);
-    previous?.supersede();
-    owners2.set(element, token2);
-    return { append, play, pause, end: end2, close, snapshot: snapshot3 };
   }
 
   // src/independent-timeline.ts
@@ -44018,7 +45766,7 @@ THE SOFTWARE.
       if (Math.abs(target - video.currentTime) <= 0.1 || !contains(video.buffered, target)) return;
       void startRecovery(generation, true);
     };
-    const append = async (descriptor, bytes8) => {
+    const append = async (descriptor, bytes9) => {
       if (closed || failure2) throw Error(failure2 || "Playback is closed");
       try {
         if (descriptor.track === "audio") {
@@ -44030,8 +45778,8 @@ THE SOFTWARE.
             }, { retainSeconds: 30, maxForwardSeconds: 60, firstMediaSequence: options.firstAudioSequence });
           }
           if (!audio) throw Error("Audio initialization is missing");
-          await audio.append(descriptor.kind, descriptor.sequence, bytes8);
-        } else if (descriptor.track === "muxed") await videoPlayer.append({ ...descriptor, track: "muxed" }, bytes8);
+          await audio.append(descriptor.kind, descriptor.sequence, bytes9);
+        } else if (descriptor.track === "muxed") await videoPlayer.append({ ...descriptor, track: "muxed" }, bytes9);
         else throw Error("Unknown playback track");
         if (closed) throw Error("Playback is closed");
         appendVersion++;
@@ -44297,10 +46045,10 @@ THE SOFTWARE.
       }
       if (first) notify(() => options.onError(Error(`${track === "audio" ? "Sound" : "Picture"}: ${detail}. Use Rejoin live.`)));
     };
-    const verifyFragment = (track, descriptor, bytes8) => {
+    const verifyFragment = (track, descriptor, bytes9) => {
       if (!head || !lanes[track].inspector) throw Error("Track timing is not initialized");
       const expected = head.tracks[track].map;
-      const actual = lanes[track].inspector.inspect(bytes8);
+      const actual = lanes[track].inspector.inspect(bytes9);
       for (const field of ["timescale", "movieTimescale", "editMediaTimeTicks", "firstCommonTicks", "commonTimescale"]) {
         if (actual.mapping[field] !== expected[field]) throw Error("Received track timing differs from its signed mapping");
       }
@@ -44332,9 +46080,9 @@ THE SOFTWARE.
         const suppliers2 = options.suppliers();
         if (!suppliers2.length) return;
         try {
-          const bytes8 = await options.engine.fetch(descriptor, suppliers2, options.signal);
+          const bytes9 = await options.engine.fetch(descriptor, suppliers2, options.signal);
           assertActive2();
-          return bytes8;
+          return bytes9;
         } catch (error) {
           if (!active() || options.signal.aborted) throw error;
           failure2 = error;
@@ -44361,14 +46109,14 @@ THE SOFTWARE.
             }
             return;
           }
-          const bytes8 = await fetchObject(descriptor);
-          if (!bytes8) return;
+          const bytes9 = await fetchObject(descriptor);
+          if (!bytes9) return;
           assertActive2();
           if (descriptor.kind === "init") {
             const map = value.map;
-            state.inspector = track === "audio" ? new AudioMp4Timing(bytes8, map.firstCommonTicks / map.commonTimescale, map.commonTimescale) : new MuxedVideoMp4Timing(bytes8, map.firstCommonTicks / map.commonTimescale);
-          } else verifyFragment(track, descriptor, bytes8);
-          await player2.append(descriptor, bytes8);
+            state.inspector = track === "audio" ? new AudioMp4Timing(bytes9, map.firstCommonTicks / map.commonTimescale, map.commonTimescale) : new MuxedVideoMp4Timing(bytes9, map.firstCommonTicks / map.commonTimescale);
+          } else verifyFragment(track, descriptor, bytes9);
+          await player2.append(descriptor, bytes9);
           assertActive2();
           receivedObjects2++;
           if (descriptor.kind === "init") state.initialized = true;
@@ -44401,7 +46149,7 @@ THE SOFTWARE.
           if (next.sequence === head.sequence) {
             const { signature: _newSignature, ...newPayload } = next;
             const { signature: _oldSignature, ...oldPayload } = head;
-            if ((0, import_canonicalize14.default)(newPayload) !== (0, import_canonicalize14.default)(oldPayload)) throw Error("Conflicting live metadata sequence");
+            if ((0, import_canonicalize16.default)(newPayload) !== (0, import_canonicalize16.default)(oldPayload)) throw Error("Conflicting live metadata sequence");
             return;
           }
           validateHeadTransitionV2(next, head);
@@ -44632,13 +46380,13 @@ THE SOFTWARE.
         p += 4;
       }
       for (let i = 0; i < count; i++) {
-        let duration = defaultDuration, size2 = defaultSize;
+        let duration = defaultDuration, size3 = defaultSize;
         if (run.flags & 256) {
           duration = r.u32(runs[0], p);
           p += 4;
         }
         if (run.flags & 512) {
-          size2 = r.u32(runs[0], p);
+          size3 = r.u32(runs[0], p);
           p += 4;
         }
         if (run.flags & 1024) {
@@ -44650,9 +46398,9 @@ THE SOFTWARE.
           composition = run.version === 1 ? r.i32(runs[0], p) : r.u32(runs[0], p);
           p += 4;
         }
-        if (!duration || !size2 || composition !== 0 || duration > 6 * this.timescale || !Number.isSafeInteger(decode2 + duration)) throw Error("Invalid AAC sample");
+        if (!duration || !size3 || composition !== 0 || duration > 6 * this.timescale || !Number.isSafeInteger(decode2 + duration)) throw Error("Invalid AAC sample");
         decode2 += duration;
-        total += size2;
+        total += size3;
         if (!Number.isSafeInteger(total) || total > mdat2.end - mdat2.data) throw Error("Invalid AAC data size");
       }
       const sgpd = children.filter((x) => x.type === "sgpd"), sbgp = children.filter((x) => x.type === "sbgp");
@@ -44765,7 +46513,7 @@ THE SOFTWARE.
     return Object.freeze({ ...config2, codec: avcCodecForFrameRate(config2.codec, width, height, frameRate), avc: Object.freeze({ ...config2.avc }) });
   }
   function sameProgrammeConfig(expected, actual, allowAddedDefaults = false) {
-    return fields.every((key8) => allowAddedDefaults && expected[key8] === void 0 || expected[key8] === actual[key8]) && expected.avc?.format === actual.avc?.format;
+    return fields.every((key9) => allowAddedDefaults && expected[key9] === void 0 || expected[key9] === actual[key9]) && expected.avc?.format === actual.avc?.format;
   }
 
   // src/encoder-preparation.ts
@@ -44774,12 +46522,12 @@ THE SOFTWARE.
     const match = /^avc1\.([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(codec);
     if (!match) return false;
     try {
-      let bytes8;
-      if (value instanceof ArrayBuffer) bytes8 = new Uint8Array(value);
-      else if (ArrayBuffer.isView(value)) bytes8 = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+      let bytes9;
+      if (value instanceof ArrayBuffer) bytes9 = new Uint8Array(value);
+      else if (ArrayBuffer.isView(value)) bytes9 = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
       else return false;
-      if (bytes8.byteLength < 7 || bytes8.byteLength > 64 * 1024) return false;
-      const copy = bytes8.slice();
+      if (bytes9.byteLength < 7 || bytes9.byteLength > 64 * 1024) return false;
+      const copy = bytes9.slice();
       const profile = parseInt(match[1], 16), compatibility = parseInt(match[2], 16), requestedLevel = parseInt(match[3], 16);
       if (!(profile === 100 && compatibility === 0 || profile === 66 && compatibility === 64)) return false;
       const requested = AVC_LEVELS.indexOf(requestedLevel);
@@ -44791,11 +46539,11 @@ THE SOFTWARE.
   }
   async function prepareVideoEncoder(signal, profile) {
     const deadline2 = performance.now() + 15e3, errors = [];
-    let encoder4, frame2, timer;
+    let encoder5, frame2, timer;
     let active = true, outputValid = false, outputError, interruptionReason;
     const closeEncoder = () => {
       try {
-        if (encoder4 && encoder4.state !== "closed") encoder4.close();
+        if (encoder5 && encoder5.state !== "closed") encoder5.close();
       } catch (error) {
         errors.push(error);
       }
@@ -44846,7 +46594,7 @@ THE SOFTWARE.
       });
       void failed.catch(() => {
       });
-      encoder4 = new VideoEncoder({ output: (chunk, metadata) => {
+      encoder5 = new VideoEncoder({ output: (chunk, metadata) => {
         if (!active) return;
         const decoder4 = metadata?.decoderConfig;
         if (chunk.type !== "key" || chunk.byteLength <= 0 || !decoder4 || decoder4.codec !== config2.codec || decoder4.codedWidth !== config2.width || decoder4.codedHeight !== config2.height || !validAvcDescription(decoder4.description, config2.codec)) {
@@ -44859,7 +46607,7 @@ THE SOFTWARE.
         if (active) rejectEncoder(error);
       } });
       check();
-      encoder4.configure(config2);
+      encoder5.configure(config2);
       check();
       const canvas = document.createElement("canvas");
       check();
@@ -44874,12 +46622,12 @@ THE SOFTWARE.
       check();
       frame2 = new VideoFrame(canvas, { timestamp: 0, duration: Math.round(1e6 / profile.frameRate) });
       check();
-      encoder4.encode(frame2, { keyFrame: true });
+      encoder5.encode(frame2, { keyFrame: true });
       check();
       frame2.close();
       frame2 = void 0;
       check();
-      const flushing = encoder4.flush();
+      const flushing = encoder5.flush();
       void flushing.catch(() => {
       });
       check();
@@ -44907,19 +46655,19 @@ THE SOFTWARE.
   var MAX_PENDING_BYTES3 = 24 * 1024 * 1024;
   var DELIVERY_TIMEOUT_MS = 15e3;
   var concat3 = (...parts) => {
-    const bytes8 = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+    const bytes9 = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
     let at = 0;
     for (const part of parts) {
-      bytes8.set(part, at);
+      bytes9.set(part, at);
       at += part.length;
     }
-    return bytes8;
+    return bytes9;
   };
   function box2(data, expected) {
     if (data.length < 8 || String.fromCharCode(...data.subarray(4, 8)) !== expected) throw new Error(`Invalid ${expected} box`);
     const view2 = new DataView(data.buffer, data.byteOffset, data.byteLength);
-    const size2 = view2.getUint32(0);
-    if (size2 === 1 ? data.length < 16 || view2.getBigUint64(8) !== BigInt(data.length) : size2 !== data.length) throw new Error(`Incomplete ${expected} box`);
+    const size3 = view2.getUint32(0);
+    if (size3 === 1 ? data.length < 16 || view2.getBigUint64(8) !== BigInt(data.length) : size3 !== data.length) throw new Error(`Incomplete ${expected} box`);
     return data.slice();
   }
   function deadline(p, ms, label, signal) {
@@ -45045,19 +46793,19 @@ THE SOFTWARE.
         timingPending--;
       });
     };
-    const inspectVideo = (bytes8) => {
+    const inspectVideo = (bytes9) => {
       if (!options.onMuxedTimingObject || timingFailed) return;
       try {
         if (!videoInspector) throw Error("Muxed video initialization timing missing");
-        if (!videoInspector.hasVideo(bytes8)) {
+        if (!videoInspector.hasVideo(bytes9)) {
           if (!muxedInit) throw Error("Muxed initialization missing");
-          new TerminalAacFragment(muxedInit).inspect(bytes8);
+          new TerminalAacFragment(muxedInit).inspect(bytes9);
           terminalGuard.observe("audio-only");
           terminalCandidate = true;
           return;
         }
         terminalGuard.observe("picture");
-        const result = videoInspector.inspect(bytes8), map = result.mapping;
+        const result = videoInspector.inspect(bytes9), map = result.mapping;
         verifyVideoSamplePts(map, result.samples, videoPackets);
         videoPackets.splice(0, result.samples.length);
         return { mapping: map, fragment: result.fragment };
@@ -45083,25 +46831,25 @@ THE SOFTWARE.
       void stop().catch(() => {
       });
     };
-    const enqueue = (kind, bytes8, start, duration, timing) => {
-      queuedBytes += bytes8.length;
+    const enqueue = (kind, bytes9, start, duration, timing) => {
+      queuedBytes += bytes9.length;
       if (queuedBytes > MAX_PENDING_BYTES3) throw new Error("Media delivery queue exceeded its limit.");
       const currentSequence = kind === "init" ? 0 : ++sequence;
-      trace("enqueue", { seq: currentSequence, bytes: bytes8.length, mediaMs: Math.round(start * 1e3) });
+      trace("enqueue", { seq: currentSequence, bytes: bytes9.length, mediaMs: Math.round(start * 1e3) });
       delivery = delivery.then(async () => {
         if (error) throw error;
         const mime = await deadline(output.getMimeType(), DELIVERY_TIMEOUT_MS, "Codec configuration");
         if (!MediaSource.isTypeSupported(mime)) throw new Error(`The muxed output MIME type is not supported: ${mime}`);
-        const object = { kind, track: "muxed", sequence: currentSequence, mediaStartMs: Math.max(0, Math.round(start * 1e3)), durationMs: Math.max(0, Math.round(duration * 1e3)), mime, codecConfigId: configId, bytes: bytes8 };
+        const object = { kind, track: "muxed", sequence: currentSequence, mediaStartMs: Math.max(0, Math.round(start * 1e3)), durationMs: Math.max(0, Math.round(duration * 1e3)), mime, codecConfigId: configId, bytes: bytes9 };
         await deadline(Promise.resolve(options.onObject(object)), DELIVERY_TIMEOUT_MS, "Media delivery");
         if (timing) publishTiming({ sequence: currentSequence, ...timing });
-        queuedBytes -= bytes8.length;
+        queuedBytes -= bytes9.length;
         if (kind === "init") resolveStartup();
       });
       void delivery.catch(fail);
       return currentSequence;
     };
-    const format = new Mp4OutputFormat({
+    const format2 = new Mp4OutputFormat({
       fastStart: "fragmented",
       minimumFragmentDuration: fragmentMinimumSeconds(fragmentSeconds, frameRate),
       onFtyp(data) {
@@ -45130,8 +46878,8 @@ THE SOFTWARE.
       onMdat(data) {
         if (!moof2) throw new Error("Missing moof before mdat");
         trace("mdat", { mediaMs: Math.round(moof2.timestamp * 1e3), bytes: data.length });
-        const bytes8 = concat3(moof2.bytes, box2(data, "mdat"));
-        const next = { bytes: bytes8, timestamp: moof2.timestamp, timing: inspectVideo(bytes8) };
+        const bytes9 = concat3(moof2.bytes, box2(data, "mdat"));
+        const next = { bytes: bytes9, timestamp: moof2.timestamp, timing: inspectVideo(bytes9) };
         moof2 = void 0;
         if (previous) {
           const duration = next.timestamp - previous.timestamp;
@@ -45143,7 +46891,7 @@ THE SOFTWARE.
     });
     const target = new AppendOnlyStreamTarget(new WritableStream({ write() {
     } }));
-    output = new Output({ format, target });
+    output = new Output({ format: format2, target });
     const packetObserver = (kind) => {
       let offset, lastSecond = -1;
       return (packet) => {
@@ -45445,14 +47193,13 @@ THE SOFTWARE.
     $("timeline-announcement"),
     $("timeline-latest"),
     (id) => ({ card: clips.list().find((c) => c.clipId === stillParentId(id)), momentPicture: momentPictureState(id), replayAllowed: matchCurrent() && !replayPending, available: clips.available(id), local: clips.has(id), busy: clips.busy || viewer.busy || !!clipCapture, description: clipDescriptions.get(id), picture: stills.list().some((c) => stillId(c) === id) ? { ...pictures.get(id), available: stills.has(id) || stills.available(id) > 0, busy: pictures.busy } : void 0 }),
-    (id, action, presentation) => {
-      if (action === "play") audioPlayer.stop();
-      viewer.request(id, action, presentation);
-      if (action === "get" && audioPlayer.ownsPlayback) streamStatus("The selected video will download after this sound clip.");
-    },
+    (id, action, presentation) => requestTimelineClip(id, action, presentation),
     (id, text2) => {
-      const generation = session;
-      void transcripts.correct(id, text2).catch(() => {
+      const generation = session, old = programmePositions.get("transcript", id);
+      void transcripts.correct(id, text2).then((entry) => {
+        if (entry && old && generation === session) void programmePositions.publish("transcript", id, { recordingId: old.recordingId, startMs: old.startMs, endMs: old.endMs, precision: old.precision, uncertaintyMs: old.uncertaintyMs }, void 0, () => generation === session).catch(() => {
+        });
+      }).catch(() => {
         if (generation === session) transcriptStatus("Correction could not be shared. Use 1\u2013500 characters.");
       });
     },
@@ -45474,13 +47221,210 @@ THE SOFTWARE.
     { audioState: (id) => ({ parent: clips.list().find((c) => c.clipId === id), description: clipDescriptions.get(id), available: audioAssets.available(id), local: audioAssets.has(id), busy: audioPlayer.busy && audioPlayer.selection?.clipId === id, selected: audioPlayer.selection?.clipId === id }), playAudio: (id) => {
       audioStage.follow();
       audioPlayer.select(id);
+      if (programme.state.selection?.kind === "audio" && programme.state.selection.id === id) {
+        explicitProgrammePause = false;
+        programme.resume();
+      }
       audioStage.reveal();
     } },
     directorScroll
   );
   var clipVideo = $("clip-player");
   clipVideo.muted = true;
+  clipVideo.controls = false;
   var streamSoundEnabled = false;
+  var synchronisingSound = false;
+  var explicitProgrammePause = false;
+  var videoControls;
+  var audioControls;
+  var videoControlIdentity;
+  var audioControlIdentity;
+  var liveAudioRoom;
+  var liveAudioViewer;
+  var programmePositions = createProgrammePositions();
+  var recordingClocks = /* @__PURE__ */ new Map();
+  var scoreReceipt;
+  var lastProgrammeEdge = "";
+  var activeCaptureRoom;
+  var captureAudioFailure;
+  var activeRecordingId;
+  var audioInterrupted = false;
+  var programmeVideoToken;
+  var programmeAudioToken;
+  var videoPlayingEvidence;
+  var liveAudio = $("programme-live-audio");
+  liveAudio.muted = true;
+  var programme = createProgrammePlayback({ ports: {
+    live: { mute: (value) => programmeMute(liveAudio, value, true), pause: () => liveAudioViewer?.pause({ keepLatest: programme.state.intent !== "paused" }), play: () => {
+      if (!liveAudioViewer) throw Error("Waiting for live sound");
+      return liveAudioViewer.play();
+    }, seekLatest: () => {
+      const ranges = liveAudio.buffered;
+      if (ranges.length) {
+        const end2 = ranges.end(ranges.length - 1);
+        liveAudio.currentTime = liveReturnPosition(ranges.start(ranges.length - 1), end2);
+      }
+    } },
+    video: { mute: (value) => programmeMute(clipVideo, value), pause: () => clipVideo.pause(), play: () => clipVideo.play() },
+    audio: { mute: (value) => programmeMute(clipAudio, value), pause: () => clipAudio.pause(), play: () => clipAudio.play() }
+  }, changed: () => renderProgramme() });
+  timelineView.setProgrammeTime((kind, id) => {
+    const ref = programmePositions.get(kind, id), status = liveAudioViewer?.status();
+    if (!ref || !status?.recordingId || typeof status.receivedEdgeMs !== "number") return "Programme position unknown";
+    const age = formatProgrammeAge(ref, { recordingId: status.recordingId, edgeMs: Math.floor(status.receivedEdgeMs) });
+    return age === "Position unknown" ? "Programme position unknown" : `${kind === "clip" ? "Clip ends" : "Transcript ends"} ${age}`;
+  });
+  function programmeMute(media, muted, hostSilent = false) {
+    synchronisingSound = true;
+    try {
+      media.muted = muted || !streamSoundEnabled || hostSilent && role === "host";
+      if (!media.muted && media.volume === 0) media.volume = 1;
+    } finally {
+      synchronisingSound = false;
+    }
+  }
+  function finishedClipStatus(reason, liveEnded = false) {
+    const text2 = reason === "error" ? "This highlight is unavailable." : reason === "skipped" ? "Highlight skipped." : "Highlight finished.";
+    return role === "viewer" ? liveEnded ? `${text2} Shared sound has ended.` : `${text2} Use Back to live to follow current sound.` : text2;
+  }
+  function renderProgramme() {
+    const state = programme.state, status = liveAudioViewer?.status(), node = $("programme-state");
+    if (!node)
+      return;
+    const edgeKey = status?.recordingId && typeof status.receivedEdgeMs === "number" ? `${status.recordingId}:${Math.floor(status.receivedEdgeMs / 1e3)}` : "";
+    if (edgeKey !== lastProgrammeEdge) {
+      lastProgrammeEdge = edgeKey;
+      if (role)
+        queueMicrotask(() => renderTimeline());
+    }
+    const terminalConsumed = status?.sourceState === "ended" && status?.native?.state === "ended";
+    const hasHighlight = !!state.selection || !!viewer.selection || audioPlayer.ownsPlayback;
+    const terminalPlaying = status?.sourceState === "ended" && state.owner === "live" && !liveAudio.paused && liveAudio.readyState >= 3 && (status?.bufferSeconds ?? 0) > 0 && !terminalConsumed;
+    const videoPlaying = state.selection?.kind === "video" && videoPlayingEvidence?.token === state.selection.token && videoPlayingEvidence.src === clipVideo.src && clipVideo.readyState >= 3 && !clipVideo.paused && !clipVideo.ended;
+    const owner = state.owner === "live" ? "Live sound" : state.owner === "video" ? "Earlier video" : state.owner === "audio" ? "Earlier audio" : null;
+    if (role === "host")
+      node.textContent = audioInterrupted ? "Shared sound was interrupted." : activeRecordingId ? "Sharing sound with the group" : "No live sound is being shared yet";
+    else if (state.soundError)
+      node.textContent = "Sound could not be safely switched. Pause playback and try again.";
+    else if (state.blocked)
+      node.textContent = "Sound is ready. Press Play to listen.";
+    else if (state.intent === "paused")
+      node.textContent = "Paused on this device";
+    else if (state.selection?.finished)
+      node.textContent = finishedClipStatus(state.selection.finishReason, terminalConsumed);
+    else if (state.intent === "live" && !state.selection && !state.owner && !state.pending && state.live.available && state.live.decodable && state.live.startReady === false && !state.live.positionExpired && status?.sourceState === "running")
+      node.textContent = "Building sound reserve\u2026";
+    else if (terminalConsumed && !state.selection && !state.owner && !state.pending)
+      node.textContent = "Shared sound has ended.";
+    else if (state.owner === "video")
+      node.textContent = videoPlaying ? "Earlier video playing" : "Earlier video ready \xB7 waiting for playback";
+    else if (terminalPlaying)
+      node.textContent = "Final shared sound playing \xB7 sharing ended";
+    else if (status?.sourceState === "ended" && !state.selection && state.intent === "live")
+      node.textContent = "Sharing ended \xB7 waiting for final sound.";
+    else if (state.owner === "live" && status?.state === "waiting")
+      node.textContent = liveAudio.paused ? "Waiting for fresh sound" : "Received sound playing \xB7 waiting for new audio";
+    else
+      node.textContent = owner ? `${owner} playing` : state.pending ? "Preparing sound\u2026" : audioInterrupted ? "Live sound was interrupted." : "Waiting for live sound.";
+    if (state.intent === "paused" || state.selection?.kind !== "video" || state.selection.finished) videoPlayingEvidence = void 0;
+    if (state.selection?.kind === "video" && !state.selection.finished) {
+      if (state.soundError) streamStatus("Sound could not be safely switched. Pause playback and try again.");
+      else if (state.blocked === "video") streamStatus("Playback needs your permission. Press Play this clip to continue.");
+      else if (state.intent === "paused") streamStatus("Playback paused. Press Play this clip to continue.");
+      else if (state.pending === "video") streamStatus("Preparing video\u2026");
+      else if (state.owner === "video") {
+        streamStatus(videoPlaying ? "Playing clip." : "Video ready. Waiting for playback\u2026");
+      }
+    }
+    const note = $("programme-live-note");
+    if (note)
+      note.textContent = role === "host" ? "This device stays silent while sharing its own live sound." : terminalConsumed ? "Shared sound has ended. Back to stream leaves the highlight; new sound may be shared later." : status?.sourceState === "ended" && state.live.decodable ? "Sharing has ended. Back to final sound returns to the retained tail and may jump ahead." : `Back to live resumes sound near the latest playable audio received and may jump ahead of this highlight. ${state.live.positionExpired ? "Your earlier audio position is no longer available." : status?.detail || "The broadcast and connection may be delayed."}`;
+    const selection = state.selection, position = selection ? programmePositions.get("clip", selection.id) : void 0;
+    const pos = $("programme-position");
+    if (pos) {
+      const age = selection ? formatProgrammeAge(position, status?.recordingId && typeof status.receivedEdgeMs === "number" ? { recordingId: status.recordingId, edgeMs: Math.floor(status.receivedEdgeMs) } : void 0) : void 0;
+      pos.textContent = selection ? selection.finished ? finishedClipStatus(selection.finishReason, terminalConsumed) : age === "Position unknown" ? "Earlier highlight \xB7 programme position unknown" : `Earlier highlight ends ${age}` : state.owner === "live" ? "Following the latest received sound. Match minute is supplied separately." : "Programme position unknown.";
+    }
+    for (const id of ["video-programme-position", "audio-programme-position"]) {
+      const label = $(id);
+      if (label) label.textContent = pos?.textContent || "Programme position unknown.";
+    }
+    const score = $("programme-score-age"), latestScore = matchRoom.score();
+    if (score) {
+      score.hidden = !latestScore;
+      score.textContent = latestScore && scoreReceipt?.signature === latestScore.signature ? `Latest score received ${Math.max(0, Math.floor((performance.now() - scoreReceipt.at) / 1e3))}s ago; it may be out of date${selection ? " or ahead of this highlight" : ""}.` : "Latest score receipt time unknown.";
+    }
+    const back = $("programme-back-live");
+    const backLabel = status?.sourceState === "ended" ? !terminalConsumed && state.live.decodable ? "Back to final sound" : "Back to stream" : "Back to live";
+    if (back) {
+      back.disabled = role !== "viewer" || terminalConsumed && !hasHighlight;
+      back.textContent = backLabel;
+    }
+    for (const id of ["video-back-live", "audio-back-live"]) {
+      const alias = $(id);
+      if (alias) {
+        alias.hidden = role !== "viewer";
+        alias.disabled = role !== "viewer" || terminalConsumed && !hasHighlight;
+        alias.textContent = backLabel;
+      }
+    }
+    if (role)
+      queueMicrotask(() => renderStreamControls());
+  }
+  var policyAudioEpoch = null;
+  function syncProgrammeLive() {
+    if (role !== "viewer" || roomProfile !== CHAT_ROOM_PROFILE) return;
+    const status = liveAudioViewer?.status(), buffered = status?.native?.buffered ?? [], epoch = status?.epochId ?? null;
+    if (epoch !== policyAudioEpoch) {
+      policyAudioEpoch = epoch;
+      deliveryPolicy.resetLiveAudio();
+    }
+    const required = status?.sourceState === "running";
+    if (required) {
+      deliveryPolicy.setLiveAudio({ required: true, atMs: performance.now(), bufferSeconds: status?.bufferSeconds ?? 0, stalled: !!status?.stalled || !status?.recordingId || !!status?.positionExpired || !!status?.joiningLatest || status?.state === "error" });
+    } else deliveryPolicy.setLiveAudio({ required: false });
+    viewer.setAutomaticHeld(deliveryPolicy.liveAudioHealth(performance.now()).critical);
+    programme.setLive({ sourceId: epoch, available: buffered.length > 0, decodable: buffered.length > 0 && !status?.joiningLatest && !!status?.native && !["error", "closed", "ended"].includes(status.native.state), connected: !!liveAudioRoom?.currentHead(), startReady: status?.startReady ?? false, positionExpired: !!status?.positionExpired });
+  }
+  function programmeSelected(kind, id, origin) {
+    const token2 = programme.selectClip(kind, id, origin);
+    if (kind === "video") programmeVideoToken = token2;
+    else programmeAudioToken = token2;
+    return token2;
+  }
+  function programmeReady(kind, id, origin) {
+    let token2 = kind === "video" ? programmeVideoToken : programmeAudioToken;
+    const selection = programme.state.selection;
+    if (!token2 || selection?.token !== token2 || selection.id !== id) token2 = programmeSelected(kind, id, origin);
+    if (token2) programme.clipReady(token2);
+  }
+  function programmeEnd(kind, id, reason) {
+    const token2 = kind === "video" ? programmeVideoToken : programmeAudioToken;
+    if (token2 && programme.state.selection?.id === id) {
+      if (reason === "ended") programme.clipEnded(token2);
+      else programme.clipError(token2);
+    }
+  }
+  function programmePause(kind) {
+    if (programme.state.owner === kind) {
+      explicitProgrammePause = true;
+      programme.pause();
+      return false;
+    }
+    return true;
+  }
+  function programmeResume() {
+    programme.resume();
+  }
+  function requestTimelineClip(id, action, presentation) {
+    if (action === "play") audioPlayer.stop();
+    viewer.request(id, action, presentation);
+    if (action === "play" && programme.state.selection?.kind === "video" && programme.state.selection.id === id) {
+      explicitProgrammePause = false;
+      programme.resume();
+    }
+    if (action === "get" && audioPlayer.ownsPlayback) streamStatus("The selected video will download after this sound clip.");
+  }
   var mediaAnchoring = createMediaAnchoring($("session-panel"));
   var videoFollowing = mediaAnchoring.owner("video");
   var audioFollowing = mediaAnchoring.owner("audio");
@@ -45502,6 +47446,7 @@ THE SOFTWARE.
   });
   var clipAudio = $("clip-audio-player");
   clipAudio.muted = true;
+  clipAudio.controls = false;
   var audioStage = createClipCardStage({ playback: $("audio-playback"), media: clipAudio, parking: $("audio-player-parking"), timeline: $("room-timeline"), jump: $("stream-audio-jump"), target: (selection) => timelineView.audioMediaTarget(selection.clipId), ready: () => !!clipAudio.getAttribute("src"), ownsDirectorScroll: () => directorScroll.ownsWindow(), moveOwned: (target) => directorScroll.move(target, "nearest"), onFollowingMediaChange: (active) => {
     audioFollowing(active);
     timelineView.refreshLatest();
@@ -45513,19 +47458,40 @@ THE SOFTWARE.
     }
   }
   function renderStreamControls() {
+    syncFiniteClipControls();
     const hold = role === "viewer" && roomProfile === CHAT_ROOM_PROFILE && ws?.readyState === WebSocket.OPEN && viewer.enabled && viewer.mode === "highlights" && !viewer.suspended && !viewer.held && !viewer.userPaused && !viewer.canResume && !viewer.hasManualIntent && !viewer.ownership && viewer.automaticWait?.reason === "delivery-budget";
     timelineView.setDeliveryHold($("delivery-hold-note"), !!hold);
-    const start = $("watch-start"), pause = $("watch-stop");
-    start.hidden = audioPlayer.ownsPlayback ? !audioPlayer.canResume : viewer.enabled && !viewer.userPaused;
-    start.textContent = audioPlayer.ownsPlayback ? "Resume audio" : "Resume clips";
+    const start = $("watch-start"), pause = $("watch-stop"), p = programme.state;
+    const needsPlay = p.intent === "paused" || !!p.blocked;
+    start.hidden = !needsPlay && (audioPlayer.ownsPlayback ? !audioPlayer.canResume : viewer.enabled && !viewer.userPaused);
+    start.textContent = audioPlayer.ownsPlayback ? "Resume audio" : p.blocked ? "Play sound" : "Resume clips";
     pause.textContent = audioPlayer.ownsPlayback ? "Pause audio" : "Pause clips";
-    pause.hidden = audioPlayer.ownsPlayback ? audioPlayer.canResume : !viewer.enabled;
-    const resume = $("audio-resume");
-    resume.hidden = !audioPlayer.canResume;
-    resume.disabled = !audioPlayer.canResume;
+    pause.hidden = !needsPlay && (audioPlayer.ownsPlayback ? audioPlayer.canResume : !viewer.enabled);
+    if (needsPlay) pause.hidden = true;
+    const resume = $("audio-resume"), canResumeAudio = audioPlayer.canResume || p.selection?.kind === "audio" && !p.selection.finished && needsPlay;
+    resume.hidden = !canResumeAudio;
+    resume.disabled = !canResumeAudio;
+    const videoResume = $("watch-resume"), canResumeVideo = viewer.canResume || p.selection?.kind === "video" && !p.selection.finished && needsPlay;
+    if (videoResume) {
+      videoResume.hidden = !canResumeVideo;
+      videoResume.disabled = !canResumeVideo;
+    }
+    for (const [id, kind] of [["watch-pause-current", "video"], ["audio-pause-current", "audio"]]) {
+      const nearby = $(id);
+      if (nearby) {
+        nearby.hidden = needsPlay || p.owner !== kind && p.pending !== kind;
+        nearby.disabled = nearby.hidden;
+      }
+    }
     const button = $("stream-sound");
     button.textContent = streamSoundEnabled ? "Mute sound" : "Enable sound";
     button.setAttribute("aria-pressed", String(streamSoundEnabled));
+    for (const id of ["video-sound", "audio-sound"]) {
+      const alias = $(id);
+      alias.textContent = button.textContent;
+      alias.setAttribute("aria-pressed", String(streamSoundEnabled));
+      alias.disabled = button.disabled;
+    }
     button.disabled = false;
     const note = $("stream-sound-note");
     if (note) note.textContent = streamSoundEnabled ? "Sound is enabled. A silent clip or browser permission can still prevent audio." : "Clips start muted. Enable sound when you want to listen.";
@@ -45579,6 +47545,12 @@ THE SOFTWARE.
       }
       clipCaptionController.enqueue(card, focus);
       audioController.enqueue(card);
+      const clock = context?.recordingId && recordingClocks.get(context.recordingId);
+      if (context?.recordingId && clock && current() && !signal.aborted) {
+        const uncertainty = Math.min(1e4, Math.max(1, Math.ceil((clock.originLatestMonoMs - clock.originEarliestMonoMs) / 2) + 1e3));
+        void programmePositions.publish("clip", card.clipId, { recordingId: context.recordingId, startMs: Math.round(context.sourceStartMs), endMs: Math.round(context.sourceEndMs), precision: "estimated", uncertaintyMs: uncertainty }, signal, current).catch(() => {
+        });
+      }
     }
     return card;
   }
@@ -45620,10 +47592,20 @@ THE SOFTWARE.
       audioAssets.ready(peer);
     }
   });
-  var roomMessages = createRoomMessageBudget((id, raw) => activeEngine()?.sendChat(id, raw) ?? false, () => performance.now(), { valid: (id, raw) => {
+  var lastRoomQueueWarning = -Infinity;
+  var roomMessages = createRoomMessageBudget((id, raw) => activeEngine()?.sendChat(id, raw) ?? false, () => performance.now(), { onDiscardedText: (peer, id) => feed.markNotSent(peer, id), onFailure: (reason) => {
+    if (reason === "invalidated") return;
+    const now = performance.now();
+    if (!Number.isFinite(now) || now - lastRoomQueueWarning >= 3e3) {
+      if (Number.isFinite(now)) lastRoomQueueWarning = now;
+      message("Some queued room updates were superseded or could not be sent. Check the connection and try again.", true);
+    }
+  }, valid: (id, raw) => {
     if (!chatReady.has(id) || !peers.has(id) || ws?.readyState !== WebSocket.OPEN) return false;
     try {
       const m = JSON.parse(raw);
+      if (typeof m.type === "string" && m.type.startsWith("live-audio-")) return liveAudioRoom?.canSend(id, raw) ?? false;
+      if (m.type === "programme-position") return programmePositions.canSend(raw);
       if (typeof m.type === "string" && m.type.startsWith("clip-audio-asset-")) return audioAssets.canSend(id, raw);
       if (typeof m.type === "string" && m.type.startsWith("clip-replay")) return replays.canSend(id, raw);
       if (typeof m.type === "string" && m.type.startsWith("clip-still-")) return stills.canSend(id, raw);
@@ -45638,6 +47620,7 @@ THE SOFTWARE.
     if (timeline.addText(entry)) timelineView.announce("text");
   });
   var matchRoom = createMatchRoom((entry) => {
+    if (entry.kind === "score") scoreReceipt = { signature: entry.signature, at: performance.now() };
     timeline.addMatch(entry);
   });
   var matchPending = false;
@@ -45698,6 +47681,8 @@ THE SOFTWARE.
     matchNotice = "";
     for (const id of chatReady) if (role === "host" || peers.get(id)?.role === "host") matchRoom.ready(id);
   };
+  var lastVideoPresentation;
+  var lastAudioPresentation;
   function renderTimeline() {
     clipDescriptions.clear();
     for (const entry of clipCaptions.list()) clipDescriptions.set(entry.clipId, entry);
@@ -45708,8 +47693,17 @@ THE SOFTWARE.
     for (const asset of audioAssets.list()) timeline.addAudio(asset);
     timelineView.render(timeline.reconcile(feed.entries, clips.list(), transcripts.list(), commentary.list(), matchRoom.list(), replays.list(), stills.list(), audioAssets.list()));
     renderClipContext();
-    clipStage.update(viewer.selection);
-    audioStage.update(audioPlayer.selection);
+    const video = viewer.selection, audio = audioPlayer.selection, finished = programme.state.selection;
+    if (video) lastVideoPresentation = video;
+    if (audio) lastAudioPresentation = audio;
+    const retainedVideo = finished?.kind === "video" && finished.finished && lastVideoPresentation?.clipId === finished.id ? lastVideoPresentation : void 0;
+    const retainedAudio = finished?.kind === "audio" && finished.finished && lastAudioPresentation?.clipId === finished.id ? lastAudioPresentation : void 0;
+    clipStage.update(video ?? retainedVideo);
+    audioStage.update(audio ?? retainedAudio);
+    const videoPresentation = video ?? retainedVideo, audioPresentation = audio ?? retainedAudio;
+    const videoTarget = videoPresentation && timelineView.mediaTarget(videoPresentation), audioTarget = audioPresentation && timelineView.audioMediaTarget(audioPresentation.clipId);
+    if (videoTarget) videoTarget.classList.toggle("card-media-active", !!video);
+    if (audioTarget) audioTarget.classList.toggle("card-media-active", !!audio);
     renderStreamControls();
     timelineView.refreshLatest();
     director.revalidate();
@@ -45719,7 +47713,10 @@ THE SOFTWARE.
   var storageRequest = 0;
   var storageDeleting = false;
   var storageMessage = "Temporary browser copies are off. Clips use memory only.";
-  var viewer = createClipViewer({ delivery: () => deliveryPolicy, cards: () => clips.list(), has: (id) => clips.has(id), available: (id) => clips.available(id), download: (id, signal, onProgress, localOnly) => clips.download(id, signal, onProgress, localOnly), current: () => !!role && roomProfile === CHAT_ROOM_PROFILE && ws?.readyState === WebSocket.OPEN, busy: () => clips.busy || !!clipCapture, beforeAutomaticPlay: () => !director.waiting, onAutomaticEnd: () => director.start(), onReplayAccepted: () => director.cancel(), onPlaybackStart: () => director.cancel(), beforeClear: () => {
+  var viewer = createClipViewer({ delivery: () => deliveryPolicy, cards: () => clips.list(), has: (id) => clips.has(id), available: (id) => clips.available(id), download: (id, signal, onProgress, localOnly) => clips.download(id, signal, onProgress, localOnly), current: () => !!role && roomProfile === CHAT_ROOM_PROFILE && ws?.readyState === WebSocket.OPEN, busy: () => clips.busy || !!clipCapture, beforeAutomaticPlay: () => !director.waiting, onAutomaticEnd: () => director.start(), onReplayAccepted: () => director.cancel(), onPlaybackStart: () => director.cancel(), programmeSelect: (id, action) => {
+    if (action === "play") programmeSelected("video", id, "manual");
+    else if (programmeVideoToken) programme.skipClip(programmeVideoToken);
+  }, programmeReady: (id, origin) => programmeReady("video", id, origin), programmeEnd: (id, why) => programmeEnd("video", id, why), programmePause: () => programmePause("video"), programmeResume, beforeClear: () => {
     if ($("clip-player")?.contains(document.activeElement) || $("clip-playback")?.contains(document.activeElement)) {
       try {
         $("timeline-latest").focus({ preventScroll: true });
@@ -45735,8 +47732,9 @@ THE SOFTWARE.
     queueMicrotask(() => {
       const resume = $("watch-resume");
       if (resume) {
-        resume.disabled = !viewer.canResume;
-        resume.hidden = !viewer.canResume;
+        const p = programme.state, can = viewer.canResume || p.selection?.kind === "video" && !p.selection.finished && (p.intent === "paused" || !!p.blocked);
+        resume.disabled = !can;
+        resume.hidden = !can;
       }
       renderClips();
     });
@@ -45757,6 +47755,13 @@ THE SOFTWARE.
     },
     release: () => viewer.setHeld(false),
     onAutomaticEnd: () => director.start(),
+    programmeSelect: (id, origin) => {
+      programmeSelected("audio", id, origin);
+    },
+    programmeReady: (id, origin) => programmeReady("audio", id, origin),
+    programmeEnd: (id, why) => programmeEnd("audio", id, why),
+    programmePause: () => programmePause("audio"),
+    programmeResume,
     onUserPause: () => {
       director.veto();
       viewer.stop();
@@ -45797,6 +47802,36 @@ THE SOFTWARE.
     },
     released: () => viewer.wakeAutomatic()
   });
+  function sameControlSource(a, b) {
+    return !a && !b || !!a && !!b && a.kind === b.kind && a.id === b.id && a.token === b.token && a.media === b.media && a.source === b.source;
+  }
+  function syncFiniteClipControls() {
+    const selection = programme.state.selection;
+    for (const kind of ["video", "audio"]) {
+      const media = kind === "video" ? clipVideo : clipAudio, player2 = kind === "video" ? viewer : audioPlayer, src = media.getAttribute("src");
+      const next = selection?.kind === kind && selection.ready && !selection.finished && player2.selection?.clipId === selection.id && src ? { kind, id: selection.id, token: selection.token, media, source: src } : void 0;
+      const group = $(kind === "video" ? "video-position-controls" : "audio-position-controls");
+      if (group) group.hidden = !next;
+      const previous = kind === "video" ? videoControlIdentity : audioControlIdentity, controls = kind === "video" ? videoControls : audioControls;
+      if (!sameControlSource(previous, next)) {
+        if (kind === "video") videoControlIdentity = next;
+        else audioControlIdentity = next;
+        controls?.setSource(next);
+      } else controls?.refresh();
+    }
+  }
+  function adoptClipSeek(identity) {
+    const player2 = identity.kind === "video" ? viewer : audioPlayer;
+    if (!programme.canTakeManualControl(identity.kind, identity.id, identity.token) || !player2.canTakeManualControl(identity.id, identity.source)) return false;
+    if (!player2.takeManualControl(identity.id, identity.source)) return false;
+    if (!programme.takeManualControl(identity.kind, identity.id, identity.token)) return false;
+    if (identity.kind === "audio") viewer.holdAutomaticForManual();
+    director.veto();
+    directorScroll.cancel();
+    return true;
+  }
+  videoControls = createProgrammeMediaControls({ range: $("video-seek"), time: $("video-seek-time"), fullscreen: $("video-fullscreen"), fullscreenTarget: $("clip-playback"), document, promoteManual: adoptClipSeek });
+  audioControls = createProgrammeMediaControls({ range: $("audio-seek"), time: $("audio-seek-time"), fullscreen: $("audio-fullscreen"), fullscreenTarget: $("audio-playback"), document, promoteManual: adoptClipSeek });
   for (const type of ["wheel", "touchmove", "pointerdown"]) window.addEventListener(type, (event) => {
     if (type === "pointerdown" && event.target?.closest?.("#stream-sound")) return;
     directorScroll.cancel();
@@ -45857,7 +47892,64 @@ THE SOFTWARE.
   }, status: (text2) => {
     $("moments-connection").textContent = text2;
   } });
-  var moments = createClipContextMoments({ choose: () => navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }), publisher: startPublisher, publish: (caption, objects, duration, signal, context) => {
+  var moments = createClipContextMoments({ recordingStarted: (recording) => {
+    activeRecordingId = recording.recordingId;
+    audioInterrupted = false;
+    captureAudioFailure = void 0;
+    const room = liveAudioRoom;
+    activeCaptureRoom = room;
+    if (!room) {
+      audioInterrupted = true;
+      renderProgramme();
+      return;
+    }
+    try {
+      room.beginCapture(recording.recordingId);
+    } catch {
+      audioInterrupted = true;
+      renderProgramme();
+      return;
+    }
+    const tap = new StreamingAudioRemux({ onObject: async (object) => {
+      if (activeRecordingId !== recording.recordingId || liveAudioRoom !== room) throw Error("Audio capture interrupted");
+      try {
+        await room.publish(object);
+      } catch (error) {
+        if (activeRecordingId === recording.recordingId && liveAudioRoom === room) {
+          audioInterrupted = true;
+          renderProgramme();
+        }
+        throw error;
+      }
+    } });
+    void tap.whenSettled().then((status) => {
+      if ((status.state === "failed" || status.state === "skipped") && activeRecordingId === recording.recordingId && activeCaptureRoom === room && liveAudioRoom === room) {
+        activeRecordingId = void 0;
+        activeCaptureRoom = void 0;
+        audioInterrupted = true;
+        captureAudioFailure = (status.detail || "Audio capture did not continue").slice(0, 160);
+        void room.finish("error").catch(() => {
+        });
+        renderProgramme();
+      }
+    });
+    return tap;
+  }, recordingClock: (recording) => {
+    recordingClocks.set(recording.recordingId, recording);
+    while (recordingClocks.size > 64) recordingClocks.delete(recordingClocks.keys().next().value);
+  }, recordingEnded: (id, reason) => {
+    if (activeRecordingId === id) {
+      activeRecordingId = void 0;
+      if (reason === "error") audioInterrupted = true;
+      const room = activeCaptureRoom;
+      activeCaptureRoom = void 0;
+      if (room) void room.finish(reason).catch(() => {
+        audioInterrupted = true;
+        renderProgramme();
+      });
+      renderProgramme();
+    }
+  }, choose: () => navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }), publisher: startPublisher, publish: (caption, objects, duration, signal, context) => {
     const owner = storyOwner;
     return publishClip(caption, objects, duration, signal, () => storyOwnerCurrent(owner), context);
   }, capacity: () => ({ used: clips.used, count: clips.list().length, busy: clips.busy || viewer.busy }), current: storyOwnerCurrent, ready: matchCurrent, sourceChanged: (source) => {
@@ -45956,7 +48048,17 @@ THE SOFTWARE.
     source.signal.addEventListener("abort", sourceEnded, { once: true });
     transcriptAbortCleanup = () => source.signal.removeEventListener("abort", sourceEnded);
     transcriptStarting = true;
-    transcriptPublisher.start({ current, publish: transcripts.publish, status: (text2) => {
+    transcriptPublisher.start({ current, publish: async (text2, start, end2, stillCurrent, concern) => {
+      const id = activeRecordingId, clock = id && recordingClocks.get(id);
+      const entry = await transcripts.publish(text2, start, end2, stillCurrent, concern);
+      if (entry && id && clock && clock.sourceMonoMs === source.startedAt && stillCurrent()) {
+        const offset = clock.sourceMonoMs - (clock.originEarliestMonoMs + clock.originLatestMonoMs) / 2;
+        const uncertainty = Math.min(1e4, Math.max(1, Math.ceil((clock.originLatestMonoMs - clock.originEarliestMonoMs) / 2) + 1e3));
+        void programmePositions.publish("transcript", entry.id, { recordingId: id, startMs: Math.round(offset + entry.startMs), endMs: Math.round(offset + entry.endMs), precision: "estimated", uncertaintyMs: uncertainty }, source.signal, stillCurrent).catch(() => {
+        });
+      }
+      return entry;
+    }, status: (text2) => {
       if (current()) {
         transcriptPublicationStatus = text2;
         renderTranscriptStatus();
@@ -46012,10 +48114,10 @@ THE SOFTWARE.
   function startStreamWatching() {
     director.rearm();
     if (!role || roomProfile !== CHAT_ROOM_PROFILE) return;
+    if (programme.state.intent === "paused" && !explicitProgrammePause) programme.backToLive();
     audioPlayer.stop();
     $("stream-video-auto").checked = true;
     clipStage.follow();
-    clipVideo.muted = !streamSoundEnabled;
     if (viewer.enabled) viewer.resume();
     else viewer.start("highlights");
     const latest = replays.list().at(-1);
@@ -46249,8 +48351,8 @@ THE SOFTWARE.
       clearClipPlayer();
       storageMessage = "Deleting this room\u2019s temporary copies\u2026";
       renderClips();
-      const id = roomId, key8 = sourceKey;
-      void clips.deleteStorage(id, key8).then(() => {
+      const id = roomId, key9 = sourceKey;
+      void clips.deleteStorage(id, key9).then(() => {
         if (generation === session && request2 === storageRequest) {
           storageDeleting = false;
           storageMessage = "Temporary copies deleted. Clips use memory only.";
@@ -46333,6 +48435,12 @@ THE SOFTWARE.
   $("clip-still-opt-in").onchange = () => clipStillController.enable($("clip-still-opt-in").checked);
   $("clip-pictures-auto").onchange = () => pictures.enableAuto($("clip-pictures-auto").checked);
   $("watch-start").onclick = () => {
+    explicitProgrammePause = false;
+    const state = programme.state;
+    if (!audioPlayer.ownsPlayback && !viewer.selection && state.selection?.finished) {
+      viewer.releaseManualHold();
+      programme.backToLive();
+    } else if (state.intent === "paused" || state.blocked) programme.resume();
     if (audioPlayer.ownsPlayback) {
       director.rearm();
       audioPlayer.resume();
@@ -46344,41 +48452,104 @@ THE SOFTWARE.
     audioPlayer.resume();
     audioStage.reveal();
   };
-  $("audio-stop").onclick = () => audioPlayer.stop("Audio stopped.");
+  $("audio-stop").onclick = () => {
+    explicitProgrammePause = true;
+    programme.pause();
+    if (programmeAudioToken) programme.skipClip(programmeAudioToken);
+    audioPlayer.stop("Audio stopped.");
+  };
   $("stream-audio-jump").onclick = () => {
     director.rearm();
     audioStage.reveal();
   };
   $("clip-audio-opt-in").onchange = () => audioController.enable($("clip-audio-opt-in").checked);
   $("stream-video-auto").onchange = () => {
-    if ($("stream-video-auto").checked) startStreamWatching();
-    else stopWatching();
+    if ($("stream-video-auto").checked) {
+      viewer.releaseManualHold();
+      startStreamWatching();
+    } else stopWatching();
   };
-  var synchronisingSound = false;
   function setStreamSound(enable) {
     streamSoundEnabled = enable;
     synchronisingSound = true;
     try {
-      for (const media of [clipVideo, clipAudio]) {
-        if (media.muted === enable) media.muted = !enable;
-        if (enable && media.volume === 0) media.volume = 1;
+      const owner = programme.state.owner;
+      for (const [kind, media] of [["live", liveAudio], ["video", clipVideo], ["audio", clipAudio]]) {
+        media.muted = !enable || owner !== kind || kind === "live" && role === "host";
+        if (!media.muted && media.volume === 0) media.volume = 1;
       }
     } finally {
       synchronisingSound = false;
     }
     renderStreamControls();
   }
-  $("stream-sound").onclick = () => {
+  function toggleStreamSound() {
     const enable = !streamSoundEnabled;
     setStreamSound(enable);
-    if (enable && audioPlayer.ownsPlayback && !audioPlayer.userPaused) audioPlayer.resume();
-    else if (enable && !viewer.userPaused && clipVideo.getAttribute("src")) viewer.resume();
+    if (enable) {
+      if (programme.state.intent === "paused") {
+        if (!explicitProgrammePause) programme.backToLive();
+      } else programme.resume();
+    }
     if (enable && audioPlayer.ownsPlayback && !audioPlayer.userPaused) audioStage.reveal();
     else if (enable && !viewer.userPaused && clipVideo.getAttribute("src")) clipStage.reveal();
-  };
-  for (const media of [clipVideo, clipAudio]) media.addEventListener("volumechange", () => {
-    if (!synchronisingSound) setStreamSound(!media.muted && media.volume > 0);
+  }
+  $("stream-sound").onclick = toggleStreamSound;
+  for (const id of ["video-sound", "audio-sound"]) $(id).onclick = toggleStreamSound;
+  clipVideo.addEventListener("playing", () => {
+    const state = programme.state, selection = state.selection;
+    if (selection?.kind !== "video" || selection.finished || state.owner !== "video" && state.pending !== "video" || clipVideo.paused || clipVideo.ended || clipVideo.readyState < 3 || !clipVideo.src || clipVideo.currentSrc !== clipVideo.src) return;
+    videoPlayingEvidence = { token: selection.token, src: clipVideo.src };
+    renderProgramme();
   });
+  for (const event of ["waiting", "pause", "ended", "emptied", "error"]) clipVideo.addEventListener(event, () => {
+    const evidence = videoPlayingEvidence, selection = programme.state.selection;
+    if (!evidence || selection?.kind !== "video" || selection.token !== evidence.token || clipVideo.src !== evidence.src) return;
+    const sourceMatches = clipVideo.currentSrc === evidence.src;
+    const relevant = event === "pause" ? sourceMatches && clipVideo.paused : event === "ended" ? sourceMatches && clipVideo.ended : event === "waiting" ? sourceMatches && clipVideo.readyState < 3 : event === "emptied" ? clipVideo.readyState === 0 && !clipVideo.currentSrc : sourceMatches && !!clipVideo.error;
+    if (relevant) {
+      videoPlayingEvidence = void 0;
+      renderProgramme();
+    }
+  });
+  for (const media of [clipVideo, clipAudio, liveAudio]) media.addEventListener("volumechange", () => {
+    if (synchronisingSound) return;
+    const kind = media === clipVideo ? "video" : media === clipAudio ? "audio" : "live";
+    if (programme.state.owner === kind) setStreamSound(!media.muted && media.volume > 0);
+    else if (!media.muted) programmeMute(media, true, kind === "live");
+  });
+  for (const [kind, media] of [["live", liveAudio], ["video", clipVideo], ["audio", clipAudio]]) {
+    media.addEventListener("pause", () => {
+      if (kind === "live" && media.paused && !media.ended && programme.state.owner === kind) {
+        explicitProgrammePause = true;
+        programme.pause();
+      }
+    });
+    media.addEventListener("play", () => {
+      if (programme.state.pending === kind || programme.state.owner === kind) return;
+      programmeMute(media, true, kind === "live");
+      try {
+        media.pause();
+      } catch {
+      }
+    });
+  }
+  function backToProgrammeLive() {
+    const status = liveAudioViewer?.status();
+    if (role === "viewer" && status?.sourceState === "ended" && status?.native?.state === "ended" && !programme.state.selection && !viewer.selection && !audioPlayer.ownsPlayback) return;
+    explicitProgrammePause = false;
+    const selected = viewer.selection;
+    if (selected) viewer.request(selected.clipId, "skip");
+    if (audioPlayer.ownsPlayback) audioPlayer.stop();
+    viewer.releaseManualHold();
+    if (status?.positionExpired || status?.state === "error" || !!status?.failureClass && !status.native) {
+      liveAudioViewer?.rejoin();
+      syncProgrammeLive();
+    }
+    programme.backToLive();
+  }
+  $("programme-back-live").onclick = backToProgrammeLive;
+  for (const id of ["video-back-live", "audio-back-live"]) $(id).onclick = backToProgrammeLive;
   $("stream-playing-jump").onclick = () => {
     director.rearm();
     clipStage.reveal();
@@ -46391,8 +48562,23 @@ THE SOFTWARE.
     if (last2 instanceof HTMLElement) directorScroll.move(last2, "end");
   });
   $("watch-stop").onclick = () => {
+    explicitProgrammePause = true;
+    programme.pause();
     if (audioPlayer.ownsPlayback) audioPlayer.pause();
     else stopWatching();
+  };
+  var videoPauseCurrent = $("watch-pause-current");
+  if (videoPauseCurrent) videoPauseCurrent.onclick = () => {
+    explicitProgrammePause = true;
+    director.veto();
+    programme.pause();
+  };
+  var audioPauseCurrent = $("audio-pause-current");
+  if (audioPauseCurrent) audioPauseCurrent.onclick = () => {
+    explicitProgrammePause = true;
+    director.veto();
+    programme.pause();
+    audioPlayer.pause();
   };
   $("watch-resume").onclick = () => {
     director.rearm();
@@ -46444,9 +48630,9 @@ THE SOFTWARE.
   var playing = false;
   var pendingSignals = /* @__PURE__ */ new Map();
   function forgetPending(id) {
-    for (const [key8, pending] of pendingSignals) if (!id || key8 === id) {
+    for (const [key9, pending] of pendingSignals) if (!id || key9 === id) {
       clearTimeout(pending.timer);
-      pendingSignals.delete(key8);
+      pendingSignals.delete(key9);
     }
   }
   function queueAuthenticatedSignal(id, data) {
@@ -46457,10 +48643,10 @@ THE SOFTWARE.
       pending = { items: [], bytes: 0, timer: setTimeout(() => forgetPending(id), 5e3) };
       pendingSignals.set(id, pending);
     }
-    const size2 = JSON.stringify(data).length;
-    if (pending.items.length >= 32 || pending.bytes + size2 > 128 * 1024) throw Error("Pending signal limit reached");
+    const size3 = JSON.stringify(data).length;
+    if (pending.items.length >= 32 || pending.bytes + size3 > 128 * 1024) throw Error("Pending signal limit reached");
     pending.items.push(data);
-    pending.bytes += size2;
+    pending.bytes += size3;
   }
   var receivedObjects = 0;
   var publisherState = "idle";
@@ -46579,16 +48765,16 @@ THE SOFTWARE.
     let stagedBytes = 0, headBytes = 0;
     const sizeOf = (value) => new TextEncoder().encode(JSON.stringify(value)).length;
     const enqueueHead = (head) => {
-      const size2 = sizeOf(head);
-      if (size2 > MAX_CONTROL_BYTES || headQueue.length >= MAX_STAGED_MESSAGES || headBytes + size2 > MAX_STAGED_BYTES) throw Error("Room startup control limit exceeded. Rejoin live.");
-      headQueue.push({ head, size: size2 });
-      headBytes += size2;
+      const size3 = sizeOf(head);
+      if (size3 > MAX_CONTROL_BYTES || headQueue.length >= MAX_STAGED_MESSAGES || headBytes + size3 > MAX_STAGED_BYTES) throw Error("Room startup control limit exceeded. Rejoin live.");
+      headQueue.push({ head, size: size3 });
+      headBytes += size3;
     };
-    const queueBeforeWelcome = (message2, size2) => {
+    const queueBeforeWelcome = (message2, size3) => {
       if (!["peer-joined", "peer-left", "signal", "head"].includes(message2.type)) throw Error("Unexpected room startup message. Rejoin live.");
-      if (size2 > MAX_CONTROL_BYTES || staged.length >= MAX_STAGED_MESSAGES || stagedBytes + size2 > MAX_STAGED_BYTES) throw Error("Room startup control limit exceeded. Rejoin live.");
-      staged.push({ message: message2, size: size2 });
-      stagedBytes += size2;
+      if (size3 > MAX_CONTROL_BYTES || staged.length >= MAX_STAGED_MESSAGES || stagedBytes + size3 > MAX_STAGED_BYTES) throw Error("Room startup control limit exceeded. Rejoin live.");
+      staged.push({ message: message2, size: size3 });
+      stagedBytes += size3;
     };
     try {
       if (config.socketAuth === "ticket") {
@@ -46682,6 +48868,8 @@ THE SOFTWARE.
                 if (ready2) {
                   chatReady.add(id);
                   if (roomProfile === CHAT_ROOM_PROFILE) {
+                    liveAudioRoom?.ready(id);
+                    programmePositions.ready(id);
                     audioAssets.ready(id);
                     clips.ready(id);
                     clipCaptions.ready(id);
@@ -46700,7 +48888,7 @@ THE SOFTWARE.
               }, onChatMessage: (id, raw) => {
                 const p = peers.get(id);
                 if (generation === session && p && chatReady.has(id)) {
-                  const progressed = roomProfile === CHAT_ROOM_PROFILE && (audioAssets.receive(id, raw) || replays.receive(id, raw) || stills.receive(id, raw) || matchRoom.receive(id, raw) || transcripts.receive(id, raw) || commentary.receive(id, raw) || clipCaptions.receive(id, raw) || clips.receive(id, raw)) ? false : feed.receive(id, p.role, raw);
+                  const progressed = roomProfile === CHAT_ROOM_PROFILE && (!!liveAudioRoom?.receive(id, raw) || programmePositions.receive(id, raw) || audioAssets.receive(id, raw) || replays.receive(id, raw) || stills.receive(id, raw) || matchRoom.receive(id, raw) || transcripts.receive(id, raw) || commentary.receive(id, raw) || clipCaptions.receive(id, raw) || clips.receive(id, raw)) ? false : feed.receive(id, p.role, raw);
                   if (progressed && roomProfile === CHAT_ROOM_PROFILE) recoveryAttempts = 0;
                 }
               }, iceServers: m.iceServers, canServe: () => roomProfile === CHAT_ROOM_PROFILE ? newRole === "host" || selectedForwarding() : newRole === "host" || forwarding, ...roomProfile === CHAT_ROOM_PROFILE ? { cacheTtlMs: 18e5, expireInit: true, cacheEviction: "lru", canServeHash: (hash) => audioAssets.canServeHash(hash) || clips.canServeHash(hash) || stills.canServeHash(hash), authorizeObject: (hash) => audioAssets.canServeHash(hash) ? audioAssets.authorizeObject(hash) : stills.canServeHash(hash) ? stills.authorizeObject(hash) : clips.authorizeObject(hash), loadObject: (hash) => stills.canServeHash(hash) ? stills.loadObject(hash) : clips.loadObject(hash) } : {}, onSignalError: () => {
@@ -46739,6 +48927,33 @@ THE SOFTWARE.
                 laneStates.set(id, lanes);
               } });
               else engine = createPeerEngine(peerOptions);
+              if (roomProfile === CHAT_ROOM_PROFILE) {
+                const room = createLiveAudioRoom({ selfId, roomId, sourceKey, iceServers: m.iceServers, privateKey: newRole === "host" ? sourcePrivate : void 0, send: roomMessages.send, current: () => generation === session && ws === activeSocket && activeSocket.readyState === WebSocket.OPEN, canForward: () => newRole === "host" || selectedForwarding(), onHead: (head) => {
+                  if (newRole === "viewer") liveAudioViewer?.update(head);
+                }, onChange: () => queueMicrotask(() => {
+                  if (liveAudioRoom === room) {
+                    syncProgrammeLive();
+                    renderProgramme();
+                  }
+                }) });
+                liveAudioRoom = room;
+                if (newRole === "viewer") liveAudioViewer = createLiveAudioViewer({ element: liveAudio, fetch: (d, signal2) => room.fetch(d, signal2), onChange: () => queueMicrotask(() => {
+                  if (liveAudioRoom === room) syncProgrammeLive();
+                }) });
+                programmePositions.attach({ roomId, sourceKey, privateKey: newRole === "host" ? sourcePrivate : void 0, current: () => generation === session && ws === activeSocket && activeSocket.readyState === WebSocket.OPEN, peers: () => [...chatReady].filter((id) => peers.has(id)), send: roomMessages.send, canForward: () => newRole === "host" || selectedForwarding(), changed: () => {
+                  renderProgramme();
+                  queueMicrotask(() => {
+                    if (role) renderTimeline();
+                  });
+                }, subject: (kind, id) => {
+                  if (kind === "clip") {
+                    const card = clips.list().find((c) => c.clipId === id);
+                    return card ? { signature: card.signature, expiresAtMs: card.expiresAtMs, durationMs: card.durationMs } : void 0;
+                  }
+                  const entry = transcripts.list().find((e) => e.id === id);
+                  return entry ? { signature: entry.signature, durationMs: entry.endMs - entry.startMs } : void 0;
+                } });
+              }
               if (newRole === "viewer" && roomProfile === INDEPENDENT_AUDIO_PROFILE) {
                 independentViewer = createIndependentViewer({ initialWantsPlay: wantsPlay, element: player, engine: independentEngine, roomId, sourceKey, signal: controller.signal, isCurrent: () => generation === session, suppliers, onState: (state, detail) => {
                   if (generation !== session) return;
@@ -46852,6 +49067,8 @@ THE SOFTWARE.
               return;
             }
             if (m.type === "peer-left") {
+              liveAudioRoom?.forgetPeer(m.id);
+              programmePositions.forgetPeer(m.id);
               audioAssets.forgetPeer(m.id);
               replays.forgetPeer(m.id);
               transcripts.forgetPeer(m.id);
@@ -47005,10 +49222,10 @@ THE SOFTWARE.
         }
         const available = suppliers();
         if (!available.length) return;
-        let bytes8, last2;
+        let bytes9, last2;
         for (let attempt = 0; attempt < 3 && generation === session; attempt++) {
           try {
-            bytes8 = await engine.fetch(descriptor, available, controller.signal);
+            bytes9 = await engine.fetch(descriptor, available, controller.signal);
             break;
           } catch (error) {
             last2 = error;
@@ -47016,9 +49233,9 @@ THE SOFTWARE.
             await wait4(500);
           }
         }
-        if (!bytes8) throw last2 || Error("No peer currently has the required video. Rejoin live if the source is running.");
+        if (!bytes9) throw last2 || Error("No peer currently has the required video. Rejoin live if the source is running.");
         if (generation !== session) return;
-        await playout.append(descriptor, bytes8);
+        await playout.append(descriptor, bytes9);
         receivedObjects++;
         if (descriptor.kind === "init") initAppended = true;
         else nextSequence = descriptor.sequence + 1;
@@ -47246,6 +49463,26 @@ THE SOFTWARE.
     else director.reset();
     directorScroll.cancel();
     const keepMoments = keepStory && preserveFeed && !!storyOwner && moments.active;
+    const oldLiveRoom = liveAudioRoom, oldLiveViewer = liveAudioViewer;
+    liveAudioRoom = void 0;
+    liveAudioViewer = void 0;
+    oldLiveViewer?.close();
+    oldLiveRoom?.close();
+    policyAudioEpoch = null;
+    deliveryPolicy.setLiveAudio({ required: false });
+    viewer.setAutomaticHeld(false);
+    if (preserveFeed) {
+      programme.setLive({ sourceId: null, available: false, connected: false, decodable: false });
+      programmePositions.detach();
+    } else {
+      programmePositions.clear();
+      programme.reset();
+      explicitProgrammePause = false;
+      recordingClocks.clear();
+      activeRecordingId = void 0;
+      audioInterrupted = false;
+      scoreReceipt = void 0;
+    }
     if (!keepMoments) {
       storyConnection.stop();
       storyOwner = void 0;
@@ -47274,7 +49511,7 @@ THE SOFTWARE.
     clipStillController.detach();
     audioController.detach();
     $("clip-pictures-auto").checked = preservePicture;
-    roomMessages.clear();
+    roomMessages.clear(preserveFeed);
     replayPending = false;
     matchPending = false;
     matchNotice = "";
@@ -47456,14 +49693,14 @@ THE SOFTWARE.
   async function joinInvitation(invitation, forwarding = true, options = {}) {
     const url2 = new URL(invitation);
     if (url2.origin !== location.origin) throw Error("Open this invitation in its original website.");
-    const p = new URLSearchParams(url2.hash.slice(1)), id = p.get("room"), join2 = p.get("join"), key8 = p.get("source");
+    const p = new URLSearchParams(url2.hash.slice(1)), id = p.get("room"), join2 = p.get("join"), key9 = p.get("source");
     const mode = p.get("mode");
     if (mode !== null && mode !== INDEPENDENT_AUDIO_PROFILE && mode !== CHAT_ROOM_PROFILE) throw Error("This invitation uses an unsupported sound mode. Open its original app.");
     if (mode === CHAT_ROOM_PROFILE) {
       checkRoomCapabilities();
       if (config.roomChatVersion !== 1 || config.chatRoomProfile !== CHAT_ROOM_PROFILE) throw Error("This private chat room is not supported by this service.");
     } else checkViewerCapabilities();
-    if (!id || !join2 || !key8 || !/^[A-Za-z0-9_-]{43}$/.test(join2) || !/^[A-Za-z0-9_-]{43}$/.test(key8)) throw Error("The private invitation is incomplete");
+    if (!id || !join2 || !key9 || !/^[A-Za-z0-9_-]{43}$/.test(join2) || !/^[A-Za-z0-9_-]{43}$/.test(key9)) throw Error("The private invitation is incomplete");
     if (!options.recovery) {
       cancelRecovery();
       pictureEpisodes = 0;
@@ -47471,8 +49708,8 @@ THE SOFTWARE.
       pictureWatchdog.reset();
       if (!viewerSessionKey || invitation !== lastInvitation) viewerSessionKey = config.viewerResume ? randomKey() : "";
     }
-    const preserve = !!role && roomId === id && sourceKey === key8 && lastInvitation === invitation;
-    const sameStoredRoom = joinedRoom?.roomId === id && joinedRoom?.sourceKey === key8;
+    const preserve = !!role && roomId === id && sourceKey === key9 && lastInvitation === invitation;
+    const sameStoredRoom = joinedRoom?.roomId === id && joinedRoom?.sourceKey === key9;
     const freshChoices = { video: $("join-video-auto").checked, pictures: $("join-pictures-auto").checked };
     const expected = session + 1;
     await leave(preserve, !sameStoredRoom);
@@ -47483,7 +49720,7 @@ THE SOFTWARE.
       $("stream-video-auto").checked = freshChoices.video;
       $("clip-pictures-auto").checked = freshChoices.pictures;
     }
-    await connectRoom({ roomId: id, token: join2, sourceKey: key8, profile: mode === INDEPENDENT_AUDIO_PROFILE ? INDEPENDENT_AUDIO_PROFILE : mode === CHAT_ROOM_PROFILE ? CHAT_ROOM_PROFILE : void 0 }, "viewer", forwarding);
+    await connectRoom({ roomId: id, token: join2, sourceKey: key9, profile: mode === INDEPENDENT_AUDIO_PROFILE ? INDEPENDENT_AUDIO_PROFILE : mode === CHAT_ROOM_PROFILE ? CHAT_ROOM_PROFILE : void 0 }, "viewer", forwarding);
     if (mode === CHAT_ROOM_PROFILE && !preserve && !options.recovery) {
       pictures.enableAuto(freshChoices.pictures);
       if (freshChoices.video) startStreamWatching();
@@ -47500,6 +49737,12 @@ THE SOFTWARE.
     sourcePrivate = owner.privateKey;
     sourceKey = owner.sourceKey;
     await connectRoom({ roomId: owner.roomId, sourceKey: owner.sourceKey, token: owner.token, profile: CHAT_ROOM_PROFILE }, "host", true);
+    if (storyOwner !== owner || !moments.active || session !== expected) return;
+    if (!await moments.restartRecording()) {
+      audioInterrupted = true;
+      renderProgramme();
+      throw Error("Screen recording could not restart after reconnecting.");
+    }
     if (storyOwner !== owner || !moments.active || session !== expected) return;
     lastInvitation = owner.invitation;
     $("invite-output").value = owner.invitation;
@@ -47660,6 +49903,11 @@ THE SOFTWARE.
       const currentType = connection.type;
       const changed = !!previousType && !!currentType && previousType !== "unknown" && currentType !== "unknown" && previousType !== currentType;
       previousType = currentType;
+      if (changed && roomProfile === CHAT_ROOM_PROFILE) {
+        deliveryPolicy.resetLiveAudio();
+        viewer.setAutomaticHeld(deliveryPolicy.liveAudioHealth(performance.now()).critical);
+        for (const id of chatReady) liveAudioRoom?.newPath(id);
+      }
       if (changed || roomProfile !== CHAT_ROOM_PROFILE && !hasUsablePeer()) scheduleRecovery();
     });
   } catch {
@@ -47683,7 +49931,7 @@ THE SOFTWARE.
       analyser.getFloatFrequencyData(bins);
       audioToneDb = Math.max(audioToneDb, bins[Math.round(440 * analyser.fftSize / testAudio.sampleRate)] || -120);
     }
-    const media = activeStats() || {}, rawStats = activeEngine()?.stats() || {}, stats = Object.fromEntries(Object.entries(rawStats).filter(([key8]) => !key8.endsWith(".pendingPutBytes") && !key8.endsWith(".pendingPutCount") && !key8.endsWith(".pendingInit")));
+    const media = activeStats() || {}, rawStats = activeEngine()?.stats() || {}, stats = Object.fromEntries(Object.entries(rawStats).filter(([key9]) => !key9.endsWith(".pendingPutBytes") && !key9.endsWith(".pendingPutCount") && !key9.endsWith(".pendingInit")));
     return { joined: !!role, role, profile: roomProfile || "standard", clipStats: { memoryBytes: clips.used, diskBytes: clips.diskBytes, storageEnabled: clips.storageEnabled() }, publisherState, playbackState, presentedFrames: Number(media.presentedFrames || 0), playhead: Number(media.currentTime || 0), bufferedSeconds: Number(media.bufferedSeconds || 0), paused: player.paused, audioSignalPeak: Number(audioSignalPeak.toFixed(4)), audioToneDb: Number(audioToneDb.toFixed(1)), routes: stats.route && stats.route !== "unknown" ? [String(stats.route)] : [], peers: peers.size, peerEvents: [...peerEvents], lastControlError, receivedObjects: independentViewer ? Number(media.receivedObjects || 0) : receivedObjects, audioState: media.audioState, peerStats: stats, errors: lastError ? [lastError] : [] };
   }
   async function synthetic() {
@@ -47900,6 +50148,9 @@ THE SOFTWARE.
   };
   setInterval(() => {
     if (roomProfile === CHAT_ROOM_PROFILE) {
+      liveAudioRoom?.tick();
+      liveAudioViewer?.tick();
+      programmePositions.tick();
       clips.tick?.();
       audioAssets.tick();
       stills.tick?.();
@@ -47945,11 +50196,14 @@ THE SOFTWARE.
       message("Your private invitation is ready. Press Join private room.");
     }
     if (config.testMode) {
-      window.sameEndPilotTest = { enableTrace, traceSnapshot, createAndPublish: async (options = {}) => {
+      window.sameEndPilotTest = { sharedLinkState: () => ({ hidden: document.hidden, policy: deliveryPolicy.liveAudioHealth(performance.now()), directorWaiting: director.waiting, viewer: viewer.debugSnapshot(), programme: programme.state, audioPlayer: { ownsPlayback: audioPlayer.ownsPlayback, busy: audioPlayer.busy, userPaused: audioPlayer.userPaused, origin: audioPlayer.origin ?? null }, clipRoom: clips.debugSnapshot() }), enableTrace, traceSnapshot, createAndPublish: async (options = {}) => {
         await leave();
         const stream = await synthetic();
         return beginPublishing(stream, stream, ownCaptureTracks(stream), options.independentAudio ? INDEPENDENT_AUDIO_PROFILE : void 0);
-      }, join: (invite, options = {}) => joinInvitation(invite, options.forwarding ?? selectedForwarding()), snapshot: snapshot2, storyState: () => ({ ...moments.stats(), sourceAudioState: transcriptSource?.track?.readyState, roomConnected: ws?.readyState === WebSocket.OPEN }), renewStoryConnection: () => storyConnection.lost(), resources: () => {
+      }, join: (invite, options = {}) => joinInvitation(invite, options.forwarding ?? selectedForwarding()), snapshot: snapshot2, storyState: () => ({ ...moments.stats(), sourceAudioState: transcriptSource?.track?.readyState, captureRecordingId: activeRecordingId ?? null, captureAudioFailure: captureAudioFailure ?? null, liveRecordingId: liveAudioViewer?.status().recordingId ?? null, liveAudioRecovery: (() => {
+        const s = liveAudioViewer?.status();
+        return s ? { state: s.state, sourceState: s.sourceState, failureClass: s.failureClass, retryAttempts: s.retryAttempts, retryExhausted: s.retryExhausted, positionExpired: s.positionExpired, joiningLatest: s.joiningLatest } : null;
+      })(), roomConnected: ws?.readyState === WebSocket.OPEN }), renewStoryConnection: () => storyConnection.lost(), resources: () => {
         const source = independentSource?.stats(), engine2 = independentEngine?.stats();
         return { source: source ? { pendingBytes: source.pendingBytes, pendingHeads: source.pendingHeads, pendingObjects: source.pendingObjects, audioObjects: source.audioObjects, muxedObjects: source.muxedObjects } : null, engine: engine2 ? Object.fromEntries(Object.entries(engine2).filter(([, value]) => typeof value === "number")) : null, viewer: independentViewer?.resourceStats() ?? null };
       }, leave, pause: () => {
