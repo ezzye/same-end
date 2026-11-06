@@ -1,0 +1,305 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self' 'unsafe-inline'; media-src 'self' blob:; connect-src 'self' wss: https://n2dyzit6e56ajocyqghad2qsbq0jfooh.lambda-url.eu-west-1.on.aws https://dldvwd3ue2of4k7qczwzuegqwe0ekock.lambda-url.eu-west-1.on.aws; img-src 'self' data: blob:; base-uri 'none'; form-action 'self'"><meta name="same-end-control-origin" content="https://n2dyzit6e56ajocyqghad2qsbq0jfooh.lambda-url.eu-west-1.on.aws"><meta name="color-scheme" content="light dark"><title>Same End · Match room</title><style>
+:root{font-family:system-ui,sans-serif;color:#172e2a;background:#f4f1e9;--paper:#fffef9;--border:#cad8d0;--green:#14664f}*{box-sizing:border-box}body{max-width:1040px;margin:auto;padding:25px;line-height:1.55}header{display:flex;justify-content:space-between;gap:20px;align-items:center;border-bottom:1px solid var(--border);padding:0 0 18px}h1{font:600 38px/1.1 Georgia,serif;margin:8px 0}h2{font-size:19px;margin:0 0 12px}.brand{font-size:12px;letter-spacing:.14em;font-weight:750}p{margin:10px 0}button,input,select{font:inherit}button{background:var(--green);color:#fff;border:1px solid var(--green);border-radius:8px;padding:11px 17px;cursor:pointer;margin:4px 7px 4px 0}button.secondary{background:transparent;color:var(--green)}button:disabled{opacity:.5;cursor:default}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #d99a2b;outline-offset:3px}section{background:var(--paper);border:1px solid var(--border);border-radius:13px;padding:23px;margin-top:22px}label{display:block;margin:12px 0}input[type=text]{width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--paper);color:inherit}.small{font-size:13px;color:#536761}.notice{padding:13px 16px;border-left:4px solid var(--green);background:#e7efe5;border-radius:0 7px 7px 0}.error{border-color:#ad5a25;background:#fff0df}video{width:100%;max-height:66vh;background:#132721;border-radius:8px;display:block}#preview{max-width:330px;max-height:185px;margin-top:15px}.actions{display:flex;flex-wrap:wrap;align-items:center}.status-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}.status-grid p{font-size:14px;margin:4px 0}summary{cursor:pointer;font-weight:600}pre{font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}.hidden{display:none!important}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}#room-timeline{max-height:55vh;overflow-y:auto;padding:0 0 0 1.6rem;overflow-anchor:none}#room-timeline li{padding:8px 0;border-bottom:1px solid var(--border);overflow-wrap:anywhere}#room-timeline button[aria-disabled="true"]{opacity:.5;cursor:default}#room-status{max-width:260px;text-align:right}footer{margin:25px 0;color:#536761;font-size:13px}@media(max-width:650px){body{padding:18px}header{display:block}h1{font-size:31px}#room-status{text-align:left}.status-grid{grid-template-columns:1fr}section{padding:18px}}@media(prefers-color-scheme:dark){:root{color:#e5eee7;background:#12221e;--paper:#192e26;--border:#365447;--green:#8bd3aa}.small,footer{color:#b0c6b6}.notice{background:#24402d}.error{background:#3b2b1a}button{color:#10261a}}
+.clip-context{margin:12px 0;padding:12px 16px;border-left:4px solid var(--green);background:var(--paper)}.clip-context p{margin:5px 0}.watch-stage{margin:20px 0;padding:18px;border:1px solid var(--border);border-radius:10px}.watch-stage select{margin-left:.4em;padding:8px;max-width:100%}.watch-stage video{margin:12px 0}.clip-picture{max-width:100%;height:auto;border-radius:8px} details{margin:12px 0} summary:focus-visible{outline:3px solid #d99a2b;outline-offset:3px} #room-timeline strong{display:inline-block;margin-right:.25em}figure{margin:1rem 0}
+#room-privacy{display:none}
+body.room-story #privacy-notice{display:none}
+body.room-story #room-privacy{display:block}
+body.room-story header{padding-bottom:8px;gap:8px}
+body.room-story h1{font-size:27px;margin:3px 0}
+body.room-story #room-status{margin:2px 0}
+body.room-story #room-privacy{margin:6px 0;font-size:13px}
+body.room-story #viewer-panel{padding:8px 12px;margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+body.room-story #viewer-panel.hidden{display:none!important}
+body.room-story #viewer-title{font-size:16px;margin:0}
+body.room-story #viewer-panel #rejoin{margin:0;padding:7px 10px}
+body.room-story #session-panel{margin-top:8px;padding:12px}
+body.room-story .status-grid{display:flex;flex-wrap:wrap;gap:8px 18px}
+body.room-story .status-grid p{margin:0}
+body.room-story #match-panel{margin:6px 0}
+body.room-story #match-context section{margin:4px 0;padding:8px}
+body.room-story #match-status{margin:4px 0}
+body.room-story #match-refresh{padding:6px 10px;margin:2px 0}
+body.room-story .clip-context{margin:12px 0;padding:12px 16px;border-left:4px solid var(--green);background:var(--paper)}.clip-context p{margin:5px 0}.watch-stage{margin:8px 0;padding:10px}
+body.room-story .watch-stage h2{margin:0 0 5px}
+body.room-story .watch-stage label{margin:4px 0}
+body.room-story .watch-stage button{padding:8px 11px}
+body.room-story .watch-stage video{margin:6px 0}
+@media(max-width:650px){body.room-story{padding:12px}body.room-story .brand{font-size:10px}body.room-story h1{font-size:24px}body.room-story #session-panel{padding:10px}body.room-story #watch-mode{margin-left:0}}
+
+/* A single stream: legacy casting controls are retained for old invitations. */
+.legacy-controls,.compat-control{display:none}
+body.legacy-room .legacy-controls{display:block}
+:root{color-scheme:light;--paper:#fff;--border:#d8e2da;--green:#14543d;color:#172b20;background:#f2f5ef}
+body{max-width:900px;padding:16px;line-height:1.5}.small,footer{color:#536761}.notice{background:#e7efe5}.error{background:#fff0df}button{color:#fff}
+header{background:#103d2c;color:#fff;border:0;border-radius:12px;padding:18px;margin-bottom:14px}
+header .brand{color:#e6d765}header h1{font-size:30px}header #room-status{color:#e4eee7}
+section{padding:16px;margin-top:14px}button{padding:9px 13px}button.secondary{color:#14543d}
+.watch-stage{margin:10px 0;padding:10px}.stream-toolbar{gap:4px}.stream-toolbar button{margin:2px}
+#watch-stage{background:#fff;border:0;padding:6px 0;margin:6px 0}#story-capture-bar{z-index:6}#stream-status{font-size:.9rem;margin:6px 0}#watch-usage{margin:8px 0 0}#clip-player-parking:empty{display:none}#clip-player,#clip-audio-player{scroll-margin-block:2px}
+#session-panel.media-following{overflow-anchor:none}
+#session-panel.reader-anchoring #room-timeline{overflow-anchor:auto}
+#session-panel.reader-anchoring .reader-anchor-excluded{overflow-anchor:none}
+#room-timeline{list-style:none;padding:0;max-height:none;overflow:visible}
+#room-timeline li.story-card{background:#fff;border:1px solid #d8e2da;border-radius:12px;margin:10px 0;padding:14px;overflow-wrap:anywhere;box-shadow:0 2px 7px #153c2b0d}
+.story-card .card-header{background:transparent;color:#172b20;border-radius:0;padding:0 0 8px;margin:0 0 8px;border-bottom:2px solid #f0d250}.card-header{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}.card-kind{font-size:.78rem;font-weight:750;letter-spacing:.04em;color:#14543d}.card-body{line-height:1.6}.card-media{margin:10px 0}.story-card strong,.story-card .card-label{color:#14543d}.story-card .card-accent{color:#806900}
+.story-card video,.story-card .clip-picture,.card-media img{display:block;width:100%;max-width:100%;aspect-ratio:16/9;object-fit:contain;background:#10251b;border-radius:8px}
+.story-card .clip-picture[hidden]{display:none}
+.story-card p{line-height:1.55}.story-card[data-entry-type="transcript"] p,.story-card .transcript-text{font-size:1rem;line-height:1.65}
+.transcript-gap:not([hidden]){display:block}
+.card-media-active>figure,.card-media-active>button[data-action="play"]{display:none!important}#clip-playback video{width:100%;aspect-ratio:16/9;object-fit:contain}#clip-playback p:empty{display:none}
+#clip-player-parking #clip-playback,#audio-player-parking #audio-playback{display:none}
+.story-card audio{display:block;width:100%;margin:12px 0}.card-media-active>button[data-action="listen"]{display:none!important}
+.connection-summary{margin:4px 0}#room-feed{margin-top:16px}
+@media(max-width:650px){body,body.room-story{padding:10px}header{padding:14px}header h1,body.room-story h1{font-size:24px}section,body.room-story #session-panel{padding:12px}#room-timeline li.story-card{padding:12px}.stream-toolbar button{padding:8px 10px}}
+
+/* Night match theme (ADR-035). A visual layer over the rules above: ids, data
+   attributes, controls and wording stay as they are. Fonts are served from this
+   origin only (see font-assets.mjs). */
+@font-face{font-family:'Atkinson Hyperlegible';font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/atkinson-hyperlegible-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Atkinson Hyperlegible';font-style:italic;font-weight:400;font-display:swap;src:url(/fonts/atkinson-hyperlegible-latin-400-italic.woff2) format('woff2')}
+@font-face{font-family:'Atkinson Hyperlegible';font-style:normal;font-weight:700;font-display:swap;src:url(/fonts/atkinson-hyperlegible-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:700;font-display:swap;src:url(/fonts/barlow-condensed-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:800;font-display:swap;src:url(/fonts/barlow-condensed-latin-800-normal.woff2) format('woff2')}
+:root{color-scheme:dark;--pitch:#0c2a1e;--dugout:#133d2c;--touchline:#2a5a44;--turf:#1d4a36;--floodlight:#f2f4ea;--soft:#cfdcd3;--muted:#9fb8a9;--chalk:#e8eedf;--chalk-ink:#0c2a1e;--signal:#8fe0b0;--programme:#e8c97a;--home:#c8201b;--away:#2648b8;--paper:var(--dugout);--border:var(--touchline);--green:var(--signal);--body:'Atkinson Hyperlegible',system-ui,-apple-system,'Segoe UI',sans-serif;--cond:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;font-family:var(--body);color:var(--floodlight);background:var(--pitch)}
+body,body.room-story{max-width:1240px;padding:12px 16px 24px;background:var(--pitch);color:var(--floodlight);font-family:var(--body);line-height:1.5}
+.small,footer,.muted{color:var(--muted)}
+a{color:var(--floodlight)}
+h1,h2{color:var(--floodlight)}
+h2{font-size:17px}
+button{background:var(--floodlight);color:var(--pitch);border:1px solid var(--floodlight);border-radius:22px;min-height:44px;padding:0 18px;font-weight:700}
+button.secondary,body.room-story .watch-stage button.secondary{background:transparent;color:var(--floodlight);border-color:var(--touchline);font-weight:400}
+button.secondary:hover{background:var(--dugout)}
+button:disabled,button[aria-disabled="true"]{opacity:.45}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--signal);outline-offset:2px}
+input[type=text],input[type=number],input:not([type]),textarea,select,.match-context input,.match-context textarea{background:var(--pitch);color:var(--floodlight);border:1px solid var(--touchline);border-radius:8px;min-height:44px;padding:8px 12px;font:inherit}
+input[type=checkbox]{accent-color:var(--signal);width:20px;height:20px;vertical-align:-4px;margin-right:8px}
+details>summary{min-height:36px;display:flex;align-items:center;gap:6px;color:var(--soft);font-weight:700}
+details>summary::-webkit-details-marker{color:var(--muted)}
+section{background:transparent;border:1px solid var(--touchline);border-radius:10px;color:var(--floodlight)}
+.notice{background:var(--dugout);border-left:0;border-radius:8px;color:var(--soft)}
+.error{background:#3b2414;color:#ffd9c2}
+pre{color:var(--soft)}
+hr{border:0;border-top:1px solid var(--touchline);margin:20px 0}
+footer{border-top:1px solid var(--touchline);padding-top:14px}
+
+/* Header: the room, then the sharer's score. */
+header,body.room-story header{background:transparent;color:var(--floodlight);border:0;border-bottom:1px solid var(--touchline);border-radius:0;padding:6px 0 12px;margin-bottom:10px}
+header .brand{display:flex;align-items:center;gap:8px;color:var(--soft);font-size:12px;letter-spacing:.06em}
+.brand-bars{display:inline-flex;align-items:flex-end;gap:3px}
+.brand-bars i{display:block;width:5px;border-radius:2px;background:var(--signal)}
+.brand-bars i:nth-child(1){height:12px}.brand-bars i:nth-child(2){height:18px}.brand-bars i:nth-child(3){height:9px}
+header h1,body.room-story h1{font-family:var(--cond);font-weight:800;font-size:40px;line-height:.95;letter-spacing:-.5px;margin:8px 0 0}
+body.room-story header h1{font-size:26px}
+header #room-status{color:var(--muted)}
+.scoreboard{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:end;gap:2px 12px;background:var(--pitch);border-bottom:1px solid var(--touchline);padding:10px 0 8px;margin:0 0 12px}
+@media(min-width:1100px) and (min-height:700px){.scoreboard{position:sticky;top:0;z-index:5}}
+.sb-team{font-family:var(--cond);font-weight:700;font-size:22px;line-height:1.05;overflow-wrap:anywhere;padding-bottom:6px;border-bottom:5px solid var(--away)}
+.sb-home{text-align:right;border-image:repeating-linear-gradient(90deg,var(--home) 0 9px,var(--floodlight) 9px 18px) 5}
+.sb-goals{font-family:var(--cond);font-weight:800;font-size:46px;line-height:.85;font-variant-numeric:tabular-nums;padding-bottom:4px}
+.sb-meta{grid-column:1/-1;text-align:center;font-size:12px;color:var(--muted);margin-top:4px}
+
+/* Room: the stream first; controls in a rail beside it on wide screens and
+   below it on phones. The sharer's controls come first on narrow screens. */
+body.room-story #session-panel{background:transparent;border:0;padding:0;margin-top:0}
+.room-main,.room-rail{min-width:0}
+.room-rail>*{margin-top:14px}
+.room-rail section,.room-rail #clips-panel,.room-rail #match-panel{border-radius:10px}
+body.room-story #viewer-panel,body.room-story #host-panel{border-color:var(--touchline)}
+body.room-host #session-panel{display:flex;flex-direction:column}
+body.room-host .room-rail{order:-1}
+@media(min-width:1100px){
+  body.room-story #session-panel,body.room-host #session-panel{display:grid;grid-template-columns:minmax(0,1fr) 360px;column-gap:32px;align-items:start}
+  body.room-story .room-main{grid-column:1;grid-row:1}
+  body.room-story .room-rail{grid-column:2;grid-row:1;order:0;padding-right:4px}
+  body.room-host #session-panel{grid-template-columns:400px minmax(0,1fr)}
+  body.room-host .room-rail{grid-column:1}
+  body.room-host .room-main{grid-column:2}
+}
+#match-panel{background:var(--dugout);border-radius:10px;padding:12px 14px}
+#match-panel .match-context section{border:0;padding:0;margin:0}
+.match-context fieldset{border:1px solid var(--touchline);border-radius:8px}
+.match-context legend{color:var(--soft);font-weight:700;padding:0 6px}
+.match-context .match-error{color:#ffb4a8}
+#clips-panel{background:var(--dugout);border-radius:10px;padding:14px}
+#clips-panel h2{font-family:var(--cond);font-weight:700;font-size:24px;margin:0 0 6px}
+#story-capture-bar{background:var(--home);color:#fff;padding:10px 14px;border-radius:8px}
+#story-capture-bar button.secondary{color:#fff;border-color:#fff}
+
+/* Stream toolbar */
+#watch-stage,body.room-story #watch-stage{background:transparent;border:0;padding:4px 0;margin:0 0 6px}
+.stream-toolbar{display:flex;flex-wrap:wrap;gap:8px}
+.stream-toolbar button{margin:0}
+#stream-sound[aria-pressed="false"]{background:var(--floodlight);color:var(--pitch);border-color:var(--floodlight);font-weight:700}
+#stream-status{color:var(--soft)}
+.stream-help{margin:4px 0}
+#room-feed h2{font-family:var(--cond);font-weight:700;font-size:24px;margin:6px 0 2px}
+#room-feed>p.small{margin:2px 0}
+#chat-status{font-size:13px;color:var(--muted)}
+.delivery-hold-note{margin:8px 0;color:var(--soft);font-size:13px}
+
+/* The card stream: every card hangs off a spine of times. Shape tells you the type. */
+#room-timeline{position:relative}
+#room-timeline{--spine:64px}
+#room-timeline li.story-card{position:relative;background:transparent;border:0;border-radius:0;box-shadow:none;margin:0;padding:0 0 22px var(--spine);color:var(--floodlight)}
+#room-timeline li.story-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:calc(var(--spine) - 10px);box-sizing:border-box;padding:2px 8px 0 0;white-space:nowrap;border-right:2px solid var(--touchline);text-align:right;font-family:var(--cond);font-weight:700;font-size:17px;line-height:1.1;color:var(--soft);font-variant-numeric:tabular-nums}
+#room-timeline .stream-time{position:absolute;left:0;top:0;width:calc(var(--spine) - 10px);padding:2px 8px 0 0;box-sizing:border-box;text-align:right;font-family:var(--cond);font-weight:700;font-size:12px;line-height:1.1;color:var(--soft);font-variant-numeric:tabular-nums}
+#room-timeline li[data-time-source="arrived"] .stream-time{color:var(--muted)}
+#room-timeline li[data-chat-continuation="true"] .stream-time,#room-timeline li[data-moment="part"] .stream-time{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0}
+.story-card .card-header{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:2px;border:0;padding:0;margin:0 0 6px;color:var(--floodlight);background:transparent}
+.story-card .card-kind{font-size:12px;font-weight:700;letter-spacing:0;color:var(--muted)}
+.story-card strong,.story-card .card-label{color:var(--floodlight)}
+.story-card .card-accent{color:var(--programme)}
+.story-card .card-body{line-height:1.5}
+.story-card p{margin:6px 0}
+.story-card details{margin:6px 0}
+.story-card details>summary{font-size:13px;font-weight:400;min-height:32px}
+.story-card button{min-height:40px;padding:0 14px;margin:4px 6px 4px 0;background:transparent;color:var(--floodlight);border-color:var(--touchline);font-weight:400}
+.story-card button[data-action="play"],.story-card button[data-action="listen"]{background:var(--floodlight);color:var(--pitch);border-color:var(--floodlight);font-weight:700}
+.story-card small,.story-card .small{color:var(--muted)}
+.card-media{margin:8px 0}
+.story-card video,.story-card .clip-picture,.card-media img{border-radius:10px;background:#091d15}
+.card-media,.story-card[data-entry-type="image"] .card-body{max-width:640px}
+#clip-player,#clip-audio-player{scroll-margin-top:0}
+
+/* Moments: video, picture and sound cards share the rounded media shape. */
+.story-card[data-entry-type="clip"] .card-header strong,.story-card[data-entry-type="replay"] .card-header strong{font-family:var(--cond);font-weight:700;font-size:21px;line-height:1.1}
+.story-card[data-entry-type="clip"] .card-time{display:block;width:100%;font-size:12px;color:var(--muted)}
+.arrival-chips{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0}
+.arrival-chip{border:1px solid var(--touchline);border-radius:999px;padding:3px 8px;font-size:12px;line-height:1.3;color:var(--soft)}
+.arrival-chip[data-state="here"]{border-color:var(--signal);color:var(--signal)}
+.arrival-chip[data-state="reported"]{border-color:var(--programme);color:var(--programme)}
+.story-card[data-entry-type="replay"] .card-body{border:1px solid var(--touchline);border-radius:10px;padding:10px}
+.story-card[data-entry-type="replay"] .card-kind{color:var(--programme)}
+.story-card[data-entry-type="image"] .card-kind,.story-card[data-entry-type="audio"] .card-kind{color:var(--muted)}
+.story-card[data-entry-type="audio"] .card-media{display:flex;align-items:center;gap:10px;background:var(--dugout);border-radius:26px;padding:4px 6px}
+.story-card[data-entry-type="audio"] .card-media button{margin:0}
+.story-card[data-entry-type="audio"] audio{margin:6px 0}
+
+/* One moment (ADR-035 step 2): a clip's own picture and sound cards that follow it
+   directly are drawn as compact parts of its card. They remain separate entries. */
+#room-timeline li.story-card[data-moment="head"]{padding-bottom:6px}
+#room-timeline li.story-card[data-moment="part"]{padding-bottom:6px}
+#room-timeline li.story-card[data-moment="part"]::before{content:''}
+#room-timeline li.story-card[data-moment]+li.story-card:not([data-moment="part"]){margin-top:16px}
+.story-card[data-moment="part"] .card-header{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0}
+.story-card[data-moment="part"] .card-body::before{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+.story-card[data-moment="part"][data-entry-type="image"] .card-body::before{content:'Picture from this moment'}
+.story-card[data-moment="part"][data-entry-type="audio"] .card-body::before{content:'Sound from this moment'}
+.story-card[data-moment="part"][data-entry-type="image"] .card-body{max-width:640px}
+.story-card[data-moment="part"][data-entry-type="image"] .clip-picture{width:180px;height:auto;aspect-ratio:16/9;object-fit:cover}
+.story-card[data-moment="part"][data-entry-type="image"] .card-body>p:empty{display:none}
+.story-card[data-moment="part"] details{margin:2px 0}
+
+/* Transcript: a speech bubble, heard on the shared stream. */
+.story-card[data-entry-type="transcript"] .card-body{background:var(--dugout);border-radius:4px 14px 14px 14px;padding:10px 14px}
+.story-card[data-entry-type="transcript"] .transcript-excerpt p{font-style:italic;color:#e3eadf;margin:2px 0 6px}
+.story-card[data-entry-type="transcript"] .transcript-excerpt strong{font-family:var(--body);font-size:12px;font-weight:400;color:var(--muted)}
+.story-card[data-entry-type="transcript"] .card-header strong{font-size:12px;font-weight:400;color:var(--muted)}
+.story-card[data-entry-type="transcript"] .transcript-gap{color:var(--muted)}
+
+/* AI commentary: the only light card, so it never passes as a person. The chalk
+   is painted on the card itself, beside the time spine. */
+#room-timeline li.story-card[data-entry-type="commentary"]{padding:12px 16px 34px calc(var(--spine) + 14px);background:linear-gradient(var(--chalk),var(--chalk)) var(--spine) 0/calc(100% - var(--spine)) calc(100% - 22px) no-repeat;color:var(--chalk-ink)}
+#room-timeline li.story-card[data-entry-type="commentary"]::before{color:var(--soft)}
+.story-card[data-entry-type="commentary"] .card-header .card-kind{color:var(--chalk-ink)}
+.story-card[data-entry-type="commentary"] .card-header strong{font-size:12px;font-weight:400;color:#3c5a4b}
+.story-card[data-entry-type="commentary"] p.card-body{font-size:16px;color:var(--chalk-ink)}
+.story-card[data-entry-type="commentary"] p.small{color:#3c5a4b;font-size:12px}
+.story-card[data-entry-type="commentary"] details>summary{color:#2f4a3c}
+.story-card[data-entry-type="commentary"] details p{color:var(--chalk-ink)}
+.story-card[data-entry-type="commentary"] button{background:transparent;color:#2f4a3c;border-color:#9fb3a3;font-weight:400}
+
+/* Sharer's score: a full-width band in the home colour. */
+#room-timeline li.story-card[data-match-kind="score"]{padding:12px 16px;margin:0 0 22px;background:var(--home);color:#fff}
+#room-timeline li.story-card[data-match-kind="score"]::before{display:none}
+#room-timeline li.story-card[data-match-kind="score"]>.stream-time{position:static;display:block;width:auto;padding:4px 0 0;text-align:left;color:#fff}
+#room-timeline li.story-card[data-match-kind="score"] small,#room-timeline li.story-card[data-match-kind="score"] .card-header .card-kind,#room-timeline li.story-card[data-match-kind="score"] .card-header strong,#room-timeline li.story-card[data-match-kind="score"] .card-body{color:#fff;font-weight:400;font-size:13px}
+#room-timeline li.story-card[data-match-kind="score"]>strong{display:block;font-family:var(--cond);font-weight:800;font-size:32px;line-height:1.05;margin:4px 0;color:#fff}
+.story-card[data-match-kind="score"] .card-body{font-size:13px;margin:0}
+
+/* Sharer's note: a programme note. */
+.story-card[data-match-kind="editorial"] .card-header{border-top:2px solid var(--programme);padding-top:8px}
+.story-card[data-match-kind="editorial"] .card-kind{color:var(--programme)}
+.story-card[data-match-kind="editorial"]>strong{display:block;font-family:var(--cond);font-weight:700;font-size:24px;line-height:1.05}
+
+/* Chat: compact lines, no box, so clips are not drowned at a busy match. */
+#room-timeline li.story-card[data-entry-type="text"]{padding-bottom:10px}
+.story-card[data-entry-type="text"] .card-header{display:none}
+.story-card[data-entry-type="text"] p.card-body{margin:0;font-size:15px}
+.story-card[data-entry-type="text"] p.card-body small{font-size:12px;color:var(--muted)}
+.story-card[data-entry-type="text"] details{margin:0}
+.story-card[data-entry-type="text"] details>summary{min-height:28px;font-size:12px;color:var(--muted)}
+
+/* Message box follows the stream without covering cards. */
+#room-feed .composer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 8px;align-items:end;background:var(--pitch);border-top:1px solid var(--touchline);padding:10px 0 12px;margin-top:6px}
+#room-feed .composer label{margin:0;font-size:12px;color:var(--muted)}
+#room-feed .composer .composer-name{grid-column:1/-1}
+#room-feed .composer .composer-name input{min-height:36px;max-width:260px;padding:4px 10px}
+#room-feed .composer #chat-send{margin:0}
+#timeline-latest{margin:6px 0 0}
+#timeline-latest[data-floating="true"]{position:fixed;z-index:12;left:var(--latest-left,50%);bottom:var(--latest-bottom,12px);transform:var(--latest-transform,translateX(-50%));max-width:calc(100vw - 24px);margin:0;background:var(--floodlight);border-color:var(--floodlight);color:var(--pitch);box-shadow:0 3px 14px #0008}
+@media(max-width:699px){#room-feed .composer label{font-size:0;gap:0}#room-feed .composer label input{font-size:16px}#room-feed .composer{padding-top:8px}}
+@media(min-width:700px){#room-feed .composer{grid-template-columns:200px minmax(0,1fr) auto}#room-feed .composer .composer-name{grid-column:auto}#room-feed .composer .composer-name input{max-width:none}}
+@media(max-width:650px){body,body.room-story{padding:8px 12px 20px}#room-timeline{--spine:58px}#room-timeline li.story-card::before{font-size:16px}.sb-team{font-size:19px}.sb-goals{font-size:40px}header h1{font-size:30px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header><div><div class="brand"><span class="brand-bars" aria-hidden="true"><i></i><i></i><i></i></span>SAME END / FAMILY PILOT</div><h1>Watch together, privately.</h1></div><p id="room-status" class="small" role="status">No room joined</p></header>
+<div id="scoreboard" class="scoreboard hidden" role="group"><span id="scoreboard-home" class="sb-team sb-home"></span><span id="scoreboard-goals" class="sb-goals"></span><span id="scoreboard-away" class="sb-team sb-away"></span><span id="scoreboard-meta" class="sb-meta"></span></div>
+<p id="privacy-notice" class="notice">Your computers exchange the programme directly with each other. The coordinator carries invitations and connection details. Protected content and some networks may prevent sharing.</p><details id="room-privacy"><summary>Privacy and sharing</summary><p>Your computers exchange the programme directly with each other. The coordinator carries invitations and connection details. Protected content and some networks may prevent sharing.</p></details>
+<p id="startup-guidance" class="notice" role="status">Preparing the app. If this message stays here, refresh the page, update your device and browser, open the invitation in a regular browser, or try another device.</p>
+<div id="story-capture-bar" class="hidden"><strong>Your selected screen is being recorded for match moments.</strong><button id="moments-stop-global" class="secondary">Stop match moments</button><p class="small">This control stays available while the room reconnects. You can also stop sharing in your browser.</p></div><section id="welcome">
+  <h2>Your match, together</h2>
+  <p>Start a private stream for clips, pictures, transcripts and chat. Share from a laptop; join from a phone or computer. Only share content you are entitled to share.</p>
+  <button id="start-chat" disabled>Start private stream</button>
+  <div class="legacy-controls">
+    <h2>Share a tab or screen</h2>
+    <p>Choose a browser tab and turn on its sound-sharing option if you want to share sound.</p>
+    <label for="picture-preset">Picture setting <select id="picture-preset"><option value="standard">Standard</option><option value="less-data">Use less data</option></select></label>
+    <p class="small">Both picture settings use the same sound setting.</p>
+    <label><input id="independent-audio" type="checkbox"> Sound priority (preview): keep sound playing if picture delivery stalls</label>
+    <p class="small">Uses a little extra upload. Some browsers do not yet support this preview.</p>
+    <button id="start" disabled>Choose screen and start private cast</button>
+    <p class="small">Keep this page open and your computer awake. Family members can help forward the cast while watching.</p>
+  </div>
+  <hr>
+  <h2>Join an invitation</h2>
+  <label for="invite-input">Private invitation link<input id="invite-input" type="text" autocomplete="off" spellcheck="false" placeholder="Paste the private invitation"></label>
+  <details><summary>Data preferences</summary><label><input id="join-video-auto" type="checkbox" checked> Automatically play available clips</label><label><input id="join-pictures-auto" type="checkbox" checked> Automatically load available pictures</label><p class="small">You can change these choices after joining. Clips and pictures remain available to choose in the stream.</p></details>
+  <details><summary>Sharing preferences</summary><label><input id="forwarding" type="checkbox" checked> Help share using this device’s upload</label><p class="small">On many phones and tablets, or when data saving is on, this starts off. You can turn it on to help share with others.</p></details>
+  <button id="join" class="secondary" disabled>Join and watch</button>
+</section>
+<section id="host-panel" class="hidden"><h2 id="host-title">Your cast</h2><div id="host-media"><p id="publisher-state" role="status">Preparing…</p><p id="host-profile" class="notice" role="status"></p><video id="preview" autoplay muted playsinline></video></div><p><strong>Private invitation</strong></p><input id="invite-output" type="text" readonly aria-label="Private invitation"><button id="copy" class="secondary">Copy invitation</button><button id="stop" class="secondary">Stop cast</button><p class="small">Anyone with this invitation can join until the room expires. Send it privately.</p></section>
+<section id="viewer-panel" class="hidden"><h2 id="viewer-title">Match room</h2><div id="viewer-media"><p id="viewer-profile" class="notice" role="status">Waiting for the source profile.</p><video id="player" controls playsinline></video><div class="actions"><button id="play">Enable sound and play</button><button id="pause" class="secondary">Pause</button></div><p id="playback-state" role="status">Waiting for the source</p><details><summary>Viewer delivery health</summary><p class="small">Local measurements only. The received data rate is not your connection capacity. Chunk bursts, cached data and earlier transfers can affect comparisons. The buffer shows media buffered at the picture’s current position; zero can also indicate a gap. A healthy buffer with dropped frames can suggest a playback issue.</p><pre id="delivery-report">Measuring</pre><p id="delivery-suggestion" class="small hidden">If this continues, the host can choose Use Less Data before starting a new cast. Sound settings stay the same.</p><button id="copy-delivery" class="secondary">Copy report</button><span id="copy-delivery-status" role="status"></span></details><p class="small">A small delay gives the group time to share verified video. Pausing is your choice; extended pauses may require Rejoin live.</p></div><button id="rejoin" class="secondary">Rejoin live</button></section>
+<button id="cancel-action" class="secondary hidden">Cancel pending action</button><p id="message" class="notice hidden" aria-live="polite"></p><section id="session-panel" class="hidden"><div id="room-main" class="room-main"><div id="watch-stage" class="watch-stage hidden">
+  <label class="compat-control" for="watch-mode">Viewing mode <select id="watch-mode"><option value="highlights" selected>Auto highlights</option></select></label>
+  <div class="actions stream-toolbar">
+    <button id="watch-start" type="button">Start stream</button>
+    <button id="watch-stop" class="secondary" type="button">Pause clips</button>
+    <button id="stream-sound" class="secondary" type="button" aria-pressed="false">Enable sound</button>
+    <button id="stream-playing-jump" class="secondary" type="button" hidden>Jump to playing clip</button><button id="stream-audio-jump" class="secondary" type="button" hidden>Jump to sound clip</button>
+  </div>
+  <p id="stream-status" role="status">The sharer’s clips and room updates appear here.</p>
+  <p id="stream-sound-note" class="small">Video and audio start muted. Enable sound when you want to listen.</p>
+  <details class="stream-help"><summary>How the stream works</summary><p class="small">The stream adapts automatically to verified peer delivery: video when it can arrive, sound and pictures on slower paths, with text and chat alongside them. Earlier clips stay available to choose. A browser may still ask you to press Play. Times beside cards show when each card was shared (or, for chat and AI text, when it reached this device); they are not the match clock.</p></details>
+  <details id="watch-usage"><summary>Data preferences</summary>
+    <label><input id="stream-video-auto" type="checkbox" checked> Automatically play available clips</label>
+  </details>
+</div>
+<div id="clip-player-parking">
+  <div id="clip-playback">
+    <p id="watch-status" role="status"></p>
+    <details class="clip-caption-details"><summary>Caption and timing</summary><div id="clip-context" class="clip-context hidden"><strong id="clip-context-heading"></strong><p id="clip-context-caption"></p><p id="clip-context-original" class="small hidden"></p><p id="clip-context-time" class="small"></p><p id="clip-context-source" class="small"></p></div></details>
+    <video id="clip-player" class="hidden" controls playsinline></video>
+    <button id="watch-resume" type="button" hidden>Play this clip</button>
+
+    <details><summary>Download details</summary><p id="watch-transfer" class="small"></p></details>
+  </div>
+</div>
+<div id="audio-player-parking"><div id="audio-playback"><p id="audio-status" role="status"></p><audio id="clip-audio-player" controls preload="none"></audio><button id="audio-resume" type="button" hidden>Play this audio</button><button id="audio-stop" class="secondary" type="button">Stop audio</button><p class="small">Automatic video waits while you listen. Sound comes from the sharer’s clip.</p></div></div><div id="room-feed"><h2>Your stream</h2><p class="small">Messages and match moments appear as they arrive. Names are chosen by participants. Shared times are supplied by the sharer; Arrived is when this device accepted a message, or first showed other unsigned entries. Neither is the match clock. Automatic transcripts may mishear words.</p><p id="chat-status" role="status">Waiting for a chat connection.</p><p id="delivery-hold-note" class="delivery-hold-note" role="status" hidden>Video is waiting. Words, pictures and sound take priority when available.</p><ol id="room-timeline" tabindex="0" aria-label="Room timeline"></ol><button id="timeline-latest" class="secondary" type="button">Go to latest</button><p id="timeline-announcement" class="sr-only" role="status" aria-live="polite"></p><div class="composer"><label class="composer-name">Display name (optional)<input id="chat-name" type="text" maxlength="40" autocomplete="off" placeholder="Your name (optional)"></label><label class="composer-text">Message<input id="chat-text" type="text" maxlength="1000" autocomplete="off" placeholder="Say something to the room"></label><button id="chat-send" disabled>Send message</button></div></div></div><div id="room-rail" class="room-rail"><div id="clips-panel" class="hidden"><div id="clip-host" class="hidden"><h2>Share your screen</h2><p>Choose the match tab and turn on its sound-sharing option. Short recordings stay on this laptop; selected moments become clips in the private stream. Keep this laptop awake.</p><p class="notice">Sharing starts automatic local English transcription and AI commentary/captions by default. Only transcript text goes to DeepSeek; audio, video, images and chat stay with the group. Preparing the local model uses about 31 MB of data and extra laptop memory. Review the options below before sharing.</p><button id="moments-start">Share screen and sound</button><button id="moments-stop" class="secondary hidden">Stop match moments</button><p id="moments-status" role="status">Share your screen to make the first short video automatically after roughly 30–40 seconds, plus transfer time. Later cards include a regular clip about every minute and selected moments with build-up and follow-through when available. Clips can show earlier action.</p><p id="moments-connection" class="small" role="status"></p><p id="moments-audio-status" class="small" role="status"></p><p class="small">Up to six selected clips per five minutes. A small, bounded rolling recording stays on this laptop; selected event clips can include up to forty seconds of context. Older retained copies are replaced to keep room storage bounded; clips may become unavailable when no participant keeps them. Cue selection can miss events or pick the wrong moment. Capture times are supplied by this laptop, not the match clock. Automatic transcripts and AI descriptions start with shared tab sound. You can switch them off below before sharing.</p><details id="clip-ai-options"><summary>Automatic transcript and AI options</summary><label><input id="transcript-opt-in" type="checkbox" checked> Add an automatic English transcript of shared audio to this room</label><p class="small">On by default after you select a tab with sound. Text is generated on this device and shared with connected room participants; it may contain mistakes. Participants receive new entries while connected. It stays in memory. Shared audio offsets start when this capture begins and are not a match clock. Clip association is unknown.</p><button id="transcript-prepare" class="secondary" type="button">Retry English model</button><p id="transcript-status" role="status">The English model (about 31 MB) prepares automatically after you share a tab with sound and may be cached on this device. Transcription uses extra laptop processing power and memory and may take 15–25 seconds or longer to appear, depending on your device. Turn it off if your device struggles.</p><label><input id="commentary-opt-in" type="checkbox" checked> Add AI commentary using DeepSeek</label><p class="small">On by default. While local transcription is active, its text is sent to the external DeepSeek service to make labelled commentary. You can turn this off before sharing. No audio, video, screenshots or chat are sent. Turning this off, stopping transcription or leaving cancels pending work, but cannot undo text already disclosed or charges already incurred. AI can be wrong, even when it quotes the transcript.</p><p id="commentary-status" role="status">Off</p><label><input id="clip-caption-opt-in" type="checkbox" checked> Describe new clips using DeepSeek</label><p class="small">On by default. The English model prepares automatically. Up to two 10-second audio samples from each completed clip are transcribed on this laptop. Only that sampled text is sent to DeepSeek. No audio, video, screenshots or chat are sent. The description is labelled with its sampled ranges, may be wrong, and does not describe the whole clip. Original captions stay. If the service reports a temporary failure, the app may retry once; both attempts count toward the shared AI allowance and may incur an additional AI charge. Switching off cancels pending work; text already sent cannot be recalled.</p><p id="clip-caption-status" role="status">AI clip descriptions are off.</p></details><label><input id="clip-still-opt-in" type="checkbox" checked> Add a picture from each new recorded clip</label><p id="clip-still-status" class="small" role="status">Pictures are derived locally from recorded clips and shared only with room participants. You can turn this off.</p><label><input id="clip-audio-opt-in" type="checkbox" checked> Share sound-only versions of new clips too</label><p id="clip-audio-source-status" class="small" role="status">Sound clips are made locally from selected clips with shared audio and can play automatically when video delivery is slow. Enable sound to listen; these copies stay in memory.</p><details id="manual-clip-options"><summary>Record a clip or use regular rounds</summary><label>Clip caption<input id="clip-caption" type="text" maxlength="120" autocomplete="off"></label><button id="clip-record">Record a clip</button><button id="rounds-start" class="secondary">Start regular clips</button><button id="rounds-stop" class="secondary hidden">Stop rounds</button><p id="rounds-status" role="status">Regular clips are off. Starting shares your chosen tab or screen continuously, including between clips, until you stop.</p><p class="small">Regular clips aim for about three minutes, starting about every five minutes. Recordings over three minutes are discarded. Viewers can choose clips or opt into automatic highlights. Use Show again to the room on an earlier available clip to bring it back into the story; replay labels retain its original sharing time.</p><button id="clip-finish" class="secondary hidden">Finish clip</button><button id="clip-cancel" class="secondary hidden">Cancel clip</button><p class="small">Select a tab or screen and optionally share its sound. The app aims to stop recording by three minutes. If the browser suspends it, an overlong recording will not be shared.</p></details></div><details id="viewing-options"><summary>Viewing options</summary><label><input id="clip-pictures-auto" type="checkbox" checked> Show clip pictures automatically (up to 48 KB each)</label><p class="small">Available pictures load automatically within the delivery allowance. You can also choose one without downloading its video.</p><details id="clip-storage"><summary>Temporary browser copies</summary><label><input id="clip-storage-opt-in" type="checkbox"> Keep temporary clip copies in this browser</label><p class="small">Off until you choose it. Copies expire with the clip, may be removed by the browser, and are checked on your next visit. Deleting here cannot recall copies held by other participants.</p><button id="clip-storage-delete" class="secondary" disabled>Delete this room’s temporary copies</button><p id="clip-storage-status" role="status">Temporary browser copies are off. Clips use memory only.</p></details></details><p id="clip-picture-status" class="small" role="status"></p><button id="clip-download-cancel" class="secondary hidden">Cancel download</button><p id="clip-status" role="status"></p></div><div id="match-panel" class="hidden"><div id="match-context"></div><p id="match-status" class="small" role="status">Awaiting sharer’s match updates.</p><button id="match-refresh" class="secondary" type="button">Request sharer’s updates</button></div>
+<details class="connection-summary"><summary>Room connection</summary><div class="status-grid"><div><strong>Connection</strong><p id="connection-state">Finding peers</p></div><div id="reserve-panel"><strong>Picture reserve</strong><p id="buffer-state">Waiting for video</p></div><div><strong>Room</strong><p id="members-state">1 participant</p></div></div></details><button id="leave" class="secondary">Leave room</button><details><summary>Connection details</summary><pre id="diagnostics">Waiting</pre></details></div></section>
+<footer>Early family pilot. Desktop Chrome/Edge publishing is the initial candidate scope. Browser audio, device and network support are verified separately. No CDN or HTTP programme-media fallback.</footer>
+<script src="/app-573f7d41136ee960.js"></script>
+</body>
+</html>

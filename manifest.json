@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "domain": "www.sameend.com",
+  "controlOrigin": "https://n2dyzit6e56ajocyqghad2qsbq0jfooh.lambda-url.eu-west-1.on.aws",
+  "aiOrigin": "https://dldvwd3ue2of4k7qczwzuegqwe0ekock.lambda-url.eu-west-1.on.aws",
+  "appPath": "/app-573f7d41136ee960.js",
+  "assets": [
+    {
+      "path": "/index.html",
+      "bytes": 44612,
+      "sha256": "8df9764e8e063adcd024f4645efe929a8539faa31fee85f8046a7c32f0c9e6c0"
+    },
+    {
+      "path": "/app-573f7d41136ee960.js",
+      "bytes": 1974145,
+      "sha256": "573f7d41136ee9601266198f95f9e8f0c2aad9628d6ce11d637e38cb894aa847"
+    },
+    {
+      "path": "/fonts/atkinson-hyperlegible-latin-400-normal.woff2",
+      "bytes": 17208,
+      "sha256": "d64ba838ef5472bba248620ec4fd8b5aa7cf0db2908e0bb230600caf279ba7bc"
+    },
+    {
+      "path": "/fonts/atkinson-hyperlegible-latin-400-italic.woff2",
+      "bytes": 18292,
+      "sha256": "bc8825fd435d4aa8e31449937826d583a7daaae15a83832c91b38375131ebf08"
+    },
+    {
+      "path": "/fonts/atkinson-hyperlegible-latin-700-normal.woff2",
+      "bytes": 17524,
+      "sha256": "140e2bd25a7315c8a062508391426b0d8c3297400c947b8d847be28f73a199f0"
+    },
+    {
+      "path": "/fonts/barlow-condensed-latin-700-normal.woff2",
+      "bytes": 22444,
+      "sha256": "3787a5a419171630e6890cfa47c4da067474d005cd0ff8dc11ec090fdc3ee2b8"
+    },
+    {
+      "path": "/fonts/barlow-condensed-latin-800-normal.woff2",
+      "bytes": 22464,
+      "sha256": "2515494e8cc2ca07c86ea78766cfa104b796aa6ed5d66821c01d51dbb0b52bce"
+    },
+    {
+      "path": "/asr/same-end-asr-7aa36f392106.js",
+      "bytes": 11614,
+      "sha256": "7aa36f392106d2902734321aa09636379c8d50840385e3bf1c6684abe5c8f5f2"
+    },
+    {
+      "path": "/asr/same-end-asr-f6b7434fe7ba.wasm",
+      "bytes": 1228142,
+      "sha256": "f6b7434fe7bade5ed76d5604bda3b8f1b804d92bf6857c70eebe8a2b51252f0f"
+    },
+    {
+      "path": "/asr/transcription-worker-v1.js",
+      "bytes": 8856,
+      "sha256": "f99016ec9556fe1ea3100dcef0e83a48616c12cf772d03034ca3ca578e18e4a8"
+    },
+    {
+      "path": "/asr/transcription-audio-worklet-v1.js",
+      "bytes": 1337,
+      "sha256": "521fa0feb4a26c8a952bf9b02501f1ce2fb522e520269a0633a441a59647d0a9"
+    },
+    {
+      "path": "/asr/tiny-en-q5_1-c77c5766-00.bin",
+      "bytes": 4194304,
+      "sha256": "1f1ac551e2d7b6d974ca05cbf557173d9d161619e0368dad0845b9df81e9849f"
+    },
+    {
+      "path": "/asr/tiny-en-q5_1-c77c5766-01.bin",
+      "bytes": 4194304,
+      "sha256": "d15a8bfbe7a1223285bcd6aeb261a5d1cf006baf0e096b82e64cfbaa421ed223"
+    },
+    {
+      "path": "/asr/tiny-en-q5_1-c77c5766-02.bin",
+      "bytes": 4194304,
+      "sha256": "4db565001e5e20306eb0575851170254e8059d5c11a8d1450fda084c5acd31a9"
+    },
+    {
+      "path": "/asr/tiny-en-q5_1-c77c5766-03.bin",
+      "bytes": 4194304,
+      "sha256": "706a21acb580dd31617af05abe85a515a2c6880734afc73c5988302256b7e3b8"
+    },
+    {
+      "path": "/asr/tiny-en-q5_1-c77c5766-04.bin",
+      "bytes": 4194304,
+      "sha256": "74e92edb8164a6cb6cc2b03dc87101d6c5483d93224176c95f579ffc95311556"
+    },
+    {
+      "path": "/asr/tiny-en-q5_1-c77c5766-05.bin",
+      "bytes": 4194304,
+      "sha256": "aa9fce4a96bcb68b2609851f5eac9b3d3969beda335d5335b33b7ab22fbf1dda"
+    },
+    {
+      "path": "/asr/tiny-en-q5_1-c77c5766-06.bin",
+      "bytes": 4194304,
+      "sha256": "23ee3abb18edbedc258eb484b156de15eb72ddc95081965c0b93c6819a06f89d"
+    },
+    {
+      "path": "/asr/tiny-en-q5_1-c77c5766-07.bin",
+      "bytes": 2806027,
+      "sha256": "6bcf1b0548c0fa373cd6f690da1fa911130c68a03eff6a01c4c9c19e283aac32"
+    },
+    {
+      "path": "/asr/NOTICE.txt",
+      "bytes": 64016,
+      "sha256": "1be3b275529b04f6a4c875073b40a87e7a10751b7ce2b5b26704d5e2798969e0"
+    }
+  ]
+}
