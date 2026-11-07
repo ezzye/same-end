@@ -5,18 +5,13 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
-  pages: write
-  id-token: write
 concurrency:
-  group: pages
+  group: fixture-suggestions
   cancel-in-progress: false
 jobs:
-  refresh-and-publish:
+  refresh:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,12 +36,3 @@ jobs:
             git pull --rebase origin main
             git push origin HEAD:main
           fi
-          echo "CURRENT_DEPLOY_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
-      - run: npm run build:resilience
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
