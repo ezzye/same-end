@@ -899,7 +899,7 @@ THE SOFTWARE.
         return ret;
       }
       function once(emitter, name) {
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve2, reject) {
           function errorListener(err) {
             emitter.removeListener(name, resolver);
             reject(err);
@@ -908,7 +908,7 @@ THE SOFTWARE.
             if (typeof emitter.removeListener === "function") {
               emitter.removeListener("error", errorListener);
             }
-            resolve([].slice.call(arguments));
+            resolve2([].slice.call(arguments));
           }
           ;
           eventTargetAgnosticAddListener(emitter, name, resolver, { once: true });
@@ -2785,8 +2785,8 @@ THE SOFTWARE.
               return this;
             },
             next() {
-              return new Promise(function(resolve, reject) {
-                promiseResolve = resolve;
+              return new Promise(function(resolve2, reject) {
+                promiseResolve = resolve2;
                 promiseReject = reject;
                 const data = stream.read();
                 if (data !== null) ondata(data);
@@ -2819,11 +2819,11 @@ THE SOFTWARE.
           }
           function destroy(err) {
             stream.destroy(err);
-            return new Promise((resolve, reject) => {
-              if (stream._duplexState & DESTROYED) return resolve({ value: void 0, done: true });
+            return new Promise((resolve2, reject) => {
+              if (stream._duplexState & DESTROYED) return resolve2({ value: void 0, done: true });
               stream.once("close", function() {
                 if (err) reject(err);
-                else resolve({ value: void 0, done: true });
+                else resolve2({ value: void 0, done: true });
               });
             });
           }
@@ -2867,8 +2867,8 @@ THE SOFTWARE.
           const writes = pending + (ws2._duplexState & WRITE_WRITING ? 1 : 0);
           if (writes === 0) return Promise.resolve(true);
           if (state.drains === null) state.drains = [];
-          return new Promise((resolve) => {
-            state.drains.push({ writes, resolve });
+          return new Promise((resolve2) => {
+            state.drains.push({ writes, resolve: resolve2 });
           });
         }
         write(data) {
@@ -2973,10 +2973,10 @@ THE SOFTWARE.
         cb(null);
       }
       function pipelinePromise(...streams) {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve2, reject) => {
           return pipeline(...streams, (err) => {
             if (err) return reject(err);
-            resolve();
+            resolve2();
           });
         });
       }
@@ -3155,111 +3155,184 @@ THE SOFTWARE.
     }
   });
 
-  // src/control-origin.ts
-  function readControlOrigin(value) {
-    if (value === "") return "";
+  // src/share-tab-room.ts
+  async function shareTabAndCreateRoom({ choose, current, create, attach }) {
+    const stream = await choose();
+    let transferred = false;
     try {
-      const u = new URL(value);
-      if (u.protocol === "https:" && u.origin === value && !u.username && !u.password && !value.includes("*")) return value;
-    } catch {
+      if (!current()) throw new DOMException("Room creation cancelled", "AbortError");
+      if (!stream.getVideoTracks().some((track) => track.readyState === "live")) throw Error("Tab sharing ended. Choose a tab again.");
+      await create();
+      if (!stream.getVideoTracks().some((track) => track.readyState === "live")) throw Error("Tab sharing ended before the room was ready. Choose a tab again in your room.");
+      attach(stream);
+      transferred = true;
+    } finally {
+      if (!transferred) for (const track of stream.getTracks()) track.stop();
     }
-    throw Error("Invalid Same End control origin configuration");
-  }
-  function roomRequestUrl(path, origin) {
-    if (!["/api/config", "/api/rooms", "/api/socket-ticket"].includes(path)) throw Error("Invalid room request path");
-    return origin ? origin + path : path;
   }
 
-  // src/composer-scroll-reserve.ts
-  function createComposerScrollReserve(inputs, rail) {
-    const doc = inputs[0]?.ownerDocument, view2 = doc?.defaultView;
-    let saved = "", active = false, floor = 0, generation = 0;
-    const clear = () => {
-      generation++;
-      if (active) rail.style.minHeight = saved;
-      active = false;
-      floor = 0;
+  // src/room-directory.ts
+  function mountRoomDirectory({ request: request2, host, join: join2 }) {
+    const el = (id) => document.getElementById(id);
+    const pending = /* @__PURE__ */ new Map();
+    let refreshing = false, checking = false;
+    const node = (tag, text2) => {
+      const n = document.createElement(tag);
+      if (text2) n.textContent = text2;
+      return n;
     };
-    const update = () => {
-      const input = inputs.find((field2) => doc?.activeElement === field2);
-      if (!view2 || !input || !rail.style) {
-        clear();
-        return;
-      }
-      const field = input.getBoundingClientRect(), bounds = rail.getBoundingClientRect(), height = view2.innerHeight;
-      if (!Number.isFinite(height) || height <= 0 || field.height <= 0 || field.top < 0 || field.bottom > height || bounds.top < field.bottom || bounds.height <= 0) {
-        clear();
-        return;
-      }
-      if (!active) {
-        saved = rail.style.minHeight;
-        active = true;
-      }
-      floor = Math.max(floor, Math.min(bounds.height, height));
-      rail.style.minHeight = `${floor}px`;
+    const button = (label, action) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = label;
+      b.onclick = () => {
+        b.disabled = true;
+        void action().catch((e) => {
+          el(host() ? "directory-host-status" : "directory-status").textContent = e.message;
+        }).finally(() => {
+          b.disabled = false;
+        });
+      };
+      return b;
     };
-    for (const input of inputs) {
-      input.addEventListener("focus", update);
-      input.addEventListener("input", update);
-      input.addEventListener("blur", clear);
+    async function refresh() {
+      if (refreshing) return;
+      refreshing = true;
+      try {
+        const data = await request2();
+        el("directory-rooms").replaceChildren();
+        el("directory-status").textContent = data.rooms.length ? `${data.rooms.length} room${data.rooms.length === 1 ? "" : "s"} accepting invitation requests. Access is approved by each host.` : "No rooms are listed at the moment. Try again later, start a room, or use a private invitation below.";
+        for (const room of data.rooms) {
+          const card = node("article");
+          card.className = "directory-card";
+          card.append(node("span", "\u25CF Host connected \xB7 Private"), node("h3", room.title), node("p", room.description), node("p", `Hosted by ${room.host} \xB7 ${room.participants}/${room.capacity} people`));
+          const form2 = document.createElement("form");
+          const name = document.createElement("input"), message2 = document.createElement("textarea");
+          name.name = "name";
+          name.required = true;
+          name.maxLength = 60;
+          message2.name = "message";
+          message2.maxLength = 300;
+          const nameLabel = node("label", "Your display name");
+          nameLabel.append(name);
+          const messageLabel = node("label", "Message to the host (optional)");
+          messageLabel.append(message2);
+          const submit = document.createElement("button");
+          submit.textContent = room.participants >= room.capacity ? "Room full" : pending.has(room.roomId) ? "Request sent" : "Request invitation";
+          submit.disabled = room.participants >= room.capacity || pending.has(room.roomId);
+          const status = node("p");
+          status.setAttribute("role", "status");
+          form2.append(nameLabel, messageLabel, submit, status);
+          form2.onsubmit = async (e) => {
+            e.preventDefault();
+            submit.disabled = true;
+            try {
+              const result = await request2({ action: "request", roomId: room.roomId, name: name.value, message: message2.value });
+              pending.set(room.roomId, { roomId: room.roomId, id: result.id, token: result.token, title: room.title });
+              status.textContent = "Request sent. Keep this page open for the host\u2019s reply.";
+              submit.textContent = "Request sent";
+            } catch (e2) {
+              status.textContent = e2.message;
+              submit.disabled = false;
+            }
+          };
+          card.append(form2);
+          el("directory-rooms").append(card);
+        }
+      } catch (e) {
+        el("directory-status").textContent = "Could not load rooms. Use Refresh rooms to try again.";
+      } finally {
+        refreshing = false;
+      }
     }
-    view2?.addEventListener("scroll", update, { passive: true });
-    view2?.addEventListener("resize", () => {
-      clear();
-      const expected = generation;
-      view2.requestAnimationFrame(() => {
-        if (generation === expected) update();
-      });
-    }, { passive: true });
-    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(() => {
-      if (active) update();
-    }) : void 0;
-    observer?.observe(rail);
-    return { clear };
+    async function check() {
+      if (checking || document.hidden) return;
+      checking = true;
+      try {
+        const h = host();
+        if (h) {
+          const data = await request2({ ...h, action: "review" });
+          el("directory-requests").replaceChildren();
+          for (const q of data.requests) {
+            const card = node("article");
+            card.className = "directory-card";
+            card.append(node("h3", q.name), node("p", q.message || "No message"), node("p", q.status));
+            if (q.status === "pending") for (const [label, decision] of [["Approve", "approved"], ["Decline", "declined"]]) card.append(button(label, async () => {
+              await request2({ ...h, action: "review", id: q.id, decision });
+              el("directory-host-status").textContent = decision === "approved" ? "Invitation approved. The visitor can now join." : "Request declined.";
+            }));
+            el("directory-requests").append(card);
+          }
+          if (!data.requests.length) el("directory-requests").textContent = "No invitation requests yet.";
+        }
+        el("directory-pending").replaceChildren();
+        for (const [id, q] of pending) {
+          try {
+            const result = await request2({ ...q, action: "status" });
+            const box3 = node("article");
+            box3.className = "directory-card";
+            box3.append(node("h3", q.title), node("p", result.status === "pending" ? "Waiting for the host. Keep this page open." : result.status === "approved" ? "Your invitation is approved." : "The host declined this request."));
+            if (result.status === "approved") box3.append(button("Join room", async () => {
+              const url2 = new URL(location.origin + "/");
+              url2.hash = new URLSearchParams({ room: q.roomId, join: q.token, source: result.sourceKey, ...result.profile ? { mode: result.profile } : {} }).toString();
+              await join2(url2.href);
+              pending.delete(id);
+              el("directory-pending").replaceChildren();
+            }));
+            el("directory-pending").append(box3);
+          } catch {
+            pending.delete(id);
+            el("directory-status").textContent = "A requested room is no longer available.";
+          }
+        }
+      } catch (e) {
+        if (host()) el("directory-host-status").textContent = e.message;
+      } finally {
+        checking = false;
+      }
+    }
+    const form = el("directory-listing");
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const h = host();
+      if (!h) return;
+      const data = new FormData(form);
+      try {
+        await request2({ ...h, action: "listing", listed: data.get("listed") === "on", title: data.get("title"), description: data.get("description"), host: data.get("host") });
+        el("directory-host-status").textContent = "Room listing saved.";
+      } catch (e2) {
+        el("directory-host-status").textContent = e2.message;
+      }
+    };
+    el("directory-unlist").onclick = () => {
+      const h = host();
+      if (h) void request2({ ...h, action: "listing", listed: false }).then(() => {
+        form.elements.namedItem("listed").checked = false;
+        el("directory-host-status").textContent = "Room hidden from the homepage.";
+      }).catch((e) => el("directory-host-status").textContent = e.message);
+    };
+    el("directory-refresh").onclick = () => void refresh();
+    el("directory-review").onclick = () => void check();
+    void refresh();
+    setInterval(() => {
+      if (!document.hidden) {
+        void check();
+        if (!host() && !pending.size && !document.activeElement?.closest("#directory-rooms")) void refresh();
+      }
+    }, 1e4);
   }
 
-  // src/readable-viewport.ts
-  function readableViewport(container, intersect = true, exempt) {
-    const doc = container.ownerDocument, view2 = doc?.defaultView;
-    const height = view2?.innerHeight || 0;
-    const style = view2?.getComputedStyle?.(container);
-    const nested = intersect && !!style && ["auto", "scroll", "overlay"].includes(style.overflowY) && container.scrollHeight > container.clientHeight;
-    const bounds = nested ? container.getBoundingClientRect() : void 0;
-    let top = nested ? Math.max(0, bounds.top) : 0, bottom = nested ? Math.min(height, bounds.bottom) : height;
-    const score = doc?.getElementById?.("scoreboard");
-    if (score && view2?.getComputedStyle?.(score).position === "sticky") {
-      const rect = score.getBoundingClientRect();
-      if (rect.height > 0 && Math.abs(rect.top) <= 1 && rect.bottom > 0) top = Math.max(top, Math.min(bottom, rect.bottom));
-    }
-    const latest = doc?.getElementById?.("timeline-latest");
-    if (latest && latest !== exempt && latest.dataset?.floating === "true") {
-      const style2 = view2?.getComputedStyle?.(latest), rect = latest.getBoundingClientRect(), reference = (exempt || container).getBoundingClientRect?.(), horizontal = !reference || !Number.isFinite(reference.left) || !Number.isFinite(reference.right) || !Number.isFinite(rect.left) || !Number.isFinite(rect.right) || rect.left < reference.right && rect.right > reference.left;
-      if (style2?.position === "fixed" && style2.display !== "none" && style2.visibility !== "hidden" && style2.opacity !== "0" && horizontal && rect.height > 0 && rect.bottom > top && rect.top < bottom) bottom = Math.min(bottom, Math.max(top, rect.top));
-    }
-    top = Math.max(0, Math.min(top, bottom));
-    bottom = Math.max(top, bottom);
-    return { top, bottom, height: bottom - top, nested, view: view2 };
-  }
-  function correctReadableScroll(container, target) {
-    for (let pass = 0; pass < 2; pass++) {
-      const bounds = readableViewport(container, true, target), rect = target.getBoundingClientRect?.();
-      if (!bounds.view || !rect || !Number.isFinite(rect.top) || !Number.isFinite(rect.bottom) || bounds.height <= 0) return;
-      const height = rect.bottom - rect.top;
-      let delta = 0;
-      if (height > bounds.height) {
-        if (Math.abs(rect.top - bounds.top) > 1) delta = rect.top - bounds.top;
-      } else if (rect.top < bounds.top - 1) delta = rect.top - bounds.top;
-      else if (rect.bottom > bounds.bottom + 1) delta = rect.bottom - bounds.bottom;
-      if (!Number.isFinite(delta) || Math.abs(delta) <= 1) return;
-      if (bounds.nested) container.scrollTop += delta;
-      else bounds.view.scrollBy(0, delta);
-    }
+  // src/transcript-event-priority.ts
+  function transcriptEventPriority(text2) {
+    const words = text2.toLowerCase();
+    const announcements = words.replace(/\b(?:a|one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+goals?\s+(?:each|apiece)\b/g, " ");
+    if (/\b(?:final whistle|full[ -]?time|(?:match|game) is over|(?:ends?|concludes?)\s+(?:(?:the|our|this|that)\s+)?(?:[a-z]+\s+){0,2}(?:match|game)|(?:a|another) goal|goal for|scored|scores|scoring|penalt(?:y|ies)|red card)\b/.test(announcements) || /^\s*goal\s*[!.]/.test(announcements)) return 3;
+    if (/\bgoals?\b/.test(words)) return 2;
+    if (/\b(?:red card|yellow card|booked|booking|saves?|saved|chances?|shots?|woodwork)\b/.test(words)) return 1;
+    return 0;
   }
 
-  // src/clip-still-contract.ts
-  var import_canonicalize3 = __toESM(require_canonicalize(), 1);
-
-  // src/authority.ts
+  // transcript-contract.mjs
   var import_canonicalize = __toESM(require_canonicalize(), 1);
 
   // ../../../../../apps/family-pilot/node_modules/@noble/hashes/_u64.js
@@ -5286,11 +5359,24 @@ THE SOFTWARE.
     }
   }
 
+  // transcript-contract.mjs
+  var key = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s) && "AEIMQUYcgkosw048".includes(s[42]);
+  var transcriptPayload = (entry) => new TextEncoder().encode((0, import_canonicalize.default)({ domain: entry.version === "semk2-transcript/2" ? "same-end.automatic-transcript.v2" : "same-end.automatic-transcript.v1", entry }) || "");
+  var number = (x, min, max) => typeof x === "number" && Number.isSafeInteger(x) && x >= min && x <= max;
+  function validateTranscript(value, roomId2, sourceKey2) {
+    const e = value;
+    if (!e || typeof e !== "object" || Array.isArray(e) || Object.keys(e).sort().join(",") !== (e.version === "semk2-transcript/2" ? ["concern", "endMs", "id", "revision", "roomId", "signature", "sourceKey", "startMs", "text", "type", "version"] : ["endMs", "id", "revision", "roomId", "signature", "sourceKey", "startMs", "text", "type", "version"]).sort().join(",") || e.type !== "automatic-transcript" || !["semk2-transcript/1", "semk2-transcript/2"].includes(e.version) || e.version === "semk2-transcript/2" && (e.concern !== "repetitive-speech" || e.revision !== 0) || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key(sourceKey2) || !key(e.id) || !number(e.revision, 0, 99) || typeof e.text !== "string" || !e.text.trim() || e.text.length > 500 || !number(e.startMs, 0, 864e5) || !number(e.endMs, e.startMs, 864e5)) throw Error("Invalid transcript");
+    const { signature: signature2, ...unsigned } = e;
+    if (!verifySourceSignature(signature2, transcriptPayload(unsigned), sourceKey2)) throw Error("Transcript signature rejected");
+    return e;
+  }
+
   // src/authority.ts
+  var import_canonicalize2 = __toESM(require_canonicalize(), 1);
   var encoder = new TextEncoder();
   var b642 = (bytes9) => btoa(String.fromCharCode(...bytes9)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   var randomKey = () => b642(crypto.getRandomValues(new Uint8Array(32)));
-  var encode = (value) => encoder.encode((0, import_canonicalize.default)(value) || "");
+  var encode = (value) => encoder.encode((0, import_canonicalize2.default)(value) || "");
   var integer = (n, min, max) => typeof n === "number" && Number.isSafeInteger(n) && n >= min && n <= max;
   var exact = (o, keys) => !!o && typeof o === "object" && !Array.isArray(o) && Object.keys(o).length === keys.length && Object.keys(o).every((k) => keys.includes(k));
   function validateDescriptor(o) {
@@ -5360,22 +5446,789 @@ THE SOFTWARE.
     return head;
   }
 
+  // src/transcript-room.ts
+  function validateTranscript2(value, roomId2, sourceKey2) {
+    return validateTranscript(value, roomId2, sourceKey2);
+  }
+  var MAX_TRANSCRIPT_IDS = 32e3;
+  function createTranscriptRoom(added) {
+    let ctx, version = 0, pending = 0;
+    const entries2 = /* @__PURE__ */ new Map(), seen = /* @__PURE__ */ new Set(), rates = /* @__PURE__ */ new Map();
+    const notify = () => {
+      try {
+        ctx?.changed();
+      } catch {
+      }
+    };
+    function apply(e) {
+      const old = entries2.get(e.id);
+      if (!old && (seen.has(e.id) || seen.size >= MAX_TRANSCRIPT_IDS)) return false;
+      if (old && (e.revision <= old.revision || e.startMs !== old.startMs || e.endMs !== old.endMs)) return false;
+      if (!old && entries2.size >= 200) entries2.delete(entries2.keys().next().value);
+      entries2.set(e.id, e);
+      if (!old) {
+        seen.add(e.id);
+        try {
+          added(e);
+        } catch {
+        }
+      }
+      notify();
+      return true;
+    }
+    async function issue(text2, startMs, endMs, id = randomKey(), revision = 0, stillCurrent = () => true, concern) {
+      const c = ctx, v = version;
+      if (!c?.privateKey || !c.current() || pending >= 8) throw Error("Transcript unavailable");
+      pending++;
+      try {
+        const unsigned = { type: "automatic-transcript", version: concern ? "semk2-transcript/2" : "semk2-transcript/1", ...concern ? { concern } : {}, roomId: c.roomId, sourceKey: c.sourceKey, id, revision, text: text2.trim(), startMs: Math.round(startMs), endMs: Math.round(endMs) };
+        const signature2 = b642(new Uint8Array(await crypto.subtle.sign("Ed25519", c.privateKey, transcriptPayload(unsigned))));
+        if (ctx !== c || v !== version || !c.current() || !stillCurrent()) return;
+        const e = validateTranscript2({ ...unsigned, signature: signature2 }, c.roomId, c.sourceKey);
+        if (!apply(e)) throw Error("Transcript limit or stale revision");
+        const raw = JSON.stringify(e);
+        for (const peer of c.peers()) c.send(peer, raw);
+        return e;
+      } finally {
+        pending--;
+      }
+    }
+    return { attach(c) {
+      ctx = c;
+      version++;
+    }, detach() {
+      ctx = void 0;
+      version++;
+      rates.clear();
+    }, clear() {
+      ctx = void 0;
+      version++;
+      entries2.clear();
+      seen.clear();
+      rates.clear();
+    }, list() {
+      return [...entries2.values()];
+    }, publish(text2, startMs, endMs, stillCurrent, concern) {
+      return issue(text2, startMs, endMs, void 0, 0, stillCurrent, concern);
+    }, correct(id, text2) {
+      const old = entries2.get(id);
+      if (!old || old.revision >= 99) throw Error("Transcript no longer available");
+      return issue(text2, old.startMs, old.endMs, id, old.revision + 1);
+    }, receive(peer, raw) {
+      if (raw.length > 4096) return false;
+      let m;
+      try {
+        m = JSON.parse(raw);
+      } catch {
+        return false;
+      }
+      if (m?.type !== "automatic-transcript") return false;
+      const c = ctx;
+      if (!c || !c.current()) return true;
+      const now = Date.now(), rate = rates.get(peer);
+      if (!rate || now - rate.at >= 1e4) rates.set(peer, { at: now, count: 1 });
+      else if (++rate.count > 40) return true;
+      try {
+        apply(validateTranscript2(m, c.roomId, c.sourceKey));
+      } catch {
+      }
+      return true;
+    }, forgetPeer(id) {
+      rates.delete(id);
+    } };
+  }
+
+  // src/programme-position.ts
+  var import_canonicalize3 = __toESM(require_canonicalize(), 1);
+
+  // src/clip-policy.ts
+  var CLIP_ROOM_RETAINED_BYTES = 32 * 1024 * 1024;
+  var CLIP_ROOM_CARD_LIMIT = 64;
+  var CLIP_INVENTORY_CHUNK = 12;
+  var CLIP_AVAILABILITY_TTL_MS = 3e4;
+  var CLIP_INVENTORY_REFRESH_MS = 1e4;
+  var MOMENT_DRAFT_MS = 3e4;
+  var MOMENT_BASELINE_MS = 6e4;
+  var MOMENT_PUBLICATION_LIMIT = 6;
+  var MOMENT_PUBLICATION_WINDOW_MS = 3e5;
+
+  // src/paced-room-snapshot.ts
+  function createPacedRoomSnapshot(options) {
+    const now = options.now ?? (() => performance.now());
+    const setTimer = options.setTimer ?? setTimeout;
+    const clearTimer = options.clearTimer ?? clearTimeout;
+    const jobs = /* @__PURE__ */ new Map();
+    let nextSweep = 0;
+    function forget(peer) {
+      const job = jobs.get(peer);
+      if (job?.timer !== void 0) clearTimer(job.timer);
+      jobs.delete(peer);
+    }
+    function step(peer, job) {
+      job.timer = void 0;
+      if (jobs.get(peer) !== job || !options.peers().includes(peer) || now() - job.started > 9e4) {
+        forget(peer);
+        return;
+      }
+      while (job.index < job.frames.length && !options.valid(peer, job.frames[job.index])) job.index++;
+      if (job.index >= job.frames.length) {
+        forget(peer);
+        return;
+      }
+      if (options.send(peer, job.frames[job.index])) job.index++;
+      job.timer = setTimer(() => step(peer, job), 500);
+    }
+    function start(peer) {
+      if (jobs.has(peer) || jobs.size >= 8 || !options.peers().includes(peer)) return;
+      const frames = options.frames().slice(0, CLIP_ROOM_CARD_LIMIT).filter((raw) => new TextEncoder().encode(raw).length <= 4096);
+      if (!frames.length) return;
+      const job = { frames, index: 0, started: now() };
+      jobs.set(peer, job);
+      step(peer, job);
+    }
+    return {
+      start,
+      forget,
+      tick() {
+        for (const peer of jobs.keys()) if (!options.peers().includes(peer)) forget(peer);
+        if (now() < nextSweep) return;
+        nextSweep = now() + 45e3;
+        for (const peer of options.peers().slice(0, 8)) start(peer);
+      },
+      clear() {
+        for (const peer of [...jobs.keys()]) forget(peer);
+        nextSweep = 0;
+      }
+    };
+  }
+
+  // src/programme-position.ts
+  var encoder2 = new TextEncoder();
+  var size = (s) => encoder2.encode(s).byteLength;
+  var key2 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s);
+  var signature = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{86}$/.test(s);
+  var integer2 = (n, min, max) => typeof n === "number" && Number.isSafeInteger(n) && n >= min && n <= max;
+  var exact2 = (o, names) => !!o && typeof o === "object" && !Array.isArray(o) && Object.keys(o).length === names.length && names.every((n) => Object.prototype.hasOwnProperty.call(o, n));
+  var payload = (entry) => encoder2.encode((0, import_canonicalize3.default)({ domain: "same-end.programme-position.v1", entry }) || "");
+  var FOUR_HOURS = 4 * 60 * 60 * 1e3;
+  var LIMIT = 264;
+  var itemKey = (kind, id) => `${kind}:${id}`;
+  function validateProgrammePosition(value, roomId2, sourceKey2, subject, now = Date.now()) {
+    const e = value;
+    if (!exact2(e, ["type", "version", "roomId", "sourceKey", "subject", "recordingId", "startMs", "endMs", "precision", "uncertaintyMs", "issuedAtMs", "expiresAtMs", "signature"]) || e.type !== "programme-position" || e.version !== "semk2-programme-position/1" || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key2(sourceKey2) || !exact2(e.subject, ["kind", "id", "signature"]) || !["clip", "transcript"].includes(e.subject.kind) || !key2(e.subject.id) || !signature(e.subject.signature) || !subject || subject.signature !== e.subject.signature || !key2(e.recordingId) || !integer2(e.startMs, -300, FOUR_HOURS) || !integer2(e.endMs, -299, FOUR_HOURS) || e.endMs <= e.startMs || e.endMs - e.startMs > (e.subject.kind === "clip" ? 18e4 : 1e4) || e.precision !== "exact" && e.precision !== "estimated" || !integer2(e.uncertaintyMs, e.precision === "exact" ? 0 : 1, e.precision === "exact" ? 0 : 1e4) || !integer2(e.issuedAtMs, 0, Number.MAX_SAFE_INTEGER) || e.issuedAtMs > now + 6e4 || !integer2(e.expiresAtMs, e.issuedAtMs + 1, Number.MAX_SAFE_INTEGER) || e.expiresAtMs <= now || e.expiresAtMs - e.issuedAtMs > FOUR_HOURS || e.subject.kind === "clip" && (!integer2(subject.expiresAtMs, 0, Number.MAX_SAFE_INTEGER) || !integer2(subject.durationMs, 1, 18e4)) || subject.expiresAtMs !== void 0 && (!integer2(subject.expiresAtMs, 0, Number.MAX_SAFE_INTEGER) || e.expiresAtMs > subject.expiresAtMs) || subject.durationMs !== void 0 && (!integer2(subject.durationMs, 1, 18e4) || Math.abs(e.endMs - e.startMs - subject.durationMs) > 100 + 2 * e.uncertaintyMs) || size(JSON.stringify(e)) > 4096)
+      throw Error("Invalid programme position");
+    const { signature: signed, ...unsigned } = e;
+    if (!verifySourceSignature(signed, payload(unsigned), sourceKey2))
+      throw Error("Programme position signature rejected");
+    return e;
+  }
+  function formatProgrammeAge(ref, latest) {
+    if (!ref || !latest || !key2(ref.recordingId) || ref.recordingId !== latest.recordingId || !integer2(ref.endMs, -300, FOUR_HOURS) || !integer2(latest.edgeMs, -300, FOUR_HOURS) || latest.edgeMs < ref.endMs)
+      return "Position unknown";
+    const seconds = Math.floor((latest.edgeMs - ref.endMs) / 1e3);
+    if (seconds < 60)
+      return `\u2248 ${seconds}s behind latest received sound`;
+    const minutes = Math.floor(seconds / 60);
+    return `\u2248 ${minutes}m${seconds % 60 ? ` ${seconds % 60}s` : ""} behind latest received sound`;
+  }
+  function createProgrammePositions() {
+    let ctx, scope = "", generation = 0, pending = 0, rotation = 0, issuedClock = -1;
+    const entries2 = /* @__PURE__ */ new Map(), rates = /* @__PURE__ */ new Map();
+    const issuedFloors = /* @__PURE__ */ new Map();
+    const notify = () => {
+      try {
+        ctx?.changed();
+      } catch {
+      }
+    };
+    const subjectFor = (c, kind, id) => {
+      try {
+        return c.subject(kind, id);
+      } catch {
+        return void 0;
+      }
+    };
+    function purge() {
+      const c = ctx;
+      if (!c)
+        return;
+      let changed = false;
+      for (const [id, e] of entries2) {
+        try {
+          const subject = subjectFor(c, e.subject.kind, e.subject.id);
+          if (!subject || subject.signature !== e.subject.signature || e.expiresAtMs <= Date.now() || subject.expiresAtMs !== void 0 && (subject.expiresAtMs < e.expiresAtMs || subject.expiresAtMs <= Date.now()) || e.subject.kind === "clip" && (subject.expiresAtMs === void 0 || subject.durationMs === void 0) || subject.durationMs !== void 0 && Math.abs(e.endMs - e.startMs - subject.durationMs) > 100 + 2 * e.uncertaintyMs)
+            throw Error();
+        } catch {
+          entries2.delete(id);
+          changed = true;
+        }
+      }
+      if (changed)
+        notify();
+    }
+    function validRaw(raw) {
+      if (!ctx?.current() || size(raw) > 4096)
+        return false;
+      let e;
+      try {
+        e = JSON.parse(raw);
+      } catch {
+        return false;
+      }
+      if (e?.type !== "programme-position" || !e.subject || !["clip", "transcript"].includes(e.subject.kind) || typeof e.subject.id !== "string")
+        return false;
+      purge();
+      const stored = entries2.get(itemKey(e.subject.kind, e.subject.id));
+      return !!stored && JSON.stringify(stored) === raw && (ctx.privateKey !== void 0 || ctx.canForward?.() === true);
+    }
+    const sync = createPacedRoomSnapshot({
+      peers: () => ctx?.current() ? ctx.peers().slice(0, 8) : [],
+      frames: () => {
+        purge();
+        const all = [...entries2.values()];
+        if (!all.length)
+          return [];
+        const start = rotation % all.length;
+        rotation = (start + 64) % all.length;
+        return [...all.slice(start), ...all.slice(0, start)].map((e) => JSON.stringify(e));
+      },
+      valid: (_peer, raw) => validRaw(raw),
+      send: (peer, raw) => ctx?.send(peer, raw) === true
+    });
+    function apply(e) {
+      purge();
+      const id = itemKey(e.subject.kind, e.subject.id), old = entries2.get(id);
+      if (old && old.subject.signature === e.subject.signature && old.issuedAtMs >= e.issuedAtMs)
+        return false;
+      if (!old && entries2.size >= LIMIT)
+        entries2.delete(entries2.keys().next().value);
+      entries2.delete(id);
+      entries2.set(id, JSON.parse(JSON.stringify(e)));
+      notify();
+      return true;
+    }
+    return {
+      attach(c) {
+        sync.clear();
+        generation++;
+        const next = JSON.stringify([c.roomId, c.sourceKey]);
+        if (scope && scope !== next)
+          entries2.clear();
+        scope = next;
+        issuedClock = issuedFloors.get(scope) ?? -1;
+        ctx = c;
+        rates.clear();
+        purge();
+      },
+      detach() {
+        sync.clear();
+        generation++;
+        ctx = void 0;
+        rates.clear();
+      },
+      clear() {
+        sync.clear();
+        generation++;
+        ctx = void 0;
+        scope = "";
+        entries2.clear();
+        rates.clear();
+        rotation = 0;
+        issuedClock = -1;
+      },
+      get(kind, id) {
+        if (!ctx?.current())
+          return void 0;
+        purge();
+        const e = entries2.get(itemKey(kind, id));
+        return e && JSON.parse(JSON.stringify(e));
+      },
+      list() {
+        if (!ctx?.current())
+          return [];
+        purge();
+        return [...entries2.values()].map((e) => JSON.parse(JSON.stringify(e)));
+      },
+      async publish(kind, id, input, signal, stillCurrent = () => true) {
+        const c = ctx, v = generation, subject = c && subjectFor(c, kind, id);
+        if (!c?.privateKey || !c.current() || !subject || !key2(id) || !["clip", "transcript"].includes(kind) || pending >= 4 || signal?.aborted || !stillCurrent())
+          throw Error("Programme position unavailable");
+        const now = Date.now();
+        const issuedAtMs = Math.max(now, issuedClock + 1, (entries2.get(itemKey(kind, id))?.issuedAtMs ?? -1) + 1);
+        if (!Number.isSafeInteger(issuedAtMs) || issuedAtMs > now + 6e4)
+          throw Error("Programme position clock unavailable");
+        if (!issuedFloors.has(scope) && issuedFloors.size >= 32)
+          throw Error("Programme position room limit reached");
+        issuedClock = issuedAtMs;
+        issuedFloors.set(scope, issuedAtMs);
+        const unsigned = { type: "programme-position", version: "semk2-programme-position/1", roomId: c.roomId, sourceKey: c.sourceKey, subject: { kind, id, signature: subject.signature }, recordingId: input.recordingId, startMs: input.startMs, endMs: input.endMs, precision: input.precision, uncertaintyMs: input.uncertaintyMs, issuedAtMs, expiresAtMs: Math.min(now + FOUR_HOURS, subject.expiresAtMs ?? now + FOUR_HOURS) };
+        pending++;
+        try {
+          const signed = b642(new Uint8Array(await crypto.subtle.sign("Ed25519", c.privateKey, payload(unsigned))));
+          if (ctx !== c || generation !== v || !c.current() || signal?.aborted || !stillCurrent())
+            return;
+          const currentSubject = subjectFor(c, kind, id);
+          if (!currentSubject || (0, import_canonicalize3.default)(currentSubject) !== (0, import_canonicalize3.default)(subject))
+            return;
+          const e = validateProgrammePosition({ ...unsigned, signature: signed }, c.roomId, c.sourceKey, currentSubject);
+          if (!apply(e))
+            return;
+          const raw = JSON.stringify(e);
+          for (const peer of c.peers().slice(0, 8)) {
+            try {
+              if (validRaw(raw))
+                c.send(peer, raw);
+            } catch {
+            }
+          }
+          return JSON.parse(JSON.stringify(e));
+        } finally {
+          pending--;
+        }
+      },
+      canSend: validRaw,
+      ready(peer) {
+        if (ctx?.current() && ctx.peers().includes(peer))
+          sync.start(peer);
+      },
+      forgetPeer(peer) {
+        sync.forget(peer);
+        rates.delete(peer);
+      },
+      tick() {
+        purge();
+        sync.tick();
+      },
+      receive(peer, raw) {
+        if (size(raw) > 4096)
+          return false;
+        let e;
+        try {
+          e = JSON.parse(raw);
+        } catch {
+          return false;
+        }
+        if (e?.type !== "programme-position")
+          return false;
+        const c = ctx;
+        if (!c?.current() || !c.peers().includes(peer))
+          return true;
+        const now = Date.now(), rate = rates.get(peer);
+        if (!rate || now - rate.at >= 1e4) {
+          if (rates.size >= 16 && !rates.has(peer))
+            return true;
+          rates.set(peer, { at: now, count: 1 });
+        } else if (++rate.count > 40)
+          return true;
+        try {
+          if (!e.subject || !["clip", "transcript"].includes(e.subject.kind) || typeof e.subject.id !== "string")
+            return true;
+          const subject = subjectFor(c, e.subject.kind, e.subject.id);
+          if (!subject)
+            return true;
+          apply(validateProgrammePosition(e, c.roomId, c.sourceKey, subject, now));
+        } catch {
+        }
+        return true;
+      }
+    };
+  }
+
+  // src/transcript-event-selection.ts
+  var exact3 = (v, keys) => !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).sort().join(",") === [...keys].sort().join(",");
+  var integer3 = (n, min, max) => typeof n === "number" && Number.isSafeInteger(n) && n >= min && n <= max;
+  var instruction = /\b(ignore|disregard|override|forget)\b.{0,60}\b(instructions?|rules?|prompt|system|previous)\b|\b(system|developer|assistant)\s*:/i;
+  var kinds = ["goal-like", "penalty-like", "card-like", "final-whistle-like", "other"];
+  function validateBatch(items, c) {
+    if (!Array.isArray(items) || !items.length || items.length > 8 || !/^[-_A-Za-z0-9]{43}$/.test(c.recordingId))
+      throw Error("Evidence unavailable");
+    const now = c.now();
+    if (!integer3(now, 0, Number.MAX_SAFE_INTEGER))
+      throw Error("Clock unavailable");
+    const copy = [];
+    const seen = /* @__PURE__ */ new Set();
+    let prior, previousEnd = -1, previousPositionEnd = -301, continuity, offsetMin = -Infinity, offsetMax = Infinity;
+    for (const item of items) {
+      const entry = validateTranscript2(item?.entry, c.roomId, c.sourceKey), w = item?.window;
+      if (entry.concern || entry.endMs <= entry.startMs || instruction.test(entry.text) || seen.has(entry.id) || !w || !integer3(w.continuity, 0, Number.MAX_SAFE_INTEGER) || !integer3(w.startMs, 0, 864e5) || !integer3(w.endMs, w.startMs + 1, 864e5) || w.endMs - w.startMs > 1e4 || w.omittedSegments !== 0 || w.concern || entry.startMs < w.startMs || entry.endMs > w.endMs || entry.startMs < previousEnd)
+        throw Error("Evidence discontinuity");
+      if (continuity !== void 0 && continuity !== w.continuity)
+        throw Error("Evidence discontinuity");
+      if (prior && !(prior.startMs === w.startMs && prior.endMs === w.endMs) && Math.abs(prior.endMs - w.startMs) > 1)
+        throw Error("Evidence discontinuity");
+      const position = validateProgrammePosition(item.position, c.roomId, c.sourceKey, { signature: entry.signature }, now);
+      if (position.subject.kind !== "transcript" || position.subject.id !== entry.id || position.recordingId !== c.recordingId || position.startMs < previousPositionEnd || Math.abs(position.endMs - position.startMs - (entry.endMs - entry.startMs)) > 100 + 2 * position.uncertaintyMs)
+        throw Error("Position unavailable");
+      offsetMin = Math.max(offsetMin, position.startMs - entry.startMs - position.uncertaintyMs, position.endMs - entry.endMs - position.uncertaintyMs);
+      offsetMax = Math.min(offsetMax, position.startMs - entry.startMs + position.uncertaintyMs, position.endMs - entry.endMs + position.uncertaintyMs);
+      if (offsetMin > offsetMax)
+        throw Error("Inconsistent recording clock");
+      const current = c.subject(entry.id), currentPosition = c.position(entry.id);
+      if (!current || current.signature !== entry.signature || current.revision !== entry.revision || !currentPosition || currentPosition.signature !== position.signature)
+        throw Error("Evidence superseded");
+      copy.push({ entry: { ...entry }, position: { ...position, subject: { ...position.subject } }, window: { continuity: w.continuity, startMs: w.startMs, endMs: w.endMs, omittedSegments: w.omittedSegments } });
+      seen.add(entry.id);
+      prior = w;
+      continuity = w.continuity;
+      previousEnd = entry.endMs;
+      previousPositionEnd = position.endMs;
+    }
+    if (copy.at(-1).position.endMs - copy[0].position.startMs > 3e4)
+      throw Error("Evidence window too long");
+    return copy;
+  }
+  function resolve(raw, items) {
+    if (!exact3(raw, ["event"]))
+      throw Error("Invalid selection");
+    const e = raw.event;
+    if (e === null)
+      return;
+    if (!exact3(e, ["kind", "evidence"]))
+      throw Error("Invalid selection");
+    const event = e;
+    if (!kinds.includes(event.kind) || !Array.isArray(event.evidence) || event.evidence.length < 1 || event.evidence.length > 2)
+      throw Error("Invalid selection");
+    const selected = [];
+    const seen = /* @__PURE__ */ new Set();
+    for (const citation of event.evidence) {
+      if (!exact3(citation, ["index", "quote"]) || !integer3(citation.index, 0, items.length - 1) || seen.has(citation.index) || typeof citation.quote !== "string" || citation.quote.trim() !== citation.quote || citation.quote.length < 8 || citation.quote.length > 200 || !items[citation.index].entry.text.includes(citation.quote) || instruction.test(citation.quote))
+        throw Error("Evidence quote rejected");
+      seen.add(citation.index);
+      selected.push({ item: items[citation.index], quote: citation.quote });
+    }
+    const first = items[0];
+    return { kind: event.kind, recordingId: first.position.recordingId, continuity: first.window.continuity, startMs: Math.min(...selected.map((s) => s.item.position.startMs)), endMs: Math.max(...selected.map((s) => s.item.position.endMs)), transcriptStartMs: Math.min(...selected.map((s) => s.item.entry.startMs)), transcriptEndMs: Math.max(...selected.map((s) => s.item.entry.endMs)), precision: selected.some((s) => s.item.position.precision === "estimated") ? "estimated" : "exact", uncertaintyMs: Math.max(...selected.map((s) => s.item.position.uncertaintyMs)), evidence: selected.map(({ item, quote }) => ({ precision: item.position.precision, uncertaintyMs: item.position.uncertaintyMs, id: item.entry.id, revision: item.entry.revision, transcriptSignature: item.entry.signature, positionSignature: item.position.signature, quote, window: { ...item.window } })) };
+  }
+  function createTranscriptEventSelection() {
+    let generation = 0, arrival = 0, active;
+    let pending;
+    const cancelled6 = () => Error("Selection cancelled");
+    function clearPending() {
+      const old = pending;
+      pending = void 0;
+      if (old) {
+        old.cleanup();
+        old.reject(cancelled6());
+      }
+    }
+    function startPending() {
+      const next = pending;
+      pending = void 0;
+      if (next) {
+        next.cleanup();
+        next.start();
+      }
+    }
+    function eligible(items, ctx, signal) {
+      try {
+        if (signal?.aborted || !ctx.current()) return false;
+        const batch = validateBatch(items, ctx);
+        return batch.every((item) => ctx.retained(ctx.recordingId, item.position.startMs - item.position.uncertaintyMs, item.position.endMs + item.position.uncertaintyMs));
+      } catch {
+        return false;
+      }
+    }
+    async function run(items, ctx, selector, signal, stamp3, priority) {
+      const abort2 = new AbortController(), slot = { abort: abort2, dispatched: false, priority, current: () => false }, onAbort = () => abort2.abort();
+      active = slot;
+      signal?.addEventListener("abort", onAbort, { once: true });
+      let batch;
+      const current = () => {
+        try {
+          if (stamp3 !== generation || abort2.signal.aborted || signal?.aborted || !ctx.current())
+            return false;
+          if (batch) {
+            validateBatch(batch, ctx);
+            for (const item of batch)
+              if (!ctx.retained(ctx.recordingId, item.position.startMs - item.position.uncertaintyMs, item.position.endMs + item.position.uncertaintyMs))
+                return false;
+          }
+          if (!ctx.current()) return false;
+          return stamp3 === generation && !abort2.signal.aborted && !signal?.aborted;
+        } catch {
+          return false;
+        }
+      };
+      slot.current = current;
+      try {
+        if (!current())
+          throw cancelled6();
+        batch = validateBatch(items, ctx);
+        if (!current())
+          throw cancelled6();
+        const raw = await selector({ excerpts: batch.map((x, index) => ({ index, text: x.entry.text })) }, abort2.signal, current, () => {
+          if (active === slot)
+            slot.dispatched = true;
+        });
+        if (!current())
+          throw cancelled6();
+        const event = resolve(raw, batch);
+        if (!current())
+          throw cancelled6();
+        return event;
+      } finally {
+        signal?.removeEventListener("abort", onAbort);
+        if (active === slot) {
+          active = void 0;
+          startPending();
+        }
+      }
+    }
+    return {
+      cancel() {
+        generation++;
+        arrival++;
+        const oldActive = active, oldPending = pending;
+        pending = void 0;
+        oldActive?.abort.abort();
+        if (oldPending) {
+          oldPending.cleanup();
+          oldPending.reject(cancelled6());
+        }
+      },
+      select(items, ctx, selector, signal) {
+        if (signal?.aborted) return Promise.reject(cancelled6());
+        const stamp3 = generation, ticket = ++arrival;
+        const ownsArrival = () => stamp3 === generation && ticket === arrival && !signal?.aborted;
+        if (!ownsArrival()) return Promise.reject(cancelled6());
+        try {
+          validateBatch(items, ctx);
+        } catch (error) {
+          return Promise.reject(error);
+        }
+        if (!ownsArrival()) return Promise.reject(cancelled6());
+        if (!eligible(items, ctx, signal) || !ownsArrival()) return Promise.reject(cancelled6());
+        const priority = Math.max(...items.map((item) => transcriptEventPriority(item.entry.text)));
+        if (!ownsArrival()) return Promise.reject(cancelled6());
+        const oldActive = active, oldPending = pending;
+        if (!oldActive) return run(items, ctx, selector, signal, stamp3, priority);
+        const pendingValid = oldPending ? oldPending.current() : false;
+        if (!ownsArrival() || active !== oldActive || pending !== oldPending) return Promise.reject(cancelled6());
+        if (oldPending && pendingValid && oldPending.priority > priority) return Promise.reject(cancelled6());
+        const activeValid = !oldActive.dispatched && oldActive.current();
+        if (!ownsArrival() || active !== oldActive || pending !== oldPending) return Promise.reject(cancelled6());
+        if (!oldActive.dispatched && (!activeValid || priority >= oldActive.priority)) {
+          oldActive.abort.abort();
+          if (!ownsArrival() || active !== oldActive || pending !== oldPending) return Promise.reject(cancelled6());
+        }
+        clearPending();
+        if (!ownsArrival() || active !== oldActive || pending !== void 0) return Promise.reject(cancelled6());
+        return new Promise((resolve2, reject) => {
+          const onAbort = () => {
+            if (pending === item) {
+              pending = void 0;
+              item.cleanup();
+              reject(cancelled6());
+            }
+          };
+          const item = {
+            start: () => {
+              void run(items, ctx, selector, signal, stamp3, priority).then(resolve2, reject);
+            },
+            reject,
+            cleanup: () => signal?.removeEventListener("abort", onAbort),
+            priority,
+            current: () => stamp3 === generation && eligible(items, ctx, signal)
+          };
+          pending = item;
+          signal?.addEventListener("abort", onAbort, { once: true });
+        });
+      }
+    };
+  }
+
+  // src/local-event-provenance.ts
+  var same = (a, b) => a.roomId === b.roomId && a.sourceKey === b.sourceKey;
+  function createLocalEventProvenance() {
+    let epoch = 0;
+    const items = /* @__PURE__ */ new Map();
+    return {
+      begin(scope, event) {
+        if (!scope.roomId || !scope.sourceKey || !event?.recordingId || !event.evidence?.length)
+          throw Error("Event provenance unavailable");
+        const v = epoch, owner = { ...scope }, snapshot3 = structuredClone(event);
+        return { commit(card) {
+          if (v !== epoch || !card?.clipId || !same(owner, card))
+            return false;
+          items.set(card.clipId, { scope: owner, event: snapshot3 });
+          while (items.size > 200)
+            items.delete(items.keys().next().value);
+          return true;
+        } };
+      },
+      get(clipId, lookup) {
+        const stored = items.get(clipId);
+        if (!stored || !same(stored.scope, lookup.scope))
+          return;
+        let current = false;
+        try {
+          current = stored.event.evidence.every((e) => {
+            const transcript = lookup.subject(e.id), position = lookup.position(e.id);
+            return !!transcript && transcript.roomId === stored.scope.roomId && transcript.sourceKey === stored.scope.sourceKey && transcript.revision === e.revision && transcript.signature === e.transcriptSignature && !!position && position.roomId === stored.scope.roomId && position.sourceKey === stored.scope.sourceKey && position.recordingId === stored.event.recordingId && position.subject.kind === "transcript" && position.subject.id === e.id && position.subject.signature === e.transcriptSignature && position.signature === e.positionSignature;
+          });
+        } catch {
+        }
+        return { current, event: structuredClone(stored.event) };
+      },
+      clear() {
+        epoch++;
+        items.clear();
+      }
+    };
+  }
+
+  // src/control-origin.ts
+  function readControlOrigin(value) {
+    if (value === "") return "";
+    try {
+      const u = new URL(value);
+      if (u.protocol === "https:" && u.origin === value && !u.username && !u.password && !value.includes("*")) return value;
+    } catch {
+    }
+    throw Error("Invalid Same End control origin configuration");
+  }
+  function roomRequestUrl(path, origin) {
+    if (!["/api/config", "/api/rooms", "/api/socket-ticket", "/api/directory"].includes(path)) throw Error("Invalid room request path");
+    return origin ? origin + path : path;
+  }
+
+  // src/composer-scroll-reserve.ts
+  function createComposerScrollReserve(inputs, rail) {
+    const doc = inputs[0]?.ownerDocument, view2 = doc?.defaultView;
+    let saved = "", active = false, floor = 0, generation = 0;
+    const clear = () => {
+      generation++;
+      if (active) rail.style.minHeight = saved;
+      active = false;
+      floor = 0;
+    };
+    const update = () => {
+      const input = inputs.find((field2) => doc?.activeElement === field2);
+      if (!view2 || !input || !rail.style) {
+        clear();
+        return;
+      }
+      const field = input.getBoundingClientRect(), bounds = rail.getBoundingClientRect(), height = view2.innerHeight;
+      if (!Number.isFinite(height) || height <= 0 || field.height <= 0 || field.top < 0 || field.bottom > height || bounds.top < field.bottom || bounds.height <= 0) {
+        clear();
+        return;
+      }
+      if (!active) {
+        saved = rail.style.minHeight;
+        active = true;
+      }
+      floor = Math.max(floor, Math.min(bounds.height, height));
+      rail.style.minHeight = `${floor}px`;
+    };
+    for (const input of inputs) {
+      input.addEventListener("focus", update);
+      input.addEventListener("input", update);
+      input.addEventListener("blur", clear);
+    }
+    view2?.addEventListener("scroll", update, { passive: true });
+    view2?.addEventListener("resize", () => {
+      clear();
+      const expected = generation;
+      view2.requestAnimationFrame(() => {
+        if (generation === expected) update();
+      });
+    }, { passive: true });
+    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(() => {
+      if (active) update();
+    }) : void 0;
+    observer?.observe(rail);
+    return { clear };
+  }
+
+  // src/readable-viewport.ts
+  var validRectangle = (r) => [r.top, r.bottom, r.left, r.right].every(Number.isFinite) && r.bottom > r.top && r.right > r.left;
+  function intersection(a, b) {
+    return { top: Math.max(a.top, b.top), bottom: Math.min(a.bottom, b.bottom), left: Math.max(a.left, b.left), right: Math.min(a.right, b.right) };
+  }
+  var area = (r) => Math.max(0, r.bottom - r.top) * Math.max(0, r.right - r.left);
+  function readableViewport(container, intersect = true, exempt) {
+    const doc = container.ownerDocument, view2 = doc?.defaultView;
+    const height = view2?.innerHeight || 0;
+    const style = view2?.getComputedStyle?.(container);
+    const nested = intersect && !!style && ["auto", "scroll", "overlay"].includes(style.overflowY) && container.scrollHeight > container.clientHeight;
+    const bounds = nested ? container.getBoundingClientRect() : void 0;
+    let top = nested ? Math.max(0, bounds.top) : 0, bottom = nested ? Math.min(height, bounds.bottom) : height;
+    const width = view2?.innerWidth || 0;
+    const left = nested && Number.isFinite(bounds.left) ? Math.max(0, bounds.left) : 0;
+    const right = nested && Number.isFinite(bounds.right) ? Math.min(width, bounds.right) : width;
+    const score = doc?.getElementById?.("scoreboard");
+    if (score && view2?.getComputedStyle?.(score).position === "sticky") {
+      const rect = score.getBoundingClientRect();
+      if (rect.height > 0 && Math.abs(rect.top) <= 1 && rect.bottom > 0) top = Math.max(top, Math.min(bottom, rect.bottom));
+    }
+    const latest = doc?.getElementById?.("timeline-latest");
+    const occlusions = [];
+    if (latest && latest !== exempt && latest.dataset?.floating === "true") {
+      const style2 = view2?.getComputedStyle?.(latest), rect = latest.getBoundingClientRect();
+      if (style2?.position === "fixed" && style2.display !== "none" && style2.visibility !== "hidden" && style2.opacity !== "0" && validRectangle(rect)) {
+        const clipped = intersection(rect, { top, bottom, left, right });
+        if (area(clipped) > 0) occlusions.push(clipped);
+      }
+    }
+    top = Math.max(0, Math.min(top, bottom));
+    bottom = Math.max(top, bottom);
+    return { top, bottom, left, right, width: Math.max(0, right - left), height: bottom - top, occlusions, nested, view: view2 };
+  }
+  function visibleMediaFraction(rect, bounds) {
+    if (!validRectangle(rect) || !validRectangle(bounds)) return 0;
+    const denominator = Math.min(rect.right - rect.left, bounds.right - bounds.left) * Math.min(rect.bottom - rect.top, bounds.bottom - bounds.top);
+    if (!Number.isFinite(denominator) || denominator <= 0) return 0;
+    const visible = intersection(rect, bounds);
+    let pixels = area(visible);
+    for (const obstruction of bounds.occlusions) if (validRectangle(obstruction)) pixels -= area(intersection(visible, obstruction));
+    return Math.max(0, Math.min(1, pixels / denominator));
+  }
+  function targetUnobscured(rect, bounds) {
+    return validRectangle(rect) && validRectangle(bounds) && rect.top >= bounds.top - 1 && rect.bottom <= bounds.bottom + 1 && rect.left >= bounds.left - 1 && rect.right <= bounds.right + 1 && bounds.occlusions.every((obstruction) => !validRectangle(obstruction) || area(intersection(rect, obstruction)) === 0);
+  }
+  function correctReadableScroll(container, target) {
+    for (let pass = 0; pass < 2; pass++) {
+      const bounds = readableViewport(container, true, target), rect = target.getBoundingClientRect?.();
+      if (!bounds.view || !rect || !Number.isFinite(rect.top) || !Number.isFinite(rect.bottom) || bounds.height <= 0) return;
+      const height = rect.bottom - rect.top;
+      let delta = 0;
+      if (height > bounds.height) {
+        if (Math.abs(rect.top - bounds.top) > 1) delta = rect.top - bounds.top;
+      } else if (rect.top < bounds.top - 1) delta = rect.top - bounds.top;
+      else if (rect.bottom > bounds.bottom + 1) delta = rect.bottom - bounds.bottom;
+      else if (validRectangle(rect)) {
+        for (const obstruction of bounds.occlusions) {
+          if (area(intersection(rect, obstruction)) <= 0) continue;
+          const moves = [rect.bottom - obstruction.top, rect.top - obstruction.bottom].filter((move) => rect.top - move >= bounds.top - 1 && rect.bottom - move <= bounds.bottom + 1).sort((a, b) => Math.abs(a) - Math.abs(b));
+          if (moves.length) delta = moves[0];
+          break;
+        }
+      }
+      if (!Number.isFinite(delta) || Math.abs(delta) <= 1) return;
+      if (bounds.nested) container.scrollTop += delta;
+      else bounds.view.scrollBy(0, delta);
+    }
+  }
+
+  // src/clip-still-contract.ts
+  var import_canonicalize5 = __toESM(require_canonicalize(), 1);
+
   // src/clip-contract.ts
-  var import_canonicalize2 = __toESM(require_canonicalize(), 1);
+  var import_canonicalize4 = __toESM(require_canonicalize(), 1);
   var CLIP_MAX_BYTES = 32 * 1024 * 1024;
   var CLIP_MAX_OBJECTS = 96;
   var CLIP_MAX_AGE = 30 * 60 * 1e3;
   var CLIP_MANIFEST_MIME = "application/vnd.same-end.clip+json";
-  var bytes = (v) => new TextEncoder().encode((0, import_canonicalize2.default)(v) || "");
-  var exact2 = (v, keys) => !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === keys.length && keys.every((k) => Object.hasOwn(v, k));
-  var integer2 = (n, min, max) => typeof n === "number" && Number.isSafeInteger(n) && n >= min && n <= max;
-  var key = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s) && "AEIMQUYcgkosw048".includes(s[42]);
-  var payload = (card) => bytes({ domain: "same-end.clip-card.v1", card });
+  var bytes = (v) => new TextEncoder().encode((0, import_canonicalize4.default)(v) || "");
+  var exact4 = (v, keys) => !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === keys.length && keys.every((k) => Object.hasOwn(v, k));
+  var integer4 = (n, min, max) => typeof n === "number" && Number.isSafeInteger(n) && n >= min && n <= max;
+  var key3 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s) && "AEIMQUYcgkosw048".includes(s[42]);
+  var payload2 = (card) => bytes({ domain: "same-end.clip-card.v1", card });
   var verifiedSignatures = /* @__PURE__ */ new Map();
   var SIGNATURE_CACHE_LIMIT = 64;
   var SIGNED_PAYLOAD_CACHE_BYTES = 1024;
   function verifyClipSignature(signature2, card, sourceKey2) {
-    const canonical = (0, import_canonicalize2.default)({ domain: "same-end.clip-card.v1", card }) || "";
+    const canonical = (0, import_canonicalize4.default)({ domain: "same-end.clip-card.v1", card }) || "";
     const signedBytes = new TextEncoder().encode(canonical);
     const candidate = typeof signature2 === "string" && signature2.length <= 128 && signedBytes.length <= SIGNED_PAYLOAD_CACHE_BYTES ? JSON.stringify([sourceKey2, signature2, canonical]) : void 0;
     const cacheKey = candidate && candidate.length <= SIGNED_PAYLOAD_CACHE_BYTES ? candidate : void 0;
@@ -5392,20 +6245,20 @@ THE SOFTWARE.
     return true;
   }
   async function signClipCard(card, privateKey) {
-    return { ...card, signature: b642(new Uint8Array(await crypto.subtle.sign("Ed25519", privateKey, payload(card)))) };
+    return { ...card, signature: b642(new Uint8Array(await crypto.subtle.sign("Ed25519", privateKey, payload2(card)))) };
   }
   function validateClipCard(card, roomId2, sourceKey2, now = Date.now()) {
     const c = card;
-    if (!exact2(c, ["type", "version", "roomId", "sourceKey", "clipId", "caption", "issuedAtMs", "expiresAtMs", "durationMs", "totalBytes", "objectCount", "manifest", "signature"]) || c.type !== "clip-card" || c.version !== "semk2-clip/1" || c.roomId !== roomId2 || c.sourceKey !== sourceKey2 || !key(sourceKey2) || !key(c.clipId) || typeof c.caption !== "string" || !c.caption.trim() || c.caption.length > 120 || !integer2(c.issuedAtMs, 0, Number.MAX_SAFE_INTEGER) || !integer2(c.expiresAtMs, c.issuedAtMs, Number.MAX_SAFE_INTEGER) || c.expiresAtMs - c.issuedAtMs > CLIP_MAX_AGE || c.expiresAtMs <= now || c.issuedAtMs > now + 6e4 || !integer2(c.durationMs, 1, 18e4) || !integer2(c.totalBytes, 1, CLIP_MAX_BYTES) || !integer2(c.objectCount, 2, CLIP_MAX_OBJECTS)) throw Error("Invalid clip card");
+    if (!exact4(c, ["type", "version", "roomId", "sourceKey", "clipId", "caption", "issuedAtMs", "expiresAtMs", "durationMs", "totalBytes", "objectCount", "manifest", "signature"]) || c.type !== "clip-card" || c.version !== "semk2-clip/1" || c.roomId !== roomId2 || c.sourceKey !== sourceKey2 || !key3(sourceKey2) || !key3(c.clipId) || typeof c.caption !== "string" || !c.caption.trim() || c.caption.length > 120 || !integer4(c.issuedAtMs, 0, Number.MAX_SAFE_INTEGER) || !integer4(c.expiresAtMs, c.issuedAtMs, Number.MAX_SAFE_INTEGER) || c.expiresAtMs - c.issuedAtMs > CLIP_MAX_AGE || c.expiresAtMs <= now || c.issuedAtMs > now + 6e4 || !integer4(c.durationMs, 1, 18e4) || !integer4(c.totalBytes, 1, CLIP_MAX_BYTES) || !integer4(c.objectCount, 2, CLIP_MAX_OBJECTS)) throw Error("Invalid clip card");
     const d = c.manifest;
-    if (!exact2(d, ["kind", "track", "sequence", "mediaStartMs", "durationMs", "mime", "codecConfigId", "lengthBytes", "infoHash", "sha256"]) || d.kind !== "init" || d.track !== "muxed" || d.sequence !== 0 || d.mediaStartMs !== 0 || d.durationMs !== 0 || d.mime !== CLIP_MANIFEST_MIME || d.codecConfigId !== "clip-manifest/1" || !integer2(d.lengthBytes, 1, 65536) || typeof d.infoHash !== "string" || !/^[a-f0-9]{40}$/.test(d.infoHash) || typeof d.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(d.sha256) || c.totalBytes + d.lengthBytes > CLIP_MAX_BYTES) throw Error("Invalid clip manifest reference");
+    if (!exact4(d, ["kind", "track", "sequence", "mediaStartMs", "durationMs", "mime", "codecConfigId", "lengthBytes", "infoHash", "sha256"]) || d.kind !== "init" || d.track !== "muxed" || d.sequence !== 0 || d.mediaStartMs !== 0 || d.durationMs !== 0 || d.mime !== CLIP_MANIFEST_MIME || d.codecConfigId !== "clip-manifest/1" || !integer4(d.lengthBytes, 1, 65536) || typeof d.infoHash !== "string" || !/^[a-f0-9]{40}$/.test(d.infoHash) || typeof d.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(d.sha256) || c.totalBytes + d.lengthBytes > CLIP_MAX_BYTES) throw Error("Invalid clip manifest reference");
     const { signature: signature2, ...unsigned } = c;
     if (!verifyClipSignature(signature2, unsigned, sourceKey2)) throw Error("Clip signature rejected");
     return c;
   }
   function validateClipManifest(value, card) {
     const m = value;
-    if (!exact2(m, ["version", "roomId", "sourceKey", "clipId", "objects"]) || m.version !== "semk2-clip-manifest/1" || m.roomId !== card.roomId || m.sourceKey !== card.sourceKey || m.clipId !== card.clipId || !Array.isArray(m.objects) || m.objects.length !== card.objectCount) throw Error("Invalid clip manifest");
+    if (!exact4(m, ["version", "roomId", "sourceKey", "clipId", "objects"]) || m.version !== "semk2-clip-manifest/1" || m.roomId !== card.roomId || m.sourceKey !== card.sourceKey || m.clipId !== card.clipId || !Array.isArray(m.objects) || m.objects.length !== card.objectCount) throw Error("Invalid clip manifest");
     let total = 0, previous = 0, lastEnd = 0;
     const hashes = /* @__PURE__ */ new Set();
     let mime = "", config2 = "";
@@ -5433,23 +6286,23 @@ THE SOFTWARE.
 
   // src/clip-still-contract.ts
   var CLIP_STILL_MAX_BYTES = 48 * 1024;
-  var encode2 = (v) => new TextEncoder().encode((0, import_canonicalize3.default)(v) || "");
+  var encode2 = (v) => new TextEncoder().encode((0, import_canonicalize5.default)(v) || "");
   var stillId = (card) => card.version === "semk2-clip-still/2" ? `extra:${card.clipId}:${card.atMs}:${card.imageDescriptor.sha256}` : card.clipId;
   var stillParentId = (id) => /^extra:([A-Za-z0-9_-]{43}):(0|[1-9][0-9]{0,5}):([a-f0-9]{64})$/.exec(id)?.[1] ?? id;
-  var payload2 = (card) => encode2({ domain: card.version === "semk2-clip-still/2" ? "same-end.clip-still-card.v2" : "same-end.clip-still-card.v1", card });
-  var exact3 = (v, keys) => !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === keys.length && keys.every((k) => Object.hasOwn(v, k));
+  var payload3 = (card) => encode2({ domain: card.version === "semk2-clip-still/2" ? "same-end.clip-still-card.v2" : "same-end.clip-still-card.v1", card });
+  var exact5 = (v, keys) => !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === keys.length && keys.every((k) => Object.hasOwn(v, k));
   var int = (v, min, max) => typeof v === "number" && Number.isSafeInteger(v) && v >= min && v <= max;
   async function signClipStillCard(card, key9) {
-    return { ...card, signature: b642(new Uint8Array(await crypto.subtle.sign("Ed25519", key9, payload2(card)))) };
+    return { ...card, signature: b642(new Uint8Array(await crypto.subtle.sign("Ed25519", key9, payload3(card)))) };
   }
   function validateClipStillCard(value, roomId2, sourceKey2, clip, now = Date.now()) {
     validateClipCard(clip, roomId2, sourceKey2, now);
     const c = value;
-    if (!exact3(c, ["type", "version", "roomId", "sourceKey", "clipId", "manifestSha256", "issuedAtMs", "expiresAtMs", "atMs", "width", "height", "imageDescriptor", "signature"]) || !(c.type === "clip-still-card" && c.version === "semk2-clip-still/1" || c.type === "clip-still-v2-card" && c.version === "semk2-clip-still/2") || c.roomId !== roomId2 || c.sourceKey !== sourceKey2 || c.clipId !== clip.clipId || c.manifestSha256 !== clip.manifest.sha256 || !int(c.issuedAtMs, clip.issuedAtMs, clip.expiresAtMs) || c.issuedAtMs > now + 6e4 || !int(c.expiresAtMs, c.issuedAtMs, clip.expiresAtMs) || c.expiresAtMs <= now || !int(c.atMs, 0, clip.durationMs - 1) || !int(c.width, 1, 640) || !int(c.height, 1, 360) || new TextEncoder().encode(JSON.stringify(c)).length > 4096) throw Error("Invalid clip still card");
+    if (!exact5(c, ["type", "version", "roomId", "sourceKey", "clipId", "manifestSha256", "issuedAtMs", "expiresAtMs", "atMs", "width", "height", "imageDescriptor", "signature"]) || !(c.type === "clip-still-card" && c.version === "semk2-clip-still/1" || c.type === "clip-still-v2-card" && c.version === "semk2-clip-still/2") || c.roomId !== roomId2 || c.sourceKey !== sourceKey2 || c.clipId !== clip.clipId || c.manifestSha256 !== clip.manifest.sha256 || !int(c.issuedAtMs, clip.issuedAtMs, clip.expiresAtMs) || c.issuedAtMs > now + 6e4 || !int(c.expiresAtMs, c.issuedAtMs, clip.expiresAtMs) || c.expiresAtMs <= now || !int(c.atMs, 0, clip.durationMs - 1) || !int(c.width, 1, 640) || !int(c.height, 1, 360) || new TextEncoder().encode(JSON.stringify(c)).length > 4096) throw Error("Invalid clip still card");
     const d = c.imageDescriptor;
-    if (!exact3(d, ["kind", "track", "sequence", "mediaStartMs", "durationMs", "mime", "codecConfigId", "lengthBytes", "infoHash", "sha256"]) || d.kind !== "init" || d.track !== "muxed" || d.sequence !== 0 || d.mediaStartMs !== 0 || d.durationMs !== 0 || d.mime !== "image/jpeg" || d.codecConfigId !== "semk2-still/1" || !int(d.lengthBytes, 1, CLIP_STILL_MAX_BYTES) || typeof d.infoHash !== "string" || !/^[a-f0-9]{40}$/.test(d.infoHash) || typeof d.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(d.sha256)) throw Error("Invalid still descriptor");
+    if (!exact5(d, ["kind", "track", "sequence", "mediaStartMs", "durationMs", "mime", "codecConfigId", "lengthBytes", "infoHash", "sha256"]) || d.kind !== "init" || d.track !== "muxed" || d.sequence !== 0 || d.mediaStartMs !== 0 || d.durationMs !== 0 || d.mime !== "image/jpeg" || d.codecConfigId !== "semk2-still/1" || !int(d.lengthBytes, 1, CLIP_STILL_MAX_BYTES) || typeof d.infoHash !== "string" || !/^[a-f0-9]{40}$/.test(d.infoHash) || typeof d.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(d.sha256)) throw Error("Invalid still descriptor");
     const { signature: signature2, ...unsigned } = c;
-    if (!verifySourceSignature(signature2, payload2(unsigned), sourceKey2)) throw Error("Still signature rejected");
+    if (!verifySourceSignature(signature2, payload3(unsigned), sourceKey2)) throw Error("Still signature rejected");
     return c;
   }
 
@@ -5915,41 +6768,30 @@ THE SOFTWARE.
   }
 
   // src/clip-audio-assets.ts
-  var import_canonicalize5 = __toESM(require_canonicalize(), 1);
+  var import_canonicalize7 = __toESM(require_canonicalize(), 1);
 
   // src/clip-audio-asset-contract.ts
-  var import_canonicalize4 = __toESM(require_canonicalize(), 1);
+  var import_canonicalize6 = __toESM(require_canonicalize(), 1);
   var CLIP_AUDIO_ASSET_MAX_BYTES = 3 * 1024 * 1024;
   var CLIP_AUDIO_ASSET_MIME = 'audio/mp4; codecs="mp4a.40.2"';
   var CLIP_AUDIO_ASSET_CONFIG = "semk2-audio-asset/1";
-  var encode3 = (value) => new TextEncoder().encode((0, import_canonicalize4.default)(value) || "");
-  var payload3 = (card) => encode3({ domain: "same-end.clip-audio-asset-card.v1", card });
-  var exact4 = (value, keys) => !!value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === keys.length && keys.every((k) => Object.hasOwn(value, k));
+  var encode3 = (value) => new TextEncoder().encode((0, import_canonicalize6.default)(value) || "");
+  var payload4 = (card) => encode3({ domain: "same-end.clip-audio-asset-card.v1", card });
+  var exact6 = (value, keys) => !!value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === keys.length && keys.every((k) => Object.hasOwn(value, k));
   var int2 = (value, min, max) => typeof value === "number" && Number.isSafeInteger(value) && value >= min && value <= max;
   async function signClipAudioAssetCard(card, key9) {
-    return { ...card, signature: b642(new Uint8Array(await crypto.subtle.sign("Ed25519", key9, payload3(card)))) };
+    return { ...card, signature: b642(new Uint8Array(await crypto.subtle.sign("Ed25519", key9, payload4(card)))) };
   }
   function validateClipAudioAssetCard(value, roomId2, sourceKey2, parent, now = Date.now()) {
     validateClipCard(parent, roomId2, sourceKey2, now);
     const c = value;
-    if (!exact4(c, ["type", "version", "roomId", "sourceKey", "clipId", "manifestSha256", "issuedAtMs", "expiresAtMs", "durationMs", "audioDescriptor", "signature"]) || c.type !== "clip-audio-asset-card" || c.version !== "semk2-audio-asset/1" || c.roomId !== roomId2 || c.sourceKey !== sourceKey2 || c.clipId !== parent.clipId || c.manifestSha256 !== parent.manifest.sha256 || !int2(c.issuedAtMs, parent.issuedAtMs, parent.expiresAtMs) || c.issuedAtMs > now + 6e4 || c.expiresAtMs !== parent.expiresAtMs || c.expiresAtMs <= now || !int2(c.durationMs, 1, Math.min(18e4, parent.durationMs + 250)) || new TextEncoder().encode(JSON.stringify(c)).length > 4096) throw Error("Invalid audio asset card");
+    if (!exact6(c, ["type", "version", "roomId", "sourceKey", "clipId", "manifestSha256", "issuedAtMs", "expiresAtMs", "durationMs", "audioDescriptor", "signature"]) || c.type !== "clip-audio-asset-card" || c.version !== "semk2-audio-asset/1" || c.roomId !== roomId2 || c.sourceKey !== sourceKey2 || c.clipId !== parent.clipId || c.manifestSha256 !== parent.manifest.sha256 || !int2(c.issuedAtMs, parent.issuedAtMs, parent.expiresAtMs) || c.issuedAtMs > now + 6e4 || c.expiresAtMs !== parent.expiresAtMs || c.expiresAtMs <= now || !int2(c.durationMs, 1, Math.min(18e4, parent.durationMs + 250)) || new TextEncoder().encode(JSON.stringify(c)).length > 4096) throw Error("Invalid audio asset card");
     const d = c.audioDescriptor;
-    if (!exact4(d, ["kind", "track", "sequence", "mediaStartMs", "durationMs", "mime", "codecConfigId", "lengthBytes", "infoHash", "sha256"]) || d.kind !== "init" || d.track !== "muxed" || d.sequence !== 0 || d.mediaStartMs !== 0 || d.durationMs !== 0 || d.mime !== CLIP_AUDIO_ASSET_MIME || d.codecConfigId !== CLIP_AUDIO_ASSET_CONFIG || !int2(d.lengthBytes, 1, CLIP_AUDIO_ASSET_MAX_BYTES) || typeof d.infoHash !== "string" || !/^[a-f0-9]{40}$/.test(d.infoHash) || typeof d.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(d.sha256)) throw Error("Invalid audio asset descriptor");
+    if (!exact6(d, ["kind", "track", "sequence", "mediaStartMs", "durationMs", "mime", "codecConfigId", "lengthBytes", "infoHash", "sha256"]) || d.kind !== "init" || d.track !== "muxed" || d.sequence !== 0 || d.mediaStartMs !== 0 || d.durationMs !== 0 || d.mime !== CLIP_AUDIO_ASSET_MIME || d.codecConfigId !== CLIP_AUDIO_ASSET_CONFIG || !int2(d.lengthBytes, 1, CLIP_AUDIO_ASSET_MAX_BYTES) || typeof d.infoHash !== "string" || !/^[a-f0-9]{40}$/.test(d.infoHash) || typeof d.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(d.sha256)) throw Error("Invalid audio asset descriptor");
     const { signature: signature2, ...unsigned } = c;
-    if (!verifySourceSignature(signature2, payload3(unsigned), sourceKey2)) throw Error("Audio asset signature rejected");
+    if (!verifySourceSignature(signature2, payload4(unsigned), sourceKey2)) throw Error("Audio asset signature rejected");
     return c;
   }
-
-  // src/clip-policy.ts
-  var CLIP_ROOM_RETAINED_BYTES = 32 * 1024 * 1024;
-  var CLIP_ROOM_CARD_LIMIT = 64;
-  var CLIP_INVENTORY_CHUNK = 12;
-  var CLIP_AVAILABILITY_TTL_MS = 3e4;
-  var CLIP_INVENTORY_REFRESH_MS = 1e4;
-  var MOMENT_DRAFT_MS = 3e4;
-  var MOMENT_BASELINE_MS = 6e4;
-  var MOMENT_PUBLICATION_LIMIT = 6;
-  var MOMENT_PUBLICATION_WINDOW_MS = 3e5;
 
   // ../../../../../apps/family-pilot/node_modules/mediabunny/dist/modules/src/misc.js
   function assert(x) {
@@ -6291,13 +7133,13 @@ THE SOFTWARE.
     }
     async acquire() {
       let resolver;
-      const nextPromise = new Promise((resolve) => {
+      const nextPromise = new Promise((resolve2) => {
         let resolved = false;
         resolver = () => {
           if (resolved) {
             return;
           }
-          resolve();
+          resolve2();
           this.pending--;
           resolved = true;
         };
@@ -6368,13 +7210,13 @@ THE SOFTWARE.
     arr.splice(insertionIndex + 1, 0, item);
   };
   var promiseWithResolvers = () => {
-    let resolve;
+    let resolve2;
     let reject;
     const promise = new Promise((res, rej) => {
-      resolve = res;
+      resolve2 = res;
       reject = rej;
     });
-    return { promise, resolve, reject };
+    return { promise, resolve: resolve2, reject };
   };
   var removeItem = (arr, item) => {
     const index = arr.indexOf(item);
@@ -6482,9 +7324,9 @@ THE SOFTWARE.
     let currNumerator = 1, currDenominator = 0;
     let remainder = x;
     while (true) {
-      const integer10 = Math.floor(remainder);
-      const nextNumerator = integer10 * currNumerator + prevNumerator;
-      const nextDenominator = integer10 * currDenominator + prevDenominator;
+      const integer11 = Math.floor(remainder);
+      const nextNumerator = integer11 * currNumerator + prevNumerator;
+      const nextDenominator = integer11 * currDenominator + prevDenominator;
       if (nextDenominator > maxDenominator) {
         return {
           num: sign * currNumerator,
@@ -6495,7 +7337,7 @@ THE SOFTWARE.
       prevDenominator = currDenominator;
       currNumerator = nextNumerator;
       currDenominator = nextDenominator;
-      remainder = 1 / (remainder - integer10);
+      remainder = 1 / (remainder - integer11);
       if (!isFinite(remainder)) {
         break;
       }
@@ -6763,7 +7605,7 @@ THE SOFTWARE.
     });
   };
   var wait = (ms) => {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise((resolve2) => setTimeout(resolve2, ms));
   };
   var toArray = (x) => {
     if (Array.isArray(x)) {
@@ -16705,7 +17547,7 @@ THE SOFTWARE.
         assert(result);
         return result;
       }
-      const { promise, resolve, reject } = promiseWithResolvers();
+      const { promise, resolve: resolve2, reject } = promiseWithResolvers();
       const innerHoles = [];
       for (const outerHole of outerHoles) {
         const cappedStart = Math.max(innerStart, outerHole.start);
@@ -16720,7 +17562,7 @@ THE SOFTWARE.
         start: innerStart,
         bytes: bytes9,
         holes: innerHoles,
-        resolve,
+        resolve: resolve2,
         reject
       };
       outer: for (const outerHole of outerHoles) {
@@ -21158,7 +22000,7 @@ THE SOFTWARE.
               }
             }
             if (this.encoder.encodeQueueSize >= 4) {
-              await new Promise((resolve) => this.encoder.addEventListener("dequeue", resolve, { once: true }));
+              await new Promise((resolve2) => this.encoder.addEventListener("dequeue", resolve2, { once: true }));
             }
           }
           await this.lastMuxerPromise;
@@ -21966,14 +22808,14 @@ THE SOFTWARE.
             type: "stopTrack",
             trackId: this._workerTrackId
           });
-          await new Promise((resolve) => {
+          await new Promise((resolve2) => {
             const listener = (event) => {
               const message2 = event.data;
               if (message2.type === "trackStopped" && message2.trackId === this._workerTrackId) {
                 assert(this._workerListener);
                 mediaStreamTrackProcessorWorker.removeEventListener("message", this._workerListener);
                 mediaStreamTrackProcessorWorker.removeEventListener("message", listener);
-                resolve();
+                resolve2();
               }
             };
             mediaStreamTrackProcessorWorker.addEventListener("message", listener);
@@ -22203,7 +23045,7 @@ THE SOFTWARE.
             audioSample.close();
           }
           if (this.encoder.encodeQueueSize >= 4) {
-            await new Promise((resolve) => this.encoder.addEventListener("dequeue", resolve, { once: true }));
+            await new Promise((resolve2) => this.encoder.addEventListener("dequeue", resolve2, { once: true }));
           }
           await this.lastMuxerPromise;
         }
@@ -22881,14 +23723,14 @@ THE SOFTWARE.
     if (!mediaStreamTrackProcessorWorker) {
       initMediaStreamTrackProcessorWorker();
     }
-    return new Promise((resolve) => {
+    return new Promise((resolve2) => {
       assert(mediaStreamTrackProcessorWorker);
       const listener = (event) => {
         const message2 = event.data;
         if (message2.type === "support") {
           mediaStreamTrackProcessorIsSupportedInWorkerCache = message2.supported;
           mediaStreamTrackProcessorWorker.removeEventListener("message", listener);
-          resolve(message2.supported);
+          resolve2(message2.supported);
         }
       };
       mediaStreamTrackProcessorWorker.addEventListener("message", listener);
@@ -28436,8 +29278,8 @@ THE SOFTWARE.
     }
     return out;
   };
-  var encoder2 = new TextEncoder();
-  var text2arr = (str) => encoder2.encode(str);
+  var encoder3 = new TextEncoder();
+  var text2arr = (str) => encoder3.encode(str);
   var randomBytes3 = (size3) => crypto.getRandomValues(new Uint8Array(size3));
 
   // ../../../../../apps/family-pilot/node_modules/bencode/lib/util.js
@@ -28773,7 +29615,7 @@ THE SOFTWARE.
   // src/clip-audio-assets.ts
   var stamp = () => ({ wall: Date.now(), mono: typeof performance === "undefined" ? Date.now() : performance.now() });
   var elapsed = (from, to = stamp()) => Math.max(0, to.wall - from.wall, to.mono - from.mono);
-  var same = (a, b) => (0, import_canonicalize5.default)(a) === (0, import_canonicalize5.default)(b);
+  var same2 = (a, b) => (0, import_canonicalize7.default)(a) === (0, import_canonicalize7.default)(b);
   var length = (raw) => new TextEncoder().encode(raw).length;
   var aborted2 = () => new DOMException("Audio asset cancelled", "AbortError");
   function createClipAudioAssets(added = () => {
@@ -28798,7 +29640,7 @@ THE SOFTWARE.
       }
     };
     const check = (c, v, parent, signal, ownerCurrent = () => true) => {
-      if (ctx !== c || version !== v || !c.current() || signal?.aborted || !ownerCurrent() || !same(currentParent(c, parent.clipId), parent)) throw aborted2();
+      if (ctx !== c || version !== v || !c.current() || signal?.aborted || !ownerCurrent() || !same2(currentParent(c, parent.clipId), parent)) throw aborted2();
     };
     const inCache = (id) => {
       const card = cards.get(id);
@@ -28862,7 +29704,7 @@ THE SOFTWARE.
     function accept(card, parent) {
       purge();
       const existing = cards.get(card.clipId);
-      if (existing) return same(existing, card);
+      if (existing) return same2(existing, card);
       if (cards.size >= CLIP_ROOM_CARD_LIMIT) return false;
       const accepted = Object.freeze({ ...card, audioDescriptor: Object.freeze({ ...card.audioDescriptor }) });
       cards.set(card.clipId, accepted);
@@ -28898,7 +29740,7 @@ THE SOFTWARE.
         for (const card of snapshot3) {
           if (ctx !== c || version !== v || syncing.get(peer) !== token2 || !c.current() || !c.peers().includes(peer)) return;
           if (c.privateKey || c.canForward()) send2(peer, card);
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          await new Promise((resolve2) => setTimeout(resolve2, 500));
         }
         if (ctx !== c || version !== v || !c.current() || !c.peers().includes(peer) || !c.canForward()) return;
         purge();
@@ -29051,7 +29893,7 @@ THE SOFTWARE.
       if (!m || typeof m !== "object" || Array.isArray(m)) return false;
       purge();
       if (m.type === "clip-audio-asset-hello") return Object.keys(m).length === 1;
-      if (m.type === "clip-audio-asset-card") return (Boolean(c.privateKey) || c.canForward()) && !!cards.get(m.clipId) && same(cards.get(m.clipId), m);
+      if (m.type === "clip-audio-asset-card") return (Boolean(c.privateKey) || c.canForward()) && !!cards.get(m.clipId) && same2(cards.get(m.clipId), m);
       if (m.type === "clip-audio-asset-have" || m.type === "clip-audio-asset-withdraw") return Object.keys(m).sort().join(",") === "clipIds,type" && Array.isArray(m.clipIds) && m.clipIds.length > 0 && m.clipIds.length <= CLIP_INVENTORY_CHUNK && m.clipIds.every((id) => typeof id === "string" && (m.type === "clip-audio-asset-have" ? c.canForward() && inCache(id) : !inCache(id)));
       return false;
     }
@@ -29593,7 +30435,7 @@ THE SOFTWARE.
 
   // src/programme-playback.ts
   function createProgrammePlayback(ctx) {
-    const kinds = ["live", "video", "audio"];
+    const kinds2 = ["live", "video", "audio"];
     let live = { sourceId: null, available: false, connected: false, decodable: false, positionExpired: false };
     let intent = "paused", previousIntent = "live";
     let selection;
@@ -29628,14 +30470,14 @@ THE SOFTWARE.
       generation++;
       pending = owner = null;
       const safe = /* @__PURE__ */ new Set();
-      for (const kind of kinds) {
+      for (const kind of kinds2) {
         try {
           ctx.ports[kind].mute(true);
           safe.add(kind);
         } catch {
         }
       }
-      for (const kind of kinds) {
+      for (const kind of kinds2) {
         try {
           ctx.ports[kind].pause();
           if (!playingRequests[kind])
@@ -29643,7 +30485,7 @@ THE SOFTWARE.
         } catch {
         }
       }
-      soundError = safe.size === kinds.length ? null : "could-not-silence";
+      soundError = safe.size === kinds2.length ? null : "could-not-silence";
       return !soundError;
     }
     function start(kind, jump = false, preserveBlocked) {
@@ -29846,291 +30688,6 @@ THE SOFTWARE.
         live = { sourceId: null, available: false, connected: false, decodable: false, positionExpired: false };
         silence();
         notify();
-      }
-    };
-  }
-
-  // src/programme-position.ts
-  var import_canonicalize6 = __toESM(require_canonicalize(), 1);
-
-  // src/paced-room-snapshot.ts
-  function createPacedRoomSnapshot(options) {
-    const now = options.now ?? (() => performance.now());
-    const setTimer = options.setTimer ?? setTimeout;
-    const clearTimer = options.clearTimer ?? clearTimeout;
-    const jobs = /* @__PURE__ */ new Map();
-    let nextSweep = 0;
-    function forget(peer) {
-      const job = jobs.get(peer);
-      if (job?.timer !== void 0) clearTimer(job.timer);
-      jobs.delete(peer);
-    }
-    function step(peer, job) {
-      job.timer = void 0;
-      if (jobs.get(peer) !== job || !options.peers().includes(peer) || now() - job.started > 9e4) {
-        forget(peer);
-        return;
-      }
-      while (job.index < job.frames.length && !options.valid(peer, job.frames[job.index])) job.index++;
-      if (job.index >= job.frames.length) {
-        forget(peer);
-        return;
-      }
-      if (options.send(peer, job.frames[job.index])) job.index++;
-      job.timer = setTimer(() => step(peer, job), 500);
-    }
-    function start(peer) {
-      if (jobs.has(peer) || jobs.size >= 8 || !options.peers().includes(peer)) return;
-      const frames = options.frames().slice(0, CLIP_ROOM_CARD_LIMIT).filter((raw) => new TextEncoder().encode(raw).length <= 4096);
-      if (!frames.length) return;
-      const job = { frames, index: 0, started: now() };
-      jobs.set(peer, job);
-      step(peer, job);
-    }
-    return {
-      start,
-      forget,
-      tick() {
-        for (const peer of jobs.keys()) if (!options.peers().includes(peer)) forget(peer);
-        if (now() < nextSweep) return;
-        nextSweep = now() + 45e3;
-        for (const peer of options.peers().slice(0, 8)) start(peer);
-      },
-      clear() {
-        for (const peer of [...jobs.keys()]) forget(peer);
-        nextSweep = 0;
-      }
-    };
-  }
-
-  // src/programme-position.ts
-  var encoder3 = new TextEncoder();
-  var size = (s) => encoder3.encode(s).byteLength;
-  var key2 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s);
-  var signature = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{86}$/.test(s);
-  var integer3 = (n, min, max) => typeof n === "number" && Number.isSafeInteger(n) && n >= min && n <= max;
-  var exact5 = (o, names) => !!o && typeof o === "object" && !Array.isArray(o) && Object.keys(o).length === names.length && names.every((n) => Object.prototype.hasOwnProperty.call(o, n));
-  var payload4 = (entry) => encoder3.encode((0, import_canonicalize6.default)({ domain: "same-end.programme-position.v1", entry }) || "");
-  var FOUR_HOURS = 4 * 60 * 60 * 1e3;
-  var LIMIT = 264;
-  var itemKey = (kind, id) => `${kind}:${id}`;
-  function validateProgrammePosition(value, roomId2, sourceKey2, subject, now = Date.now()) {
-    const e = value;
-    if (!exact5(e, ["type", "version", "roomId", "sourceKey", "subject", "recordingId", "startMs", "endMs", "precision", "uncertaintyMs", "issuedAtMs", "expiresAtMs", "signature"]) || e.type !== "programme-position" || e.version !== "semk2-programme-position/1" || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key2(sourceKey2) || !exact5(e.subject, ["kind", "id", "signature"]) || !["clip", "transcript"].includes(e.subject.kind) || !key2(e.subject.id) || !signature(e.subject.signature) || !subject || subject.signature !== e.subject.signature || !key2(e.recordingId) || !integer3(e.startMs, -300, FOUR_HOURS) || !integer3(e.endMs, -299, FOUR_HOURS) || e.endMs <= e.startMs || e.endMs - e.startMs > (e.subject.kind === "clip" ? 18e4 : 1e4) || e.precision !== "exact" && e.precision !== "estimated" || !integer3(e.uncertaintyMs, e.precision === "exact" ? 0 : 1, e.precision === "exact" ? 0 : 1e4) || !integer3(e.issuedAtMs, 0, Number.MAX_SAFE_INTEGER) || e.issuedAtMs > now + 6e4 || !integer3(e.expiresAtMs, e.issuedAtMs + 1, Number.MAX_SAFE_INTEGER) || e.expiresAtMs <= now || e.expiresAtMs - e.issuedAtMs > FOUR_HOURS || e.subject.kind === "clip" && (!integer3(subject.expiresAtMs, 0, Number.MAX_SAFE_INTEGER) || !integer3(subject.durationMs, 1, 18e4)) || subject.expiresAtMs !== void 0 && (!integer3(subject.expiresAtMs, 0, Number.MAX_SAFE_INTEGER) || e.expiresAtMs > subject.expiresAtMs) || subject.durationMs !== void 0 && (!integer3(subject.durationMs, 1, 18e4) || Math.abs(e.endMs - e.startMs - subject.durationMs) > 100 + 2 * e.uncertaintyMs) || size(JSON.stringify(e)) > 4096)
-      throw Error("Invalid programme position");
-    const { signature: signed, ...unsigned } = e;
-    if (!verifySourceSignature(signed, payload4(unsigned), sourceKey2))
-      throw Error("Programme position signature rejected");
-    return e;
-  }
-  function formatProgrammeAge(ref, latest) {
-    if (!ref || !latest || !key2(ref.recordingId) || ref.recordingId !== latest.recordingId || !integer3(ref.endMs, -300, FOUR_HOURS) || !integer3(latest.edgeMs, -300, FOUR_HOURS) || latest.edgeMs < ref.endMs)
-      return "Position unknown";
-    const seconds = Math.floor((latest.edgeMs - ref.endMs) / 1e3);
-    if (seconds < 60)
-      return `\u2248 ${seconds}s behind latest received sound`;
-    const minutes = Math.floor(seconds / 60);
-    return `\u2248 ${minutes}m${seconds % 60 ? ` ${seconds % 60}s` : ""} behind latest received sound`;
-  }
-  function createProgrammePositions() {
-    let ctx, scope = "", generation = 0, pending = 0, rotation = 0, issuedClock = -1;
-    const entries2 = /* @__PURE__ */ new Map(), rates = /* @__PURE__ */ new Map();
-    const issuedFloors = /* @__PURE__ */ new Map();
-    const notify = () => {
-      try {
-        ctx?.changed();
-      } catch {
-      }
-    };
-    const subjectFor = (c, kind, id) => {
-      try {
-        return c.subject(kind, id);
-      } catch {
-        return void 0;
-      }
-    };
-    function purge() {
-      const c = ctx;
-      if (!c)
-        return;
-      let changed = false;
-      for (const [id, e] of entries2) {
-        try {
-          const subject = subjectFor(c, e.subject.kind, e.subject.id);
-          if (!subject || subject.signature !== e.subject.signature || e.expiresAtMs <= Date.now() || subject.expiresAtMs !== void 0 && (subject.expiresAtMs < e.expiresAtMs || subject.expiresAtMs <= Date.now()) || e.subject.kind === "clip" && (subject.expiresAtMs === void 0 || subject.durationMs === void 0) || subject.durationMs !== void 0 && Math.abs(e.endMs - e.startMs - subject.durationMs) > 100 + 2 * e.uncertaintyMs)
-            throw Error();
-        } catch {
-          entries2.delete(id);
-          changed = true;
-        }
-      }
-      if (changed)
-        notify();
-    }
-    function validRaw(raw) {
-      if (!ctx?.current() || size(raw) > 4096)
-        return false;
-      let e;
-      try {
-        e = JSON.parse(raw);
-      } catch {
-        return false;
-      }
-      if (e?.type !== "programme-position" || !e.subject || !["clip", "transcript"].includes(e.subject.kind) || typeof e.subject.id !== "string")
-        return false;
-      purge();
-      const stored = entries2.get(itemKey(e.subject.kind, e.subject.id));
-      return !!stored && JSON.stringify(stored) === raw && (ctx.privateKey !== void 0 || ctx.canForward?.() === true);
-    }
-    const sync = createPacedRoomSnapshot({
-      peers: () => ctx?.current() ? ctx.peers().slice(0, 8) : [],
-      frames: () => {
-        purge();
-        const all = [...entries2.values()];
-        if (!all.length)
-          return [];
-        const start = rotation % all.length;
-        rotation = (start + 64) % all.length;
-        return [...all.slice(start), ...all.slice(0, start)].map((e) => JSON.stringify(e));
-      },
-      valid: (_peer, raw) => validRaw(raw),
-      send: (peer, raw) => ctx?.send(peer, raw) === true
-    });
-    function apply(e) {
-      purge();
-      const id = itemKey(e.subject.kind, e.subject.id), old = entries2.get(id);
-      if (old && old.subject.signature === e.subject.signature && old.issuedAtMs >= e.issuedAtMs)
-        return false;
-      if (!old && entries2.size >= LIMIT)
-        entries2.delete(entries2.keys().next().value);
-      entries2.delete(id);
-      entries2.set(id, JSON.parse(JSON.stringify(e)));
-      notify();
-      return true;
-    }
-    return {
-      attach(c) {
-        sync.clear();
-        generation++;
-        const next = JSON.stringify([c.roomId, c.sourceKey]);
-        if (scope && scope !== next)
-          entries2.clear();
-        scope = next;
-        issuedClock = issuedFloors.get(scope) ?? -1;
-        ctx = c;
-        rates.clear();
-        purge();
-      },
-      detach() {
-        sync.clear();
-        generation++;
-        ctx = void 0;
-        rates.clear();
-      },
-      clear() {
-        sync.clear();
-        generation++;
-        ctx = void 0;
-        scope = "";
-        entries2.clear();
-        rates.clear();
-        rotation = 0;
-        issuedClock = -1;
-      },
-      get(kind, id) {
-        if (!ctx?.current())
-          return void 0;
-        purge();
-        const e = entries2.get(itemKey(kind, id));
-        return e && JSON.parse(JSON.stringify(e));
-      },
-      list() {
-        if (!ctx?.current())
-          return [];
-        purge();
-        return [...entries2.values()].map((e) => JSON.parse(JSON.stringify(e)));
-      },
-      async publish(kind, id, input, signal, stillCurrent = () => true) {
-        const c = ctx, v = generation, subject = c && subjectFor(c, kind, id);
-        if (!c?.privateKey || !c.current() || !subject || !key2(id) || !["clip", "transcript"].includes(kind) || pending >= 4 || signal?.aborted || !stillCurrent())
-          throw Error("Programme position unavailable");
-        const now = Date.now();
-        const issuedAtMs = Math.max(now, issuedClock + 1, (entries2.get(itemKey(kind, id))?.issuedAtMs ?? -1) + 1);
-        if (!Number.isSafeInteger(issuedAtMs) || issuedAtMs > now + 6e4)
-          throw Error("Programme position clock unavailable");
-        if (!issuedFloors.has(scope) && issuedFloors.size >= 32)
-          throw Error("Programme position room limit reached");
-        issuedClock = issuedAtMs;
-        issuedFloors.set(scope, issuedAtMs);
-        const unsigned = { type: "programme-position", version: "semk2-programme-position/1", roomId: c.roomId, sourceKey: c.sourceKey, subject: { kind, id, signature: subject.signature }, recordingId: input.recordingId, startMs: input.startMs, endMs: input.endMs, precision: input.precision, uncertaintyMs: input.uncertaintyMs, issuedAtMs, expiresAtMs: Math.min(now + FOUR_HOURS, subject.expiresAtMs ?? now + FOUR_HOURS) };
-        pending++;
-        try {
-          const signed = b642(new Uint8Array(await crypto.subtle.sign("Ed25519", c.privateKey, payload4(unsigned))));
-          if (ctx !== c || generation !== v || !c.current() || signal?.aborted || !stillCurrent())
-            return;
-          const currentSubject = subjectFor(c, kind, id);
-          if (!currentSubject || (0, import_canonicalize6.default)(currentSubject) !== (0, import_canonicalize6.default)(subject))
-            return;
-          const e = validateProgrammePosition({ ...unsigned, signature: signed }, c.roomId, c.sourceKey, currentSubject);
-          if (!apply(e))
-            return;
-          const raw = JSON.stringify(e);
-          for (const peer of c.peers().slice(0, 8)) {
-            try {
-              if (validRaw(raw))
-                c.send(peer, raw);
-            } catch {
-            }
-          }
-          return JSON.parse(JSON.stringify(e));
-        } finally {
-          pending--;
-        }
-      },
-      canSend: validRaw,
-      ready(peer) {
-        if (ctx?.current() && ctx.peers().includes(peer))
-          sync.start(peer);
-      },
-      forgetPeer(peer) {
-        sync.forget(peer);
-        rates.delete(peer);
-      },
-      tick() {
-        purge();
-        sync.tick();
-      },
-      receive(peer, raw) {
-        if (size(raw) > 4096)
-          return false;
-        let e;
-        try {
-          e = JSON.parse(raw);
-        } catch {
-          return false;
-        }
-        if (e?.type !== "programme-position")
-          return false;
-        const c = ctx;
-        if (!c?.current() || !c.peers().includes(peer))
-          return true;
-        const now = Date.now(), rate = rates.get(peer);
-        if (!rate || now - rate.at >= 1e4) {
-          if (rates.size >= 16 && !rates.has(peer))
-            return true;
-          rates.set(peer, { at: now, count: 1 });
-        } else if (++rate.count > 40)
-          return true;
-        try {
-          if (!e.subject || !["clip", "transcript"].includes(e.subject.kind) || typeof e.subject.id !== "string")
-            return true;
-          const subject = subjectFor(c, e.subject.kind, e.subject.id);
-          if (!subject)
-            return true;
-          apply(validateProgrammePosition(e, c.roomId, c.sourceKey, subject, now));
-        } catch {
-        }
-        return true;
       }
     };
   }
@@ -31477,7 +32034,7 @@ THE SOFTWARE.
       ensureOpen();
       if (signal?.aborted) return Promise.reject(new DOMException("Aborted", "AbortError"));
       if (s.queue.length >= 16) return Promise.reject(new PeerFetchUnavailable("peer queue full"));
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve2, reject) => {
         const pump = () => {
           if (s.active) return;
           const next = s.queue.shift();
@@ -31487,7 +32044,7 @@ THE SOFTWARE.
           next.run();
         };
         const job = { signal, reject, run: () => {
-          Promise.resolve().then(task).then(resolve, reject).finally(() => {
+          Promise.resolve().then(task).then(resolve2, reject).finally(() => {
             s.active = false;
             pump();
           });
@@ -32265,27 +32822,27 @@ THE SOFTWARE.
   }
 
   // src/live-audio-contract.ts
-  var import_canonicalize7 = __toESM(require_canonicalize(), 1);
+  var import_canonicalize8 = __toESM(require_canonicalize(), 1);
   var LIVE_AUDIO_MIME = 'audio/mp4; codecs="mp4a.40.2"';
   var LIVE_AUDIO_CONFIG = "same-end-live-aac/1";
   var LIVE_AUDIO_WINDOW = 6;
-  var bytes3 = (v) => new TextEncoder().encode((0, import_canonicalize7.default)(v) || "");
+  var bytes3 = (v) => new TextEncoder().encode((0, import_canonicalize8.default)(v) || "");
   var payload5 = (v) => bytes3({ domain: "same-end.live-audio-head.v1", head: v });
-  var exact6 = (v, keys) => !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === keys.length && keys.every((k) => Object.hasOwn(v, k));
-  var integer4 = (n, min, max = Number.MAX_SAFE_INTEGER) => typeof n === "number" && Number.isSafeInteger(n) && n >= min && n <= max;
+  var exact7 = (v, keys) => !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === keys.length && keys.every((k) => Object.hasOwn(v, k));
+  var integer5 = (n, min, max = Number.MAX_SAFE_INTEGER) => typeof n === "number" && Number.isSafeInteger(n) && n >= min && n <= max;
   var descriptorKeys = ["kind", "track", "sequence", "mediaStartMs", "durationMs", "startTicks", "durationTicks", "mime", "codecConfigId", "lengthBytes", "infoHash", "sha256"];
   function checkDescriptor(d, kind, map) {
-    if (!exact6(d, descriptorKeys) || d.kind !== kind || d.track !== "audio" || !integer4(d.sequence, kind === "init" ? 0 : 1) || kind === "init" && d.sequence !== 0 || !integer4(d.startTicks, Number.MIN_SAFE_INTEGER) || !integer4(d.durationTicks, kind === "init" ? 0 : 1) || kind === "init" && (d.startTicks !== 0 || d.durationTicks !== 0) || d.mime !== LIVE_AUDIO_MIME || d.codecConfigId !== LIVE_AUDIO_CONFIG || !integer4(d.lengthBytes, 1, kind === "init" ? 256 * 1024 : 512 * 1024) || typeof d.infoHash !== "string" || !/^[a-f0-9]{40}$/.test(d.infoHash) || typeof d.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(d.sha256) || !Number.isSafeInteger(d.startTicks + d.durationTicks) || !Number.isFinite(d.mediaStartMs) || !Number.isFinite(d.durationMs) || d.mediaStartMs !== d.startTicks * 1e3 / map.timescale || d.durationMs !== d.durationTicks * 1e3 / map.timescale)
+    if (!exact7(d, descriptorKeys) || d.kind !== kind || d.track !== "audio" || !integer5(d.sequence, kind === "init" ? 0 : 1) || kind === "init" && d.sequence !== 0 || !integer5(d.startTicks, Number.MIN_SAFE_INTEGER) || !integer5(d.durationTicks, kind === "init" ? 0 : 1) || kind === "init" && (d.startTicks !== 0 || d.durationTicks !== 0) || d.mime !== LIVE_AUDIO_MIME || d.codecConfigId !== LIVE_AUDIO_CONFIG || !integer5(d.lengthBytes, 1, kind === "init" ? 256 * 1024 : 512 * 1024) || typeof d.infoHash !== "string" || !/^[a-f0-9]{40}$/.test(d.infoHash) || typeof d.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(d.sha256) || !Number.isSafeInteger(d.startTicks + d.durationTicks) || !Number.isFinite(d.mediaStartMs) || !Number.isFinite(d.durationMs) || d.mediaStartMs !== d.startTicks * 1e3 / map.timescale || d.durationMs !== d.durationTicks * 1e3 / map.timescale)
       throw Error("Invalid audio descriptor");
   }
   function validateAudioHead(input, roomId2, sourceKey2, now = Date.now()) {
     if (new TextEncoder().encode(JSON.stringify(input)).length > 4096)
       throw Error("Audio head too large");
     const h = input;
-    if (!exact6(h, ["type", "version", "roomId", "sourceKey", "epochId", "sequence", "issuedAtMs", "expiresAtMs", "state", "map", "init", "media", "signature"]) || h.type !== "live-audio-head" || h.version !== 1 || h.roomId !== roomId2 || h.sourceKey !== sourceKey2 || typeof h.epochId !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(h.epochId) || !integer4(h.sequence, 1) || !integer4(h.issuedAtMs, 0) || !integer4(h.expiresAtMs, 1) || h.issuedAtMs > now + 6e4 || h.expiresAtMs <= now || h.expiresAtMs - h.issuedAtMs > 3e4 || !["running", "ended", "error"].includes(h.state) || typeof h.signature !== "string" || !/^[A-Za-z0-9_-]{86}$/.test(h.signature))
+    if (!exact7(h, ["type", "version", "roomId", "sourceKey", "epochId", "sequence", "issuedAtMs", "expiresAtMs", "state", "map", "init", "media", "signature"]) || h.type !== "live-audio-head" || h.version !== 1 || h.roomId !== roomId2 || h.sourceKey !== sourceKey2 || typeof h.epochId !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(h.epochId) || !integer5(h.sequence, 1) || !integer5(h.issuedAtMs, 0) || !integer5(h.expiresAtMs, 1) || h.issuedAtMs > now + 6e4 || h.expiresAtMs <= now || h.expiresAtMs - h.issuedAtMs > 3e4 || !["running", "ended", "error"].includes(h.state) || typeof h.signature !== "string" || !/^[A-Za-z0-9_-]{86}$/.test(h.signature))
       throw Error("Invalid audio head");
     const m = h.map;
-    if (!exact6(m, ["timescale", "movieTimescale", "editMediaTimeTicks", "firstPtsTicks", "firstCommonTicks", "commonTimescale"]) || !integer4(m.timescale, 1, 1e6) || !integer4(m.movieTimescale, 1, 1e6) || !integer4(m.commonTimescale, 1, 1e6) || !integer4(m.editMediaTimeTicks, 0) || !integer4(m.firstPtsTicks, Number.MIN_SAFE_INTEGER) || !integer4(m.firstCommonTicks, Number.MIN_SAFE_INTEGER))
+    if (!exact7(m, ["timescale", "movieTimescale", "editMediaTimeTicks", "firstPtsTicks", "firstCommonTicks", "commonTimescale"]) || !integer5(m.timescale, 1, 1e6) || !integer5(m.movieTimescale, 1, 1e6) || !integer5(m.commonTimescale, 1, 1e6) || !integer5(m.editMediaTimeTicks, 0) || !integer5(m.firstPtsTicks, Number.MIN_SAFE_INTEGER) || !integer5(m.firstCommonTicks, Number.MIN_SAFE_INTEGER))
       throw Error("Invalid audio mapping");
     checkDescriptor(h.init, "init", m);
     if (!Array.isArray(h.media) || !h.media.length || h.media.length > LIVE_AUDIO_WINDOW)
@@ -32316,8 +32873,8 @@ THE SOFTWARE.
 
   // src/live-audio-room.ts
   var enc = new TextEncoder();
-  var same2 = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-  var exact7 = (v, keys) => v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === keys.length && keys.every((k) => Object.hasOwn(v, k));
+  var same3 = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  var exact8 = (v, keys) => v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === keys.length && keys.every((k) => Object.hasOwn(v, k));
   function createLiveAudioRoom(o) {
     const now = o.now ?? Date.now, peers2 = /* @__PURE__ */ new Map(), retained = /* @__PURE__ */ new Set(), retired = /* @__PURE__ */ new Set();
     let closed = false, generation = 0, head, epoch = "", headSeq = 0, map, init, media = [], pending = 0, pendingBytes = 0, lastEpochTime = 0, finishing = false, expired = false;
@@ -32392,12 +32949,12 @@ THE SOFTWARE.
         throw Error("Old audio epoch");
       if (head) {
         if (candidate.epochId === head.epochId) {
-          if (candidate.sequence <= head.sequence || candidate.issuedAtMs < head.issuedAtMs || head.state !== "running" || !same2(candidate.map, head.map) || !same2(candidate.init, head.init))
+          if (candidate.sequence <= head.sequence || candidate.issuedAtMs < head.issuedAtMs || head.state !== "running" || !same3(candidate.map, head.map) || !same3(candidate.init, head.init))
             throw Error("Stale or inconsistent audio head");
           const prior = new Map(head.media.map((d) => [d.sequence, d]));
           for (const d of candidate.media) {
             const old = prior.get(d.sequence);
-            if (old && !same2(old, d))
+            if (old && !same3(old, d))
               throw Error("Conflicting audio descriptor");
           }
           const last2 = head.media.at(-1), next = candidate.media.at(-1);
@@ -32482,13 +33039,13 @@ THE SOFTWARE.
             return false;
           const m = JSON.parse(raw);
           if (m.type === "live-audio-hello")
-            return exact7(m, ["type", "version"]) && m.version === 1;
+            return exact8(m, ["type", "version"]) && m.version === 1;
           if (m.type === "live-audio-signal")
-            return !!peers2.get(id)?.hello && exact7(m, ["type", "version", "round", "signal"]) && m.version === 1 && m.round === peers2.get(id)?.round;
+            return !!peers2.get(id)?.hello && exact8(m, ["type", "version", "round", "signal"]) && m.version === 1 && m.round === peers2.get(id)?.round;
           if (m.type === "live-audio-reset" || m.type === "live-audio-reset-request")
-            return !!peers2.get(id)?.hello && (m.type !== "live-audio-reset-request" || !peers2.get(id)?.connected) && exact7(m, ["type", "version", "round"]) && m.version === 1 && m.round === peers2.get(id)?.round;
+            return !!peers2.get(id)?.hello && (m.type !== "live-audio-reset-request" || !peers2.get(id)?.connected) && exact8(m, ["type", "version", "round"]) && m.version === 1 && m.round === peers2.get(id)?.round;
           if (m.type === "live-audio-head")
-            return !!peers2.get(id)?.hello && !!head && head.expiresAtMs > now() && same2(m, head);
+            return !!peers2.get(id)?.hello && !!head && head.expiresAtMs > now() && same3(m, head);
           return false;
         } catch {
           return false;
@@ -32509,7 +33066,7 @@ THE SOFTWARE.
         if (!active() || !p)
           return true;
         try {
-          if (m.type === "live-audio-hello" && exact7(m, ["type", "version"]) && m.version === 1) {
+          if (m.type === "live-audio-hello" && exact8(m, ["type", "version"]) && m.version === 1) {
             if (!p.hello) {
               p.hello = true;
               send2(id, { type: "live-audio-hello", version: 1 });
@@ -32528,11 +33085,11 @@ THE SOFTWARE.
               send2(id, head);
             return true;
           }
-          if (m.type === "live-audio-reset-request" && p.hello && o.selfId < id && exact7(m, ["type", "version", "round"]) && m.version === 1 && m.round === p.round) {
+          if (m.type === "live-audio-reset-request" && p.hello && o.selfId < id && exact8(m, ["type", "version", "round"]) && m.version === 1 && m.round === p.round) {
             reconnect(id);
             return true;
           }
-          if (m.type === "live-audio-reset" && p.hello && o.selfId > id && exact7(m, ["type", "version", "round"]) && m.version === 1 && Number.isSafeInteger(m.round) && m.round > p.round && m.round <= 1e6) {
+          if (m.type === "live-audio-reset" && p.hello && o.selfId > id && exact8(m, ["type", "version", "round"]) && m.version === 1 && Number.isSafeInteger(m.round) && m.round > p.round && m.round <= 1e6) {
             p.round = m.round;
             p.generation++;
             engine2.closePeer(id);
@@ -32541,7 +33098,7 @@ THE SOFTWARE.
             void engine2.connect(id, false).catch(() => notify());
             return true;
           }
-          if (m.type === "live-audio-signal" && p.hello && exact7(m, ["type", "version", "round", "signal"]) && m.version === 1 && m.round === p.round) {
+          if (m.type === "live-audio-signal" && p.hello && exact8(m, ["type", "version", "round", "signal"]) && m.version === 1 && m.round === p.round) {
             void engine2.handleSignal(id, m.signal).catch(() => {
               p.connected = false;
               p.nextRetry = now() + 3e3;
@@ -32586,15 +33143,15 @@ THE SOFTWARE.
         pending++;
         pendingBytes += owned.bytes.length;
         let complete;
-        publishingDone = new Promise((resolve) => {
-          complete = resolve;
+        publishingDone = new Promise((resolve2) => {
+          complete = resolve2;
         });
         try {
           if (owned.kind === "init") {
             if (init || owned.sequence !== 0 || owned.fragment)
               throw Error("Invalid audio init");
             map = owned.mapping;
-          } else if (!init || !map || !same2(map, owned.mapping) || !owned.fragment || owned.sequence !== (media.at(-1)?.sequence ?? 0) + 1 || media.length && owned.fragment.startTicks !== media.at(-1).startTicks + media.at(-1).durationTicks)
+          } else if (!init || !map || !same3(map, owned.mapping) || !owned.fragment || owned.sequence !== (media.at(-1)?.sequence ?? 0) + 1 || media.length && owned.fragment.startTicks !== media.at(-1).startTicks + media.at(-1).durationTicks)
             throw Error("Invalid audio fragment sequence");
           const timing = owned.fragment ?? { startTicks: 0, durationTicks: 0 };
           const wire = await engine2.put({ kind: owned.kind, track: "audio", sequence: owned.sequence, mediaStartMs: timing.startTicks * 1e3 / owned.mapping.timescale, durationMs: timing.durationTicks * 1e3 / owned.mapping.timescale, mime: LIVE_AUDIO_MIME, codecConfigId: LIVE_AUDIO_CONFIG, bytes: owned.bytes });
@@ -32631,11 +33188,11 @@ THE SOFTWARE.
       },
       async fetch(d, signal) {
         const fence2 = generation, h = head;
-        if (!active() || !h || h.expiresAtMs <= now() || !retained.has(d.infoHash) || ![h.init, ...h.media].some((x) => same2(x, d)))
+        if (!active() || !h || h.expiresAtMs <= now() || !retained.has(d.infoHash) || ![h.init, ...h.media].some((x) => same3(x, d)))
           throw new PeerFetchUnavailable("Audio object no longer available");
         const suppliers2 = [...peers2].filter(([, p]) => p.hello && p.connected).map(([id]) => id);
         const result = await engine2.fetch({ ...d, track: "audio" }, suppliers2, signal);
-        if (!active() || fence2 !== generation || !head || head.expiresAtMs <= now() || !retained.has(d.infoHash) || ![head.init, ...head.media].some((x) => same2(x, d)))
+        if (!active() || fence2 !== generation || !head || head.expiresAtMs <= now() || !retained.has(d.infoHash) || ![head.init, ...head.media].some((x) => same3(x, d)))
           throw new PeerFetchUnavailable("Audio object expired");
         return result;
       },
@@ -32882,7 +33439,7 @@ THE SOFTWARE.
   function createExperimentalNativeAudio(element, mime, onState, rolling) {
     if (rolling && (!Number.isFinite(rolling.retainSeconds) || rolling.retainSeconds < 1 || rolling.retainSeconds > 120 || !Number.isFinite(rolling.maxForwardSeconds) || rolling.maxForwardSeconds < 1 || rolling.maxForwardSeconds > 120 || !Number.isSafeInteger(rolling.firstMediaSequence ?? 1) || (rolling.firstMediaSequence ?? 1) < 1)) throw Error("Invalid audio rolling limits");
     if (!/^audio\/mp4;\s*codecs="mp4a\.40\.2"$/i.test(mime) || !MediaSource.isTypeSupported(mime)) throw Error("Unsupported validated AAC MIME");
-    let state = "idle", detail, intent = false, closed = false, ending = false;
+    let state = "idle", detail, intent = false, closed = false, ending2 = false;
     let media, buffer, url2;
     let queuedBytes = 0, sequence = 0, epoch = 0, firstMedia = true;
     let observerError, closing;
@@ -32924,14 +33481,14 @@ THE SOFTWARE.
         emit();
       }
     };
-    const wait5 = (target, success, failures, label, signal = abort2.signal) => new Promise((resolve, reject) => {
+    const wait5 = (target, success, failures, label, signal = abort2.signal) => new Promise((resolve2, reject) => {
       let timer;
       const done = (error) => {
         if (timer) clearTimeout(timer);
         target.removeEventListener(success, ok);
         failures.forEach((e) => target.removeEventListener(e, bad));
         signal.removeEventListener("abort", cancel);
-        error ? reject(error) : resolve();
+        error ? reject(error) : resolve2();
       };
       const ok = () => done(), bad = () => done(Error(`${label} failed`)), cancel = () => done(Error("Audio closed"));
       if (signal.aborted) return cancel();
@@ -32987,7 +33544,7 @@ THE SOFTWARE.
     element.addEventListener("ended", nativeEnded);
     element.disableRemotePlayback = true;
     const append = (kind, index, bytes9) => {
-      if (closed || !ownsSession() || ending || state === "error") return Promise.reject(Error("Audio is closed, ending or failed"));
+      if (closed || !ownsSession() || ending2 || state === "error") return Promise.reject(Error("Audio is closed, ending or failed"));
       if (!Number.isSafeInteger(index) || index < 0 || !(bytes9 instanceof Uint8Array) || !bytes9.length || bytes9.length > MAX_OBJECT || queuedBytes + bytes9.length > MAX_QUEUE) return Promise.reject(Error("Invalid or oversized audio object"));
       const copy = bytes9.slice();
       queuedBytes += copy.length;
@@ -33049,8 +33606,8 @@ THE SOFTWARE.
       const attempt = epoch;
       intent = true;
       let timer;
-      const cancelled6 = new Promise((resolve) => {
-        cancelPlay = () => resolve("cancelled");
+      const cancelled6 = new Promise((resolve2) => {
+        cancelPlay = () => resolve2("cancelled");
       });
       const timeout = new Promise((_, reject) => {
         timer = setTimeout(() => reject(Error("Audio play timed out")), TIMEOUT2);
@@ -33095,8 +33652,8 @@ THE SOFTWARE.
       if (state !== "error" && state !== "ended") set("paused");
     };
     const end2 = () => {
-      if (closed || ending || state === "error") return;
-      ending = true;
+      if (closed || ending2 || state === "error") return;
+      ending2 = true;
       void chain.then(() => {
         if (closed || state === "error" || state === "ended" || element.ended || !ownsElement()) return;
         if (media?.readyState === "open" && !buffer?.updating) media.endOfStream();
@@ -33361,7 +33918,7 @@ THE SOFTWARE.
         if (positionExpired || !player2) {
           if (!this.rejoin()) throw Error("Live sound cannot be rejoined");
           const fence2 = generation, deadline2 = performance.now() + 1e4;
-          while (current(fence2) && performance.now() < deadline2 && (joiningLatest || !player2 || !player2.snapshot().buffered.length)) await new Promise((resolve) => setTimeout(resolve, 50));
+          while (current(fence2) && performance.now() < deadline2 && (joiningLatest || !player2 || !player2.snapshot().buffered.length)) await new Promise((resolve2) => setTimeout(resolve2, 50));
           if (!current(fence2)) throw Error("Live audio changed while waiting");
         }
         if (joiningLatest || !player2) throw Error("Waiting for live sound");
@@ -33426,11 +33983,11 @@ THE SOFTWARE.
     return a.codec === b.codec && a.sampleRate === b.sampleRate && a.numberOfChannels === b.numberOfChannels && JSON.stringify(bytes9(a.description)) === JSON.stringify(bytes9(b.description));
   }
   function bounded(p, ms) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve2, reject) => {
       const timer = setTimeout(() => reject(new Error("Experimental audio operation timed out")), ms);
       p.then((value) => {
         clearTimeout(timer);
-        resolve(value);
+        resolve2(value);
       }, (error) => {
         clearTimeout(timer);
         reject(error);
@@ -33472,8 +34029,8 @@ THE SOFTWARE.
     stopping;
     inputClosed = false;
     resolveSettled;
-    settled = new Promise((resolve) => {
-      this.resolveSettled = resolve;
+    settled = new Promise((resolve2) => {
+      this.resolveSettled = resolve2;
     });
     /** Settles independently from primary publisher stop. */
     whenSettled() {
@@ -33910,8 +34467,10 @@ THE SOFTWARE.
     }
     function score(c) {
       const height = c.bottom - c.top, view2 = bounds.bottom - bounds.top;
-      if (!Number.isFinite(height) || height <= 0 || view2 <= 0) return 0;
-      return Math.max(0, Math.min(c.bottom, bounds.bottom) - Math.max(c.top, bounds.top)) / Math.min(height, view2);
+      if (!Number.isFinite(height) || !Number.isFinite(view2) || height <= 0 || view2 <= 0) return 0;
+      const vertical = Math.max(0, Math.min(c.bottom, bounds.bottom) - Math.max(c.top, bounds.top)) / Math.min(height, view2);
+      if (c.visibleFraction === void 0) return vertical;
+      return Number.isFinite(c.visibleFraction) ? Math.min(vertical, Math.max(0, Math.min(1, c.visibleFraction))) : 0;
     }
     function apply(id, deliberate = false) {
       if (current === id) return;
@@ -35023,7 +35582,7 @@ THE SOFTWARE.
   }
 
   // src/programme-media-controls.ts
-  var same3 = (a, b) => !!a && !!b && a.kind === b.kind && a.id === b.id && a.token === b.token && a.media === b.media && a.source === b.source;
+  var same4 = (a, b) => !!a && !!b && a.kind === b.kind && a.id === b.id && a.token === b.token && a.media === b.media && a.source === b.source;
   var format = (seconds) => {
     const total = Math.max(0, Math.floor(seconds));
     return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
@@ -35079,7 +35638,7 @@ THE SOFTWARE.
         }
       }
       try {
-        if (!o.promoteManual(captured) || !current() || !same3(captured, source)) return;
+        if (!o.promoteManual(captured) || !current() || !same4(captured, source)) return;
         captured.media.currentTime = chosen;
       } catch {
       } finally {
@@ -35108,7 +35667,7 @@ THE SOFTWARE.
         }
       }
     }
-    const currentRequest = () => !!latestRequest && latestRequest.state !== "failed" && current() && same3(latestRequest.identity, source);
+    const currentRequest = () => !!latestRequest && latestRequest.state !== "failed" && current() && same4(latestRequest.identity, source);
     const exitOwned = () => {
       if (exitPending || o.document.fullscreenElement !== o.fullscreenTarget) return;
       exitPending = true;
@@ -35357,15 +35916,15 @@ THE SOFTWARE.
   }
 
   // src/clip-replay-contract.ts
-  var import_canonicalize8 = __toESM(require_canonicalize(), 1);
+  var import_canonicalize9 = __toESM(require_canonicalize(), 1);
   var REPLAY_LIFETIME_MS = 5 * 6e4;
-  var exact8 = (v, keys) => !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === keys.length && keys.every((k) => Object.hasOwn(v, k));
-  var key3 = (v) => typeof v === "string" && /^[A-Za-z0-9_-]{43}$/.test(v);
-  var integer5 = (v, min, max) => typeof v === "number" && Number.isSafeInteger(v) && v >= min && v <= max;
-  var replayPayload = (cue) => new TextEncoder().encode((0, import_canonicalize8.default)({ domain: "same-end.clip-replay.v1", cue }) || "");
+  var exact9 = (v, keys) => !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === keys.length && keys.every((k) => Object.hasOwn(v, k));
+  var key4 = (v) => typeof v === "string" && /^[A-Za-z0-9_-]{43}$/.test(v);
+  var integer6 = (v, min, max) => typeof v === "number" && Number.isSafeInteger(v) && v >= min && v <= max;
+  var replayPayload = (cue) => new TextEncoder().encode((0, import_canonicalize9.default)({ domain: "same-end.clip-replay.v1", cue }) || "");
   function validateClipReplay(value, roomId2, sourceKey2, card, now = Date.now()) {
     const e = value;
-    if (!exact8(e, ["type", "version", "roomId", "sourceKey", "id", "sequence", "clipId", "manifestSha256", "issuedAtMs", "expiresAtMs", "signature"]) || e.type !== "clip-replay" || e.version !== "semk2-clip-replay/1" || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key3(e.id) || !key3(e.clipId) || !integer5(e.sequence, 0, 1999) || !/^[a-f0-9]{64}$/.test(e.manifestSha256) || !integer5(e.issuedAtMs, 0, Number.MAX_SAFE_INTEGER - REPLAY_LIFETIME_MS) || !integer5(e.expiresAtMs, e.issuedAtMs + 1, e.issuedAtMs + REPLAY_LIFETIME_MS) || e.issuedAtMs > now + 6e4 || e.expiresAtMs <= now || JSON.stringify(e).length > 2048) throw Error("Invalid replay cue");
+    if (!exact9(e, ["type", "version", "roomId", "sourceKey", "id", "sequence", "clipId", "manifestSha256", "issuedAtMs", "expiresAtMs", "signature"]) || e.type !== "clip-replay" || e.version !== "semk2-clip-replay/1" || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key4(e.id) || !key4(e.clipId) || !integer6(e.sequence, 0, 1999) || !/^[a-f0-9]{64}$/.test(e.manifestSha256) || !integer6(e.issuedAtMs, 0, Number.MAX_SAFE_INTEGER - REPLAY_LIFETIME_MS) || !integer6(e.expiresAtMs, e.issuedAtMs + 1, e.issuedAtMs + REPLAY_LIFETIME_MS) || e.issuedAtMs > now + 6e4 || e.expiresAtMs <= now || JSON.stringify(e).length > 2048) throw Error("Invalid replay cue");
     const current = validateClipCard(card, roomId2, sourceKey2, now);
     if (current.clipId !== e.clipId || current.manifest.sha256 !== e.manifestSha256 || e.expiresAtMs > current.expiresAtMs || e.issuedAtMs < current.issuedAtMs) throw Error("Replay card mismatch");
     const { signature: signature2, ...unsigned } = e;
@@ -35591,33 +36150,40 @@ THE SOFTWARE.
     if (!Number.isFinite(value) || !Number.isFinite(date.getTime())) return "time unavailable";
     return date.toLocaleTimeString(void 0, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   }
-  function hasGeneratedCaptionFormat(caption) {
-    const match = /^Recorded moment · (?:about )?(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z)(?: · audio hint: (?:goal|score|penalty|red card|final whistle))?(?: · partial (?:clip|context))?$/.exec(caption);
-    if (!match) return false;
+  function recordedCaptionInfo(caption) {
+    const match = /^Recorded moment · (?:about )?(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z)(?:( · Audio suggests a possible moment)| · audio hint: (?:goal|score|penalty|red card|final whistle))?( · partial (?:clip|context))?$/.exec(caption);
+    if (!match) return;
     const parsed = new Date(match[1]);
-    return Number.isFinite(parsed.getTime()) && parsed.toISOString().replace(".000Z", "Z") === match[1].replace(".000Z", "Z");
+    if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().replace(".000Z", "Z") !== match[1].replace(".000Z", "Z")) return;
+    return { possible: !!match[2], partial: !!match[3] };
   }
   function displayClipCaption(caption) {
-    return hasGeneratedCaptionFormat(caption) ? "From the shared screen" : caption;
+    const info = recordedCaptionInfo(caption);
+    return info?.possible ? "Audio suggests a possible moment" : info ? "From the shared screen" : caption;
   }
   function clipMomentTitle(card) {
-    return hasGeneratedCaptionFormat(card.caption) ? `Screen clip \xB7 first shared ${sharedClipTime(card.issuedAtMs)}` : card.caption;
+    const info = recordedCaptionInfo(card.caption);
+    return info ? `${info.possible ? "Possible moment" : "Screen clip"} \xB7 first shared ${sharedClipTime(card.issuedAtMs)}` : card.caption;
   }
   function clipMomentReference(card) {
-    return hasGeneratedCaptionFormat(card.caption) ? clipMomentTitle(card) : `${card.caption} \xB7 first shared ${sharedClipTime(card.issuedAtMs)}`;
+    return recordedCaptionInfo(card.caption) ? clipMomentTitle(card) : `${card.caption} \xB7 first shared ${sharedClipTime(card.issuedAtMs)}`;
+  }
+  function clipContextNote(card) {
+    return recordedCaptionInfo(card.caption)?.partial ? "Partial context" : "";
   }
   function clipPresentation(card, description, replay = false) {
+    const context = clipContextNote(card), suffix = context ? ` \xB7 ${context}` : "";
     return {
       heading: replay ? "Replay \xB7 earlier highlight" : "Recorded highlight",
       caption: description || displayClipCaption(card.caption),
-      timing: `First shared ${sharedClipTime(card.issuedAtMs)} \xB7 times supplied by the sharer`,
-      provenance: description ? "AI description of sampled clip audio \xB7 may be wrong; does not verify the picture." : "Caption supplied by the sharer.",
+      timing: `First shared ${sharedClipTime(card.issuedAtMs)} \xB7 times supplied by the sharer${suffix}`,
+      provenance: (description ? "AI description of sampled clip audio \xB7 may be wrong; does not verify the picture." : "Caption supplied by the sharer.") + suffix,
       original: card.caption
     };
   }
 
   // src/clip-still-room.ts
-  var import_canonicalize9 = __toESM(require_canonicalize(), 1);
+  var import_canonicalize10 = __toESM(require_canonicalize(), 1);
 
   // src/clip-jpeg.ts
   var CLIP_JPEG_MAX_BYTES = 48 * 1024;
@@ -35709,7 +36275,7 @@ THE SOFTWARE.
 
   // src/clip-still-room.ts
   var extra = (id) => id.startsWith("extra:");
-  var same4 = (a, b) => (0, import_canonicalize9.default)(a) === (0, import_canonicalize9.default)(b);
+  var same5 = (a, b) => (0, import_canonicalize10.default)(a) === (0, import_canonicalize10.default)(b);
   var size2 = (s) => new TextEncoder().encode(s).length;
   function createClipStillRoom(added = () => {
   }) {
@@ -35788,7 +36354,7 @@ THE SOFTWARE.
       }
     };
     const check = (c, v, clip, signal, stillCurrent = () => true) => {
-      if (ctx !== c || version !== v || !c.current() || signal?.aborted || !stillCurrent() || !same4(currentClip(c, clip.clipId), clip)) throw new DOMException("Still cancelled", "AbortError");
+      if (ctx !== c || version !== v || !c.current() || signal?.aborted || !stillCurrent() || !same5(currentClip(c, clip.clipId), clip)) throw new DOMException("Still cancelled", "AbortError");
     };
     const send2 = (id, m) => {
       const raw = JSON.stringify(m);
@@ -35850,12 +36416,12 @@ THE SOFTWARE.
       try {
         const delay = at - Date.now();
         if (delay > 0) {
-          const live = await new Promise((resolve) => {
+          const live = await new Promise((resolve2) => {
             let timer;
             const finish = (value) => {
               clearTimeout(timer);
               q.cancel.delete(cancel);
-              resolve(value);
+              resolve2(value);
             };
             const cancel = () => finish(false);
             q.cancel.add(cancel);
@@ -36042,11 +36608,11 @@ THE SOFTWARE.
           const data = await c.engine.fetch(card.imageDescriptor, suppliers2, signal);
           check(c, v, clip, signal);
           validateClipStillCard(card, c.roomId, c.sourceKey, clip);
-          if (!same4(cards.get(id), card) || !await verifyObjectBytes(data, card.imageDescriptor)) throw Error("Still integrity failed");
+          if (!same5(cards.get(id), card) || !await verifyObjectBytes(data, card.imageDescriptor)) throw Error("Still integrity failed");
           validateClipJpeg(data, { width: card.width, height: card.height });
           check(c, v, clip, signal);
           validateClipStillCard(card, c.roomId, c.sourceKey, clip);
-          if (!same4(cards.get(id), card)) throw Error("Still changed");
+          if (!same5(cards.get(id), card)) throw Error("Still changed");
           stored.set(id, { descriptor: card.imageDescriptor, bytes: data.slice(), owner: owned.owner, engine: new WeakRef(c.engine) });
           committed = true;
           have(id);
@@ -36107,7 +36673,7 @@ THE SOFTWARE.
           if (Object.keys(m).sort().join(",") === (isExtra ? "imageId,type" : "clipId,type") && typeof id === "string") {
             const card = cards.get(id), v = version;
             if (card && extra(id) === isExtra && (c.privateKey || c.canForward())) void pacedCard(peer, card).then((sent) => {
-              if (sent && ctx === c && version === v && c.current() && c.peers().includes(peer) && c.canForward() && same4(cards.get(id), card) && stored.has(id)) send2(peer, isExtra ? { type: "clip-still-v2-have", imageIds: [id] } : { type: "clip-still-have", clipIds: [id] });
+              if (sent && ctx === c && version === v && c.current() && c.peers().includes(peer) && c.canForward() && same5(cards.get(id), card) && stored.has(id)) send2(peer, isExtra ? { type: "clip-still-v2-have", imageIds: [id] } : { type: "clip-still-have", clipIds: [id] });
             });
           }
           return true;
@@ -36164,7 +36730,7 @@ THE SOFTWARE.
         }
         if (m.type === "clip-still-card" || m.type === "clip-still-v2-card") {
           const key9 = m.type === "clip-still-v2-card" ? extraId(m.clipId) : m.clipId, accepted = key9 ? cards.get(key9) : void 0;
-          return !!accepted && (!!c.privateKey || c.canForward()) && same4(accepted, m);
+          return !!accepted && (!!c.privateKey || c.canForward()) && same5(accepted, m);
         }
         if (m.type === "clip-still-have" || m.type === "clip-still-v2-have") {
           const isExtra = m.type === "clip-still-v2-have", list = isExtra ? m.imageIds : m.clipIds;
@@ -36297,7 +36863,7 @@ THE SOFTWARE.
             const context = canvas.getContext("2d");
             if (!context) throw Error("Canvas unavailable.");
             sample.draw(context, 0, 0, width, height);
-            blob = await new Promise((resolve, reject) => canvas.toBlob((b) => b ? resolve(b) : reject(Error("JPEG encoding unavailable.")), "image/jpeg", quality));
+            blob = await new Promise((resolve2, reject) => canvas.toBlob((b) => b ? resolve2(b) : reject(Error("JPEG encoding unavailable.")), "image/jpeg", quality));
           } else throw Error("Canvas unavailable.");
           check();
           if (blob.size > CLIP_JPEG_MAX_BYTES) continue;
@@ -36632,8 +37198,8 @@ THE SOFTWARE.
         failed.delete(id);
         prune();
         if (pending) pending.resolve();
-        const promise = new Promise((resolve) => {
-          pending = { id, resolve };
+        const promise = new Promise((resolve2) => {
+          pending = { id, resolve: resolve2 };
         });
         if (active?.kind === "auto") active.abort.abort();
         schedule();
@@ -36789,8 +37355,8 @@ THE SOFTWARE.
         }
         if (job.consumers.size >= MAX_WAITERS) return Promise.reject(Error("Clip enrichment waiter limit"));
         const target = job;
-        return new Promise((resolve, reject) => {
-          const c = { signal, resolve, reject, done: false, abort: () => {
+        return new Promise((resolve2, reject) => {
+          const c = { signal, resolve: resolve2, reject, done: false, abort: () => {
           } };
           c.abort = () => {
             target.consumers.delete(c);
@@ -36823,23 +37389,23 @@ THE SOFTWARE.
   }
 
   // src/match-contract.ts
-  var import_canonicalize10 = __toESM(require_canonicalize(), 1);
+  var import_canonicalize11 = __toESM(require_canonicalize(), 1);
   var MATCH_LIFETIME_MS = 4 * 60 * 60 * 1e3;
   var matchBytes = (value) => new TextEncoder().encode(value).length;
-  var exact9 = (value, keys) => !!value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === keys.length && keys.every((key9) => Object.hasOwn(value, key9));
-  var integer6 = (n, min, max) => typeof n === "number" && Number.isSafeInteger(n) && n >= min && n <= max;
+  var exact10 = (value, keys) => !!value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === keys.length && keys.every((key9) => Object.hasOwn(value, key9));
+  var integer7 = (n, min, max) => typeof n === "number" && Number.isSafeInteger(n) && n >= min && n <= max;
   var text = (s, chars, bytes9, multiline = false) => typeof s === "string" && !!s.trim() && [...s].length <= chars && matchBytes(s) <= bytes9 && !(multiline ? /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/ : /[\u0000-\u001f\u007f]/).test(s);
-  var key4 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s);
-  var matchPayload = (entry) => new TextEncoder().encode((0, import_canonicalize10.default)({ domain: "same-end.match-update.v1", entry }) || "");
+  var key5 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s);
+  var matchPayload = (entry) => new TextEncoder().encode((0, import_canonicalize11.default)({ domain: "same-end.match-update.v1", entry }) || "");
   function validateMatchUpdate(value, roomId2, sourceKey2, now = Date.now()) {
     const e = value;
-    if (!exact9(e, ["type", "version", "roomId", "sourceKey", "id", "revision", "sequence", "issuedAtMs", "expiresAtMs", "kind", "score", "editorial", "signature"]) || e.type !== "match-update" || e.version !== "semk2-match/1" || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key4(e.id) || !integer6(e.revision, 0, 99) || !integer6(e.sequence, 0, 1999) || !integer6(e.issuedAtMs, 0, Number.MAX_SAFE_INTEGER - MATCH_LIFETIME_MS) || !integer6(e.expiresAtMs, e.issuedAtMs + 1, e.issuedAtMs + MATCH_LIFETIME_MS) || e.issuedAtMs > now + 6e4 || e.expiresAtMs <= now || matchBytes(JSON.stringify(e)) > 4096) throw Error("Invalid match update");
+    if (!exact10(e, ["type", "version", "roomId", "sourceKey", "id", "revision", "sequence", "issuedAtMs", "expiresAtMs", "kind", "score", "editorial", "signature"]) || e.type !== "match-update" || e.version !== "semk2-match/1" || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key5(e.id) || !integer7(e.revision, 0, 99) || !integer7(e.sequence, 0, 1999) || !integer7(e.issuedAtMs, 0, Number.MAX_SAFE_INTEGER - MATCH_LIFETIME_MS) || !integer7(e.expiresAtMs, e.issuedAtMs + 1, e.issuedAtMs + MATCH_LIFETIME_MS) || e.issuedAtMs > now + 6e4 || e.expiresAtMs <= now || matchBytes(JSON.stringify(e)) > 4096) throw Error("Invalid match update");
     if (e.kind === "score") {
       const s = e.score;
-      if (e.revision !== 0 || e.editorial !== null || !exact9(s, ["home", "away", "homeGoals", "awayGoals", "minute"]) || !text(s?.home, 40, 80) || !text(s?.away, 40, 80) || s.home.trim().toLowerCase() === s.away.trim().toLowerCase() || !integer6(s.homeGoals, 0, 30) || !integer6(s.awayGoals, 0, 30) || !(s.minute === null || integer6(s.minute, 0, 150))) throw Error("Invalid score");
+      if (e.revision !== 0 || e.editorial !== null || !exact10(s, ["home", "away", "homeGoals", "awayGoals", "minute"]) || !text(s?.home, 40, 80) || !text(s?.away, 40, 80) || s.home.trim().toLowerCase() === s.away.trim().toLowerCase() || !integer7(s.homeGoals, 0, 30) || !integer7(s.awayGoals, 0, 30) || !(s.minute === null || integer7(s.minute, 0, 150))) throw Error("Invalid score");
     } else if (e.kind === "editorial") {
       const d = e.editorial;
-      if (e.score !== null || !exact9(d, ["title", "text", "removed"]) || typeof d?.removed !== "boolean" || (d.removed ? e.revision === 0 || d.title !== "" || d.text !== "" : !text(d.title, 100, 400) || !text(d.text, 600, 1e3, true) || matchBytes(d.title + d.text) > 1e3)) throw Error("Invalid editorial");
+      if (e.score !== null || !exact10(d, ["title", "text", "removed"]) || typeof d?.removed !== "boolean" || (d.removed ? e.revision === 0 || d.title !== "" || d.text !== "" : !text(d.title, 100, 400) || !text(d.text, 600, 1e3, true) || matchBytes(d.title + d.text) > 1e3)) throw Error("Invalid editorial");
     } else throw Error("Invalid match kind");
     const { signature: signature2, ...unsigned } = e;
     if (!verifySourceSignature(signature2, matchPayload(unsigned), sourceKey2)) throw Error("Match signature rejected");
@@ -37098,13 +37664,13 @@ THE SOFTWARE.
   // src/match-context-view.ts
   var bytes4 = (value) => new TextEncoder().encode(value).length;
   var validText = (value, chars, maxBytes, multiline = false) => !!value.trim() && [...value].length <= chars && bytes4(value) <= maxBytes && !(multiline ? /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/ : /[\u0000-\u001f\u007f]/).test(value);
-  var integer7 = (value, max) => /^\d+$/.test(value.trim()) && Number(value) <= max ? Number(value) : null;
+  var integer8 = (value, max) => /^\d+$/.test(value.trim()) && Number(value) <= max ? Number(value) : null;
   function validateScore(home, away, homeGoals, awayGoals, minute) {
     home = home.trim();
     away = away.trim();
     if (!validText(home, 40, 80) || !validText(away, 40, 80)) return "Enter both team names (up to 40 characters each; some characters take more space).";
     if (home.toLowerCase() === away.toLowerCase()) return "Enter different team names.";
-    const h = integer7(homeGoals, 30), a = integer7(awayGoals, 30), m = minute.trim() ? integer7(minute, 150) : null;
+    const h = integer8(homeGoals, 30), a = integer8(awayGoals, 30), m = minute.trim() ? integer8(minute, 150) : null;
     if (h === null || a === null) return "Enter whole-number scores from 0 to 30.";
     if (minute.trim() && m === null) return "Enter a whole-number minute from 0 to 150, or leave it blank.";
     return { home, away, homeGoals: h, awayGoals: a, minute: m };
@@ -37520,6 +38086,12 @@ THE SOFTWARE.
       this.name = "CommentaryRetryableError";
     }
   };
+  var CommentaryPublicLimitError = class extends Error {
+    constructor() {
+      super("The shared daily AI allowance is reached. Video and chat can continue.");
+      this.name = "CommentaryPublicLimitError";
+    }
+  };
   async function boundedRequest(url2, init, signal) {
     let reader;
     const cancel = () => {
@@ -37585,7 +38157,15 @@ THE SOFTWARE.
         throw Error("Request cancelled");
       }
       if (!response.ok) {
-        if (response.status === 503 && /^application\/json(?:;\s*charset=utf-8)?$/i.test(response.headers.get("content-type") || "")) {
+        if (response.status === 429 && /^application\/json(?:;\s*charset=utf-8)?$/i.test(response.headers.get("content-type") || "")) {
+          let body;
+          try {
+            body = await readJson(response, ERROR_LIMIT);
+          } catch {
+            throw Error("Request failed");
+          }
+          if (body && typeof body === "object" && !Array.isArray(body) && Object.keys(body).length === 1 && body.code === "COMMENTARY_PUBLIC_LIMIT") throw new CommentaryPublicLimitError();
+        } else if (response.status === 503 && /^application\/json(?:;\s*charset=utf-8)?$/i.test(response.headers.get("content-type") || "")) {
           let body;
           try {
             body = await readJson(response, ERROR_LIMIT, true);
@@ -37680,7 +38260,7 @@ THE SOFTWARE.
             sinceYield += Math.max(0, end2 - begin);
             if (sinceYield >= 32768) {
               sinceYield = 0;
-              await new Promise((resolve) => setTimeout(resolve, 0));
+              await new Promise((resolve2) => setTimeout(resolve2, 0));
               if (signal.aborted) throw abortError();
             }
           } finally {
@@ -37846,8 +38426,8 @@ THE SOFTWARE.
     let resolveReady, rejectReady;
     let readiness;
     function resetReadiness() {
-      readiness = new Promise((resolve, reject) => {
-        resolveReady = resolve;
+      readiness = new Promise((resolve2, reject) => {
+        resolveReady = resolve2;
         rejectReady = reject;
       });
       void readiness.catch(() => {
@@ -38000,9 +38580,9 @@ THE SOFTWARE.
       leases.add(lease);
       options.signal?.addEventListener("abort", lease.abort, { once: true });
       let rejectLeaseReady;
-      const leaseReady = new Promise((resolve, reject) => {
+      const leaseReady = new Promise((resolve2, reject) => {
         rejectLeaseReady = reject;
-        readiness.then(resolve, reject);
+        readiness.then(resolve2, reject);
       });
       lease.rejectReady = rejectLeaseReady;
       void leaseReady.catch(() => {
@@ -38318,15 +38898,15 @@ THE SOFTWARE.
   var import_canonicalize13 = __toESM(require_canonicalize(), 1);
 
   // clip-caption-contract.mjs
-  var import_canonicalize11 = __toESM(require_canonicalize(), 1);
+  var import_canonicalize12 = __toESM(require_canonicalize(), 1);
   var enc2 = new TextEncoder();
-  var exact10 = (v, keys) => !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).sort().join(",") === keys.sort().join(",");
-  var key5 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s) && "AEIMQUYcgkosw048".includes(s[42]);
-  var integer8 = (n, min, max) => Number.isSafeInteger(n) && n >= min && n <= max;
-  var clipAudioPayload = (entry) => enc2.encode((0, import_canonicalize11.default)({ domain: "same-end.clip-audio-transcript.v1", entry }) || "");
+  var exact11 = (v, keys) => !!v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).sort().join(",") === keys.sort().join(",");
+  var key6 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s) && "AEIMQUYcgkosw048".includes(s[42]);
+  var integer9 = (n, min, max) => Number.isSafeInteger(n) && n >= min && n <= max;
+  var clipAudioPayload = (entry) => enc2.encode((0, import_canonicalize12.default)({ domain: "same-end.clip-audio-transcript.v1", entry }) || "");
   function validateClipAudioProof(value, roomId2, sourceKey2, binding2) {
     const e = value;
-    if (!exact10(e, ["type", "version", "roomId", "sourceKey", "clipId", "manifestSha256", "durationMs", "sampleStartMs", "sampleEndMs", "id", "revision", "text", "signature"]) || e.type !== "clip-audio-transcript" || e.version !== "semk2-clip-audio/1" || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key5(sourceKey2) || !key5(e.clipId) || !key5(e.id) || typeof e.manifestSha256 !== "string" || !/^[a-f0-9]{64}$/.test(e.manifestSha256) || !integer8(e.durationMs, 1, 18e4) || !integer8(e.sampleStartMs, 0, e.durationMs - 1) || !integer8(e.sampleEndMs, e.sampleStartMs + 1, Math.min(e.durationMs, e.sampleStartMs + 1e4)) || !integer8(e.revision, 0, 99) || typeof e.text !== "string" || !e.text.trim() || e.text.length > 500 || enc2.encode(JSON.stringify(e)).length > 1200) throw Error("Invalid clip audio proof");
+    if (!exact11(e, ["type", "version", "roomId", "sourceKey", "clipId", "manifestSha256", "durationMs", "sampleStartMs", "sampleEndMs", "id", "revision", "text", "signature"]) || e.type !== "clip-audio-transcript" || e.version !== "semk2-clip-audio/1" || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key6(sourceKey2) || !key6(e.clipId) || !key6(e.id) || typeof e.manifestSha256 !== "string" || !/^[a-f0-9]{64}$/.test(e.manifestSha256) || !integer9(e.durationMs, 1, 18e4) || !integer9(e.sampleStartMs, 0, e.durationMs - 1) || !integer9(e.sampleEndMs, e.sampleStartMs + 1, Math.min(e.durationMs, e.sampleStartMs + 1e4)) || !integer9(e.revision, 0, 99) || typeof e.text !== "string" || !e.text.trim() || e.text.length > 500 || enc2.encode(JSON.stringify(e)).length > 1200) throw Error("Invalid clip audio proof");
     if (binding2 && (e.clipId !== binding2.clipId || e.manifestSha256 !== binding2.manifestSha256 || e.durationMs !== binding2.durationMs)) throw Error("Clip binding mismatch");
     const { signature: signature2, ...unsigned } = e;
     if (!verifySourceSignature(signature2, clipAudioPayload(unsigned), sourceKey2)) throw Error("Clip audio signature rejected");
@@ -38351,19 +38931,6 @@ THE SOFTWARE.
   var clipAudioPayload2 = (entry) => new Uint8Array(clipAudioPayload(entry));
   var validateClipAudioProof2 = (value, roomId2, sourceKey2, binding2) => validateClipAudioProof(value, roomId2, sourceKey2, binding2);
   var validateClipCaptionInput2 = (value, roomId2, sourceKey2) => validateClipCaptionInput(value, roomId2, sourceKey2);
-
-  // transcript-contract.mjs
-  var import_canonicalize12 = __toESM(require_canonicalize(), 1);
-  var key6 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s) && "AEIMQUYcgkosw048".includes(s[42]);
-  var transcriptPayload = (entry) => new TextEncoder().encode((0, import_canonicalize12.default)({ domain: entry.version === "semk2-transcript/2" ? "same-end.automatic-transcript.v2" : "same-end.automatic-transcript.v1", entry }) || "");
-  var number = (x, min, max) => typeof x === "number" && Number.isSafeInteger(x) && x >= min && x <= max;
-  function validateTranscript(value, roomId2, sourceKey2) {
-    const e = value;
-    if (!e || typeof e !== "object" || Array.isArray(e) || Object.keys(e).sort().join(",") !== (e.version === "semk2-transcript/2" ? ["concern", "endMs", "id", "revision", "roomId", "signature", "sourceKey", "startMs", "text", "type", "version"] : ["endMs", "id", "revision", "roomId", "signature", "sourceKey", "startMs", "text", "type", "version"]).sort().join(",") || e.type !== "automatic-transcript" || !["semk2-transcript/1", "semk2-transcript/2"].includes(e.version) || e.version === "semk2-transcript/2" && (e.concern !== "repetitive-speech" || e.revision !== 0) || e.roomId !== roomId2 || e.sourceKey !== sourceKey2 || !key6(sourceKey2) || !key6(e.id) || !number(e.revision, 0, 99) || typeof e.text !== "string" || !e.text.trim() || e.text.length > 500 || !number(e.startMs, 0, 864e5) || !number(e.endMs, e.startMs, 864e5)) throw Error("Invalid transcript");
-    const { signature: signature2, ...unsigned } = e;
-    if (!verifySourceSignature(signature2, transcriptPayload(unsigned), sourceKey2)) throw Error("Transcript signature rejected");
-    return e;
-  }
 
   // commentary-contract.mjs
   var bytes5 = (s) => new TextEncoder().encode(s).length;
@@ -38610,7 +39177,7 @@ THE SOFTWARE.
       const proofs = [];
       for (const window2 of windows) {
         check();
-        const result = await new Promise((resolve, reject) => lease.submit(window2.pcm, { result: resolve, error: reject }));
+        const result = await new Promise((resolve2, reject) => lease.submit(window2.pcm, { result: resolve2, error: reject }));
         check();
         const words = result.segments.map((segment) => segment.text.trim()).filter(Boolean).join(" ").trim();
         if (repetitiveSpeech(words) || !words || words.length > 350 || new TextEncoder().encode(words).length > 500) continue;
@@ -38769,7 +39336,7 @@ THE SOFTWARE.
   // src/ai-request-queue.ts
   var cancelled4 = () => new DOMException("AI request cancelled.", "AbortError");
   function createAiRequestQueue() {
-    let config2, generation = 0, last2 = -Infinity, count = 0, budgetScope, lastPurpose, lastCaptionWasRecovery = false;
+    let config2, generation = 0, last2 = -Infinity, count = 0, budgetScope, lastPurpose, lastCaptionWasRecovery = false, eventAfterRecoveryCommentary = false;
     let running, abort2, timer;
     let pumping = false, repump = false;
     const pending = /* @__PURE__ */ new Map();
@@ -38817,9 +39384,13 @@ THE SOFTWARE.
         }, delay);
         return;
       }
-      const other = lastPurpose === "clip-caption" ? "commentary" : "clip-caption";
+      const purposes = ["commentary", "clip-caption", "event-selection"];
+      const index = lastPurpose ? purposes.indexOf(lastPurpose) : -1;
+      const next = purposes.map((_, i) => purposes[(index + 1 + i) % purposes.length]).find((purpose) => pending.has(purpose));
       const recovery = pending.get("clip-caption");
-      const job = (lastPurpose === "clip-caption" && !lastCaptionWasRecovery && recovery?.recovery ? recovery : void 0) || pending.get(other) || recovery || pending.get("commentary");
+      const forced = lastPurpose === "clip-caption" && lastCaptionWasRecovery ? pending.get("commentary") : void 0;
+      const followup = lastPurpose === "commentary" && eventAfterRecoveryCommentary ? pending.get("event-selection") : void 0;
+      const job = forced || followup || (lastPurpose === "clip-caption" && !lastCaptionWasRecovery && recovery?.recovery ? recovery : void 0) || (next ? pending.get(next) : void 0);
       pending.delete(job.purpose);
       if (job.signal.aborted) {
         remove(job);
@@ -38840,24 +39411,57 @@ THE SOFTWARE.
         pump();
         return;
       }
+      let body;
+      const queuedBeforePrepare = pending.get(job.purpose);
+      try {
+        const prepared2 = job.prepare ? job.prepare() : job.body;
+        if (prepared2 === void 0) throw cancelled4();
+        body = JSON.stringify(prepared2);
+        if (typeof body !== "string") throw cancelled4();
+      } catch {
+        remove(job);
+        job.reject(cancelled4());
+        pump();
+        return;
+      }
+      if (job.prepare) {
+        const matches = () => !job.signal.aborted && config2 === c && generation === v && !running && pending.get(job.purpose) === queuedBeforePrepare;
+        if (!matches() || !valid2(c.current) || !matches() || !valid2(job.current) || !matches()) {
+          remove(job);
+          job.reject(cancelled4());
+          pump();
+          return;
+        }
+      }
+      eventAfterRecoveryCommentary = !!forced;
       running = job;
       const a = abort2 = new AbortController();
       count++;
       lastPurpose = job.purpose;
       lastCaptionWasRecovery = job.purpose === "clip-caption" && job.recovery;
       last2 = performance.now();
+      try {
+        job.onDispatch?.();
+      } catch {
+      }
       const timeout = setTimeout(() => a.abort(), 12e3);
       const stillCurrent = () => {
         if (v !== generation || config2 !== c || job.signal.aborted || !valid2(c.current)) return false;
         if (v !== generation || config2 !== c || job.signal.aborted || !valid2(job.current)) return false;
         return v === generation && config2 === c && !job.signal.aborted;
       };
-      void boundedRequest(c.url, { method: "POST", headers: { Authorization: "Bearer " + c.token, "Content-Type": "application/json" }, body: JSON.stringify(job.body), credentials: "omit", redirect: "error" }, a.signal).then((value) => {
+      void boundedRequest(c.url, { method: "POST", headers: { Authorization: "Bearer " + c.token, "Content-Type": "application/json" }, body, credentials: "omit", redirect: "error" }, a.signal).then((value) => {
         if (stillCurrent()) job.resolve(value);
         else job.reject(cancelled4());
       }, (error) => {
         if (!stillCurrent()) job.reject(cancelled4());
-        else job.reject(error instanceof CommentaryRetryableError ? error : Error("AI request unavailable."));
+        else {
+          if (error instanceof CommentaryPublicLimitError) try {
+            c.onPublicLimit?.();
+          } catch {
+          }
+          job.reject(error instanceof CommentaryRetryableError || error instanceof CommentaryPublicLimitError ? error : Error("AI request unavailable."));
+        }
       }).finally(() => {
         clearTimeout(timeout);
         remove(job);
@@ -38893,6 +39497,7 @@ THE SOFTWARE.
           last2 = -Infinity;
           lastPurpose = void 0;
           lastCaptionWasRecovery = false;
+          eventAfterRecoveryCommentary = false;
         }
         budgetScope = c.scope;
         config2 = { ...c };
@@ -38909,8 +39514,8 @@ THE SOFTWARE.
         if (!c || signal.aborted) return Promise.reject(cancelled4());
         const currentConfig = valid2(c.current);
         if (!currentConfig || signal.aborted || config2 !== c || generation !== v) return Promise.reject(cancelled4());
-        return new Promise((resolve, reject) => {
-          const job = { body, purpose, signal, current, recovery: purpose === "clip-caption" && options.recovery === true, resolve, reject, cancel: () => {
+        return new Promise((resolve2, reject) => {
+          const job = { body, purpose, signal, current, recovery: purpose === "clip-caption" && options.recovery === true, onDispatch: options.onDispatch, prepare: options.prepare, resolve: resolve2, reject, cancel: () => {
             if (pending.get(purpose) === job) {
               pending.delete(purpose);
               remove(job);
@@ -38936,100 +39541,6 @@ THE SOFTWARE.
 
   // src/commentary-room.ts
   var import_canonicalize14 = __toESM(require_canonicalize(), 1);
-
-  // src/transcript-room.ts
-  function validateTranscript2(value, roomId2, sourceKey2) {
-    return validateTranscript(value, roomId2, sourceKey2);
-  }
-  var MAX_TRANSCRIPT_IDS = 32e3;
-  function createTranscriptRoom(added) {
-    let ctx, version = 0, pending = 0;
-    const entries2 = /* @__PURE__ */ new Map(), seen = /* @__PURE__ */ new Set(), rates = /* @__PURE__ */ new Map();
-    const notify = () => {
-      try {
-        ctx?.changed();
-      } catch {
-      }
-    };
-    function apply(e) {
-      const old = entries2.get(e.id);
-      if (!old && (seen.has(e.id) || seen.size >= MAX_TRANSCRIPT_IDS)) return false;
-      if (old && (e.revision <= old.revision || e.startMs !== old.startMs || e.endMs !== old.endMs)) return false;
-      if (!old && entries2.size >= 200) entries2.delete(entries2.keys().next().value);
-      entries2.set(e.id, e);
-      if (!old) {
-        seen.add(e.id);
-        try {
-          added(e);
-        } catch {
-        }
-      }
-      notify();
-      return true;
-    }
-    async function issue(text2, startMs, endMs, id = randomKey(), revision = 0, stillCurrent = () => true, concern) {
-      const c = ctx, v = version;
-      if (!c?.privateKey || !c.current() || pending >= 8) throw Error("Transcript unavailable");
-      pending++;
-      try {
-        const unsigned = { type: "automatic-transcript", version: concern ? "semk2-transcript/2" : "semk2-transcript/1", ...concern ? { concern } : {}, roomId: c.roomId, sourceKey: c.sourceKey, id, revision, text: text2.trim(), startMs: Math.round(startMs), endMs: Math.round(endMs) };
-        const signature2 = b642(new Uint8Array(await crypto.subtle.sign("Ed25519", c.privateKey, transcriptPayload(unsigned))));
-        if (ctx !== c || v !== version || !c.current() || !stillCurrent()) return;
-        const e = validateTranscript2({ ...unsigned, signature: signature2 }, c.roomId, c.sourceKey);
-        if (!apply(e)) throw Error("Transcript limit or stale revision");
-        const raw = JSON.stringify(e);
-        for (const peer of c.peers()) c.send(peer, raw);
-        return e;
-      } finally {
-        pending--;
-      }
-    }
-    return { attach(c) {
-      ctx = c;
-      version++;
-    }, detach() {
-      ctx = void 0;
-      version++;
-      rates.clear();
-    }, clear() {
-      ctx = void 0;
-      version++;
-      entries2.clear();
-      seen.clear();
-      rates.clear();
-    }, list() {
-      return [...entries2.values()];
-    }, publish(text2, startMs, endMs, stillCurrent, concern) {
-      return issue(text2, startMs, endMs, void 0, 0, stillCurrent, concern);
-    }, correct(id, text2) {
-      const old = entries2.get(id);
-      if (!old || old.revision >= 99) throw Error("Transcript no longer available");
-      return issue(text2, old.startMs, old.endMs, id, old.revision + 1);
-    }, receive(peer, raw) {
-      if (raw.length > 4096) return false;
-      let m;
-      try {
-        m = JSON.parse(raw);
-      } catch {
-        return false;
-      }
-      if (m?.type !== "automatic-transcript") return false;
-      const c = ctx;
-      if (!c || !c.current()) return true;
-      const now = Date.now(), rate = rates.get(peer);
-      if (!rate || now - rate.at >= 1e4) rates.set(peer, { at: now, count: 1 });
-      else if (++rate.count > 40) return true;
-      try {
-        apply(validateTranscript2(m, c.roomId, c.sourceKey));
-      } catch {
-      }
-      return true;
-    }, forgetPeer(id) {
-      rates.delete(id);
-    } };
-  }
-
-  // src/commentary-room.ts
   var bytes7 = (s) => new TextEncoder().encode(s).length;
   var key7 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s) && "AEIMQUYcgkosw048".includes(s[42]);
   var payload7 = (entry) => new TextEncoder().encode((0, import_canonicalize14.default)({ domain: "same-end.ai-commentary.v1", entry }) || "");
@@ -39191,6 +39702,37 @@ THE SOFTWARE.
     } };
   }
 
+  // src/commentary-window.ts
+  var MAX_GAP_MS = 8e3;
+  var MAX_WINDOW_MS = 25e3;
+  var ending = /\b(?:final whistle|full[ -]?time|(?:match|game) (?:is over|has ended|has finished)|(?:this|that|it) (?:ends|concludes) (?:our|the|this|that) (?:[a-z-]+\s+){0,2}(?:match|game))\b/i;
+  var qualified = /\b(?:no|not|never|would|could|might|may|if|unless|before|until)\b|n['’]t\b/i;
+  function hasEndingCue(text2) {
+    return text2.split(/[.!?;]+/).some((sentence) => ending.test(sentence) && !qualified.test(sentence));
+  }
+  function breaksAfter(previous, next) {
+    return next.startMs - previous.endMs > MAX_GAP_MS || next.startMs >= previous.endMs && hasEndingCue(previous.text);
+  }
+  function latestCommentaryWindow(entries2) {
+    const ordered = [...entries2].sort((a, b) => a.startMs - b.startMs || a.endMs - b.endMs);
+    if (!ordered.length) return [];
+    let start = ordered.length - 1;
+    const end2 = ordered[start].endMs;
+    while (start > 0 && !breaksAfter(ordered[start - 1], ordered[start]) && end2 - ordered[start - 1].startMs <= MAX_WINDOW_MS) start--;
+    return ordered.slice(start);
+  }
+  function commentaryWindowCurrent(snapshot3, newer) {
+    if (!snapshot3.length) return false;
+    let previous = snapshot3[snapshot3.length - 1];
+    const ordered = [...newer].sort((a, b) => a.startMs - b.startMs || a.endMs - b.endMs);
+    for (const item of ordered) {
+      if (item.endMs <= previous.endMs) continue;
+      if (breaksAfter(previous, item)) return false;
+      previous = item;
+    }
+    return true;
+  }
+
   // src/commentary-controller.ts
   function createCommentaryController() {
     let ctx, enabled2 = false, generation = 0, abort2, timer, last2 = 0, count = 0;
@@ -39229,26 +39771,53 @@ THE SOFTWARE.
         c.status("Unavailable");
         return;
       }
-      const snapshot3 = [...queued.values()].slice(0, 6);
-      for (const t of snapshot3) queued.delete(t.id);
-      const v = generation, a = abort2 = new AbortController();
+      const v = generation, a = abort2 = new AbortController(), requestId = randomKey();
       count++;
-      const valid2 = () => ctx === c && enabled2 && v === generation && !a.signal.aborted && c.current() && c.active() && currentSnapshot(c, snapshot3);
+      let snapshot3 = latestCommentaryWindow([...queued.values()]), prepared2 = false;
+      const owned = () => ctx === c && enabled2 && v === generation && !a.signal.aborted;
+      const valid2 = () => {
+        try {
+          return owned() && c.current() && owned() && c.active() && owned() && (!prepared2 || currentSnapshot(c, snapshot3) && commentaryWindowCurrent(snapshot3, [...queued.values()])) && owned();
+        } catch {
+          return false;
+        }
+      };
+      const prepare = () => {
+        if (!valid2()) return;
+        const captured = [...queued.values()], fresh = latestCommentaryWindow(captured);
+        if (!fresh.length) return;
+        validateCommentaryInput2(fresh, c.roomId, c.sourceKey);
+        if (!valid2() || !currentSnapshot(c, fresh) || !owned()) return;
+        snapshot3 = fresh;
+        prepared2 = true;
+        for (const t of captured) if (queued.get(t.id) === t) queued.delete(t.id);
+        return { roomId: c.roomId, sourceKey: c.sourceKey, requestId, transcripts: snapshot3 };
+      };
       c.status("Generating");
       const timeout = c.request ? void 0 : setTimeout(() => a.abort(), 12e3);
       try {
         validateCommentaryInput2(snapshot3, c.roomId, c.sourceKey);
         if (!valid2()) return;
-        const requestId = randomKey();
-        const body = { roomId: c.roomId, sourceKey: c.sourceKey, requestId, transcripts: snapshot3 };
-        const data = await (c.request ? c.request(body, a.signal, "commentary") : boundedRequest(c.config.url, { method: "POST", headers: { Authorization: "Bearer " + c.token, "Content-Type": "application/json" }, body: JSON.stringify(body), credentials: "omit", redirect: "error" }, a.signal));
+        const initial = { roomId: c.roomId, sourceKey: c.sourceKey, requestId, transcripts: snapshot3 };
+        const data = await (c.request ? c.request(initial, a.signal, "commentary", valid2, { prepare }) : (() => {
+          const body = prepare();
+          if (!body) throw Error("Commentary unavailable");
+          return boundedRequest(c.config.url, { method: "POST", headers: { Authorization: "Bearer " + c.token, "Content-Type": "application/json" }, body: JSON.stringify(body), credentials: "omit", redirect: "error" }, a.signal);
+        })());
+        prepared2 = true;
         if (!valid2()) return;
+        for (const t of snapshot3) if (queued.get(t.id) === t) queued.delete(t.id);
         if (!data || Object.keys(data).sort().join(",") !== "requestId,result" || data.requestId !== requestId) throw Error("Invalid response");
         const result = validateCommentaryResult2(data.result, snapshot3);
         if (result.text) await c.publish(result, snapshot3, valid2);
         if (valid2()) c.status("Waiting");
-      } catch {
-        if (ctx === c && enabled2 && v === generation) c.status("Error");
+      } catch (error) {
+        if (ctx === c && enabled2 && v === generation) {
+          if (error instanceof CommentaryPublicLimitError) {
+            enabled2 = false;
+            c.status(error.message);
+          } else c.status("Error");
+        }
       } finally {
         clearTimeout(timeout);
         if (abort2 === a) abort2 = void 0;
@@ -39374,7 +39943,7 @@ THE SOFTWARE.
     const readClock = options.now ?? (() => performance.now());
     const setTimer = options.setTimer ?? ((fn, delay) => setTimeout(fn, delay));
     const clearTimer = options.clearTimer ?? ((handle) => clearTimeout(handle));
-    let lastClock = 0, lastAttempt = -Infinity, generation = 0, ctx;
+    let lastClock = 0, lastAttempt = -Infinity, generation = 0, evidenceGeneration = 0, ctx;
     let batch = [], batchChars = 0, batchScheduled = false, queue = [], queueChars = 0;
     let timer, timerSet = false, stallTimer, stallTimerSet = false, inFlight = false, activeChars = 0;
     const counts = { published: 0, failed: 0, omitted: 0, invalid: 0, stale: 0 };
@@ -39428,6 +39997,7 @@ THE SOFTWARE.
     };
     const omit = (n, message2) => {
       if (n) {
+        evidenceGeneration++;
         counts.omitted += n;
         report(message2);
       }
@@ -39481,7 +40051,13 @@ THE SOFTWARE.
         }
         invoked = true;
         return c.publish(group.text, group.startMs, group.endMs, current, group.concern);
-      }).then(() => {
+      }).then((entry) => {
+        if (invoked && current() && entry && group.window && group.evidenceGeneration === evidenceGeneration) {
+          try {
+            c.published?.(entry, { ...group.window }, () => current() && group.evidenceGeneration === evidenceGeneration);
+          } catch {
+          }
+        }
         if (invoked && current()) {
           counts.published++;
           report(counts.omitted ? `Transcription published locally. ${counts.omitted} transcription segments or groups omitted.` : "Transcription published locally.", c);
@@ -39527,6 +40103,10 @@ THE SOFTWARE.
           push();
         }
         if (group) {
+          if (group.evidenceGeneration !== s.evidenceGeneration) {
+            group.window = void 0;
+            group.evidenceGeneration = -1;
+          }
           group.text = text2;
           group.startMs = start;
           group.endMs = end2;
@@ -39554,13 +40134,16 @@ THE SOFTWARE.
           omit(1, "Some transcription was omitted because a result was too large.");
           return false;
         }
-        batch.push({ text: text2, startMs: segment.startMs, endMs: segment.endMs, at: now(), concern: evidence?.concern, window: evidence });
+        batch.push({ text: text2, startMs: segment.startMs, endMs: segment.endMs, at: now(), concern: evidence?.concern, window: evidence, evidenceGeneration });
         batchChars += text2.length;
         if (!batchScheduled) {
           batchScheduled = true;
           queueMicrotask(() => flush(v));
         }
         return true;
+      },
+      invalidateEvidence() {
+        evidenceGeneration++;
       },
       stop() {
         invalidate();
@@ -39662,7 +40245,7 @@ THE SOFTWARE.
     if (parent.aborted) cancel(abortReason(parent));
     else if (video.readyState !== "live") cancel(new CaptureEndedError("video"));
     else if (audio && audio.readyState !== "live") cancel(new CaptureEndedError("audio"));
-    const wait5 = (operation, label, timeoutMs = 15e3) => new Promise((resolve, reject) => {
+    const wait5 = (operation, label, timeoutMs = 15e3) => new Promise((resolve2, reject) => {
       let settled = false;
       const interrupted = () => finish(abortReason(controller2.signal));
       const timer = setTimeout(
@@ -39675,7 +40258,7 @@ THE SOFTWARE.
         clearTimeout(timer);
         controller2.signal.removeEventListener("abort", interrupted);
         if (error) reject(error);
-        else resolve(value);
+        else resolve2(value);
       }
       controller2.signal.addEventListener("abort", interrupted, { once: true });
       if (controller2.signal.aborted) interrupted();
@@ -39925,7 +40508,7 @@ THE SOFTWARE.
     const adjacent = (prior, entry, offset) => offset - prior.endMs <= 3e4 && entry.id !== prior.id && entry.startMs >= prior.endMs && entry.startMs - prior.endMs <= 250 && entry.endMs - prior.startMs <= 3e4 && prior.text.length + entry.text.length + 1 <= 1e3;
     const unfinishedQuote = (text2) => (text2.match(/"/g) || []).length % 2 === 1 || (text2.match(/“/g) || []).length > (text2.match(/”/g) || []).length;
     const complete = (text2) => !unfinishedQuote(text2) && /[.!?]["”’]?\s*$/.test(text2);
-    const qualified = (text2) => unfinishedQuote(text2) || /["“”‘’]/.test(text2) || /\b(?:no|not|never|without|disallowed|ruled out|denied|if|unless|could|would|might|may|should|will|predict|prediction|forecast|reported|reportedly|said|says|quoted|earlier|previously|yesterday|last (?:match|game|week|month|season|year)|years? ago|career|this season|previous seasons?|history)\b/i.test(text2);
+    const qualified2 = (text2) => unfinishedQuote(text2) || /["“”‘’]/.test(text2) || /\b(?:no|not|never|without|disallowed|ruled out|denied|if|unless|could|would|might|may|should|will|predict|prediction|forecast|reported|reportedly|said|says|quoted|earlier|previously|yesterday|last (?:match|game|week|month|season|year)|years? ago|career|this season|previous seasons?|history)\b/i.test(text2);
     const explicitReplay = (text2) => /\breplay\b.{0,60}\bgoal\b|\bgoal\b.{0,60}\breplay\b/i.test(text2);
     const replayBlocking = (text2) => /\b(?:no|not|never|without|disallowed|ruled out|denied|if|unless|could|would|might|may|should|will|predict|prediction|forecast)\b/i.test(text2);
     const historicalReport = (text2) => /\b(?:reported|reportedly|said|says|quoted|earlier|previously|yesterday|last (?:match|game|week|month|season|year)|years? ago|career|this season|previous seasons?|history)\b/i.test(text2);
@@ -39943,7 +40526,7 @@ THE SOFTWARE.
         if (qualifier && adjacent(qualifier, entry, offset)) {
           qualifier = { id: entry.id, startMs: qualifier.startMs, endMs: entry.endMs, text: qualifier.text + " " + entry.text };
           if (complete(qualifier.text)) qualifier = void 0;
-        } else qualifier = !complete(entry.text) && qualified(entry.text) ? { ...entry } : void 0;
+        } else qualifier = !complete(entry.text) && qualified2(entry.text) ? { ...entry } : void 0;
         if (hasIndividualHint) return;
         if (prior && (entry.startMs < prior.endMs || entry.id === prior.id)) return;
         if (prior && adjacent(prior, entry, offset)) {
@@ -40381,7 +40964,7 @@ THE SOFTWARE.
   var CONTEXT_WINDOW_MAX_MS = 4e4;
   var CONTEXT_WINDOW_REMUX_HEADROOM_MS = 1e3;
   var CONTEXT_WINDOW_INPUT_MAX_BYTES = 3 * 1024 * 1024;
-  var CONTEXT_PADDING_MS = 1e4;
+  var CONTEXT_PADDING_MS = 15e3;
   var CAPTURE_CLOCK_MAX_SPAN_MS = 4e3;
   var MAX_FRAGMENTS = 64;
   function fragmentEnd(object) {
@@ -40819,6 +41402,13 @@ THE SOFTWARE.
     }
   }
 
+  // src/clip-window-coverage.ts
+  var WINDOW_TIME_ALLOWANCE_MS = 5;
+  function sourceWindowContains(actual, required) {
+    if (![actual.startMs, actual.endMs, required.startMs, required.endMs].every(Number.isFinite) || actual.endMs <= actual.startMs || required.endMs <= required.startMs) return false;
+    return actual.startMs <= required.startMs + WINDOW_TIME_ALLOWANCE_MS && actual.endMs >= required.endMs - WINDOW_TIME_ALLOWANCE_MS;
+  }
+
   // src/clip-context-moments.ts
   var LOCAL_LIMIT = 6 * 1024 * 1024;
   var RING_MS = 6e4;
@@ -40920,6 +41510,7 @@ THE SOFTWARE.
       r.ring = [];
       r.cues = [];
       r.queue = [];
+      r.pendingEvent = void 0;
       if (r.publisher) {
         const p = r.publisher;
         r.publisher = void 0;
@@ -40941,6 +41532,7 @@ THE SOFTWARE.
       r.ring = [];
       r.cues = [];
       r.queue = [];
+      r.pendingEvent = void 0;
       say(`${reason} Switching to another recording method.`);
       closing++;
       void (async () => {
@@ -40994,13 +41586,37 @@ THE SOFTWARE.
     function plan(r) {
       if (!r.clock || r.ring.length < 2 || r.transitioning || r.fallback) return;
       const clock = now();
+      if (r.pendingEvent && r.queue.length < 2) {
+        const pending = r.pendingEvent;
+        let usable = false;
+        try {
+          usable = r.recording?.recordingId === pending.value.recordingId && !r.recordingRetired && retainsEvent(pending.value.recordingId, pending.value.startMs - pending.value.uncertaintyMs, pending.value.endMs + pending.value.uncertaintyMs) && pending.current();
+        } catch {
+        }
+        if (!usable) {
+          r.pendingEvent = void 0;
+          say("The audio suggestion is no longer available in the retained recording.");
+        } else {
+          const result = planContextWindow(r.ring, { startMs: pending.value.transcriptStartMs, endMs: pending.value.transcriptEndMs }, r.clock, roundElapsed(pending.received, clock) >= 15e3);
+          if (result.state === "ready") {
+            if (queue(r, { objects: result.objects, event: { value: pending.value, current: pending.current }, coverage: result.coverage, requested: { startMs: result.requestedStartMs, endMs: result.requestedEndMs }, cueStart: result.cueMediaStartMs, cueEnd: result.cueMediaEndMs, at: clock })) {
+              r.ids.set(pending.key, clock.mono);
+              while (r.ids.size > 256) r.ids.delete(r.ids.keys().next().value);
+              r.pendingEvent = void 0;
+            }
+          } else if (result.state === "unavailable") {
+            r.pendingEvent = void 0;
+            say("The audio suggestion is no longer available in the retained recording.");
+          }
+        }
+      }
       while (r.cues.length && r.queue.length < 2) {
         const cue = r.cues[0];
         const partial = roundElapsed(cue.received, clock) >= 15e3;
         const result = planContextWindow(r.ring, { startMs: cue.entry.startMs, endMs: cue.entry.endMs }, r.clock, partial);
         if (result.state === "wait") break;
         r.cues.shift();
-        if (result.state === "ready") queue(r, { objects: result.objects, cue, coverage: result.coverage, cueStart: result.cueMediaStartMs, cueEnd: result.cueMediaEndMs, at: clock });
+        if (result.state === "ready") queue(r, { objects: result.objects, cue, coverage: result.coverage, requested: { startMs: result.requestedStartMs, endMs: result.requestedEndMs }, cueStart: result.cueMediaStartMs, cueEnd: result.cueMediaEndMs, at: clock });
         else if (result.reason === "clock" || result.reason === "input") fallback(r, "The capture clock or format could not be verified.");
         else say("The audio hint could not be covered by the retained recording.");
       }
@@ -41008,12 +41624,53 @@ THE SOFTWARE.
         const result = planBaselineWindow(r.ring, !r.baselineDone);
         if (result.state === "ready") {
           r.baselineRefusal = void 0;
-          queue(r, { objects: result.objects, coverage: result.coverage, cueStart: result.cueMediaStartMs, cueEnd: result.cueMediaEndMs, at: clock });
+          queue(r, { objects: result.objects, coverage: result.coverage, requested: { startMs: result.requestedStartMs, endMs: result.requestedEndMs }, cueStart: result.cueMediaStartMs, cueEnd: result.cueMediaEndMs, at: clock });
         } else if (result.state === "unavailable" && (result.reason === "budget" || result.reason === "missing") && r.baselineRefusal !== result.reason) {
           r.baselineRefusal = result.reason;
           say(result.reason === "budget" ? "A 30-second moment exceeds the recording size limit. Still recording and retrying." : "A continuous 30-second moment is not yet available. Still recording and retrying.");
         }
       }
+    }
+    function eventCurrent(r, job) {
+      if (!job.event) return true;
+      try {
+        return valid2(r) && r.recording?.recordingId === job.event.value.recordingId && !r.recordingRetired && job.event.current() && job.objects.every((o) => r.ring.includes(o));
+      } catch {
+        return false;
+      }
+    }
+    function retainsEvent(recordingId, startMs, endMs) {
+      const r = run;
+      if (!r || !valid2(r) || r.recordingRetired || r.recording?.recordingId !== recordingId || !Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) return false;
+      const media = r.ring.slice(1);
+      let cursor = startMs;
+      for (let i = 0; i < media.length; i++) {
+        const item = media[i];
+        if (end(item) <= cursor) continue;
+        if (item.mediaStartMs > cursor + 5) return false;
+        cursor = end(item);
+        if (cursor >= endMs) return true;
+      }
+      return false;
+    }
+    function offerEvent(value, current) {
+      const r = run;
+      if (!value || !Array.isArray(value.evidence) || !value.evidence.length || value.evidence.length > 12 || !Number.isSafeInteger(value.startMs) || !Number.isSafeInteger(value.endMs) || !Number.isSafeInteger(value.uncertaintyMs) || value.uncertaintyMs < 0 || value.uncertaintyMs > 1e4 || !retainsEvent(value.recordingId, value.startMs - value.uncertaintyMs, value.endMs + value.uncertaintyMs) || !r || !valid2(r) || !r.clock || r.fallback || r.transitioning || r.recordingRetired || r.recording?.recordingId !== value.recordingId || r.pendingEvent || r.queue.length >= 2) return false;
+      try {
+        if (!current()) return false;
+      } catch {
+        return false;
+      }
+      const key9 = value.evidence.map((e) => e.transcriptSignature).join(":");
+      if (r.ids.has(key9)) return false;
+      const result = planContextWindow(r.ring, { startMs: value.transcriptStartMs, endMs: value.transcriptEndMs }, r.clock, false);
+      if (result.state === "unavailable") {
+        say("The audio suggestion is no longer available in the retained recording.");
+        return false;
+      }
+      r.pendingEvent = { value: structuredClone(value), current, key: key9, received: now() };
+      wake();
+      return true;
     }
     function pump(r) {
       if (!valid2(r) || r.transitioning || r.fallback || exporting || publishing || !r.queue.length || !deps.ready() || deps.capacity().busy) return;
@@ -41023,15 +41680,29 @@ THE SOFTWARE.
         return;
       }
       const job = r.queue.shift();
+      if (!eventCurrent(r, job)) {
+        say("The audio suggestion is no longer available in the retained recording.");
+        schedule(r, 1);
+        return;
+      }
       r.pinned = job;
       exporting = true;
       const operation = (async () => {
         try {
           const result = await remux(job.objects, r.childAbort.signal);
           if (!valid2(r) || r.transitioning) return;
+          if (!eventCurrent(r, job)) {
+            say("The audio suggestion is no longer available in the retained recording.");
+            return;
+          }
           const outputBytes = Array.isArray(result.objects) ? result.objects.reduce((sum, object) => sum + (object?.bytes instanceof Uint8Array ? object.bytes.byteLength : Infinity), 0) : Infinity;
-          if (!Number.isSafeInteger(result.durationMs) || result.durationMs < 1 || result.durationMs > 4e4 || result.objects.length < 2 || outputBytes > 3 * 1024 * 1024 - 65536) {
+          if (!Number.isSafeInteger(result.durationMs) || result.durationMs < 1 || result.durationMs > 4e4 || !Array.isArray(result.objects) || result.objects.length < 2 || outputBytes > 3 * 1024 * 1024 - 65536 || !Number.isFinite(result.sourceStartMs) || !Number.isFinite(result.sourceEndMs) || result.sourceEndMs <= result.sourceStartMs || Math.abs(result.sourceEndMs - result.sourceStartMs - result.durationMs) > 2) {
             throw Error("The exported context exceeds its duration or size limit.");
+          }
+          const actual = { startMs: result.sourceStartMs, endMs: result.sourceEndMs };
+          if ((job.event || job.cue) && !sourceWindowContains(actual, { startMs: job.cueStart, endMs: job.cueEnd })) {
+            say("The exported recording did not cover the suggested moment. Recording continues.");
+            return;
           }
           r.output = result.objects;
           if (!evict(r)) {
@@ -41039,13 +41710,13 @@ THE SOFTWARE.
             return;
           }
           if (!reserve()) return;
-          const coverage = job.coverage === "partial" || !job.cue && result.durationMs < MOMENT_DRAFT_MS - 100 ? "partial" : "complete";
-          const suffix = `${job.cue ? ` \xB7 audio hint: ${job.cue.hint}` : ""}${coverage === "partial" ? " \xB7 partial context" : ""}`;
+          const coverage = job.coverage === "partial" || !sourceWindowContains(actual, job.requested) || !job.cue && result.durationMs < MOMENT_DRAFT_MS - 100 ? "partial" : "complete";
+          const suffix = `${job.event ? " \xB7 Audio suggests a possible moment" : ""}${job.cue ? ` \xB7 audio hint: ${job.cue.hint}` : ""}${coverage === "partial" ? " \xB7 partial context" : ""}`;
           if (!r.source || !r.clock || !Number.isFinite(result.sourceStartMs)) throw Error("Capture clock unavailable.");
           const originMidpoint = (r.clock.originEarliestMonoMs + r.clock.originLatestMonoMs) / 2;
           const startWall = r.source.wall + (originMidpoint - r.source.mono) + result.sourceStartMs;
           const caption = `Recorded moment \xB7 about ${new Date(startWall).toISOString().replace(".000Z", "Z")}${suffix}`.slice(0, 120);
-          const context = { recordingId: r.recording?.recordingId, cueMediaStartMs: job.cueStart, cueMediaEndMs: job.cueEnd, sourceStartMs: result.sourceStartMs, sourceEndMs: result.sourceEndMs, coverage, hint: job.cue?.hint };
+          const context = { recordingId: r.recording?.recordingId, cueMediaStartMs: job.cueStart, cueMediaEndMs: job.cueEnd, sourceStartMs: result.sourceStartMs, sourceEndMs: result.sourceEndMs, coverage, hint: job.cue?.hint, ...job.event ? { eventCurrent: () => eventCurrent(r, job), event: job.event.value } : {} };
           publishing = true;
           try {
             await deps.publish(caption, result.objects, result.durationMs, r.abort.signal, context);
@@ -41191,6 +41862,7 @@ THE SOFTWARE.
       r.ring = [];
       r.cues = [];
       r.queue = [];
+      r.pendingEvent = void 0;
       r.clock = void 0;
       r.ids.clear();
       r.adjacentScore.reset();
@@ -41297,7 +41969,7 @@ THE SOFTWARE.
       r.cues.push({ entry, hint, received: now() });
       wake();
     }
-    return { start, stop, wake, restartRecording, observeTranscript, resetTranscriptContext() {
+    return { start, stop, wake, restartRecording, observeTranscript, offerEvent, retainsEvent, resetTranscriptContext() {
       run?.adjacentScore.reset();
       run?.fallback?.resetTranscriptContext();
     }, stats() {
@@ -41337,12 +42009,12 @@ THE SOFTWARE.
           return { reset: true, usable: false };
         }
         const old = previous;
-        const same5 = !!old && old.continuity === value.continuity && old.startMs === value.startMs && old.endMs === value.endMs;
-        if (old && !same5 && value.startMs < old.endMs - 1) {
+        const same6 = !!old && old.continuity === value.continuity && old.startMs === value.startMs && old.endMs === value.endMs;
+        if (old && !same6 && value.startMs < old.endMs - 1) {
           previous = void 0;
           return { reset: true, usable: false };
         }
-        const reset = !old || old.continuity !== value.continuity || !same5 && Math.abs(value.startMs - old.endMs) > 1;
+        const reset = !old || old.continuity !== value.continuity || !same6 && Math.abs(value.startMs - old.endMs) > 1;
         previous = { ...value };
         return { reset, usable: true };
       }
@@ -41712,13 +42384,17 @@ THE SOFTWARE.
     let anchorFromCentre = false;
     if (preferReaderAnchor && typeof doc.elementFromPoint === "function") {
       const panel = container.closest("#session-panel"), hit = doc.elementFromPoint(viewport.innerWidth / 2, centre);
-      const inPanel = !!hit && !!panel?.contains(hit);
-      const row = inPanel ? visible.find((item) => item.node === hit || item.node.contains(hit))?.node : void 0;
-      const structural = hit?.matches?.("#session-panel,#room-main,#room-feed,#room-rail,#room-timeline");
-      const external = surface === "document" && inPanel && hit && !container.contains(hit) && !structural ? hit : void 0;
-      const node = row || external, rect = node?.getBoundingClientRect();
-      chosen = node?.isConnected && rect && rect.height > 0 && rect.top <= centre && rect.bottom >= centre ? { node, rect } : void 0;
-      anchorFromCentre = !!chosen;
+      const latest = doc.getElementById?.("timeline-latest");
+      const hitFloatingControl = latest?.dataset?.floating === "true" && (hit === latest || !!hit && latest.contains(hit));
+      if (!hitFloatingControl) {
+        const inPanel = !!hit && !!panel?.contains(hit);
+        const row = inPanel ? visible.find((item) => item.node === hit || item.node.contains(hit))?.node : void 0;
+        const structural = hit?.matches?.("#session-panel,#room-main,#room-feed,#room-rail,#room-timeline");
+        const external = surface === "document" && inPanel && hit && !container.contains(hit) && !structural ? hit : void 0;
+        const node = row || external, rect = node?.getBoundingClientRect();
+        chosen = node?.isConnected && rect && rect.height > 0 && rect.top <= centre && rect.bottom >= centre ? { node, rect } : void 0;
+        anchorFromCentre = !!chosen;
+      }
     }
     const useFocus = focused && (!preferReaderAnchor || !chosen);
     const anchor = useFocus ? active : chosen?.node, anchorTop = useFocus ? activeRect.top : chosen?.rect.top;
@@ -41837,6 +42513,7 @@ THE SOFTWARE.
   function createTimelineView(container, announce, latest, state, action, correct, canCorrect = () => false, commentaryAction, commentaryState = () => "unknown", matchAction, pictureAction, replayAction, audioOptions, directorScroll2) {
     const rows = /* @__PURE__ */ new Map(), newBelow = /* @__PURE__ */ new Set(), programmeLabels = /* @__PURE__ */ new Map();
     let programmeTime = () => void 0;
+    let eventEvidence = () => void 0;
     let announcementVersion = 0, readerIntent = false, preferReaderAnchor = false, editingIntent = false, initialised = false, ownedScrollY, ownedElementScrollTop;
     const programmeLabel = (kind, id) => {
       try {
@@ -42115,7 +42792,7 @@ THE SOFTWARE.
     }
     function clipRow(card) {
       const element = document.createElement("li"), label = document.createElement("strong"), description = document.createElement("p"), details = document.createElement("details"), summary = document.createElement("summary"), provenance = document.createElement("p"), body = document.createElement("div"), media = document.createElement("div");
-      const time = document.createElement("small"), original = document.createElement("p"), sample = document.createElement("p");
+      const time = document.createElement("small"), original = document.createElement("p"), sample = document.createElement("p"), eventEvidence2 = document.createElement("p");
       time.className = "card-time";
       description.className = "small";
       element.dataset.entryType = "clip";
@@ -42137,7 +42814,7 @@ THE SOFTWARE.
       body.className = "card-body";
       media.className = "card-media";
       summary.textContent = "Clip details and options";
-      details.append(summary, provenance, original, sample);
+      details.append(summary, provenance, original, sample, eventEvidence2);
       const picture = document.createElement("img"), pictureButton = document.createElement("button"), figure = document.createElement("figure"), caption = document.createElement("figcaption");
       figure.className = "video-placeholder";
       figure.dataset.videoPlaceholder = "";
@@ -42178,7 +42855,7 @@ THE SOFTWARE.
       details.append(replay);
       body.append(media, description, details);
       element.append(body);
-      return { type: "clip", element, media, time, original, sample, chips, label, description, provenance, picture, pictureButton, figure, buttons, replay };
+      return { type: "clip", element, eventEvidence: eventEvidence2, media, time, original, sample, chips, label, description, provenance, picture, pictureButton, figure, buttons, replay };
     }
     function replayRow(cue) {
       const element = document.createElement("li"), heading = document.createElement("strong"), body = document.createElement("p"), timing = document.createElement("p"), provenance = document.createElement("small"), play = document.createElement("button"), pictureButton = document.createElement("button"), figure = document.createElement("figure"), picture = document.createElement("img"), original = document.createElement("p"), content = document.createElement("div"), media = document.createElement("div"), details = document.createElement("details"), summary = document.createElement("summary");
@@ -42432,12 +43109,20 @@ THE SOFTWARE.
       row.pictureButton.setAttribute("aria-label", `Show picture: ${clipMomentReference(card)}`);
       const poster = state(card.clipId).poster || (picture?.url ? { url: picture.url, width: picture.width || 0, height: picture.height || 0 } : void 0);
       renderVideoPoster(row.picture, poster, `Picture from clip: ${clipMomentReference(card)}`);
-      setText(row.description, description ? `AI from sampled audio: ${description.text} \xB7 May be wrong; does not verify visible action.` : "");
+      const fallback = displayClipCaption(card.caption), context = clipContextNote(card);
+      setText(row.description, description ? `AI from sampled audio: ${description.text} \xB7 May be wrong; does not verify visible action.` : fallback === card.caption ? "" : fallback);
       setText(row.sample, description ? `Sampled audio ${description.evidence.map((p) => `${(p.transcript.sampleStartMs / 1e3).toFixed(1)}\u2013${(p.transcript.sampleEndMs / 1e3).toFixed(1)}s`).join(", ")} \xB7 This does not describe the whole clip.` : "");
       const title = clipMomentTitle(card);
       setText(row.label, title);
-      setText(row.time, `${title === card.caption && Number.isFinite(card.issuedAtMs) ? `First shared ${sharedClipTime(card.issuedAtMs)} \xB7 ` : ""}${local ? "Copy on this device" : available ? `${available} ${available === 1 ? "person reports" : "people report"} a copy` : "Copy availability unknown"}`);
+      setText(row.time, `${title === card.caption && Number.isFinite(card.issuedAtMs) ? `First shared ${sharedClipTime(card.issuedAtMs)} \xB7 ` : ""}${local ? "Copy on this device" : available ? `${available} ${available === 1 ? "person reports" : "people report"} a copy` : "Copy availability unknown"}${context ? ` \xB7 ${context}` : ""}`);
       setText(row.original, `Sharer\u2019s original caption: ${card.caption}`);
+      let evidence = "";
+      try {
+        evidence = eventEvidence(card.clipId) || "";
+      } catch {
+      }
+      setText(row.eventEvidence, evidence);
+      row.eventEvidence.hidden = !evidence;
       setText(row.provenance, `${(card.durationMs / 1e3).toFixed(1)} seconds \xB7 ${(card.totalBytes / 1048576).toFixed(1)} MiB \xB7 ${local ? "Copy on this device" : available ? `${available} ${available === 1 ? "person reports" : "people report"} a copy` : "Copy availability unknown"}`);
       const disabled = { get: local || available === 0, skip: false, play: !local && available === 0 };
       for (const kind of ["get", "skip", "play"]) {
@@ -42632,7 +43317,9 @@ THE SOFTWARE.
       if (directorScroll2?.write) directorScroll2.write(update);
       else update();
     }
-    return { render, layoutMedia, videoTargets() {
+    return { render, layoutMedia, setEventEvidence(provider) {
+      eventEvidence = provider ?? (() => void 0);
+    }, videoTargets() {
       return directorItems.flatMap((item) => {
         const row = rows.get(item.key);
         if (item.type === "clip" && row?.type === "clip") return [{ key: item.key, id: item.value.clipId, element: row.figure, presentation: void 0 }];
@@ -42700,12 +43387,12 @@ THE SOFTWARE.
     if (expiredTransactions.has(tx))
       throw Error("Temporary storage transaction timed out");
   };
-  var request = (r) => new Promise((resolve, reject) => {
-    r.onsuccess = () => resolve(r.result);
+  var request = (r) => new Promise((resolve2, reject) => {
+    r.onsuccess = () => resolve2(r.result);
     r.onerror = () => reject(r.error || Error("Storage request failed"));
   });
   function completed(tx) {
-    const p = new Promise((resolve, reject) => {
+    const p = new Promise((resolve2, reject) => {
       const timer = setTimeout(() => {
         expiredTransactions.add(tx);
         try {
@@ -42717,7 +43404,7 @@ THE SOFTWARE.
       }, 8e3);
       tx.oncomplete = () => {
         clearTimeout(timer);
-        resolve();
+        resolve2();
       };
       tx.onabort = tx.onerror = () => {
         clearTimeout(timer);
@@ -42741,7 +43428,7 @@ THE SOFTWARE.
   }
   var namespace = (roomId2, sourceKey2) => JSON.stringify([roomId2, sourceKey2]);
   function openDatabase(create, onReady, onVersionChange) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve2, reject) => {
       if (typeof indexedDB === "undefined") {
         reject(Error("Temporary browser storage is unavailable"));
         return;
@@ -42758,7 +43445,7 @@ THE SOFTWARE.
         if (error)
           reject(error);
         else
-          resolve(db ?? null);
+          resolve2(db ?? null);
       }
       r.onupgradeneeded = () => {
         if (!create) {
@@ -42798,13 +43485,13 @@ THE SOFTWARE.
     });
   }
   function each(store, fn) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve2, reject) => {
       const r = store.openCursor();
       r.onerror = () => reject(r.error || Error("Storage scan failed"));
       r.onsuccess = () => {
         const cursor = r.result;
         if (!cursor) {
-          resolve();
+          resolve2();
           return;
         }
         try {
@@ -42830,14 +43517,14 @@ THE SOFTWARE.
     }
   }
   function deletePartKeys(store, ns, id) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve2, reject) => {
       const range = id === void 0 ? IDBKeyRange.bound([ns], [ns + "\0"], false, true) : IDBKeyRange.bound([ns, id], [ns, id + "\0"], false, true);
       const r = store.openKeyCursor(range);
       r.onerror = () => reject(r.error || Error("Temporary copy cleanup failed"));
       r.onsuccess = () => {
         const c = r.result;
         if (!c) {
-          resolve();
+          resolve2();
           return;
         }
         try {
@@ -43121,7 +43808,7 @@ THE SOFTWARE.
   var UpgradeSupersededError = class extends Error {
   };
   function upgradeDelete(version, ns) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve2, reject) => {
       let settled = false, tx, deletion;
       const r = indexedDB.open(CLIP_DB_NAME, version), timer = setTimeout(() => finish(Error("Temporary storage deletion is blocked by another page")), 8e3);
       function finish(error) {
@@ -43136,7 +43823,7 @@ THE SOFTWARE.
           }
           reject(error);
         } else
-          resolve();
+          resolve2();
       }
       r.onupgradeneeded = () => {
         tx = r.transaction;
@@ -43591,7 +44278,7 @@ THE SOFTWARE.
       const remaining = 3e4 - elapsed2(started);
       if (remaining <= 0) throw Error("Clip preparation timed out waiting for the current operation");
       if (idleWaiter) throw Error("Clip enrichment waiter limit reached");
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve2, reject) => {
         let finished = false;
         let timer;
         const finish = (error) => {
@@ -43600,7 +44287,7 @@ THE SOFTWARE.
           clearTimeout(timer);
           signal.removeEventListener("abort", onAbort);
           if (idleWaiter === waiter) idleWaiter = void 0;
-          error ? reject(error) : resolve();
+          error ? reject(error) : resolve2();
         };
         const onAbort = () => finish(new DOMException("Clip cancelled", "AbortError"));
         const waiter = { wake: () => finish(), cancel: onAbort };
@@ -44422,7 +45109,7 @@ THE SOFTWARE.
 
   // src/delivery-health.ts
   var WINDOW_MS = 8e3;
-  var MAX_GAP_MS = 12e3;
+  var MAX_GAP_MS2 = 12e3;
   var LOW_BUFFER_SECONDS = 3;
   var isValid = (n) => typeof n === "number" && Number.isFinite(n) && n >= 0;
   function trackDemand(objects) {
@@ -44450,7 +45137,7 @@ THE SOFTWARE.
       },
       fresh(track, now) {
         const value = last2.get(track);
-        return !!value && now >= value.changedAt && now - value.changedAt <= MAX_GAP_MS;
+        return !!value && now >= value.changedAt && now - value.changedAt <= MAX_GAP_MS2;
       }
     };
   }
@@ -44478,7 +45165,7 @@ THE SOFTWARE.
           return result;
         }
         const last2 = samples.at(-1);
-        if (last2 && (time < last2.time || bytes9 < last2.bytes || time - last2.time > MAX_GAP_MS || dropped !== void 0 && last2.dropped !== void 0 && dropped < last2.dropped)) samples = [];
+        if (last2 && (time < last2.time || bytes9 < last2.bytes || time - last2.time > MAX_GAP_MS2 || dropped !== void 0 && last2.dropped !== void 0 && dropped < last2.dropped)) samples = [];
         const previous = samples.at(-1);
         if (previous && time - previous.time < 1e3) return result;
         samples.push({ time, bytes: bytes9, buffer, dropped });
@@ -44936,23 +45623,23 @@ THE SOFTWARE.
   // protocol-v2.mjs
   var PROFILE_V2 = "independent-audio-v2";
   var CONTROL_LIMIT_V2 = 30 * 1024;
-  var exact11 = (o, k) => !!o && typeof o === "object" && !Array.isArray(o) && Object.keys(o).length === k.length && Object.keys(o).every((x) => k.includes(x));
-  var integer9 = (n, min, max) => Number.isSafeInteger(n) && n >= min && n <= max;
+  var exact12 = (o, k) => !!o && typeof o === "object" && !Array.isArray(o) && Object.keys(o).length === k.length && Object.keys(o).every((x) => k.includes(x));
+  var integer10 = (n, min, max) => Number.isSafeInteger(n) && n >= min && n <= max;
   var MAX = Number.MAX_SAFE_INTEGER;
   var key8 = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{43}$/.test(s) && "AEIMQUYcgkosw048".includes(s[42]);
   var sig = (s) => typeof s === "string" && /^[A-Za-z0-9_-]{86}$/.test(s) && "AQgw".includes(s[85]);
   var utf8 = (s) => new TextEncoder().encode(s).length;
   var stable = (o) => JSON.stringify(o, Object.keys(o).sort());
   function validateHeadV2(h, roomId2, sourceKey2, now = Date.now()) {
-    if (!exact11(h, ["version", "roomId", "sourceKey", "epochId", "sequence", "issuedAtMs", "expiresAtMs", "tracks", "signature"]) || h.version !== "semk2-pilot/2" || h.roomId !== roomId2 || typeof roomId2 !== "string" || !roomId2 || roomId2.length > 128 || h.sourceKey !== sourceKey2 || !key8(sourceKey2) || !key8(h.epochId) || !integer9(h.sequence, 0, MAX) || !integer9(h.issuedAtMs, 0, MAX) || !integer9(h.expiresAtMs, h.issuedAtMs, Math.min(MAX, h.issuedAtMs + 6e4)) || Math.abs(now - h.issuedAtMs) > 6e4 || h.expiresAtMs < now || !sig(h.signature) || !exact11(h.tracks, ["muxed", "audio"]) || utf8(JSON.stringify({ type: "head", head: h })) > CONTROL_LIMIT_V2) throw Error("Invalid v2 live metadata");
+    if (!exact12(h, ["version", "roomId", "sourceKey", "epochId", "sequence", "issuedAtMs", "expiresAtMs", "tracks", "signature"]) || h.version !== "semk2-pilot/2" || h.roomId !== roomId2 || typeof roomId2 !== "string" || !roomId2 || roomId2.length > 128 || h.sourceKey !== sourceKey2 || !key8(sourceKey2) || !key8(h.epochId) || !integer10(h.sequence, 0, MAX) || !integer10(h.issuedAtMs, 0, MAX) || !integer10(h.expiresAtMs, h.issuedAtMs, Math.min(MAX, h.issuedAtMs + 6e4)) || Math.abs(now - h.issuedAtMs) > 6e4 || h.expiresAtMs < now || !sig(h.signature) || !exact12(h.tracks, ["muxed", "audio"]) || utf8(JSON.stringify({ type: "head", head: h })) > CONTROL_LIMIT_V2) throw Error("Invalid v2 live metadata");
     const unique = /* @__PURE__ */ new Set();
     for (const name of ["muxed", "audio"]) {
       const t = h.tracks[name];
-      if (!exact11(t, ["state", "error", "mime", "codecConfigId", "map", "init", "media"]) || !["running", "ended", "error"].includes(t.state) || (t.state === "error" ? typeof t.error !== "string" || !t.error || t.error.length > 128 : t.error !== null) || typeof t.mime !== "string" || t.mime.length > 180 || !(name === "audio" ? /^audio\/mp4;\s*codecs="mp4a\.40\.2"$/.test(t.mime) : /^video\/mp4;\s*codecs=/.test(t.mime)) || typeof t.codecConfigId !== "string" || !t.codecConfigId || t.codecConfigId.length > 128 || !Array.isArray(t.media) || t.media.length > 32) throw Error("Invalid v2 track");
+      if (!exact12(t, ["state", "error", "mime", "codecConfigId", "map", "init", "media"]) || !["running", "ended", "error"].includes(t.state) || (t.state === "error" ? typeof t.error !== "string" || !t.error || t.error.length > 128 : t.error !== null) || typeof t.mime !== "string" || t.mime.length > 180 || !(name === "audio" ? /^audio\/mp4;\s*codecs="mp4a\.40\.2"$/.test(t.mime) : /^video\/mp4;\s*codecs=/.test(t.mime)) || typeof t.codecConfigId !== "string" || !t.codecConfigId || t.codecConfigId.length > 128 || !Array.isArray(t.media) || t.media.length > 32) throw Error("Invalid v2 track");
       const m = t.map;
-      if (!exact11(m, ["timescale", "firstPtsTicks", "firstCommonTicks", "commonTimescale", "editMediaTimeTicks", "movieTimescale"]) || !integer9(m.timescale, 1, 1e9) || !integer9(m.commonTimescale, 1, 1e9) || !integer9(m.movieTimescale, 1, 1e9) || !integer9(m.firstPtsTicks, -MAX, MAX) || !integer9(m.firstCommonTicks, -MAX, MAX) || !integer9(m.editMediaTimeTicks, 0, MAX) || BigInt(m.firstPtsTicks) - BigInt(m.editMediaTimeTicks) > BigInt(MAX) || BigInt(m.firstPtsTicks) - BigInt(m.editMediaTimeTicks) < -BigInt(MAX)) throw Error("Invalid v2 timeline");
+      if (!exact12(m, ["timescale", "firstPtsTicks", "firstCommonTicks", "commonTimescale", "editMediaTimeTicks", "movieTimescale"]) || !integer10(m.timescale, 1, 1e9) || !integer10(m.commonTimescale, 1, 1e9) || !integer10(m.movieTimescale, 1, 1e9) || !integer10(m.firstPtsTicks, -MAX, MAX) || !integer10(m.firstCommonTicks, -MAX, MAX) || !integer10(m.editMediaTimeTicks, 0, MAX) || BigInt(m.firstPtsTicks) - BigInt(m.editMediaTimeTicks) > BigInt(MAX) || BigInt(m.firstPtsTicks) - BigInt(m.editMediaTimeTicks) < -BigInt(MAX)) throw Error("Invalid v2 timeline");
       const descriptor = (o, kind) => {
-        if (!exact11(o, ["kind", "track", "sequence", "mediaStartMs", "durationMs", "startTicks", "durationTicks", "mime", "codecConfigId", "lengthBytes", "infoHash", "sha256"]) || o.kind !== kind || o.track !== name || !integer9(o.sequence, 0, MAX) || !integer9(o.mediaStartMs, 0, MAX) || !integer9(o.durationMs, kind === "init" ? 0 : 1, kind === "init" ? 0 : 6e3) || !integer9(o.startTicks, kind === "init" ? 0 : -MAX, kind === "init" ? 0 : MAX) || !integer9(o.durationTicks, kind === "init" ? 0 : 1, kind === "init" ? 0 : MAX) || BigInt(o.startTicks) + BigInt(o.durationTicks) > BigInt(MAX) || o.mime !== t.mime || o.codecConfigId !== t.codecConfigId || !integer9(o.lengthBytes, 1, kind === "init" ? 256 * 1024 : name === "audio" ? 2 * 1024 * 1024 : 8 * 1024 * 1024) || typeof o.infoHash !== "string" || !/^[a-f0-9]{40}$/.test(o.infoHash) || typeof o.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(o.sha256)) throw Error("Invalid v2 object");
+        if (!exact12(o, ["kind", "track", "sequence", "mediaStartMs", "durationMs", "startTicks", "durationTicks", "mime", "codecConfigId", "lengthBytes", "infoHash", "sha256"]) || o.kind !== kind || o.track !== name || !integer10(o.sequence, 0, MAX) || !integer10(o.mediaStartMs, 0, MAX) || !integer10(o.durationMs, kind === "init" ? 0 : 1, kind === "init" ? 0 : 6e3) || !integer10(o.startTicks, kind === "init" ? 0 : -MAX, kind === "init" ? 0 : MAX) || !integer10(o.durationTicks, kind === "init" ? 0 : 1, kind === "init" ? 0 : MAX) || BigInt(o.startTicks) + BigInt(o.durationTicks) > BigInt(MAX) || o.mime !== t.mime || o.codecConfigId !== t.codecConfigId || !integer10(o.lengthBytes, 1, kind === "init" ? 256 * 1024 : name === "audio" ? 2 * 1024 * 1024 : 8 * 1024 * 1024) || typeof o.infoHash !== "string" || !/^[a-f0-9]{40}$/.test(o.infoHash) || typeof o.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(o.sha256)) throw Error("Invalid v2 object");
         const k = `${name}:${kind}:${o.sequence}`;
         if (unique.has(k)) throw Error("Duplicate v2 object");
         unique.add(k);
@@ -45034,8 +45721,8 @@ THE SOFTWARE.
     let initBytes, audioConfig = "";
     let muxedTerminalAudioOnly = false;
     let readyDone = false, resolveReady, rejectReady;
-    const ready2 = new Promise((resolve, reject) => {
-      resolveReady = resolve;
+    const ready2 = new Promise((resolve2, reject) => {
+      resolveReady = resolve2;
       rejectReady = reject;
     });
     void ready2.catch(() => {
@@ -45227,15 +45914,15 @@ THE SOFTWARE.
         if (status.state === "failed" && tracks2.audio.state === "running") await failTrack("audio", Error(status.detail || "Sound production stopped"));
         await publish();
       },
-      finish: (ending = {}) => {
+      finish: (ending2 = {}) => {
         if (finalization) return finalization;
         finalization = (async () => {
           assertCurrent();
           const status = await audio.whenSettled();
           assertCurrent();
-          const videoState = ending.videoState ?? "finished";
-          const soundEnded = status.state === "finished" || ending.captureEnded === true && status.state === "cancelled";
-          const pictureEnded = videoState === "finished" && !pendingMuxed.size || ending.captureEnded === true && videoState === "cancelled";
+          const videoState = ending2.videoState ?? "finished";
+          const soundEnded = status.state === "finished" || ending2.captureEnded === true && status.state === "cancelled";
+          const pictureEnded = videoState === "finished" && !pendingMuxed.size || ending2.captureEnded === true && videoState === "cancelled";
           for (const track of ["audio", "muxed"]) {
             if (tracks2[track].state !== "running") continue;
             const normal = track === "audio" ? soundEnded : pictureEnded;
@@ -45548,7 +46235,7 @@ THE SOFTWARE.
       }
       return { sourceType, bufferedSeconds: buffered, liveEdgeSeconds: liveEdge, currentTime: element.currentTime, presentedFrames, lastFrameTime, paused: element.paused, queuedBytes, ended };
     };
-    const waitEvent = (target, success, failures, label, signal) => new Promise((resolve, reject) => {
+    const waitEvent = (target, success, failures, label, signal) => new Promise((resolve2, reject) => {
       let timer;
       const ok = () => done();
       const bad = () => done(new Error(`${label} failed`));
@@ -45558,7 +46245,7 @@ THE SOFTWARE.
         target.removeEventListener(success, ok);
         for (const event of failures) target.removeEventListener(event, bad);
         signal.removeEventListener("abort", cancel);
-        e ? reject(e) : resolve();
+        e ? reject(e) : resolve2();
       }
       if (signal.aborted) return cancel();
       target.addEventListener(success, ok, { once: true });
@@ -45729,8 +46416,8 @@ THE SOFTWARE.
         const attempt = playAttempt;
         playRequested = true;
         let timer;
-        const cancelled6 = new Promise((resolve) => {
-          cancelPlay = () => resolve("cancelled");
+        const cancelled6 = new Promise((resolve2) => {
+          cancelPlay = () => resolve2("cancelled");
         });
         try {
           const native = Promise.resolve(element.play());
@@ -45932,12 +46619,12 @@ THE SOFTWARE.
       correction?.abort();
       emit();
     }
-    const waitEvent = (target, event, signal, label) => new Promise((resolve, reject) => {
+    const waitEvent = (target, event, signal, label) => new Promise((resolve2, reject) => {
       const done = (error) => {
         target.removeEventListener(event, ok);
         target.removeEventListener("error", bad);
         signal.removeEventListener("abort", cancel);
-        error ? reject(error) : resolve();
+        error ? reject(error) : resolve2();
       };
       const ok = () => done(), bad = () => done(Error(label + " failed")), cancel = () => done(Error(label + " cancelled"));
       if (signal.aborted) return cancel();
@@ -45971,12 +46658,12 @@ THE SOFTWARE.
         local.abort();
       }
     };
-    const nextFrame = (signal) => new Promise((resolve, reject) => {
+    const nextFrame = (signal) => new Promise((resolve2, reject) => {
       let id = 0;
       const done = (error, value) => {
         if (id) video.cancelVideoFrameCallback(id);
         signal.removeEventListener("abort", cancel);
-        error ? reject(error) : resolve(value);
+        error ? reject(error) : resolve2(value);
       };
       const cancel = () => done(Error("Presented frame cancelled"));
       if (signal.aborted) return cancel();
@@ -46426,7 +47113,7 @@ THE SOFTWARE.
 
   // src/independent-viewer.ts
   var lane = () => ({ busy: false, initialized: false, ended: false, failed: false });
-  var wait3 = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  var wait3 = (ms) => new Promise((resolve2) => setTimeout(resolve2, ms));
   function createIndependentViewer(options) {
     const lanes = { audio: lane(), muxed: lane() };
     let head, closed = false, wantsPlay2 = options.initialWantsPlay ?? true, starting = false;
@@ -47090,14 +47777,14 @@ THE SOFTWARE.
     return data.slice();
   }
   function deadline(p, ms, label, signal) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve2, reject) => {
       const abort2 = () => finish(signal ? abortReason(signal) : new DOMException("Aborted", "AbortError"));
       const timer = setTimeout(() => finish(new Error(`${label} timed out`)), ms);
       function finish(error, value) {
         clearTimeout(timer);
         signal?.removeEventListener("abort", abort2);
         if (error !== void 0) reject(error);
-        else resolve(value);
+        else resolve2(value);
       }
       signal?.addEventListener("abort", abort2, { once: true });
       if (signal?.aborted) abort2();
@@ -47162,8 +47849,8 @@ THE SOFTWARE.
     let terminalCandidate = false;
     let videoInspector, videoFirst, timingFailed = false, timingPending = 0, timingChain = Promise.resolve();
     let timingDone = false, resolveTiming;
-    const timingSettled = new Promise((resolve) => {
-      resolveTiming = resolve;
+    const timingSettled = new Promise((resolve2) => {
+      resolveTiming = resolve2;
     });
     const settleTiming = (status) => {
       if (timingDone) return;
@@ -47235,8 +47922,8 @@ THE SOFTWARE.
     };
     let delivery = Promise.resolve();
     let resolveStartup, rejectStartup;
-    const startup = new Promise((resolve, reject) => {
-      resolveStartup = resolve;
+    const startup = new Promise((resolve2, reject) => {
+      resolveStartup = resolve2;
       rejectStartup = reject;
     });
     void startup.catch(() => {
@@ -47467,11 +48154,11 @@ THE SOFTWARE.
   var player = $("player");
   var preview = $("preview");
   var wait4 = (ms) => new Promise((r) => setTimeout(r, ms));
-  var limit = (p, label, ms = 15e3) => new Promise((resolve, reject) => {
+  var limit = (p, label, ms = 15e3) => new Promise((resolve2, reject) => {
     const timer = setTimeout(() => reject(Error(label + " timed out")), ms);
     p.then((v) => {
       clearTimeout(timer);
-      resolve(v);
+      resolve2(v);
     }, (e) => {
       clearTimeout(timer);
       reject(e);
@@ -47510,7 +48197,7 @@ THE SOFTWARE.
   function validConfig(value) {
     if (!value || typeof value !== "object") return false;
     const c = value;
-    if (typeof c.testMode !== "boolean" || !Number.isInteger(c.maxPeers) || c.maxPeers < 1 || c.maxPeers > 8 || c.socketAuth !== void 0 && c.socketAuth !== "ticket" || c.viewerResume !== void 0 && typeof c.viewerResume !== "boolean" || c.roomChatVersion !== void 0 && (!Number.isSafeInteger(c.roomChatVersion) || c.roomChatVersion < 1) || c.chatRoomProfile !== void 0 && typeof c.chatRoomProfile !== "string") return false;
+    if (typeof c.testMode !== "boolean" || c.publicCreation !== void 0 && typeof c.publicCreation !== "boolean" || !Number.isInteger(c.maxPeers) || c.maxPeers < 1 || c.maxPeers > 8 || c.socketAuth !== void 0 && c.socketAuth !== "ticket" || c.viewerResume !== void 0 && typeof c.viewerResume !== "boolean" || c.roomChatVersion !== void 0 && (!Number.isSafeInteger(c.roomChatVersion) || c.roomChatVersion < 1) || c.chatRoomProfile !== void 0 && typeof c.chatRoomProfile !== "string") return false;
     if (c.commentary !== void 0) {
       const a = c.commentary;
       if (!a || typeof a !== "object" || typeof a.available !== "boolean" || typeof a.url !== "string" || a.intervalMs !== 3e4 || a.maxRequests !== 240) return false;
@@ -47949,6 +48636,30 @@ THE SOFTWARE.
     timeline.addCommentary(entry);
   });
   var commentaryController = createCommentaryController();
+  var transcriptEventSelection = createTranscriptEventSelection();
+  var localEventProvenance = createLocalEventProvenance();
+  function testEventProvenance(clipId) {
+    if (role !== "host" || typeof clipId !== "string" || !/^[-_A-Za-z0-9]{43}$/.test(clipId) || !roomId || !sourceKey) return null;
+    const card = clips.list().find((c) => c.clipId === clipId && c.roomId === roomId && c.sourceKey === sourceKey);
+    if (!card) return null;
+    const lookup = { scope: { roomId, sourceKey }, subject: (id) => transcripts.list().find((t) => t.id === id), position: (id) => programmePositions.get("transcript", id) };
+    const found = localEventProvenance.get(clipId, lookup), event = found?.event;
+    if (!event || !Array.isArray(event.evidence) || event.evidence.length < 1 || event.evidence.length > 2) return null;
+    const subjects = [];
+    for (const ref of event.evidence) {
+      if (typeof ref.quote !== "string" || ref.quote.length < 1 || ref.quote.length > 200) return null;
+      const transcript = lookup.subject(ref.id), position = lookup.position(ref.id);
+      if (!transcript || !position || typeof transcript.text !== "string" || transcript.text.length > 500) return null;
+      subjects.push({ transcript: structuredClone(transcript), position: structuredClone(position) });
+    }
+    const clipPosition = programmePositions.get("clip", clipId);
+    return { scope: { roomId, sourceKey }, card: { clipId: card.clipId, signature: card.signature }, current: found.current, event: structuredClone(event), subjects, clipPosition: clipPosition ? structuredClone(clipPosition) : null };
+  }
+  timelineView.setEventEvidence((id) => {
+    const result = localEventProvenance.get(id, { scope: { roomId, sourceKey }, subject: (key9) => transcripts.list().find((t) => t.id === key9), position: (key9) => programmePositions.get("transcript", key9) });
+    if (!result) return;
+    return `Selected on this device from the transcript: ${result.event.evidence.map((ref) => `\u201C${ref.quote}\u201D`).join(" \xB7 ")}. ${result.current ? "Timing is estimated and the audio may be misheard." : "The transcript or its recording position has since changed or is unavailable."}`;
+  });
   var aiRequests = createAiRequestQueue();
   var clipCaptionController = createClipCaptionController();
   var audioController = createClipAudioAssetController();
@@ -47978,8 +48689,10 @@ THE SOFTWARE.
   }
   async function publishClip(caption, objects, duration, signal, current = () => true, context) {
     const speechSource = transcriptSource;
+    const provenance = context?.event ? localEventProvenance.begin({ roomId, sourceKey }, context.event) : void 0;
     const card = await clips.publish(caption, objects, duration, signal, current);
     if (card) {
+      if (provenance?.commit(card)) renderTimeline();
       const startMs = context ? Math.floor(Math.max(0, context.cueMediaStartMs - context.sourceStartMs)) : 0;
       const endMs = context ? Math.ceil(Math.min(card.durationMs, context.cueMediaEndMs - context.sourceStartMs)) : 0;
       const focus = context?.hint && endMs > startMs ? { startMs, endMs } : void 0;
@@ -48250,8 +48963,7 @@ THE SOFTWARE.
       const target = timelineView.directorTarget(choice.key);
       if (!target) return false;
       directorScroll.move(target);
-      const rect = target.getBoundingClientRect(), { top, bottom } = readableViewport($("room-timeline"));
-      return rect.top >= top - 1 && rect.bottom <= bottom + 1;
+      return targetUnobscured(target.getBoundingClientRect(), readableViewport($("room-timeline")));
     },
     released: () => viewer.wakeAutomatic()
   });
@@ -48337,7 +49049,7 @@ THE SOFTWARE.
     const target = timelineView.videoTargets().find((x) => x.key === videoFocus.current);
     if (!target) return false;
     const r = target.element.getBoundingClientRect(), bounds = readableViewport($("room-timeline"));
-    return Math.min(r.bottom, bounds.bottom) - Math.max(r.top, bounds.top) >= 0.2 * Math.min(r.bottom - r.top, bounds.bottom - bounds.top);
+    return visibleMediaFraction(r, bounds) >= 0.2;
   }
   function updateVideoFocus(deliberate = false) {
     if (!readingVideoFocus || !viewer.enabled) return;
@@ -48349,7 +49061,7 @@ THE SOFTWARE.
     const hold = videoFocusHeld();
     const candidates = timelineView.videoTargets().map(({ key: key9, element }) => {
       const r = element.getBoundingClientRect();
-      return { id: key9, top: r.top, bottom: r.bottom };
+      return { id: key9, top: r.top, bottom: r.bottom, visibleFraction: visibleMediaFraction(r, bounds) };
     });
     videoFocus.update(candidates, bounds, hold, deliberate);
     if (!hold) viewer.wakeAutomatic();
@@ -48499,6 +49211,7 @@ THE SOFTWARE.
   }, status: (text2) => {
     $("moments-connection").textContent = text2;
   } });
+  var homepageCapture;
   var moments = createClipContextMoments({ recordingStarted: (recording) => {
     activeRecordingId = recording.recordingId;
     audioInterrupted = false;
@@ -48556,9 +49269,16 @@ THE SOFTWARE.
       });
       renderProgramme();
     }
-  }, choose: () => navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }), publisher: startPublisher, publish: (caption, objects, duration, signal, context) => {
+  }, choose: () => {
+    if (homepageCapture) {
+      const selected = homepageCapture;
+      homepageCapture = void 0;
+      return Promise.resolve(selected);
+    }
+    return navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+  }, publisher: startPublisher, publish: (caption, objects, duration, signal, context) => {
     const owner = storyOwner;
-    return publishClip(caption, objects, duration, signal, () => storyOwnerCurrent(owner), context);
+    return publishClip(caption, objects, duration, signal, () => storyOwnerCurrent(owner) && (!context?.eventCurrent || context.eventCurrent()), context);
   }, capacity: () => ({ used: clips.used, count: clips.list().length, busy: clips.busy || viewer.busy }), current: storyOwnerCurrent, ready: matchCurrent, sourceChanged: (source) => {
     const sound = $("moments-audio-status");
     if (sound) sound.textContent = source ? source.track ? "An audio track is selected. Viewers can enable sound in the stream." : "No tab sound was shared. Video clips will be silent; stop and choose a tab with Share tab audio to include sound." : "";
@@ -48616,6 +49336,7 @@ THE SOFTWARE.
     commentaryController.enable($("commentary-opt-in").checked);
   }
   function stopTranscript() {
+    transcriptEventSelection.cancel();
     moments.resetTranscriptContext();
     transcriptGeneration++;
     transcriptAbortCleanup?.();
@@ -48655,33 +49376,77 @@ THE SOFTWARE.
     source.signal.addEventListener("abort", sourceEnded, { once: true });
     transcriptAbortCleanup = () => source.signal.removeEventListener("abort", sourceEnded);
     transcriptStarting = true;
-    transcriptPublisher.start({ current, publish: async (text2, start, end2, stillCurrent, concern) => {
-      const id = activeRecordingId, clock = id && recordingClocks.get(id);
-      const entry = await transcripts.publish(text2, start, end2, stillCurrent, concern);
-      if (entry && id && clock && clock.sourceMonoMs === source.startedAt && stillCurrent()) {
+    transcriptPublisher.start({
+      current,
+      publish: async (text2, start, end2, stillCurrent, concern) => {
+        const id = activeRecordingId, clock = id && recordingClocks.get(id);
+        const entry = await transcripts.publish(text2, start, end2, stillCurrent, concern);
+        if (!entry || !id || !clock || clock.sourceMonoMs !== source.startedAt || !stillCurrent()) return;
         const offset = clock.sourceMonoMs - (clock.originEarliestMonoMs + clock.originLatestMonoMs) / 2;
         const uncertainty = Math.min(1e4, Math.max(1, Math.ceil((clock.originLatestMonoMs - clock.originEarliestMonoMs) / 2) + 1e3));
-        void programmePositions.publish("transcript", entry.id, { recordingId: id, startMs: Math.round(offset + entry.startMs), endMs: Math.round(offset + entry.endMs), precision: "estimated", uncertaintyMs: uncertainty }, source.signal, stillCurrent).catch(() => {
+        const position = await programmePositions.publish("transcript", entry.id, { recordingId: id, startMs: Math.round(offset + entry.startMs), endMs: Math.round(offset + entry.endMs), precision: "estimated", uncertaintyMs: uncertainty }, source.signal, stillCurrent).catch(() => void 0);
+        if (position) return { entry, position, id };
+      },
+      published: (value, window2, validWindow) => {
+        const item = value;
+        if (!item?.entry || !item.position) return;
+        const enabled2 = () => current() && validWindow() && !!config.commentary?.available && $("commentary-opt-in").checked && activeRecordingId === item.id && !source.signal.aborted;
+        if (!enabled2()) return;
+        const ctx = {
+          roomId: item.entry.roomId,
+          sourceKey: item.entry.sourceKey,
+          recordingId: item.id,
+          current: enabled2,
+          subject: (id) => transcripts.list().find((t) => t.id === id),
+          position: (id) => programmePositions.get("transcript", id),
+          retained: (id, start, end2) => moments.retainsEvent(id, start, end2),
+          now: () => Date.now()
+        };
+        void transcriptEventSelection.select([{ entry: item.entry, position: item.position, window: window2 }], ctx, async (_input, signal, stillValid, onDispatch) => {
+          const requestId = randomKey();
+          const response = await aiRequests.request({ purpose: "event-selection", roomId: item.entry.roomId, sourceKey: item.entry.sourceKey, requestId, transcripts: [item.entry] }, signal, "event-selection", stillValid, { onDispatch });
+          if (!response || response.requestId !== requestId || Object.keys(response).sort().join(",") !== "requestId,result") throw Error("Invalid event response");
+          return response.result;
+        }, source.signal).then((event) => {
+          if (!event) return;
+          const eventCurrent = () => {
+            try {
+              return enabled2() && event.evidence.every((e) => {
+                const t = ctx.subject(e.id), p = ctx.position(e.id);
+                const now = Date.now();
+                return !!t && t.roomId === ctx.roomId && t.sourceKey === ctx.sourceKey && t.revision === e.revision && t.signature === e.transcriptSignature && !!p && p.roomId === ctx.roomId && p.sourceKey === ctx.sourceKey && p.recordingId === event.recordingId && p.subject.kind === "transcript" && p.subject.id === e.id && p.subject.signature === e.transcriptSignature && p.expiresAtMs > now && p.signature === e.positionSignature;
+              }) && ctx.retained(event.recordingId, event.startMs - event.uncertaintyMs, event.endMs + event.uncertaintyMs);
+            } catch {
+              return false;
+            }
+          };
+          if (!eventCurrent() || !moments.offerEvent(event, eventCurrent)) transcriptStatus("The suggested audio moment is no longer available.");
+        }).catch((error) => {
+          if (enabled2() && !source.signal.aborted && error?.message !== "Selection busy" && error?.message !== "Selection cancelled") transcriptStatus("A suggested audio moment was unavailable; transcription continues.");
         });
+      },
+      status: (text2) => {
+        if (current()) {
+          transcriptPublicationStatus = text2;
+          renderTranscriptStatus();
+        }
       }
-      return entry;
-    }, status: (text2) => {
-      if (current()) {
-        transcriptPublicationStatus = text2;
-        renderTranscriptStatus();
-      }
-    } });
+    });
     try {
       await transcriptLifetime.start(source.signal, (signal) => createLocalTranscriber({ track: source.track, sourceStartedAt: source.startedAt, signal, onSegment: (s, evidence) => {
         if (current()) {
           const cue = cueContext.observe(evidence);
-          if (cue.reset) moments.resetTranscriptContext();
+          if (cue.reset) {
+            transcriptPublisher.invalidateEvidence();
+            moments.resetTranscriptContext();
+          }
           if (cue.usable) moments.observeTranscript({ id: `${generation}:${s.startMs}:${s.endMs}`, ...s });
           transcriptPublisher.enqueue(s, evidence);
         }
       }, onState: (state) => {
         if (generation === transcriptGeneration && session === roomSession) {
           if (state === "behind" || state === "incomplete") {
+            transcriptPublisher.invalidateEvidence();
             cueContext.reset();
             moments.resetTranscriptContext();
           }
@@ -49030,7 +49795,7 @@ THE SOFTWARE.
     rounds.start(caption);
   };
   $("rounds-stop").onclick = () => rounds.stop();
-  $("moments-start").onclick = () => {
+  function startRoomMoments() {
     if (!matchCurrent() || moments.active || rounds.active || clipCapture || clips.busy) return;
     if (typeof navigator.mediaDevices?.getDisplayMedia !== "function") {
       clipNotice("Use a laptop browser to share a match story.");
@@ -49048,7 +49813,8 @@ THE SOFTWARE.
       storyOwner = void 0;
       aiRequests.setInterval(3e4);
     }
-  };
+  }
+  $("moments-start").onclick = startRoomMoments;
   $("moments-stop-global").onclick = () => moments.stop("Match story recording stopped.");
   $("moments-stop").onclick = () => moments.stop("Match story recording stopped. Earlier shared clips remain available until they expire.");
   $("clip-still-opt-in").onchange = () => clipStillController.enable($("clip-still-opt-in").checked);
@@ -49220,7 +49986,10 @@ THE SOFTWARE.
     clipCaptionController.enable($("clip-caption-opt-in").checked);
     speechReadiness.update(transcriptSource);
   };
-  $("commentary-opt-in").onchange = () => commentaryController.enable($("commentary-opt-in").checked);
+  $("commentary-opt-in").onchange = () => {
+    transcriptEventSelection.cancel();
+    commentaryController.enable($("commentary-opt-in").checked);
+  };
   $("transcript-opt-in").onchange = () => {
     stopTranscript();
     speechReadiness.update(transcriptSource);
@@ -49426,7 +50195,7 @@ THE SOFTWARE.
       };
       let abortJoin = () => {
       };
-      await limit(new Promise((resolve, reject) => {
+      await limit(new Promise((resolve2, reject) => {
         abortJoin = () => {
           if (!joined) joinFailed = true;
           reject(abortReason(signal));
@@ -49625,7 +50394,7 @@ THE SOFTWARE.
                 clipCaptions.attach({ roomId, sourceKey, privateKey: newRole === "host" ? sourcePrivate : void 0, current: () => generation === session && ws === activeSocket, peers: () => [...chatReady].filter((id) => peers.has(id)), send: roomMessages.send, changed: renderTimeline, card: (id) => clips.list().find((c) => c.clipId === id) });
                 if (newRole === "host") {
                   clipStillController.attach({ current: () => generation === session && ws === activeSocket, card: (id) => clips.list().find((c) => c.clipId === id), read: clipReader.read, publish: (card, input, signal2, current, isExtra) => stills.publish(card, input, signal2, current, isExtra), status: clipStillStatus });
-                  aiRequests.attach({ url: config.commentary?.url || "/api/commentary", token: info.token, intervalMs: storyOwner ? 6e4 : 3e4, maxRequests: 240, scope: roomId + ":" + sourceKey, current: () => generation === session && ws === activeSocket });
+                  aiRequests.attach({ url: config.commentary?.url || "/api/commentary", token: info.token, intervalMs: storyOwner ? 6e4 : 3e4, maxRequests: 240, scope: roomId + ":" + sourceKey, onPublicLimit: () => message("The shared daily AI allowance is reached. Video and chat can continue."), current: () => generation === session && ws === activeSocket });
                   clipCaptionController.attach({ roomId, sourceKey, privateKey: sourcePrivate, available: !!config.commentary?.available, current: () => generation === session && ws === activeSocket, card: (id) => clips.list().find((c) => c.clipId === id), read: clipReader.read, request: aiRequests.request, publish: clipCaptions.publish, status: clipCaptionStatus });
                   commentaryController.attach({ roomId, sourceKey, token: info.token, request: aiRequests.request, config: config.commentary || { available: false, url: "/api/commentary", intervalMs: 3e4, maxRequests: 240 }, current: () => generation === session && ws === activeSocket, active: () => transcriptEnabled() && transcriptActive && !!transcriptSource, publish: (result, snapshot3, current) => commentary.publish(result, snapshot3, current), transcripts: () => transcripts.list(), status: commentaryStatus });
                 }
@@ -49679,7 +50448,7 @@ THE SOFTWARE.
                 } });
                 sessionSignal.addEventListener("abort", disposeKeepalive, { once: true });
               }
-              resolve();
+              resolve2();
               return;
             }
             if ((m.type === "peer-joined" || m.type === "peer-left") && Number.isSafeInteger(m.revision)) {
@@ -50088,6 +50857,7 @@ THE SOFTWARE.
     return stoppingPublisher;
   }
   async function leave(preserveFeed = false, deleteDisk = false, keepStory = false) {
+    if (!preserveFeed) localEventProvenance.clear();
     composerScrollReserve.clear();
     if (preserveFeed) director.cancel();
     else director.reset();
@@ -50322,7 +51092,10 @@ THE SOFTWARE.
       } catch {
       }
       if (oldUrl.startsWith("blob:")) URL.revokeObjectURL(oldUrl);
-      if (generation === session) leaving = false;
+      if (generation === session) {
+        leaving = false;
+        if (welcomeLocationPending) syncWelcomeLocation();
+      }
     }
   }
   var joiningSoundGesture = false;
@@ -50616,6 +51389,30 @@ THE SOFTWARE.
     return stream;
   }
   var uiBusy = false;
+  var welcomeLocationPending = false;
+  function updateWelcomeControls() {
+    const canHost = !!config && (config.testMode || config.publicCreation === true || !!new URLSearchParams(location.hash.slice(1)).get("host"));
+    $("host-start-controls").classList.remove("hidden");
+    $("share-create").disabled = uiBusy || !canHost || typeof navigator.mediaDevices?.getDisplayMedia !== "function";
+    $("private-host-guidance").classList.toggle("hidden", canHost);
+    for (const id of ["start", "start-chat"]) $(id).disabled = uiBusy || !canHost;
+    $("join").disabled = uiBusy || !config;
+  }
+  function syncWelcomeLocation() {
+    if (!config || uiBusy || role || leaving) {
+      welcomeLocationPending = true;
+      return;
+    }
+    welcomeLocationPending = false;
+    updateWelcomeControls();
+    const params = new URLSearchParams(location.hash.slice(1));
+    document.body?.classList?.toggle("legacy-room", params.get("legacy") === "1");
+    if (params.has("join")) {
+      $("invite-input").value = location.href;
+      message("Your private invitation is ready. Press Join and watch.");
+    }
+  }
+  window.addEventListener("hashchange", syncWelcomeLocation);
   async function ui(action) {
     if (uiBusy) return;
     uiBusy = true;
@@ -50623,7 +51420,7 @@ THE SOFTWARE.
     if (setting) setting.disabled = true;
     message("");
     $("cancel-action").classList.remove("hidden");
-    for (const id of ["start", "start-chat", "join"]) $(id).disabled = true;
+    for (const id of ["start", "start-chat", "share-create", "join"]) $(id).disabled = true;
     try {
       await action();
     } catch (error) {
@@ -50633,7 +51430,8 @@ THE SOFTWARE.
       uiBusy = false;
       if (setting) setting.disabled = role === "host";
       $("cancel-action").classList.add("hidden");
-      for (const id of ["start", "start-chat", "join"]) $(id).disabled = false;
+      updateWelcomeControls();
+      if (welcomeLocationPending) syncWelcomeLocation();
     }
   }
   $("start").onclick = () => {
@@ -50657,6 +51455,22 @@ THE SOFTWARE.
         releaseCapture();
         throw error;
       }
+    });
+  };
+  $("share-create").onclick = () => {
+    cancelRecovery();
+    void ui(async () => {
+      if (typeof navigator.mediaDevices?.getDisplayMedia !== "function") throw Error("To share a tab, use Chrome or Edge on a computer. You can still join a room on this device.");
+      const request2 = ++captureRequest, generation = session;
+      await shareTabAndCreateRoom({ choose: () => navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }), current: () => request2 === captureRequest && generation === session, create: startChatRoom, attach: (stream) => {
+        homepageCapture = stream;
+        try {
+          startRoomMoments();
+          if (homepageCapture) throw Error("The room is ready. Choose Share screen and sound in your room to start sharing.");
+        } finally {
+          homepageCapture = void 0;
+        }
+      } });
     });
   };
   $("start-chat").onclick = () => {
@@ -50751,6 +51565,7 @@ THE SOFTWARE.
     }
   });
   window.addEventListener("pagehide", () => {
+    localEventProvenance.clear();
     audioController.detach();
     audioPlayer.stop();
     audioAssets.clear();
@@ -50832,21 +51647,23 @@ THE SOFTWARE.
       }
     }
   }, 1e3);
+  mountRoomDirectory({ request: async (body) => {
+    const { response, data } = await roomRequest("/api/directory", body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {}, new AbortController().signal);
+    if (!response.ok) throw Error(data.error || "Rooms unavailable");
+    return data;
+  }, host: () => role === "host" ? { roomId, hostToken: token } : null, join: async (invite) => {
+    beginJoinSound();
+    await ui(() => joinInvitation(invite, selectedForwarding()));
+  } });
   void (async () => {
     const { response, data } = await roomRequest("/api/config", {}, controller.signal);
     if (!response.ok) throw Error("The room service is unavailable. Please reload.");
     if (!validConfig(data)) throw Error("The room service could not be prepared. Refresh and try again.");
     config = data;
     $("startup-guidance").classList.add("hidden");
-    for (const id of ["start", "start-chat", "join"]) $(id).disabled = false;
-    const params = new URLSearchParams(location.hash.slice(1));
-    document.body?.classList?.toggle("legacy-room", params.get("legacy") === "1");
-    if (params.has("join")) {
-      $("invite-input").value = location.href;
-      message("Your private invitation is ready. Press Join private room.");
-    }
+    syncWelcomeLocation();
     if (config.testMode) {
-      window.sameEndPilotTest = { sharedLinkState: () => ({ following: followingState(), hidden: document.hidden, policy: deliveryPolicy.liveAudioHealth(performance.now()), directorWaiting: director.waiting, viewer: viewer.debugSnapshot(), programme: programme.state, audioPlayer: { ownsPlayback: audioPlayer.ownsPlayback, busy: audioPlayer.busy, userPaused: audioPlayer.userPaused, origin: audioPlayer.origin ?? null }, clipRoom: clips.debugSnapshot() }), enableTrace, traceSnapshot, createAndPublish: async (options = {}) => {
+      window.sameEndPilotTest = { eventProvenance: testEventProvenance, sharedLinkState: () => ({ following: followingState(), hidden: document.hidden, policy: deliveryPolicy.liveAudioHealth(performance.now()), directorWaiting: director.waiting, viewer: viewer.debugSnapshot(), programme: programme.state, audioPlayer: { ownsPlayback: audioPlayer.ownsPlayback, busy: audioPlayer.busy, userPaused: audioPlayer.userPaused, origin: audioPlayer.origin ?? null }, clipRoom: clips.debugSnapshot() }), enableTrace, traceSnapshot, createAndPublish: async (options = {}) => {
         await leave();
         const stream = await synthetic();
         return beginPublishing(stream, stream, ownCaptureTracks(stream), options.independentAudio ? INDEPENDENT_AUDIO_PROFILE : void 0);
