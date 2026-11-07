@@ -3155,6 +3155,173 @@ THE SOFTWARE.
     }
   });
 
+  // src/share-tab-room.ts
+  async function shareTabAndCreateRoom({ choose, current, create, attach }) {
+    const stream = await choose();
+    let transferred = false;
+    try {
+      if (!current()) throw new DOMException("Room creation cancelled", "AbortError");
+      if (!stream.getVideoTracks().some((track) => track.readyState === "live")) throw Error("Tab sharing ended. Choose a tab again.");
+      await create();
+      if (!stream.getVideoTracks().some((track) => track.readyState === "live")) throw Error("Tab sharing ended before the room was ready. Choose a tab again in your room.");
+      attach(stream);
+      transferred = true;
+    } finally {
+      if (!transferred) for (const track of stream.getTracks()) track.stop();
+    }
+  }
+
+  // src/room-directory.ts
+  function mountRoomDirectory({ request: request2, host, join: join2 }) {
+    const el = (id) => document.getElementById(id);
+    const pending = /* @__PURE__ */ new Map();
+    let refreshing = false, checking = false;
+    const node = (tag, text2) => {
+      const n = document.createElement(tag);
+      if (text2) n.textContent = text2;
+      return n;
+    };
+    const button = (label, action) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = label;
+      b.onclick = () => {
+        b.disabled = true;
+        void action().catch((e) => {
+          el(host() ? "directory-host-status" : "directory-status").textContent = e.message;
+        }).finally(() => {
+          b.disabled = false;
+        });
+      };
+      return b;
+    };
+    async function refresh() {
+      if (refreshing) return;
+      refreshing = true;
+      try {
+        const data = await request2();
+        el("directory-rooms").replaceChildren();
+        el("directory-status").textContent = data.rooms.length ? `${data.rooms.length} room${data.rooms.length === 1 ? "" : "s"} accepting invitation requests. Access is approved by each host.` : "No rooms are listed at the moment. Try again later, start a room, or use a private invitation below.";
+        for (const room of data.rooms) {
+          const card = node("article");
+          card.className = "directory-card";
+          card.append(node("span", "\u25CF Host connected \xB7 Private"), node("h3", room.title), node("p", room.description), node("p", `Hosted by ${room.host} \xB7 ${room.participants}/${room.capacity} people`));
+          const form2 = document.createElement("form");
+          const name = document.createElement("input"), message2 = document.createElement("textarea");
+          name.name = "name";
+          name.required = true;
+          name.maxLength = 60;
+          message2.name = "message";
+          message2.maxLength = 300;
+          const nameLabel = node("label", "Your display name");
+          nameLabel.append(name);
+          const messageLabel = node("label", "Message to the host (optional)");
+          messageLabel.append(message2);
+          const submit = document.createElement("button");
+          submit.textContent = room.participants >= room.capacity ? "Room full" : pending.has(room.roomId) ? "Request sent" : "Request invitation";
+          submit.disabled = room.participants >= room.capacity || pending.has(room.roomId);
+          const status = node("p");
+          status.setAttribute("role", "status");
+          form2.append(nameLabel, messageLabel, submit, status);
+          form2.onsubmit = async (e) => {
+            e.preventDefault();
+            submit.disabled = true;
+            try {
+              const result = await request2({ action: "request", roomId: room.roomId, name: name.value, message: message2.value });
+              pending.set(room.roomId, { roomId: room.roomId, id: result.id, token: result.token, title: room.title });
+              status.textContent = "Request sent. Keep this page open for the host\u2019s reply.";
+              submit.textContent = "Request sent";
+            } catch (e2) {
+              status.textContent = e2.message;
+              submit.disabled = false;
+            }
+          };
+          card.append(form2);
+          el("directory-rooms").append(card);
+        }
+      } catch (e) {
+        el("directory-status").textContent = "Could not load rooms. Use Refresh rooms to try again.";
+      } finally {
+        refreshing = false;
+      }
+    }
+    async function check() {
+      if (checking || document.hidden) return;
+      checking = true;
+      try {
+        const h = host();
+        if (h) {
+          const data = await request2({ ...h, action: "review" });
+          el("directory-requests").replaceChildren();
+          for (const q of data.requests) {
+            const card = node("article");
+            card.className = "directory-card";
+            card.append(node("h3", q.name), node("p", q.message || "No message"), node("p", q.status));
+            if (q.status === "pending") for (const [label, decision] of [["Approve", "approved"], ["Decline", "declined"]]) card.append(button(label, async () => {
+              await request2({ ...h, action: "review", id: q.id, decision });
+              el("directory-host-status").textContent = decision === "approved" ? "Invitation approved. The visitor can now join." : "Request declined.";
+            }));
+            el("directory-requests").append(card);
+          }
+          if (!data.requests.length) el("directory-requests").textContent = "No invitation requests yet.";
+        }
+        el("directory-pending").replaceChildren();
+        for (const [id, q] of pending) {
+          try {
+            const result = await request2({ ...q, action: "status" });
+            const box3 = node("article");
+            box3.className = "directory-card";
+            box3.append(node("h3", q.title), node("p", result.status === "pending" ? "Waiting for the host. Keep this page open." : result.status === "approved" ? "Your invitation is approved." : "The host declined this request."));
+            if (result.status === "approved") box3.append(button("Join room", async () => {
+              const url2 = new URL(location.origin + "/");
+              url2.hash = new URLSearchParams({ room: q.roomId, join: q.token, source: result.sourceKey, ...result.profile ? { mode: result.profile } : {} }).toString();
+              await join2(url2.href);
+              pending.delete(id);
+              el("directory-pending").replaceChildren();
+            }));
+            el("directory-pending").append(box3);
+          } catch {
+            pending.delete(id);
+            el("directory-status").textContent = "A requested room is no longer available.";
+          }
+        }
+      } catch (e) {
+        if (host()) el("directory-host-status").textContent = e.message;
+      } finally {
+        checking = false;
+      }
+    }
+    const form = el("directory-listing");
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const h = host();
+      if (!h) return;
+      const data = new FormData(form);
+      try {
+        await request2({ ...h, action: "listing", listed: data.get("listed") === "on", title: data.get("title"), description: data.get("description"), host: data.get("host") });
+        el("directory-host-status").textContent = "Room listing saved.";
+      } catch (e2) {
+        el("directory-host-status").textContent = e2.message;
+      }
+    };
+    el("directory-unlist").onclick = () => {
+      const h = host();
+      if (h) void request2({ ...h, action: "listing", listed: false }).then(() => {
+        form.elements.namedItem("listed").checked = false;
+        el("directory-host-status").textContent = "Room hidden from the homepage.";
+      }).catch((e) => el("directory-host-status").textContent = e.message);
+    };
+    el("directory-refresh").onclick = () => void refresh();
+    el("directory-review").onclick = () => void check();
+    void refresh();
+    setInterval(() => {
+      if (!document.hidden) {
+        void check();
+        if (!host() && !pending.size && !document.activeElement?.closest("#directory-rooms")) void refresh();
+      }
+    }, 1e4);
+  }
+
   // src/transcript-event-priority.ts
   function transcriptEventPriority(text2) {
     const words = text2.toLowerCase();
@@ -5921,7 +6088,7 @@ THE SOFTWARE.
     throw Error("Invalid Same End control origin configuration");
   }
   function roomRequestUrl(path, origin) {
-    if (!["/api/config", "/api/rooms", "/api/socket-ticket"].includes(path)) throw Error("Invalid room request path");
+    if (!["/api/config", "/api/rooms", "/api/socket-ticket", "/api/directory"].includes(path)) throw Error("Invalid room request path");
     return origin ? origin + path : path;
   }
 
@@ -30188,7 +30355,10 @@ THE SOFTWARE.
         const decision = policy.decide({ kind: "audio", bytes: card.audioDescriptor.lengthBytes, local, atMs: mono() });
         if (!decision.allowed) return false;
         admission = { policy, id: decision.reservationId, local, timeout: decision.probeTimeoutMs };
-        ctx.programmeSelect?.(id, "auto");
+        if (ctx.programmeSelect?.(id, "auto") === false) {
+          cancelAdmission();
+          return false;
+        }
         userPaused = false;
         origin = "auto";
         pending = id;
@@ -30266,9 +30436,31 @@ THE SOFTWARE.
     };
   }
 
+  // src/programme-status.ts
+  function soundControlCopy(state, enabled2) {
+    const owner = state.owner ?? state.pending;
+    const earlier = owner === "audio" || owner === null && state.selection?.kind === "audio" && !state.selection.finished;
+    return {
+      label: `${enabled2 ? "Mute" : "Enable"} ${earlier ? "earlier audio" : "live sound"}`,
+      note: earlier ? "Earlier video stays muted. These controls change your selected audio clip." : "Earlier video stays muted. These controls change live sound."
+    };
+  }
+  function finishedPictureStatus(reason, sound) {
+    const clip = reason === "error" ? "Earlier clip unavailable" : reason === "skipped" ? "Earlier clip skipped" : "Earlier clip finished";
+    let audio;
+    if (sound.sourceState === "ended" && (sound.ended || sound.nativeState === "ended")) audio = "shared sound has ended";
+    else if (sound.muted || sound.volume === 0) audio = "sound is muted";
+    else if (sound.ownsLive && !sound.paused && !sound.ended && sound.readyState >= 3 && sound.nativeState === "playing" && !sound.stalled)
+      audio = sound.sourceState === "ended" ? "final shared sound continues" : "live sound continues";
+    else audio = "live sound is not currently playing";
+    return `${clip} \xB7 ${audio}`;
+  }
+
   // src/programme-playback.ts
   function createProgrammePlayback(ctx) {
-    const kinds2 = ["live", "video", "audio"];
+    const kinds2 = ["live", "audio"];
+    let visual = { playing: false, pending: false, blocked: false };
+    let visualGeneration = 0, visualUserPaused = false, visualRequests = 0, unsafeVisual = false;
     let live = { sourceId: null, available: false, connected: false, decodable: false, positionExpired: false };
     let intent = "paused", previousIntent = "live";
     let selection;
@@ -30298,7 +30490,7 @@ THE SOFTWARE.
     };
     const liveUsable = () => !!live.sourceId && live.available && live.decodable && !live.positionExpired;
     const liveReady = () => liveUsable() && live.startReady !== false;
-    const snapshot3 = () => ({ intent, previousIntent, owner, pending, blocked, soundError, live: { ...live }, selection: selection ? { ...selection } : void 0 });
+    const snapshot3 = () => ({ intent, previousIntent, owner, pending, blocked, soundError, visual: { ...visual }, live: { ...live }, selection: selection ? { ...selection } : void 0 });
     function silence() {
       generation++;
       pending = owner = null;
@@ -30318,11 +30510,11 @@ THE SOFTWARE.
         } catch {
         }
       }
-      soundError = safe.size === kinds2.length ? null : "could-not-silence";
+      soundError = !unsafeVisual && safe.size === kinds2.length ? null : "could-not-silence";
       return !soundError;
     }
     function start(kind, jump = false, preserveBlocked) {
-      if (intent === "paused" || kind === "live" && !liveReady())
+      if (unsafeVisual || intent === "paused" || kind === "live" && !liveReady())
         return;
       if (pending === kind || owner === kind)
         return;
@@ -30385,17 +30577,114 @@ THE SOFTWARE.
         notify();
       });
     }
+    function stopVisual() {
+      visualGeneration++;
+      visual = { playing: false, pending: false, blocked: false };
+      let muted = false, paused = false;
+      try {
+        ctx.ports.video.mute(true);
+        muted = true;
+      } catch {
+      }
+      try {
+        ctx.ports.video.pause();
+        paused = true;
+      } catch {
+      }
+      unsafeVisual = !muted && (!paused || visualRequests > 0);
+      if (unsafeVisual) {
+        silence();
+        soundError = "could-not-silence";
+      }
+    }
+    function visualSettled() {
+      visualRequests--;
+      if (unsafeVisual && visualRequests === 0) {
+        let safe = false;
+        try {
+          ctx.ports.video.mute(true);
+          safe = true;
+        } catch {
+        }
+        try {
+          ctx.ports.video.pause();
+          safe = true;
+        } catch {
+        }
+        if (safe) {
+          unsafeVisual = false;
+          soundError = null;
+        }
+        notify();
+      }
+    }
+    function startVisual() {
+      if (unsafeVisual || intent === "paused" || visualUserPaused || !selection || selection.kind !== "video" || !selection.ready || selection.finished || visual.pending || visual.playing) return;
+      const stamp3 = ++visualGeneration, token2 = selection.token;
+      visual = { playing: false, pending: true, blocked: false };
+      try {
+        ctx.ports.video.mute(true);
+      } catch {
+        visual.pending = false;
+        visual.blocked = true;
+        notify();
+        return;
+      }
+      notify();
+      if (stamp3 !== visualGeneration || selection?.token !== token2) return;
+      let result;
+      visualRequests++;
+      try {
+        result = ctx.ports.video.play();
+      } catch (e) {
+        result = Promise.reject(e);
+      }
+      Promise.resolve(result).then(() => {
+        visualSettled();
+        if (stamp3 !== visualGeneration || selection?.token !== token2 || intent === "paused") {
+          if (!visual.pending && !visual.playing) quiet("video");
+          return;
+        }
+        try {
+          ctx.ports.video.mute(true);
+        } catch {
+          quiet("video");
+          visual = { playing: false, pending: false, blocked: true };
+          notify();
+          return;
+        }
+        visual = { playing: true, pending: false, blocked: false };
+        notify();
+      }, () => {
+        visualSettled();
+        if (stamp3 !== visualGeneration || selection?.token !== token2) return;
+        quiet("video");
+        visual = { playing: false, pending: false, blocked: true };
+        notify();
+      });
+    }
     function maybeLive() {
       if (intent !== "live" || !liveReady()) return;
-      if ((!selection || selection.origin === "auto" && !selection.ready) && !blocked)
+      if ((!selection || selection.kind === "video" || selection.origin === "auto" && !selection.ready) && !blocked)
         start("live", jumpOnLive);
-      else if (selection?.origin === "auto" && selection.ready && blocked === selection.kind)
+      else if (selection?.kind === "audio" && selection.origin === "auto" && selection.ready && blocked === selection.kind)
         start("live", jumpOnLive, blocked);
     }
     function finish(token2, automaticReturn, reason) {
       if (!selection || selection.token !== token2 || selection.finished)
         return;
       const kind = selection.kind;
+      if (kind === "video") {
+        stopVisual();
+        if (selection.origin === "auto" && automaticReturn) selection = void 0;
+        else {
+          selection.finished = true;
+          selection.finishReason = reason;
+          selection.returnAllowed = false;
+        }
+        notify();
+        return;
+      }
       const mayReturn = automaticReturn && selection.origin === "auto" && selection.returnAllowed && intent === "live";
       if (owner === kind || pending === kind)
         silence();
@@ -30435,15 +30724,26 @@ THE SOFTWARE.
       selectClip(kind, id, origin) {
         if (!id || origin === "auto" && (intent !== "live" || !!selection))
           return void 0;
-        if (origin === "manual") {
+        if (kind === "audio" && origin === "auto" && liveUsable()) return void 0;
+        if (origin === "manual" && kind === "audio") {
           previousIntent = "manual";
           if (intent !== "paused")
             intent = "manual";
           blocked = null;
         }
+        if (selection?.kind === "video") stopVisual();
         if (selection && (owner === selection.kind || pending === selection.kind))
           silence();
+        if (kind === "video") {
+          visualUserPaused = false;
+          if (origin === "manual" && (intent === "manual" || intent === "paused" && previousIntent === "manual")) {
+            if (intent !== "paused") intent = "live";
+            previousIntent = "live";
+            jumpOnLive = true;
+          }
+        }
         selection = { kind, id, token: ++nextToken, origin, ready: false, returnAllowed: origin === "auto" };
+        if (kind === "video" && intent === "live") maybeLive();
         notify();
         return selection.token;
       },
@@ -30454,8 +30754,10 @@ THE SOFTWARE.
         if (!selection || selection.kind !== kind || selection.id !== id || selection.token !== token2 || !selection.ready || selection.finished) return false;
         selection.origin = "manual";
         selection.returnAllowed = false;
-        previousIntent = "manual";
-        if (intent !== "paused") intent = "manual";
+        if (kind === "audio") {
+          previousIntent = "manual";
+          if (intent !== "paused") intent = "manual";
+        }
         notify();
         return true;
       },
@@ -30463,8 +30765,10 @@ THE SOFTWARE.
         if (!selection || selection.token !== token2 || selection.ready)
           return;
         selection.ready = true;
-        if (intent !== "paused")
-          start(selection.kind);
+        if (intent !== "paused") {
+          if (selection.kind === "video") startVisual();
+          else start(selection.kind);
+        }
         notify();
       },
       clipEnded(token2) {
@@ -30483,6 +30787,7 @@ THE SOFTWARE.
           selection.returnAllowed = false;
         intent = "paused";
         blocked = null;
+        stopVisual();
         silence();
         notify();
       },
@@ -30497,12 +30802,35 @@ THE SOFTWARE.
         if (selection?.ready) {
           selection.finished = false;
           selection.finishReason = void 0;
-          start(selection.kind);
+          if (selection.kind === "video") {
+            if (intent === "live") maybeLive();
+            startVisual();
+          } else start(selection.kind);
         } else if (intent === "live")
           maybeLive();
         notify();
       },
+      clearVisual(token2) {
+        if (selection?.kind === "video" && selection.token === token2 && !selection.finished) {
+          stopVisual();
+          selection = void 0;
+          notify();
+        }
+      },
+      get visualPaused() {
+        return visualUserPaused && selection?.kind === "video" && !selection.finished;
+      },
+      pauseVisual() {
+        visualUserPaused = true;
+        stopVisual();
+        notify();
+      },
+      resumeVisual() {
+        visualUserPaused = false;
+        this.resume();
+      },
       backToLive() {
+        stopVisual();
         intent = previousIntent = "live";
         selection = void 0;
         blocked = null;
@@ -30513,6 +30841,8 @@ THE SOFTWARE.
         notify();
       },
       reset() {
+        visualUserPaused = false;
+        stopVisual();
         intent = "paused";
         previousIntent = "live";
         selection = void 0;
@@ -34340,8 +34670,9 @@ THE SOFTWARE.
         const wanted = proposed;
         proposed = void 0;
         const found = latest.find((c) => c.id === wanted);
-        if (!blocked && wanted && found && score(found) >= 0.55) apply(wanted, proposalDeliberate);
-        else if (!blocked && !wanted) apply(void 0, proposalDeliberate);
+        if (blocked || options.isHeld?.()) return;
+        if (wanted && found && score(found) >= 0.55) apply(wanted, proposalDeliberate);
+        else if (!wanted) apply(void 0, proposalDeliberate);
       }, 300);
     }
     return { adopt(id) {
@@ -34525,6 +34856,7 @@ THE SOFTWARE.
       const old = current;
       current = void 0;
       if (!old) return;
+      if (old.programmeToken !== void 0) ctx.programmeClear?.(old.programmeToken);
       ctx.beforeClear?.();
       clearTimeout(old.timer);
       for (const [name, handler] of old.handlers) video.removeEventListener(name, handler);
@@ -35103,7 +35435,10 @@ THE SOFTWARE.
       }, canPromote: owned };
       if (ctx.programmeReady) {
         on("canplay", () => {
-          if (owned()) ctx.programmeReady?.(c.clipId, current.origin);
+          if (owned()) {
+            const token2 = ctx.programmeReady?.(c.clipId, current.origin);
+            if (typeof token2 === "number" && owned()) current.programmeToken = token2;
+          }
         });
         video.preload = "auto";
       }
@@ -35295,7 +35630,10 @@ THE SOFTWARE.
             if (lastEndedFocusKey === key9) lastEndedFocusKey = void 0;
           }
         }
-        if (!focusManaged && id && (current?.origin === "auto" && current.id === id || active?.request.action === "auto" && active.request.id === id) && (current?.presentation?.id || active?.request.presentation?.id) === presentation?.id) {
+        const matchesCurrent = current?.origin === "auto" && current.id === id && current.presentation?.id === presentation?.id;
+        const matchesActive = active?.request.action === "auto" && active.request.id === id && active.request.presentation?.id === presentation?.id;
+        const matchesReady = ready2?.request.action === "auto" && ready2.request.id === id && ready2.request.presentation?.id === presentation?.id;
+        if (id && (matchesCurrent || matchesActive || matchesReady)) {
           focusManaged = true;
           focusKey = key9;
           if (pending?.action === "auto") pending = void 0;
@@ -35304,6 +35642,10 @@ THE SOFTWARE.
         }
         focusManaged = true;
         focusKey = key9;
+        if (!id) {
+          notify();
+          return;
+        }
         const previous = current?.origin === "auto" ? current.id : void 0;
         if (previous) {
           if (current?.replay) replayConsumed.delete(current.replay.id);
@@ -37919,6 +38261,12 @@ THE SOFTWARE.
       this.name = "CommentaryRetryableError";
     }
   };
+  var CommentaryPublicLimitError = class extends Error {
+    constructor() {
+      super("The shared daily AI allowance is reached. Video and chat can continue.");
+      this.name = "CommentaryPublicLimitError";
+    }
+  };
   async function boundedRequest(url2, init, signal) {
     let reader;
     const cancel = () => {
@@ -37984,7 +38332,15 @@ THE SOFTWARE.
         throw Error("Request cancelled");
       }
       if (!response.ok) {
-        if (response.status === 503 && /^application\/json(?:;\s*charset=utf-8)?$/i.test(response.headers.get("content-type") || "")) {
+        if (response.status === 429 && /^application\/json(?:;\s*charset=utf-8)?$/i.test(response.headers.get("content-type") || "")) {
+          let body;
+          try {
+            body = await readJson(response, ERROR_LIMIT);
+          } catch {
+            throw Error("Request failed");
+          }
+          if (body && typeof body === "object" && !Array.isArray(body) && Object.keys(body).length === 1 && body.code === "COMMENTARY_PUBLIC_LIMIT") throw new CommentaryPublicLimitError();
+        } else if (response.status === 503 && /^application\/json(?:;\s*charset=utf-8)?$/i.test(response.headers.get("content-type") || "")) {
           let body;
           try {
             body = await readJson(response, ERROR_LIMIT, true);
@@ -39274,7 +39630,13 @@ THE SOFTWARE.
         else job.reject(cancelled4());
       }, (error) => {
         if (!stillCurrent()) job.reject(cancelled4());
-        else job.reject(error instanceof CommentaryRetryableError ? error : Error("AI request unavailable."));
+        else {
+          if (error instanceof CommentaryPublicLimitError) try {
+            c.onPublicLimit?.();
+          } catch {
+          }
+          job.reject(error instanceof CommentaryRetryableError || error instanceof CommentaryPublicLimitError ? error : Error("AI request unavailable."));
+        }
       }).finally(() => {
         clearTimeout(timeout);
         remove(job);
@@ -39624,8 +39986,13 @@ THE SOFTWARE.
         const result = validateCommentaryResult2(data.result, snapshot3);
         if (result.text) await c.publish(result, snapshot3, valid2);
         if (valid2()) c.status("Waiting");
-      } catch {
-        if (ctx === c && enabled2 && v === generation) c.status("Error");
+      } catch (error) {
+        if (ctx === c && enabled2 && v === generation) {
+          if (error instanceof CommentaryPublicLimitError) {
+            enabled2 = false;
+            c.status(error.message);
+          } else c.status("Error");
+        }
       } finally {
         clearTimeout(timeout);
         if (abort2 === a) abort2 = void 0;
@@ -48005,7 +48372,7 @@ THE SOFTWARE.
   function validConfig(value) {
     if (!value || typeof value !== "object") return false;
     const c = value;
-    if (typeof c.testMode !== "boolean" || !Number.isInteger(c.maxPeers) || c.maxPeers < 1 || c.maxPeers > 8 || c.socketAuth !== void 0 && c.socketAuth !== "ticket" || c.viewerResume !== void 0 && typeof c.viewerResume !== "boolean" || c.roomChatVersion !== void 0 && (!Number.isSafeInteger(c.roomChatVersion) || c.roomChatVersion < 1) || c.chatRoomProfile !== void 0 && typeof c.chatRoomProfile !== "string") return false;
+    if (typeof c.testMode !== "boolean" || c.publicCreation !== void 0 && typeof c.publicCreation !== "boolean" || !Number.isInteger(c.maxPeers) || c.maxPeers < 1 || c.maxPeers > 8 || c.socketAuth !== void 0 && c.socketAuth !== "ticket" || c.viewerResume !== void 0 && typeof c.viewerResume !== "boolean" || c.roomChatVersion !== void 0 && (!Number.isSafeInteger(c.roomChatVersion) || c.roomChatVersion < 1) || c.chatRoomProfile !== void 0 && typeof c.chatRoomProfile !== "string") return false;
     if (c.commentary !== void 0) {
       const a = c.commentary;
       if (!a || typeof a !== "object" || typeof a.available !== "boolean" || typeof a.url !== "string" || a.intervalMs !== 3e4 || a.maxRequests !== 240) return false;
@@ -48226,7 +48593,8 @@ THE SOFTWARE.
     const hasHighlight = !!state.selection || !!viewer.selection || audioPlayer.ownsPlayback;
     const terminalPlaying = status?.sourceState === "ended" && state.owner === "live" && !liveAudio.paused && liveAudio.readyState >= 3 && (status?.bufferSeconds ?? 0) > 0 && !terminalConsumed;
     const videoPlaying = state.selection?.kind === "video" && videoPlayingEvidence?.token === state.selection.token && videoPlayingEvidence.src === clipVideo.src && clipVideo.readyState >= 3 && !clipVideo.paused && !clipVideo.ended;
-    const owner = state.owner === "live" ? "Live sound" : state.owner === "video" ? "Earlier video" : state.owner === "audio" ? "Earlier audio" : null;
+    const pictureFinished = (reason) => finishedPictureStatus(reason, { ownsLive: state.owner === "live", muted: liveAudio.muted, volume: liveAudio.volume, paused: liveAudio.paused, ended: liveAudio.ended, readyState: liveAudio.readyState, nativeState: status?.native?.state, sourceState: status?.sourceState, stalled: status?.stalled });
+    const owner = state.owner === "live" ? "Live sound" : state.owner === "audio" ? "Earlier audio" : null;
     if (role === "host")
       node.textContent = audioInterrupted ? "Shared sound was interrupted." : activeRecordingId ? "Sharing sound with the group" : "No live sound is being shared yet";
     else if (state.soundError)
@@ -48236,13 +48604,15 @@ THE SOFTWARE.
     else if (state.intent === "paused")
       node.textContent = "Paused on this device";
     else if (state.selection?.finished)
-      node.textContent = finishedClipStatus(state.selection.finishReason, terminalConsumed);
+      node.textContent = state.selection.kind === "video" ? pictureFinished(state.selection.finishReason) : finishedClipStatus(state.selection.finishReason, terminalConsumed);
     else if (state.intent === "live" && !state.selection && !state.owner && !state.pending && state.live.available && state.live.decodable && state.live.startReady === false && !state.live.positionExpired && status?.sourceState === "running")
       node.textContent = "Building sound reserve\u2026";
     else if (terminalConsumed && !state.selection && !state.owner && !state.pending)
       node.textContent = "Shared sound has ended.";
-    else if (state.owner === "video")
-      node.textContent = videoPlaying ? "Earlier video playing" : "Earlier video ready \xB7 waiting for playback";
+    else if (videoPlaying)
+      node.textContent = pictureFinished(void 0).replace("Earlier clip finished", "Earlier clip playing");
+    else if (state.selection?.kind === "video" && !state.selection.finished && (state.visual.playing || state.visual.pending))
+      node.textContent = "Earlier video ready \xB7 waiting for playback";
     else if (terminalPlaying)
       node.textContent = "Final shared sound playing \xB7 sharing ended";
     else if (status?.sourceState === "ended" && !state.selection && state.intent === "live")
@@ -48254,10 +48624,10 @@ THE SOFTWARE.
     if (state.intent === "paused" || state.selection?.kind !== "video" || state.selection.finished) videoPlayingEvidence = void 0;
     if (state.selection?.kind === "video" && !state.selection.finished) {
       if (state.soundError) streamStatus("Sound could not be safely switched. Pause playback and try again.");
-      else if (state.blocked === "video") streamStatus("Playback needs your permission. Press Play this clip to continue.");
+      else if (state.visual.blocked) streamStatus("Playback needs your permission. Press Play this clip to continue.");
       else if (state.intent === "paused") streamStatus("Playback paused on this device.");
-      else if (state.pending === "video") streamStatus("Preparing video\u2026");
-      else if (state.owner === "video") {
+      else if (state.visual.pending) streamStatus("Preparing video\u2026");
+      else if (state.visual.playing) {
         streamStatus(videoPlaying ? "Playing clip." : "Video ready. Waiting for playback\u2026");
       }
     }
@@ -48268,7 +48638,7 @@ THE SOFTWARE.
     const pos = $("programme-position");
     if (pos) {
       const age = selection ? formatProgrammeAge(position, status?.recordingId && typeof status.receivedEdgeMs === "number" ? { recordingId: status.recordingId, edgeMs: Math.floor(status.receivedEdgeMs) } : void 0) : void 0;
-      pos.textContent = selection ? selection.finished ? finishedClipStatus(selection.finishReason, terminalConsumed) : age === "Position unknown" ? "Earlier highlight \xB7 programme position unknown" : `Earlier highlight ends ${age}` : state.owner === "live" ? "Following the latest received sound. Match minute is supplied separately." : "Programme position unknown.";
+      pos.textContent = selection ? selection.finished ? selection.kind === "video" ? pictureFinished(selection.finishReason) : finishedClipStatus(selection.finishReason, terminalConsumed) : age === "Position unknown" ? "Earlier highlight \xB7 programme position unknown" : `Earlier highlight ends ${age}` : state.owner === "live" ? "Following the latest received sound. Match minute is supplied separately." : "Programme position unknown.";
     }
     for (const id of ["video-programme-position", "audio-programme-position"]) {
       const label = $(id);
@@ -48310,7 +48680,7 @@ THE SOFTWARE.
     } else deliveryPolicy.setLiveAudio({ required: false });
     viewer.setAutomaticHeld(deliveryPolicy.liveAudioHealth(performance.now()).critical);
     programme.setLive({ sourceId: epoch, available: buffered.length > 0, decodable: buffered.length > 0 && !status?.joiningLatest && !!status?.native && !["error", "closed", "ended"].includes(status.native.state), connected: !!liveAudioRoom?.currentHead(), startReady: status?.startReady ?? false, positionExpired: !!status?.positionExpired });
-    if (audioPlayer.origin === "auto" && programme.state.intent === "live" && programme.state.live.available && programme.state.live.decodable && programme.state.live.connected && programme.state.live.startReady !== false && !programme.state.live.positionExpired) {
+    if (audioPlayer.origin === "auto" && programme.state.intent === "live" && programme.state.live.available && programme.state.live.decodable && !programme.state.live.positionExpired) {
       if (programmeAudioToken) programme.clipEnded(programmeAudioToken);
       audioPlayer.stop("Live sound is available again.");
     }
@@ -48327,6 +48697,7 @@ THE SOFTWARE.
     const selection = programme.state.selection;
     if (!token2 || selection?.token !== token2 || selection.id !== id) token2 = programmeSelected(kind, id, origin);
     if (token2) programme.clipReady(token2);
+    return token2;
   }
   function programmeEnd(kind, id, reason) {
     const token2 = kind === "video" ? programmeVideoToken : programmeAudioToken;
@@ -48336,6 +48707,11 @@ THE SOFTWARE.
     }
   }
   function programmePause(kind) {
+    if (kind === "video") {
+      if (programme.state.intent === "paused") return true;
+      programme.pauseVisual();
+      return false;
+    }
     if (programme.state.owner === kind) {
       explicitProgrammePause = true;
       programme.pause();
@@ -48399,19 +48775,14 @@ THE SOFTWARE.
     timelineView.setDeliveryHold($("delivery-hold-note"), !!hold);
     const start = $("watch-start"), pause = $("watch-stop"), p = programme.state;
     const needsPlay = p.intent === "paused" || !!p.blocked;
-    start.hidden = !needsPlay && (audioPlayer.ownsPlayback ? !audioPlayer.canResume : viewer.enabled && !viewer.userPaused);
-    start.textContent = audioPlayer.ownsPlayback ? "Resume audio" : p.blocked ? "Play sound" : "Resume clips";
-    pause.textContent = audioPlayer.ownsPlayback ? "Pause audio" : "Pause clips";
-    pause.hidden = !needsPlay && (audioPlayer.ownsPlayback ? audioPlayer.canResume : !viewer.enabled);
-    if (needsPlay) pause.hidden = true;
-    if (p.blocked && p.selection?.ready && !p.selection.finished) {
-      start.hidden = true;
-      if (p.intent !== "paused") pause.hidden = false;
-    }
+    start.hidden = p.intent !== "paused" && !p.blocked && (viewer.enabled || !!p.owner || !!p.pending);
+    start.textContent = p.intent === "paused" && explicitProgrammePause ? "Resume stream" : p.blocked ? "Play sound" : "Start stream";
+    pause.textContent = "Pause stream";
+    pause.hidden = p.intent === "paused" || !viewer.enabled && !p.owner && !p.pending;
     const resume = $("audio-resume"), canResumeAudio = audioPlayer.canResume || p.selection?.kind === "audio" && !p.selection.finished && needsPlay;
     resume.hidden = !canResumeAudio;
     resume.disabled = !canResumeAudio;
-    const videoResume = $("watch-resume"), canResumeVideo = viewer.canResume || p.selection?.kind === "video" && !p.selection.finished && needsPlay;
+    const videoResume = $("watch-resume"), canResumeVideo = p.intent !== "paused" && (viewer.canResume || p.selection?.kind === "video" && !p.selection.finished && p.visual.blocked);
     if (videoResume) {
       videoResume.hidden = !canResumeVideo;
       videoResume.disabled = !canResumeVideo;
@@ -48419,12 +48790,13 @@ THE SOFTWARE.
     for (const [id, kind] of [["watch-pause-current", "video"], ["audio-pause-current", "audio"]]) {
       const nearby = $(id);
       if (nearby) {
-        nearby.hidden = needsPlay || p.owner !== kind && p.pending !== kind;
+        nearby.hidden = needsPlay || (kind === "video" ? !p.visual.playing && !p.visual.pending : p.owner !== kind && p.pending !== kind);
         nearby.disabled = nearby.hidden;
       }
     }
     const button = $("stream-sound");
-    button.textContent = streamSoundEnabled ? "Mute sound" : "Enable sound";
+    const soundCopy = soundControlCopy(p, streamSoundEnabled);
+    button.textContent = soundCopy.label;
     button.setAttribute("aria-pressed", String(streamSoundEnabled));
     for (const id of ["video-sound", "audio-sound"]) {
       const alias = $(id);
@@ -48433,8 +48805,10 @@ THE SOFTWARE.
       alias.disabled = button.disabled;
     }
     button.disabled = false;
-    const note = $("stream-sound-note");
-    if (note) note.textContent = streamSoundEnabled ? "Sound is enabled. A silent clip or browser permission can still prevent audio." : "Clips start muted. Enable sound when you want to listen.";
+    for (const id of ["stream-sound-note", "video-sound-note"]) {
+      const note = $(id);
+      if (note) note.textContent = soundCopy.note;
+    }
   }
   var transcripts = createTranscriptRoom((entry) => {
     if (timeline.addTranscript(entry)) timelineView.announce("transcript");
@@ -48690,7 +49064,7 @@ THE SOFTWARE.
   }, onReplayAccepted: () => director.cancel(), onPlaybackStart: () => director.cancel(), programmeSelect: (id, action) => {
     if (action === "play") programmeSelected("video", id, "manual");
     else if (programmeVideoToken) programme.skipClip(programmeVideoToken);
-  }, programmeReady: (id, origin) => programmeReady("video", id, origin), programmeEnd: (id, why) => programmeEnd("video", id, why), programmePause: () => programmePause("video"), programmeResume, beforeClear: () => {
+  }, programmeReady: (id, origin) => programmeReady("video", id, origin), programmeClear: (token2) => programme.clearVisual(token2), programmeEnd: (id, why) => programmeEnd("video", id, why), programmePause: () => programmePause("video"), programmeResume: () => programme.resumeVisual(), beforeClear: () => {
     if ($("clip-player")?.contains(document.activeElement) || $("clip-playback")?.contains(document.activeElement)) {
       try {
         $("timeline-latest").focus({ preventScroll: true });
@@ -48706,7 +49080,7 @@ THE SOFTWARE.
     queueMicrotask(() => {
       const resume = $("watch-resume");
       if (resume) {
-        const p = programme.state, can = viewer.canResume || p.selection?.kind === "video" && !p.selection.finished && (p.intent === "paused" || !!p.blocked);
+        const p = programme.state, can = p.intent !== "paused" && (viewer.canResume || p.selection?.kind === "video" && !p.selection.finished && p.visual.blocked);
         resume.disabled = !can;
         resume.hidden = !can;
       }
@@ -48729,9 +49103,7 @@ THE SOFTWARE.
     },
     release: () => viewer.setHeld(false),
     onAutomaticEnd: () => director.start(),
-    programmeSelect: (id, origin) => {
-      programmeSelected("audio", id, origin);
-    },
+    programmeSelect: (id, origin) => programmeSelected("audio", id, origin) !== void 0,
     programmeReady: (id, origin) => programmeReady("audio", id, origin),
     programmeEnd: (id, why) => programmeEnd("audio", id, why),
     programmePause: () => programmePause("audio"),
@@ -48844,11 +49216,11 @@ THE SOFTWARE.
       }
     });
   }
-  var videoFocus = createStreamVideoFocus({ apply: applyVideoFocus });
+  var videoFocus = createStreamVideoFocus({ apply: applyVideoFocus, isHeld: () => document.hidden || videoFocusHeld() });
   var videoControlHold = createStreamControlHold();
   function videoFocusHeld() {
     const active = document.activeElement;
-    return !!document.fullscreenElement || explicitProgrammePause || viewer.hasManualIntent || audioPlayer.ownsPlayback || !!active && (!!active.matches?.("input,textarea,select") || !!active.isContentEditable || videoControlHold.holdsControl(!!active.matches?.("button,a,summary") && !!active.closest?.("#room-timeline")));
+    return !!document.fullscreenElement || explicitProgrammePause || programme.visualPaused || viewer.hasManualIntent || audioPlayer.ownsPlayback || !!active && (!!active.matches?.("input,textarea,select") || !!active.isContentEditable || videoControlHold.holdsControl(!!active.matches?.("button,a,summary") && !!active.closest?.("#room-timeline")));
   }
   function mayStartAutomaticVideo() {
     if (document.hidden) return false;
@@ -48863,7 +49235,7 @@ THE SOFTWARE.
     if (!readingVideoFocus || !viewer.enabled) return;
     const bounds = readableViewport($("room-timeline"));
     if (document.hidden) {
-      videoFocus.update([], bounds);
+      videoFocus.update([], bounds, true);
       return;
     }
     const hold = videoFocusHeld();
@@ -48878,9 +49250,11 @@ THE SOFTWARE.
     if (!role || roomProfile !== CHAT_ROOM_PROFILE || !viewer.enabled) return;
     const changed = !readingVideoFocus;
     if (changed) {
-      const owned = viewer.ownership, selection = viewer.selection, key9 = owned?.origin === "auto" ? selection?.replayId ? "replay:" + selection.replayId : "clip:" + owned.clipId : viewer.lastEndedFocusKey;
-      videoFocus.adopt(key9);
-      applyVideoFocus(key9);
+      const owned = viewer.ownership, selection = viewer.selection;
+      const key9 = owned?.origin === "auto" ? selection?.replayId ? "replay:" + selection.replayId : "clip:" + owned.clipId : viewer.lastEndedFocusKey;
+      const target = key9 && timelineView.videoTargets().some((x) => x.key === key9) ? key9 : void 0;
+      videoFocus.adopt(target);
+      if (!document.hidden && !videoFocusHeld()) applyVideoFocus(target);
     }
     readingVideoFocus = true;
     director.veto();
@@ -49019,6 +49393,7 @@ THE SOFTWARE.
   }, status: (text2) => {
     $("moments-connection").textContent = text2;
   } });
+  var homepageCapture;
   var moments = createClipContextMoments({ recordingStarted: (recording) => {
     activeRecordingId = recording.recordingId;
     audioInterrupted = false;
@@ -49076,7 +49451,14 @@ THE SOFTWARE.
       });
       renderProgramme();
     }
-  }, choose: () => navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }), publisher: startPublisher, publish: (caption, objects, duration, signal, context) => {
+  }, choose: () => {
+    if (homepageCapture) {
+      const selected = homepageCapture;
+      homepageCapture = void 0;
+      return Promise.resolve(selected);
+    }
+    return navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+  }, publisher: startPublisher, publish: (caption, objects, duration, signal, context) => {
     const owner = storyOwner;
     return publishClip(caption, objects, duration, signal, () => storyOwnerCurrent(owner) && (!context?.eventCurrent || context.eventCurrent()), context);
   }, capacity: () => ({ used: clips.used, count: clips.list().length, busy: clips.busy || viewer.busy }), current: storyOwnerCurrent, ready: matchCurrent, sourceChanged: (source) => {
@@ -49284,6 +49666,7 @@ THE SOFTWARE.
     if (audioPlayer.origin === "auto") audioPlayer.stop();
     $("stream-video-auto").checked = false;
     viewer.stop();
+    if (programmeVideoToken) programme.clearVisual(programmeVideoToken);
     traceFollowing("watch-stop");
     clipStage.park();
   }
@@ -49351,7 +49734,7 @@ THE SOFTWARE.
     $("clip-context-source").textContent = text2.provenance;
   }
   function adaptStreamMedia() {
-    if (programme.state.live.available && programme.state.live.connected && programme.state.live.decodable && !programme.state.live.positionExpired) return;
+    if (programme.state.live.available && programme.state.live.decodable && !programme.state.live.positionExpired) return;
     if (!streamSoundEnabled || director.waiting || !role || roomProfile !== CHAT_ROOM_PROFILE || !viewer.enabled || viewer.suspended || viewer.userPaused || viewer.hasManualIntent || viewer.ownership || audioPlayer.ownsPlayback) return;
     const waiting = viewer.automaticWait;
     if (!waiting) return;
@@ -49595,7 +49978,7 @@ THE SOFTWARE.
     rounds.start(caption);
   };
   $("rounds-stop").onclick = () => rounds.stop();
-  $("moments-start").onclick = () => {
+  function startRoomMoments() {
     if (!matchCurrent() || moments.active || rounds.active || clipCapture || clips.busy) return;
     if (typeof navigator.mediaDevices?.getDisplayMedia !== "function") {
       clipNotice("Use a laptop browser to share a match story.");
@@ -49613,14 +49996,23 @@ THE SOFTWARE.
       storyOwner = void 0;
       aiRequests.setInterval(3e4);
     }
-  };
+  }
+  $("moments-start").onclick = startRoomMoments;
   $("moments-stop-global").onclick = () => moments.stop("Match story recording stopped.");
   $("moments-stop").onclick = () => moments.stop("Match story recording stopped. Earlier shared clips remain available until they expire.");
   $("clip-still-opt-in").onchange = () => clipStillController.enable($("clip-still-opt-in").checked);
   $("clip-pictures-auto").onchange = () => pictures.enableAuto($("clip-pictures-auto").checked);
   $("watch-start").onclick = () => {
+    const state = programme.state, wasExplicitPause = explicitProgrammePause;
     explicitProgrammePause = false;
-    const state = programme.state;
+    if (state.intent === "paused" && wasExplicitPause) {
+      if (state.selection?.finished && !audioPlayer.ownsPlayback && !viewer.selection) {
+        viewer.releaseManualHold();
+        programme.backToLive();
+        startStreamWatching();
+      } else programme.resume();
+      return;
+    }
     if (!audioPlayer.ownsPlayback && !viewer.selection && state.selection?.finished) {
       viewer.releaseManualHold();
       programme.backToLive();
@@ -49659,7 +50051,7 @@ THE SOFTWARE.
     try {
       const owner = programme.state.owner;
       for (const [kind, media] of [["live", liveAudio], ["video", clipVideo], ["audio", clipAudio]]) {
-        media.muted = !enable || owner !== kind || kind === "live" && role === "host";
+        media.muted = kind === "video" || !enable || owner !== kind || kind === "live" && role === "host";
         if (!media.muted && media.volume === 0) media.volume = 1;
       }
     } finally {
@@ -49682,7 +50074,7 @@ THE SOFTWARE.
   for (const id of ["video-sound", "audio-sound"]) $(id).onclick = toggleStreamSound;
   clipVideo.addEventListener("playing", () => {
     const state = programme.state, selection = state.selection;
-    if (selection?.kind !== "video" || selection.finished || state.owner !== "video" && state.pending !== "video" || clipVideo.paused || clipVideo.ended || clipVideo.readyState < 3 || !clipVideo.src || clipVideo.currentSrc !== clipVideo.src) return;
+    if (selection?.kind !== "video" || selection.finished || !state.visual.playing && !state.visual.pending || clipVideo.paused || clipVideo.ended || clipVideo.readyState < 3 || !clipVideo.src || clipVideo.currentSrc !== clipVideo.src) return;
     videoPlayingEvidence = { token: selection.token, src: clipVideo.src };
     renderProgramme();
   });
@@ -49710,7 +50102,7 @@ THE SOFTWARE.
       }
     });
     media.addEventListener("play", () => {
-      if (programme.state.pending === kind || programme.state.owner === kind) return;
+      if (kind === "video" ? programme.state.visual.pending || programme.state.visual.playing : programme.state.pending === kind || programme.state.owner === kind) return;
       programmeMute(media, true, kind === "live");
       try {
         media.pause();
@@ -49757,15 +50149,16 @@ THE SOFTWARE.
   $("timeline-latest").addEventListener("click", followLatestStream);
   $("watch-stop").onclick = () => {
     explicitProgrammePause = true;
+    director.veto();
     programme.pause();
-    if (audioPlayer.ownsPlayback) audioPlayer.pause();
-    else stopWatching();
+    updateVideoFocus();
   };
   var videoPauseCurrent = $("watch-pause-current");
   if (videoPauseCurrent) videoPauseCurrent.onclick = () => {
-    explicitProgrammePause = true;
     director.veto();
-    programme.pause();
+    videoPlayingEvidence = void 0;
+    programme.pauseVisual();
+    streamStatus("Picture paused. Press Play this clip to continue.");
   };
   var audioPauseCurrent = $("audio-pause-current");
   if (audioPauseCurrent) audioPauseCurrent.onclick = () => {
@@ -50193,7 +50586,7 @@ THE SOFTWARE.
                 clipCaptions.attach({ roomId, sourceKey, privateKey: newRole === "host" ? sourcePrivate : void 0, current: () => generation === session && ws === activeSocket, peers: () => [...chatReady].filter((id) => peers.has(id)), send: roomMessages.send, changed: renderTimeline, card: (id) => clips.list().find((c) => c.clipId === id) });
                 if (newRole === "host") {
                   clipStillController.attach({ current: () => generation === session && ws === activeSocket, card: (id) => clips.list().find((c) => c.clipId === id), read: clipReader.read, publish: (card, input, signal2, current, isExtra) => stills.publish(card, input, signal2, current, isExtra), status: clipStillStatus });
-                  aiRequests.attach({ url: config.commentary?.url || "/api/commentary", token: info.token, intervalMs: storyOwner ? 6e4 : 3e4, maxRequests: 240, scope: roomId + ":" + sourceKey, current: () => generation === session && ws === activeSocket });
+                  aiRequests.attach({ url: config.commentary?.url || "/api/commentary", token: info.token, intervalMs: storyOwner ? 6e4 : 3e4, maxRequests: 240, scope: roomId + ":" + sourceKey, onPublicLimit: () => message("The shared daily AI allowance is reached. Video and chat can continue."), current: () => generation === session && ws === activeSocket });
                   clipCaptionController.attach({ roomId, sourceKey, privateKey: sourcePrivate, available: !!config.commentary?.available, current: () => generation === session && ws === activeSocket, card: (id) => clips.list().find((c) => c.clipId === id), read: clipReader.read, request: aiRequests.request, publish: clipCaptions.publish, status: clipCaptionStatus });
                   commentaryController.attach({ roomId, sourceKey, token: info.token, request: aiRequests.request, config: config.commentary || { available: false, url: "/api/commentary", intervalMs: 3e4, maxRequests: 240 }, current: () => generation === session && ws === activeSocket, active: () => transcriptEnabled() && transcriptActive && !!transcriptSource, publish: (result, snapshot3, current) => commentary.publish(result, snapshot3, current), transcripts: () => transcripts.list(), status: commentaryStatus });
                 }
@@ -50891,7 +51284,10 @@ THE SOFTWARE.
       } catch {
       }
       if (oldUrl.startsWith("blob:")) URL.revokeObjectURL(oldUrl);
-      if (generation === session) leaving = false;
+      if (generation === session) {
+        leaving = false;
+        if (welcomeLocationPending) syncWelcomeLocation();
+      }
     }
   }
   var joiningSoundGesture = false;
@@ -51185,6 +51581,30 @@ THE SOFTWARE.
     return stream;
   }
   var uiBusy = false;
+  var welcomeLocationPending = false;
+  function updateWelcomeControls() {
+    const canHost = !!config && (config.testMode || config.publicCreation === true || !!new URLSearchParams(location.hash.slice(1)).get("host"));
+    $("host-start-controls").classList.remove("hidden");
+    $("share-create").disabled = uiBusy || !canHost || typeof navigator.mediaDevices?.getDisplayMedia !== "function";
+    $("private-host-guidance").classList.toggle("hidden", canHost);
+    for (const id of ["start", "start-chat"]) $(id).disabled = uiBusy || !canHost;
+    $("join").disabled = uiBusy || !config;
+  }
+  function syncWelcomeLocation() {
+    if (!config || uiBusy || role || leaving) {
+      welcomeLocationPending = true;
+      return;
+    }
+    welcomeLocationPending = false;
+    updateWelcomeControls();
+    const params = new URLSearchParams(location.hash.slice(1));
+    document.body?.classList?.toggle("legacy-room", params.get("legacy") === "1");
+    if (params.has("join")) {
+      $("invite-input").value = location.href;
+      message("Your private invitation is ready. Press Join and watch.");
+    }
+  }
+  window.addEventListener("hashchange", syncWelcomeLocation);
   async function ui(action) {
     if (uiBusy) return;
     uiBusy = true;
@@ -51192,7 +51612,7 @@ THE SOFTWARE.
     if (setting) setting.disabled = true;
     message("");
     $("cancel-action").classList.remove("hidden");
-    for (const id of ["start", "start-chat", "join"]) $(id).disabled = true;
+    for (const id of ["start", "start-chat", "share-create", "join"]) $(id).disabled = true;
     try {
       await action();
     } catch (error) {
@@ -51202,7 +51622,8 @@ THE SOFTWARE.
       uiBusy = false;
       if (setting) setting.disabled = role === "host";
       $("cancel-action").classList.add("hidden");
-      for (const id of ["start", "start-chat", "join"]) $(id).disabled = false;
+      updateWelcomeControls();
+      if (welcomeLocationPending) syncWelcomeLocation();
     }
   }
   $("start").onclick = () => {
@@ -51226,6 +51647,22 @@ THE SOFTWARE.
         releaseCapture();
         throw error;
       }
+    });
+  };
+  $("share-create").onclick = () => {
+    cancelRecovery();
+    void ui(async () => {
+      if (typeof navigator.mediaDevices?.getDisplayMedia !== "function") throw Error("To share a tab, use Chrome or Edge on a computer. You can still join a room on this device.");
+      const request2 = ++captureRequest, generation = session;
+      await shareTabAndCreateRoom({ choose: () => navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }), current: () => request2 === captureRequest && generation === session, create: startChatRoom, attach: (stream) => {
+        homepageCapture = stream;
+        try {
+          startRoomMoments();
+          if (homepageCapture) throw Error("The room is ready. Choose Share screen and sound in your room to start sharing.");
+        } finally {
+          homepageCapture = void 0;
+        }
+      } });
     });
   };
   $("start-chat").onclick = () => {
@@ -51402,19 +51839,21 @@ THE SOFTWARE.
       }
     }
   }, 1e3);
+  mountRoomDirectory({ request: async (body) => {
+    const { response, data } = await roomRequest("/api/directory", body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {}, new AbortController().signal);
+    if (!response.ok) throw Error(data.error || "Rooms unavailable");
+    return data;
+  }, host: () => role === "host" ? { roomId, hostToken: token } : null, join: async (invite) => {
+    beginJoinSound();
+    await ui(() => joinInvitation(invite, selectedForwarding()));
+  } });
   void (async () => {
     const { response, data } = await roomRequest("/api/config", {}, controller.signal);
     if (!response.ok) throw Error("The room service is unavailable. Please reload.");
     if (!validConfig(data)) throw Error("The room service could not be prepared. Refresh and try again.");
     config = data;
     $("startup-guidance").classList.add("hidden");
-    for (const id of ["start", "start-chat", "join"]) $(id).disabled = false;
-    const params = new URLSearchParams(location.hash.slice(1));
-    document.body?.classList?.toggle("legacy-room", params.get("legacy") === "1");
-    if (params.has("join")) {
-      $("invite-input").value = location.href;
-      message("Your private invitation is ready. Press Join private room.");
-    }
+    syncWelcomeLocation();
     if (config.testMode) {
       window.sameEndPilotTest = { eventProvenance: testEventProvenance, sharedLinkState: () => ({ following: followingState(), hidden: document.hidden, policy: deliveryPolicy.liveAudioHealth(performance.now()), directorWaiting: director.waiting, viewer: viewer.debugSnapshot(), programme: programme.state, audioPlayer: { ownsPlayback: audioPlayer.ownsPlayback, busy: audioPlayer.busy, userPaused: audioPlayer.userPaused, origin: audioPlayer.origin ?? null }, clipRoom: clips.debugSnapshot() }), enableTrace, traceSnapshot, createAndPublish: async (options = {}) => {
         await leave();
