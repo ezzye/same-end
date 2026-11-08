@@ -3155,6 +3155,173 @@ THE SOFTWARE.
     }
   });
 
+  // src/share-tab-room.ts
+  async function shareTabAndCreateRoom({ choose, current, create, attach }) {
+    const stream = await choose();
+    let transferred = false;
+    try {
+      if (!current()) throw new DOMException("Room creation cancelled", "AbortError");
+      if (!stream.getVideoTracks().some((track) => track.readyState === "live")) throw Error("Tab sharing ended. Choose a tab again.");
+      await create();
+      if (!stream.getVideoTracks().some((track) => track.readyState === "live")) throw Error("Tab sharing ended before the room was ready. Choose a tab again in your room.");
+      attach(stream);
+      transferred = true;
+    } finally {
+      if (!transferred) for (const track of stream.getTracks()) track.stop();
+    }
+  }
+
+  // src/room-directory.ts
+  function mountRoomDirectory({ request: request2, host, join: join2 }) {
+    const el = (id) => document.getElementById(id);
+    const pending = /* @__PURE__ */ new Map();
+    let refreshing = false, checking = false;
+    const node = (tag, text2) => {
+      const n = document.createElement(tag);
+      if (text2) n.textContent = text2;
+      return n;
+    };
+    const button = (label, action) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = label;
+      b.onclick = () => {
+        b.disabled = true;
+        void action().catch((e) => {
+          el(host() ? "directory-host-status" : "directory-status").textContent = e.message;
+        }).finally(() => {
+          b.disabled = false;
+        });
+      };
+      return b;
+    };
+    async function refresh() {
+      if (refreshing) return;
+      refreshing = true;
+      try {
+        const data = await request2();
+        el("directory-rooms").replaceChildren();
+        el("directory-status").textContent = data.rooms.length ? `${data.rooms.length} room${data.rooms.length === 1 ? "" : "s"} accepting invitation requests. Access is approved by each host.` : "No rooms are listed at the moment. Try again later, start a room, or use a private invitation below.";
+        for (const room of data.rooms) {
+          const card = node("article");
+          card.className = "directory-card";
+          card.append(node("span", "\u25CF Host connected \xB7 Private"), node("h3", room.title), node("p", room.description), node("p", `Hosted by ${room.host} \xB7 ${room.participants}/${room.capacity} people`));
+          const form2 = document.createElement("form");
+          const name = document.createElement("input"), message2 = document.createElement("textarea");
+          name.name = "name";
+          name.required = true;
+          name.maxLength = 60;
+          message2.name = "message";
+          message2.maxLength = 300;
+          const nameLabel = node("label", "Your display name");
+          nameLabel.append(name);
+          const messageLabel = node("label", "Message to the host (optional)");
+          messageLabel.append(message2);
+          const submit = document.createElement("button");
+          submit.textContent = room.participants >= room.capacity ? "Room full" : pending.has(room.roomId) ? "Request sent" : "Request invitation";
+          submit.disabled = room.participants >= room.capacity || pending.has(room.roomId);
+          const status = node("p");
+          status.setAttribute("role", "status");
+          form2.append(nameLabel, messageLabel, submit, status);
+          form2.onsubmit = async (e) => {
+            e.preventDefault();
+            submit.disabled = true;
+            try {
+              const result = await request2({ action: "request", roomId: room.roomId, name: name.value, message: message2.value });
+              pending.set(room.roomId, { roomId: room.roomId, id: result.id, token: result.token, title: room.title });
+              status.textContent = "Request sent. Keep this page open for the host\u2019s reply.";
+              submit.textContent = "Request sent";
+            } catch (e2) {
+              status.textContent = e2.message;
+              submit.disabled = false;
+            }
+          };
+          card.append(form2);
+          el("directory-rooms").append(card);
+        }
+      } catch (e) {
+        el("directory-status").textContent = "Could not load rooms. Use Refresh rooms to try again.";
+      } finally {
+        refreshing = false;
+      }
+    }
+    async function check() {
+      if (checking || document.hidden) return;
+      checking = true;
+      try {
+        const h = host();
+        if (h) {
+          const data = await request2({ ...h, action: "review" });
+          el("directory-requests").replaceChildren();
+          for (const q of data.requests) {
+            const card = node("article");
+            card.className = "directory-card";
+            card.append(node("h3", q.name), node("p", q.message || "No message"), node("p", q.status));
+            if (q.status === "pending") for (const [label, decision] of [["Approve", "approved"], ["Decline", "declined"]]) card.append(button(label, async () => {
+              await request2({ ...h, action: "review", id: q.id, decision });
+              el("directory-host-status").textContent = decision === "approved" ? "Invitation approved. The visitor can now join." : "Request declined.";
+            }));
+            el("directory-requests").append(card);
+          }
+          if (!data.requests.length) el("directory-requests").textContent = "No invitation requests yet.";
+        }
+        el("directory-pending").replaceChildren();
+        for (const [id, q] of pending) {
+          try {
+            const result = await request2({ ...q, action: "status" });
+            const box3 = node("article");
+            box3.className = "directory-card";
+            box3.append(node("h3", q.title), node("p", result.status === "pending" ? "Waiting for the host. Keep this page open." : result.status === "approved" ? "Your invitation is approved." : "The host declined this request."));
+            if (result.status === "approved") box3.append(button("Join room", async () => {
+              const url2 = new URL(location.origin + "/");
+              url2.hash = new URLSearchParams({ room: q.roomId, join: q.token, source: result.sourceKey, ...result.profile ? { mode: result.profile } : {} }).toString();
+              await join2(url2.href);
+              pending.delete(id);
+              el("directory-pending").replaceChildren();
+            }));
+            el("directory-pending").append(box3);
+          } catch {
+            pending.delete(id);
+            el("directory-status").textContent = "A requested room is no longer available.";
+          }
+        }
+      } catch (e) {
+        if (host()) el("directory-host-status").textContent = e.message;
+      } finally {
+        checking = false;
+      }
+    }
+    const form = el("directory-listing");
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const h = host();
+      if (!h) return;
+      const data = new FormData(form);
+      try {
+        await request2({ ...h, action: "listing", listed: data.get("listed") === "on", title: data.get("title"), description: data.get("description"), host: data.get("host") });
+        el("directory-host-status").textContent = "Room listing saved.";
+      } catch (e2) {
+        el("directory-host-status").textContent = e2.message;
+      }
+    };
+    el("directory-unlist").onclick = () => {
+      const h = host();
+      if (h) void request2({ ...h, action: "listing", listed: false }).then(() => {
+        form.elements.namedItem("listed").checked = false;
+        el("directory-host-status").textContent = "Room hidden from the homepage.";
+      }).catch((e) => el("directory-host-status").textContent = e.message);
+    };
+    el("directory-refresh").onclick = () => void refresh();
+    el("directory-review").onclick = () => void check();
+    void refresh();
+    setInterval(() => {
+      if (!document.hidden) {
+        void check();
+        if (!host() && !pending.size && !document.activeElement?.closest("#directory-rooms")) void refresh();
+      }
+    }, 1e4);
+  }
+
   // src/transcript-event-priority.ts
   function transcriptEventPriority(text2) {
     const words = text2.toLowerCase();
@@ -5921,7 +6088,7 @@ THE SOFTWARE.
     throw Error("Invalid Same End control origin configuration");
   }
   function roomRequestUrl(path, origin) {
-    if (!["/api/config", "/api/rooms", "/api/socket-ticket"].includes(path)) throw Error("Invalid room request path");
+    if (!["/api/config", "/api/rooms", "/api/socket-ticket", "/api/directory"].includes(path)) throw Error("Invalid room request path");
     return origin ? origin + path : path;
   }
 
@@ -6325,8 +6492,9 @@ THE SOFTWARE.
           this.rate = Math.min(this.rate, t.bytes * 1e3 / (e.atMs - t.start));
         return;
       }
-      if (e.kind !== "complete" && e.kind !== "failed") return;
+      if (e.kind !== "complete" && e.kind !== "failed" && e.kind !== "cancelled") return;
       this.active.delete(e.id);
+      if (e.kind === "cancelled") return;
       if (e.kind === "failed") {
         this.rate *= 0.5;
         this.confidence = 0;
@@ -29893,7 +30061,7 @@ THE SOFTWARE.
   function createClipAudioPlayer(ctx) {
     const now = ctx.now ?? Date.now;
     const audio = ctx.audio;
-    let epoch = 0, owned = false, reconnecting = false, paused = false, blocked = false, pending, waiting;
+    let epoch = 0, owned = false, reconnecting2 = false, paused = false, blocked = false, pending, waiting;
     let active;
     let selected;
     let playAttempt = 0;
@@ -29953,7 +30121,7 @@ THE SOFTWARE.
       const stoppedId = selected?.card.clipId ?? pending ?? active?.id;
       if (stoppedId) ctx.programmeEnd?.(stoppedId, "error");
       epoch++;
-      reconnecting = false;
+      reconnecting2 = false;
       pending = void 0;
       waiting = void 0;
       cancelAdmission();
@@ -30010,7 +30178,7 @@ THE SOFTWARE.
       notify();
     }
     function pump() {
-      if (active || paused || reconnecting || !pending || !ctx.current()) return;
+      if (active || paused || reconnecting2 || !pending || !ctx.current()) return;
       const id = pending;
       const card = cardFor(id);
       if (!card) {
@@ -30188,7 +30356,10 @@ THE SOFTWARE.
         const decision = policy.decide({ kind: "audio", bytes: card.audioDescriptor.lengthBytes, local, atMs: mono() });
         if (!decision.allowed) return false;
         admission = { policy, id: decision.reservationId, local, timeout: decision.probeTimeoutMs };
-        ctx.programmeSelect?.(id, "auto");
+        if (ctx.programmeSelect?.(id, "auto") === false) {
+          cancelAdmission();
+          return false;
+        }
         userPaused = false;
         origin = "auto";
         pending = id;
@@ -30215,7 +30386,7 @@ THE SOFTWARE.
           stop();
           return;
         }
-        reconnecting = true;
+        reconnecting2 = true;
         if (!selected && (pending || active)) {
           const id = pending ?? active.id;
           epoch++;
@@ -30227,11 +30398,11 @@ THE SOFTWARE.
         notify();
       },
       reattach() {
-        reconnecting = false;
+        reconnecting2 = false;
         this.observe();
       },
       observe() {
-        if (reconnecting) return;
+        if (reconnecting2) return;
         if (selected && cardFor(selected.card.clipId)?.signature !== selected.card.signature) stop("This audio clip is no longer available.");
         if (active && !cardFor(active.id)) active.abort.abort();
         if (pending && ctx.current()) pump();
@@ -30266,9 +30437,31 @@ THE SOFTWARE.
     };
   }
 
+  // src/programme-status.ts
+  function soundControlCopy(state, enabled2) {
+    const owner = state.owner ?? state.pending;
+    const earlier = owner === "audio" || owner === null && state.selection?.kind === "audio" && !state.selection.finished;
+    return {
+      label: `${enabled2 ? "Mute" : "Enable"} ${earlier ? "earlier audio" : "live sound"}`,
+      note: earlier ? "Earlier video stays muted. These controls change your selected audio clip." : "Earlier video stays muted. These controls change live sound."
+    };
+  }
+  function finishedPictureStatus(reason, sound) {
+    const clip = reason === "error" ? "Earlier clip unavailable" : reason === "skipped" ? "Earlier clip skipped" : "Earlier clip finished";
+    let audio;
+    if (sound.sourceState === "ended" && (sound.ended || sound.nativeState === "ended")) audio = "shared sound has ended";
+    else if (sound.muted || sound.volume === 0) audio = "sound is muted";
+    else if (sound.ownsLive && !sound.paused && !sound.ended && sound.readyState >= 3 && sound.nativeState === "playing" && !sound.stalled)
+      audio = sound.sourceState === "ended" ? "final shared sound continues" : "live sound continues";
+    else audio = "live sound is not currently playing";
+    return `${clip} \xB7 ${audio}`;
+  }
+
   // src/programme-playback.ts
   function createProgrammePlayback(ctx) {
-    const kinds2 = ["live", "video", "audio"];
+    const kinds2 = ["live", "audio"];
+    let visual = { playing: false, pending: false, blocked: false };
+    let visualGeneration = 0, visualUserPaused = false, visualRequests = 0, unsafeVisual = false;
     let live = { sourceId: null, available: false, connected: false, decodable: false, positionExpired: false };
     let intent = "paused", previousIntent = "live";
     let selection;
@@ -30298,7 +30491,7 @@ THE SOFTWARE.
     };
     const liveUsable = () => !!live.sourceId && live.available && live.decodable && !live.positionExpired;
     const liveReady = () => liveUsable() && live.startReady !== false;
-    const snapshot3 = () => ({ intent, previousIntent, owner, pending, blocked, soundError, live: { ...live }, selection: selection ? { ...selection } : void 0 });
+    const snapshot3 = () => ({ intent, previousIntent, owner, pending, blocked, soundError, visual: { ...visual }, live: { ...live }, selection: selection ? { ...selection } : void 0 });
     function silence() {
       generation++;
       pending = owner = null;
@@ -30318,11 +30511,11 @@ THE SOFTWARE.
         } catch {
         }
       }
-      soundError = safe.size === kinds2.length ? null : "could-not-silence";
+      soundError = !unsafeVisual && safe.size === kinds2.length ? null : "could-not-silence";
       return !soundError;
     }
     function start(kind, jump = false, preserveBlocked) {
-      if (intent === "paused" || kind === "live" && !liveReady())
+      if (unsafeVisual || intent === "paused" || kind === "live" && !liveReady())
         return;
       if (pending === kind || owner === kind)
         return;
@@ -30385,17 +30578,114 @@ THE SOFTWARE.
         notify();
       });
     }
+    function stopVisual() {
+      visualGeneration++;
+      visual = { playing: false, pending: false, blocked: false };
+      let muted = false, paused = false;
+      try {
+        ctx.ports.video.mute(true);
+        muted = true;
+      } catch {
+      }
+      try {
+        ctx.ports.video.pause();
+        paused = true;
+      } catch {
+      }
+      unsafeVisual = !muted && (!paused || visualRequests > 0);
+      if (unsafeVisual) {
+        silence();
+        soundError = "could-not-silence";
+      }
+    }
+    function visualSettled() {
+      visualRequests--;
+      if (unsafeVisual && visualRequests === 0) {
+        let safe = false;
+        try {
+          ctx.ports.video.mute(true);
+          safe = true;
+        } catch {
+        }
+        try {
+          ctx.ports.video.pause();
+          safe = true;
+        } catch {
+        }
+        if (safe) {
+          unsafeVisual = false;
+          soundError = null;
+        }
+        notify();
+      }
+    }
+    function startVisual() {
+      if (unsafeVisual || intent === "paused" || visualUserPaused || !selection || selection.kind !== "video" || !selection.ready || selection.finished || visual.pending || visual.playing) return;
+      const stamp3 = ++visualGeneration, token2 = selection.token;
+      visual = { playing: false, pending: true, blocked: false };
+      try {
+        ctx.ports.video.mute(true);
+      } catch {
+        visual.pending = false;
+        visual.blocked = true;
+        notify();
+        return;
+      }
+      notify();
+      if (stamp3 !== visualGeneration || selection?.token !== token2) return;
+      let result;
+      visualRequests++;
+      try {
+        result = ctx.ports.video.play();
+      } catch (e) {
+        result = Promise.reject(e);
+      }
+      Promise.resolve(result).then(() => {
+        visualSettled();
+        if (stamp3 !== visualGeneration || selection?.token !== token2 || intent === "paused") {
+          if (!visual.pending && !visual.playing) quiet("video");
+          return;
+        }
+        try {
+          ctx.ports.video.mute(true);
+        } catch {
+          quiet("video");
+          visual = { playing: false, pending: false, blocked: true };
+          notify();
+          return;
+        }
+        visual = { playing: true, pending: false, blocked: false };
+        notify();
+      }, () => {
+        visualSettled();
+        if (stamp3 !== visualGeneration || selection?.token !== token2) return;
+        quiet("video");
+        visual = { playing: false, pending: false, blocked: true };
+        notify();
+      });
+    }
     function maybeLive() {
       if (intent !== "live" || !liveReady()) return;
-      if ((!selection || selection.origin === "auto" && !selection.ready) && !blocked)
+      if ((!selection || selection.kind === "video" || selection.origin === "auto" && !selection.ready) && !blocked)
         start("live", jumpOnLive);
-      else if (selection?.origin === "auto" && selection.ready && blocked === selection.kind)
+      else if (selection?.kind === "audio" && selection.origin === "auto" && selection.ready && blocked === selection.kind)
         start("live", jumpOnLive, blocked);
     }
     function finish(token2, automaticReturn, reason) {
       if (!selection || selection.token !== token2 || selection.finished)
         return;
       const kind = selection.kind;
+      if (kind === "video") {
+        stopVisual();
+        if (selection.origin === "auto" && automaticReturn) selection = void 0;
+        else {
+          selection.finished = true;
+          selection.finishReason = reason;
+          selection.returnAllowed = false;
+        }
+        notify();
+        return;
+      }
       const mayReturn = automaticReturn && selection.origin === "auto" && selection.returnAllowed && intent === "live";
       if (owner === kind || pending === kind)
         silence();
@@ -30435,15 +30725,26 @@ THE SOFTWARE.
       selectClip(kind, id, origin) {
         if (!id || origin === "auto" && (intent !== "live" || !!selection))
           return void 0;
-        if (origin === "manual") {
+        if (kind === "audio" && origin === "auto" && liveUsable()) return void 0;
+        if (origin === "manual" && kind === "audio") {
           previousIntent = "manual";
           if (intent !== "paused")
             intent = "manual";
           blocked = null;
         }
+        if (selection?.kind === "video") stopVisual();
         if (selection && (owner === selection.kind || pending === selection.kind))
           silence();
+        if (kind === "video") {
+          visualUserPaused = false;
+          if (origin === "manual" && (intent === "manual" || intent === "paused" && previousIntent === "manual")) {
+            if (intent !== "paused") intent = "live";
+            previousIntent = "live";
+            jumpOnLive = true;
+          }
+        }
         selection = { kind, id, token: ++nextToken, origin, ready: false, returnAllowed: origin === "auto" };
+        if (kind === "video" && intent === "live") maybeLive();
         notify();
         return selection.token;
       },
@@ -30454,8 +30755,10 @@ THE SOFTWARE.
         if (!selection || selection.kind !== kind || selection.id !== id || selection.token !== token2 || !selection.ready || selection.finished) return false;
         selection.origin = "manual";
         selection.returnAllowed = false;
-        previousIntent = "manual";
-        if (intent !== "paused") intent = "manual";
+        if (kind === "audio") {
+          previousIntent = "manual";
+          if (intent !== "paused") intent = "manual";
+        }
         notify();
         return true;
       },
@@ -30463,8 +30766,10 @@ THE SOFTWARE.
         if (!selection || selection.token !== token2 || selection.ready)
           return;
         selection.ready = true;
-        if (intent !== "paused")
-          start(selection.kind);
+        if (intent !== "paused") {
+          if (selection.kind === "video") startVisual();
+          else start(selection.kind);
+        }
         notify();
       },
       clipEnded(token2) {
@@ -30483,6 +30788,7 @@ THE SOFTWARE.
           selection.returnAllowed = false;
         intent = "paused";
         blocked = null;
+        stopVisual();
         silence();
         notify();
       },
@@ -30497,12 +30803,35 @@ THE SOFTWARE.
         if (selection?.ready) {
           selection.finished = false;
           selection.finishReason = void 0;
-          start(selection.kind);
+          if (selection.kind === "video") {
+            if (intent === "live") maybeLive();
+            startVisual();
+          } else start(selection.kind);
         } else if (intent === "live")
           maybeLive();
         notify();
       },
+      clearVisual(token2) {
+        if (selection?.kind === "video" && selection.token === token2 && !selection.finished) {
+          stopVisual();
+          selection = void 0;
+          notify();
+        }
+      },
+      get visualPaused() {
+        return visualUserPaused && selection?.kind === "video" && !selection.finished;
+      },
+      pauseVisual() {
+        visualUserPaused = true;
+        stopVisual();
+        notify();
+      },
+      resumeVisual() {
+        visualUserPaused = false;
+        this.resume();
+      },
       backToLive() {
+        stopVisual();
         intent = previousIntent = "live";
         selection = void 0;
         blocked = null;
@@ -30513,6 +30842,8 @@ THE SOFTWARE.
         notify();
       },
       reset() {
+        visualUserPaused = false;
+        stopVisual();
         intent = "paused";
         previousIntent = "live";
         selection = void 0;
@@ -30573,17 +30904,27 @@ THE SOFTWARE.
   }
 
   // src/piece-window.ts
-  async function fetchPieceWindow(length2, pieceSize, window2, request2, waitFor, check) {
+  async function fetchPieceWindow(length2, pieceSize, window2, request2, waitFor, check, initial) {
     if (!Number.isSafeInteger(length2) || length2 < 1 || !Number.isSafeInteger(pieceSize) || pieceSize < 1 || !Number.isInteger(window2) || window2 < 1 || window2 > 4) throw Error("invalid piece window");
     const bytes9 = new Uint8Array(length2), count = Math.ceil(length2 / pieceSize);
     let next = 0, inflight = 0, completed2 = 0, active = true, failed;
+    const seeded = /* @__PURE__ */ new Set();
+    for (const [index, block] of initial ?? []) {
+      if (!Number.isSafeInteger(index) || index < 0 || index >= count || block.length !== Math.min(pieceSize, length2 - index * pieceSize)) throw Error("invalid initial piece");
+      bytes9.set(block, index * pieceSize);
+      seeded.add(index);
+      completed2++;
+    }
     try {
+      check();
       while (completed2 < count) {
         check();
         if (failed) throw failed;
         while (active && !failed && inflight < window2 && next < count) {
           check();
-          const index = next++, size3 = Math.min(pieceSize, length2 - index * pieceSize);
+          const index = next++;
+          if (seeded.has(index)) continue;
+          const size3 = Math.min(pieceSize, length2 - index * pieceSize);
           inflight++;
           let settled = false;
           request2(index, size3, (error, block) => {
@@ -30620,6 +30961,7 @@ THE SOFTWARE.
   var NOOP_FETCH = { piece(_index, _bytes) {
   }, complete() {
   }, fail() {
+  }, cancel() {
   } };
   var NOOP_OBSERVER = { resetPath() {
   }, start(_expectedBytes) {
@@ -30674,10 +31016,39 @@ THE SOFTWARE.
             done = true;
             active.delete(item);
             send2("failed");
+          },
+          cancel() {
+            if (done) return;
+            done = true;
+            active.delete(item);
+            send2("cancelled");
           }
         };
       }
     };
+  }
+
+  // src/audio-safety-cancellation.ts
+  var safetyHeld = /* @__PURE__ */ new WeakSet();
+  function markAudioSafetyHold(signal) {
+    safetyHeld.add(signal);
+  }
+  function isAudioSafetyHold(signal) {
+    return !!signal && safetyHeld.has(signal);
+  }
+  var reconnecting = /* @__PURE__ */ new WeakSet();
+  function markClipReconnect(signal) {
+    reconnecting.add(signal);
+  }
+  function isClipReconnect(signal) {
+    return !!signal && reconnecting.has(signal);
+  }
+  var resumableErrors = /* @__PURE__ */ new WeakSet();
+  function markClipResumableError(error) {
+    resumableErrors.add(error);
+  }
+  function isClipResumableError(error) {
+    return !!error && typeof error === "object" && resumableErrors.has(error);
   }
 
   // ../../../../../apps/family-pilot/node_modules/bitfield/dist/index.js
@@ -31712,6 +32083,15 @@ THE SOFTWARE.
   var bittorrent_protocol_default = Wire;
 
   // src/peer-engine.ts
+  var engineAbortErrors = /* @__PURE__ */ new WeakSet();
+  function engineAbort() {
+    const error = new DOMException("Aborted", "AbortError");
+    engineAbortErrors.add(error);
+    return error;
+  }
+  function isEngineAbort(error) {
+    return !!error && typeof error === "object" && engineAbortErrors.has(error);
+  }
   var PIECE2 = 16384;
   var TTL = 12e4;
   var TIMEOUT = 12e3;
@@ -31738,8 +32118,14 @@ THE SOFTWARE.
     const pieceWindow = options.pieceWindow ?? 1;
     if (!Number.isInteger(pieceWindow) || pieceWindow < 1 || pieceWindow > 4) throw Error("invalid piece window");
     const maxObject = options.maxObjectBytes ?? 8 * 1024 * 1024, maxCache = options.maxCacheBytes ?? 64 * 1024 * 1024;
+    const digestTasks = /* @__PURE__ */ new Set();
+    const drainDigests = async () => {
+      while (digestTasks.size) await Promise.allSettled([...digestTasks]);
+    };
     const links = /* @__PURE__ */ new Map(), cache = /* @__PURE__ */ new Map();
     let closed = false, cacheBytes = 0, progressDigests = 0;
+    const reconnectShutdown = Error("engine reconnect shutdown");
+    let reconnectClosing = false;
     const pendingLoads = /* @__PURE__ */ new Map();
     let loadTail = Promise.resolve();
     const delivery = createDeliveryObserver(options.onDelivery);
@@ -31855,7 +32241,7 @@ THE SOFTWARE.
     const until = async (predicate, l, t, signal, ms = TIMEOUT) => {
       const end2 = Date.now() + ms;
       while (true) {
-        if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+        if (signal?.aborted) throw engineAbort();
         if (t?.failed) throw t.failed;
         if (l.closed) throw l.closeCause ?? Error("peer closed");
         if (predicate()) return;
@@ -31865,7 +32251,7 @@ THE SOFTWARE.
     };
     const enqueue = (s, task, signal) => {
       ensureOpen();
-      if (signal?.aborted) return Promise.reject(new DOMException("Aborted", "AbortError"));
+      if (signal?.aborted) return Promise.reject(engineAbort());
       if (s.queue.length >= 16) return Promise.reject(new PeerFetchUnavailable("peer queue full"));
       return new Promise((resolve2, reject) => {
         const pump = () => {
@@ -31887,7 +32273,7 @@ THE SOFTWARE.
           if (index < 0) return;
           s.queue.splice(index, 1);
           signal?.removeEventListener("abort", job.abort);
-          reject(new DOMException("Aborted", "AbortError"));
+          reject(engineAbort());
         };
         s.queue.push(job);
         signal?.addEventListener("abort", job.abort, { once: true });
@@ -32437,46 +32823,68 @@ THE SOFTWARE.
         trace("put-end", { seq: input.sequence, bytes: bytes9.length });
         return Object.freeze(descriptor);
       },
-      async fetch(d, suppliers2, signal, onProgress) {
+      async fetch(d, suppliers2, signal, onProgress, resume) {
         trace("fetch-start", { seq: d.sequence, bytes: d.lengthBytes });
-        ensureOpen();
+        const reconnecting2 = () => reconnectClosing && !!signal?.aborted && isClipReconnect(signal);
+        const ensureFetchOpen = () => {
+          if (closed && reconnecting2()) throw engineAbort();
+          ensureOpen();
+        };
+        const checkResume = () => {
+          if (resume && !signal?.aborted && !resume.alive()) throw Error("clip resume invalidated");
+        };
+        ensureFetchOpen();
+        checkResume();
         validateDescriptor2(d);
+        if (signal?.aborted) throw engineAbort();
         const observation = delivery.start(d.lengthBytes);
-        let fatalFetchError;
+        let fatalFetchError, independentFailure = false;
+        const poison = () => {
+          independentFailure = true;
+          try {
+            resume?.invalidate?.();
+          } catch {
+          }
+        };
         try {
-          if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-          const own = get(d.infoHash);
+          if (signal?.aborted) throw engineAbort();
+          const own = resume ? void 0 : get(d.infoHash);
           if (own) {
             try {
               await verify(own.bytes, d, own.hashes);
-              ensureOpen();
-              if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+              ensureFetchOpen();
+              checkResume();
+              if (signal?.aborted) throw engineAbort();
               trace("fetch-end", { seq: d.sequence, bytes: own.bytes.length });
               observation.complete();
               return own.bytes.slice();
             } catch (e) {
-              ensureOpen();
-              if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+              if (!isEngineAbort(e)) independentFailure = true;
+              ensureFetchOpen();
+              checkResume();
+              if (signal?.aborted) throw engineAbort();
               fatalFetchError = e;
               count("integrityRejected");
             }
           }
           const ordered = [...new Set(suppliers2)], ready2 = [], waiting = [];
           const reportedPieces = /* @__PURE__ */ new Set();
-          let verifiedBytes = 0;
+          let verifiedBytes = 0, remoteVerifiedBytes = 0;
           for (const id of ordered) {
             const l = links.get(id), slot = l?.slots[options.selfId < id ? 0 : 1];
             (l && !l.closed && l.control?.readyState === "open" && slot?.channel?.readyState === "open" ? ready2 : waiting).push(id);
           }
           let last2 = new PeerFetchUnavailable("no supplier available");
           for (const id of [...ready2, ...waiting]) {
-            ensureOpen();
-            if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+            ensureFetchOpen();
+            checkResume();
+            if (signal?.aborted) throw engineAbort();
             const l = links.get(id);
             if (!l || l.closed) continue;
             const slotIndex = options.selfId < id ? 0 : 1, s = l.slots[slotIndex];
             const task = async () => {
               await until(() => l.control?.readyState === "open" && s.channel?.readyState === "open", l, void 0, signal);
+              checkResume();
               const req = crypto.randomUUID();
               let info, metaError;
               l.metas.set(req, { resolve: (v) => {
@@ -32487,24 +32895,55 @@ THE SOFTWARE.
               try {
                 sendControl(l, { op: "META_REQ", hash: d.infoHash, req });
                 await until(() => !!info || !!metaError, l, void 0, signal);
+                checkResume();
                 if (metaError) throw metaError;
               } finally {
                 l.metas.delete(req);
               }
               const hashes = await parseInfo(info, d);
-              ensureOpen();
-              if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+              ensureFetchOpen();
+              checkResume();
+              if (signal?.aborted) throw engineAbort();
+              const initial = /* @__PURE__ */ new Map();
+              const beforeSeeds = verifiedBytes;
+              if (resume) {
+                for (let index = 0; index < Math.ceil(d.lengthBytes / PIECE2); index++) {
+                  if (!resume.alive()) throw Error("clip resume invalidated");
+                  const piece = resume.get(index);
+                  if (!piece) continue;
+                  const expected = Math.min(PIECE2, d.lengthBytes - index * PIECE2);
+                  if (piece.length !== expected || hex2(await digest2("SHA-1", piece)) !== hex2(hashes.subarray(index * 20, index * 20 + 20))) throw Error("cached piece hash mismatch");
+                  ensureFetchOpen();
+                  checkResume();
+                  if (signal?.aborted) throw engineAbort();
+                  if (!resume.alive()) throw Error("clip resume invalidated");
+                  initial.set(index, piece);
+                  if (!reportedPieces.has(index)) {
+                    reportedPieces.add(index);
+                    verifiedBytes += piece.length;
+                  }
+                }
+              }
+              if (verifiedBytes > beforeSeeds) {
+                try {
+                  onProgress?.({ verifiedBytes, totalBytes: d.lengthBytes, remoteVerifiedBytes });
+                } catch {
+                }
+              }
               if (s.gen >= 4294967294) throw Error("generation exhausted");
               const gen = ++s.gen, t = attach(id, l, slotIndex, gen, d.infoHash, false);
               try {
                 sendControl(l, { op: "OPEN", slot: slotIndex, g: gen, hash: d.infoHash });
                 await until(() => t.ack, l, t, signal);
+                checkResume();
                 startHandshake(t);
                 await until(() => t.handshake, l, t, signal);
+                checkResume();
                 t.wire.interested();
                 await until(() => !t.wire.peerChoking, l, t, signal);
+                checkResume();
                 const bytes9 = await fetchPieceWindow(d.lengthBytes, PIECE2, pieceWindow, (index, length2, callback) => {
-                  if (!onProgress && !options.onDelivery) {
+                  if (!onProgress && !options.onDelivery && !resume) {
                     t.wire.request(index, 0, length2, callback);
                     return;
                   }
@@ -32512,12 +32951,19 @@ THE SOFTWARE.
                   t.wire.request(index, 0, length2, (error, block) => {
                     if (received) return;
                     received = true;
-                    if (error || !(block instanceof Uint8Array) || block.length !== length2) {
+                    if (closed || signal?.aborted || l.closed || links.get(id) !== l || s.transfer !== t || s.gen !== gen || t.failed) return;
+                    if (error) {
+                      if (!reconnecting2() && !(l.closed && l.closeCause instanceof PeerFetchUnavailable && t.failed === l.closeCause)) poison();
                       callback(error, block);
                       return;
                     }
+                    if (!(block instanceof Uint8Array) || block.length !== length2) {
+                      poison();
+                      callback(null, block);
+                      return;
+                    }
                     const owned = block.slice();
-                    void (async () => {
+                    const digestTask = (async () => {
                       while (true) {
                         await until(() => progressDigests < pieceWindow, l, t, signal);
                         if (closed || signal?.aborted || l.closed || links.get(id) !== l || s.transfer !== t || s.gen !== gen || t.failed) throw Error("stale piece");
@@ -32528,23 +32974,35 @@ THE SOFTWARE.
                       }
                       try {
                         return await digest2("SHA-1", owned);
+                      } catch (error2) {
+                        poison();
+                        throw error2;
                       } finally {
                         progressDigests--;
                       }
-                    })().then((hash) => {
+                    })();
+                    digestTasks.add(digestTask);
+                    void digestTask.then(() => digestTasks.delete(digestTask), () => digestTasks.delete(digestTask));
+                    void digestTask.then((hash) => {
                       if (closed || signal?.aborted || l.closed || links.get(id) !== l || s.transfer !== t || s.gen !== gen || t.failed) return;
                       if (hex2(hash) !== hex2(hashes.subarray(index * 20, index * 20 + 20))) {
                         count("integrityRejected");
+                        poison();
                         callback(Error("piece hash mismatch"));
+                        return;
+                      }
+                      if (resume && !resume.put(index, owned)) {
+                        callback(Error("clip resume invalidated"));
                         return;
                       }
                       callback(null, owned);
                       if (!reportedPieces.has(index)) {
                         reportedPieces.add(index);
                         verifiedBytes += owned.length;
+                        remoteVerifiedBytes += owned.length;
                         observation.piece(index, owned.length);
                         try {
-                          onProgress?.({ verifiedBytes, totalBytes: d.lengthBytes });
+                          onProgress?.({ verifiedBytes, totalBytes: d.lengthBytes, remoteVerifiedBytes });
                         } catch {
                         }
                       }
@@ -32553,32 +33011,39 @@ THE SOFTWARE.
                     });
                   });
                 }, (predicate) => until(predicate, l, t, signal), () => {
-                  ensureOpen();
-                  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+                  ensureFetchOpen();
+                  checkResume();
+                  if (signal?.aborted) throw engineAbort();
                   if (t.failed) throw t.failed;
                   if (l.closed) throw l.closeCause ?? Error("peer closed");
-                });
+                }, initial);
                 try {
                   await verify(bytes9, d, hashes);
                 } catch (e) {
                   count("integrityRejected");
                   throw e;
                 }
+                checkResume();
                 await finish(l, s, t, signal);
-                ensureOpen();
-                if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+                checkResume();
+                ensureFetchOpen();
+                checkResume();
+                if (signal?.aborted) throw engineAbort();
                 store({ bytes: bytes9.slice(), info, hashes, descriptor: Object.freeze({ ...d }), touched: Date.now() });
                 count("objectsVerified");
                 report();
-                ensureOpen();
+                ensureFetchOpen();
+                checkResume();
                 trace("fetch-end", { seq: d.sequence, bytes: bytes9.length });
                 observation.complete();
                 return bytes9;
               } catch (e) {
+                if (!isEngineAbort(e) || t.failed && !(reconnecting2() && t.failed === reconnectShutdown) || l.closed && !(reconnecting2() && l.closeCause === reconnectShutdown)) independentFailure = true;
                 if (e?.name === "AbortError" && signal?.aborted && !t.failed) {
                   try {
                     await cancelTransfer(l, s, t);
                   } catch {
+                    independentFailure = true;
                     stop(id, "cancel cleanup failed", l);
                   }
                 } else {
@@ -32592,15 +33057,25 @@ THE SOFTWARE.
             try {
               return await enqueue(s, task, signal);
             } catch (e) {
-              ensureOpen();
-              if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+              if (resume && !isEngineAbort(e) && !(e instanceof PeerFetchUnavailable)) resume.invalidate?.();
+              if (!isEngineAbort(e) || l.closed && !(reconnecting2() && l.closeCause === reconnectShutdown) || s.transfer?.failed && !(reconnecting2() && s.transfer.failed === reconnectShutdown)) independentFailure = true;
+              ensureFetchOpen();
+              checkResume();
+              if (signal?.aborted) throw engineAbort();
               last2 = e;
               if (!(e instanceof PeerFetchUnavailable) && fatalFetchError === void 0) fatalFetchError = e;
             }
           }
           throw fatalFetchError ?? last2;
         } catch (error) {
-          observation.fail();
+          if (isEngineAbort(error) && signal?.aborted && !independentFailure && !fatalFetchError && (isAudioSafetyHold(signal) || isClipReconnect(signal))) markClipResumableError(error);
+          if (isEngineAbort(error) && signal?.aborted && isAudioSafetyHold(signal) && !independentFailure && !fatalFetchError) {
+            if (digestTasks.size) void drainDigests().then(() => {
+              if (independentFailure || fatalFetchError) observation.fail();
+              else observation.cancel();
+            });
+            else observation.cancel();
+          } else observation.fail();
           throw error;
         }
       },
@@ -32616,6 +33091,7 @@ THE SOFTWARE.
           return false;
         }
       },
+      whenDigestsSettled: drainDigests,
       has(hash) {
         return !closed && !!get(hash);
       },
@@ -32639,10 +33115,11 @@ THE SOFTWARE.
         purge();
         return { ...counters, cacheBytes };
       },
-      close() {
+      close(reason) {
         if (closed) return;
+        reconnectClosing = reason === "reconnect";
         closed = true;
-        for (const id of [...links.keys()]) stop(id);
+        for (const id of [...links.keys()]) stop(id, "closed", void 0, reconnectClosing ? reconnectShutdown : void 0);
         cache.clear();
         cacheBytes = 0;
         report();
@@ -34340,8 +34817,9 @@ THE SOFTWARE.
         const wanted = proposed;
         proposed = void 0;
         const found = latest.find((c) => c.id === wanted);
-        if (!blocked && wanted && found && score(found) >= 0.55) apply(wanted, proposalDeliberate);
-        else if (!blocked && !wanted) apply(void 0, proposalDeliberate);
+        if (blocked || options.isHeld?.()) return;
+        if (wanted && found && score(found) >= 0.55) apply(wanted, proposalDeliberate);
+        else if (!wanted) apply(void 0, proposalDeliberate);
       }, 300);
     }
     return { adopt(id) {
@@ -34506,7 +34984,7 @@ THE SOFTWARE.
       }
       if (lastEndedFocusKey && !completedFocus.has(lastEndedFocusKey)) lastEndedFocusKey = void 0;
     }
-    let epoch = 0, enabled2 = false, mode = "pictures", suspended = false, held = false, automaticHeld = false, manualHold = false, paused = false, blocked = false, userPaused = false;
+    let epoch = 0, enabled2 = false, mode = "pictures", suspended = false, held = false, preservingAudioHold = false, automaticHeld = false, manualHold = false, paused = false, blocked = false, userPaused = false;
     let active, pending, scheduled = false;
     let ready2;
     let current;
@@ -34525,6 +35003,7 @@ THE SOFTWARE.
       const old = current;
       current = void 0;
       if (!old) return;
+      if (old.programmeToken !== void 0) ctx.programmeClear?.(old.programmeToken);
       ctx.beforeClear?.();
       clearTimeout(old.timer);
       for (const [name, handler] of old.handlers) video.removeEventListener(name, handler);
@@ -34543,10 +35022,11 @@ THE SOFTWARE.
       if (ready2) clearTimeout(ready2.timer);
       ready2 = void 0;
     }
-    function invalidate() {
+    function invalidate(reconnecting2 = false) {
       clearReady();
       epoch++;
       if (active) {
+        if (reconnecting2 && !active.abort.signal.aborted) markClipReconnect(active.abort.signal);
         clearTimeout(active.idleTimer);
         clearTimeout(active.totalTimer);
         clearTimeout(active.expiryTimer);
@@ -34593,7 +35073,8 @@ THE SOFTWARE.
         }
         newestAutomatic = issued(newest);
         if (fresh.length > 1 || pending?.action === "auto") say("Showing the latest highlight; older highlights remain in the timeline.");
-        if (!pending || pending.action === "auto" && !pending.replay) pending = { id: newest.clipId, action: "auto" };
+        if (pending?.action === "auto" && pending.resumable && (ctx.canResume?.(pending.id) ?? true) && card(pending.id)) deferredAuto = { id: newest.clipId, action: "auto" };
+        else if (!pending || pending.action === "auto" && !pending.replay) pending = { id: newest.clipId, action: "auto" };
         else deferredAuto = { id: newest.clipId, action: "auto" };
       }
       if (!focusManaged && !pending && !current && !active && !paused && !blocked) {
@@ -34689,6 +35170,7 @@ THE SOFTWARE.
       }
       const presentation = manualReplayCue && manualReplayCue.clipId === id && typeof manualReplayCue.id === "string" && manualReplayCue.id.length > 0 && manualReplayCue.id.length <= 256 && Number.isSafeInteger(manualReplayCue.issuedAtMs) && Number.isSafeInteger(manualReplayCue.expiresAtMs) && manualReplayCue.issuedAtMs <= now() + 6e4 && manualReplayCue.expiresAtMs > now() && manualReplayCue.expiresAtMs > manualReplayCue.issuedAtMs && manualReplayCue.expiresAtMs - manualReplayCue.issuedAtMs <= 3e5 ? { ...manualReplayCue } : void 0;
       if (action === "skip") {
+        ctx.discardResume?.(id);
         if (ready2?.request.id === id) clearReady();
         consumed.add(id);
         if (pending?.id === id) pending = void 0;
@@ -34709,6 +35191,7 @@ THE SOFTWARE.
         schedule();
         return;
       }
+      ctx.retainResumeFor?.(id);
       if (ready2) seen.delete(ready2.request.id);
       clearReady();
       if (active?.request.id === id && !active.abort.signal.aborted) {
@@ -34751,7 +35234,9 @@ THE SOFTWARE.
         clearReady();
         return;
       }
-      if (suspended || held || manualHold || paused || blocked || current || !item.request.replay && ctx.beforeAutomaticPlay?.() === false) return;
+      const itemFocusKey = item.request.presentation ? "replay:" + item.request.presentation.id : "clip:" + item.request.id;
+      const offscreen = focusManaged && focusKey !== itemFocusKey;
+      if (suspended || held || manualHold || paused || blocked || current || offscreen || !item.request.replay && ctx.beforeAutomaticPlay?.() === false) return;
       clearReady();
       mount(item.request, item.card, item.signature, item.stamp, item.chunks);
     }
@@ -34766,6 +35251,11 @@ THE SOFTWARE.
       }
       if (active || suspended || held || !ctx.current() || !pending || ctx.busy?.()) return;
       const request3 = pending;
+      if (request3.action === "auto" && request3.resumable && !(ctx.canResume?.(request3.id) ?? true)) {
+        pending = void 0;
+        schedule();
+        return;
+      }
       if (request3.action === "auto" && manualHold) return;
       if (request3.action === "auto" && automaticWait?.clipId === request3.id && budgetTimer) return;
       if (request3.action === "auto" && (!enabled2 || mode !== "highlights" || paused || blocked || current)) return;
@@ -34812,6 +35302,12 @@ THE SOFTWARE.
           return;
         }
         if (!ctx.has(c.clipId) && !ctx.available(c.clipId)) {
+          if (request3.resumable && deferredAuto && ctx.available(deferredAuto.id)) {
+            pending = deferredAuto;
+            deferredAuto = void 0;
+            schedule();
+            return;
+          }
           say("Waiting for a participant with the latest highlight.");
           return;
         }
@@ -34928,6 +35424,7 @@ THE SOFTWARE.
         if (!stillValid() || p.clipId !== c.clipId || p.totalBytes !== c.totalBytes || !Number.isSafeInteger(p.verifiedBytes) || p.verifiedBytes <= verified || p.verifiedBytes > c.totalBytes || p.source !== "peer" && p.source !== "local") return;
         if (request3.action === "auto" && deadlineExceeded()) return;
         verified = p.verifiedBytes;
+        if (request3.action === "auto" && p.source === "peer") request3.resumable = true;
         lastProgress = clock();
         const remote = p.remoteVerifiedBytes;
         if (p.source === "peer" && typeof remote === "number" && Number.isSafeInteger(remote) && remote > peerVerified && remote <= verified) {
@@ -35103,7 +35600,10 @@ THE SOFTWARE.
       }, canPromote: owned };
       if (ctx.programmeReady) {
         on("canplay", () => {
-          if (owned()) ctx.programmeReady?.(c.clipId, current.origin);
+          if (owned()) {
+            const token2 = ctx.programmeReady?.(c.clipId, current.origin);
+            if (typeof token2 === "number" && owned()) current.programmeToken = token2;
+          }
         });
         video.preload = "auto";
       }
@@ -35207,6 +35707,7 @@ THE SOFTWARE.
         notify();
       },
       stop() {
+        ctx.discardResume?.();
         focusManaged = false;
         focusKey = void 0;
         lastEndedFocusKey = void 0;
@@ -35217,6 +35718,7 @@ THE SOFTWARE.
         enabled2 = false;
         suspended = false;
         held = false;
+        preservingAudioHold = false;
         paused = false;
         blocked = false;
         userPaused = true;
@@ -35228,14 +35730,19 @@ THE SOFTWARE.
         notify();
       },
       suspend() {
-        const retained = pending?.replay ? pending : active?.request.replay ? active.request : current?.replay ? { id: current.id, action: "auto", replay: current.replay, presentation: current.presentation } : void 0;
+        const manual = [pending, active?.request, ready2?.request].find((request3) => request3 && request3.action !== "auto");
+        const retained = manual ? { ...manual } : pending?.replay ? pending : active?.request.replay ? active.request : pending?.resumable ? pending : active?.request.resumable ? active.request : current?.replay ? { id: current.id, action: "auto", replay: current.replay, presentation: current.presentation } : void 0;
         for (const queued of [pending, deferredAuto]) if (queued?.action === "auto" && !queued.replay) seen.delete(queued.id);
         const interrupted = current?.id || active?.request.id || ready2?.request.id || pending?.id;
         if (interrupted && !consumed.has(interrupted)) seen.delete(interrupted);
+        const latest = deferredAuto || (pending?.id !== retained?.id && pending?.action === "auto" ? pending : void 0);
         suspended = true;
         focusKey = void 0;
-        invalidate();
-        if (retained && retained.replay.expiresAtMs > now()) pending = retained;
+        invalidate(true);
+        if (retained && card(retained.id) && (!retained.replay || retained.replay.expiresAtMs > now())) {
+          pending = retained;
+          if (latest && latest.id !== retained.id) deferredAuto = latest;
+        }
         say("Reconnecting to the same room\u2026");
         notify();
       },
@@ -35245,16 +35752,39 @@ THE SOFTWARE.
           say(paused ? "Reconnected. Playback is paused; choose a clip to resume." : "Reconnected. Watching for highlights.");
           observe();
         }
+        if (pending) schedule();
         notify();
       },
-      setHeld(value) {
-        if (held === value) return;
+      setHeld(value, preserveAutomatic = false) {
+        if (held === value) {
+          if (value && preservingAudioHold && !preserveAutomatic) {
+            const manual = [pending, active?.request].find((request3) => request3 && request3.action !== "auto");
+            preservingAudioHold = false;
+            ctx.discardResume?.();
+            for (const item of ctx.cards()) if (item.expiresAtMs > now()) seen.add(item.clipId);
+            invalidate();
+            if (manual && card(manual.id)) pending = manual;
+            say("Automatic video waits while you listen to the selected audio clip.");
+            notify();
+          }
+          return;
+        }
         held = value;
+        preservingAudioHold = value && preserveAutomatic;
         if (value) {
-          for (const queued of [pending, deferredAuto]) if (queued?.action === "auto" && !queued.replay) seen.delete(queued.id);
+          const interruptedAuto = active?.request.action === "auto" ? active.request : ready2?.request.action === "auto" ? ready2.request : void 0;
+          const retained = preserveAutomatic ? interruptedAuto?.resumable ? interruptedAuto : pending?.action === "auto" ? pending : interruptedAuto : void 0;
+          const later = preserveAutomatic ? deferredAuto || (pending?.action === "auto" && pending.id !== retained?.id ? pending : void 0) : void 0;
+          const heldActive = active;
+          if (preserveAutomatic && heldActive && heldActive.request === retained && retained?.resumable && !heldActive.abort.signal.aborted) markAudioSafetyHold(heldActive.abort.signal);
+          for (const queued of [pending, deferredAuto]) if (queued?.action === "auto" && !queued.replay && queued.id !== retained?.id && queued.id !== later?.id) seen.delete(queued.id);
           const interrupted = current?.id || active?.request.id || ready2?.request.id;
-          if (interrupted && !consumed.has(interrupted)) seen.delete(interrupted);
+          if (interrupted && !consumed.has(interrupted) && interrupted !== retained?.id && interrupted !== later?.id) seen.delete(interrupted);
           invalidate();
+          if (retained && card(retained.id) && (!retained.replay || retained.replay.expiresAtMs > now())) {
+            pending = retained;
+            if (later && later.id !== retained.id && card(later.id)) deferredAuto = later;
+          }
           say("Automatic video waits while you listen to the selected audio clip.");
         } else {
           observe();
@@ -35267,7 +35797,11 @@ THE SOFTWARE.
         automaticHeld = value;
         if (value) {
           if (active?.request.action === "auto" && !active.local) {
-            if (!pending) pending = active.request;
+            if (active.request.resumable && (!pending || pending.action === "auto")) {
+              if (pending && pending.id !== active.request.id) deferredAuto = pending;
+              pending = active.request;
+            } else if (!pending) pending = active.request;
+            if (!active.abort.signal.aborted) markAudioSafetyHold(active.abort.signal);
             active.abort.abort();
           }
           schedule();
@@ -35295,15 +35829,30 @@ THE SOFTWARE.
             if (lastEndedFocusKey === key9) lastEndedFocusKey = void 0;
           }
         }
-        if (!focusManaged && id && (current?.origin === "auto" && current.id === id || active?.request.action === "auto" && active.request.id === id) && (current?.presentation?.id || active?.request.presentation?.id) === presentation?.id) {
+        const matchesCurrent = current?.origin === "auto" && current.id === id && current.presentation?.id === presentation?.id;
+        const matchesActive = active?.request.action === "auto" && active.request.id === id && active.request.presentation?.id === presentation?.id;
+        const matchesReady = ready2?.request.action === "auto" && ready2.request.id === id && ready2.request.presentation?.id === presentation?.id;
+        if (id && (matchesCurrent || matchesActive || matchesReady)) {
           focusManaged = true;
           focusKey = key9;
-          if (pending?.action === "auto") pending = void 0;
-          deferredAuto = void 0;
+          if (deliberate) {
+            if (pending?.action === "auto") pending = void 0;
+            deferredAuto = void 0;
+          }
+          if (matchesReady) schedule();
+          return;
+        }
+        if (!deliberate && key9 && key9 === lastEndedFocusKey) {
+          focusManaged = true;
+          focusKey = key9;
           return;
         }
         focusManaged = true;
         focusKey = key9;
+        if (!id) {
+          notify();
+          return;
+        }
         const previous = current?.origin === "auto" ? current.id : void 0;
         if (previous) {
           if (current?.replay) replayConsumed.delete(current.replay.id);
@@ -36807,6 +37356,7 @@ THE SOFTWARE.
   }
 
   // src/clip-picture-viewer.ts
+  var AUTO_PICTURE_AGING_MS = 3e4;
   function createClipPictureViewer(ctx) {
     let auto = false, suspended = false, replayTarget, generation = 0, scheduled = false, workBusy = false;
     let active;
@@ -36815,6 +37365,7 @@ THE SOFTWARE.
     const mono = () => performance.now();
     const cache = /* @__PURE__ */ new Map();
     const failed = /* @__PURE__ */ new Map();
+    const waitingSince = /* @__PURE__ */ new Map();
     const key9 = (card) => JSON.stringify(card);
     const cards = () => ctx.cards().filter((c) => c.expiresAtMs > Date.now()).sort((a, b) => b.issuedAtMs - a.issuedAtMs);
     const fits = (c) => Number.isInteger(c.width) && c.width > 0 && c.width <= 640 && Number.isInteger(c.height) && c.height > 0 && c.height <= 360 && Number.isInteger(c.imageDescriptor.lengthBytes) && c.imageDescriptor.lengthBytes > 0 && c.imageDescriptor.lengthBytes <= CLIP_STILL_MAX_BYTES;
@@ -36832,6 +37383,7 @@ THE SOFTWARE.
       const list = cards();
       if (replayTarget && !list.some((c) => stillId(c) === replayTarget)) replayTarget = void 0;
       let removed = false;
+      for (const id of waitingSince.keys()) if (!list.some((c) => stillId(c) === id) || cache.has(id)) waitingSince.delete(id);
       for (const [id, item] of cache) {
         const c = list.find((x) => stillId(x) === id);
         if (!c || key9(c) !== item.cardKey) {
@@ -36999,22 +37551,50 @@ THE SOFTWARE.
       }
       if (!auto) return;
       if (cache.size >= CLIP_ROOM_CARD_LIMIT) return;
+      const now = mono();
+      for (const c of list) {
+        const id = stillId(c), seen2 = waitingSince.get(id);
+        if (seen2 && seen2.signature !== c.signature) waitingSince.delete(id);
+        if (!cache.has(id) && !waitingSince.has(id) && waitingSince.size < CLIP_ROOM_CARD_LIMIT) waitingSince.set(id, { signature: c.signature, at: now });
+      }
       const eligible = (c) => fits(c) && !cache.has(stillId(c)) && (failed.get(stillId(c))?.next ?? 0) <= Date.now() && usable(stillId(c));
-      const card = list.find((c) => stillId(c) === replayTarget && eligible(c)) || list.find(eligible);
-      if (!card) return;
+      const aged = list.filter((c) => {
+        const seen2 = waitingSince.get(stillId(c));
+        return !!seen2 && now - seen2.at >= AUTO_PICTURE_AGING_MS;
+      }).sort((a, b) => (waitingSince.get(stillId(a))?.at ?? now) - (waitingSince.get(stillId(b))?.at ?? now));
+      const replay = list.find((c) => stillId(c) === replayTarget), order = [...replay ? [replay] : [], ...aged, ...list], seen = /* @__PURE__ */ new Set();
+      let card, policy, policyLoaded = false, earliestRetry = Infinity;
       let admission;
-      const policy = ctx.delivery?.();
-      if (policy) {
-        const local = ctx.has(stillId(card)), decision = policy.decide({ kind: "image", bytes: card.imageDescriptor.lengthBytes, local, atMs: mono() });
+      for (const candidate of order) {
+        const id = stillId(candidate);
+        if (seen.has(id)) continue;
+        if (seen.size >= CLIP_ROOM_CARD_LIMIT) break;
+        seen.add(id);
+        if (!eligible(candidate)) continue;
+        if (!policyLoaded) {
+          policy = ctx.delivery?.();
+          policyLoaded = true;
+        }
+        if (!policy) {
+          card = candidate;
+          break;
+        }
+        const local = ctx.has(id), decision = policy.decide({ kind: "image", bytes: candidate.imageDescriptor.lengthBytes, local, atMs: mono() });
         if (!decision.allowed) {
-          if (Number.isFinite(decision.retryAtMs)) scheduleRetry(decision.retryAtMs - mono());
-          return;
+          if (Number.isFinite(decision.retryAtMs)) earliestRetry = Math.min(earliestRetry, decision.retryAtMs);
+          continue;
         }
         admission = { policy, id: decision.reservationId, local, timeout: decision.probeTimeoutMs };
         if (admission.id !== void 0 && !policy.begin(admission.id, mono())) {
           policy.cancel(admission.id);
           return;
         }
+        card = candidate;
+        break;
+      }
+      if (!card) {
+        if (Number.isFinite(earliestRetry)) scheduleRetry(earliestRetry - mono());
+        return;
       }
       const abort2 = new AbortController();
       active = { id: stillId(card), kind: "auto", abort: abort2 };
@@ -37049,6 +37629,7 @@ THE SOFTWARE.
         suspended = false;
         auto = value;
         if (!auto) {
+          waitingSince.clear();
           if (retryTimer) {
             clearTimeout(retryTimer);
             retryTimer = void 0;
@@ -37087,6 +37668,7 @@ THE SOFTWARE.
         }
       },
       clear() {
+        waitingSince.clear();
         if (retryTimer) {
           clearTimeout(retryTimer);
           retryTimer = void 0;
@@ -42428,7 +43010,10 @@ THE SOFTWARE.
     };
     function layoutLatest() {
       if (mediaFollowing()) newBelow.clear();
-      setText(latest, newBelow.size ? `${newBelow.size} new below \xB7 Go to latest` : "Go to latest");
+      const label = newBelow.size ? `${newBelow.size} new below \xB7 Go to latest` : "Go to latest";
+      setText(latest, label);
+      const slot = latest.parentElement;
+      if (slot?.id === "timeline-latest-slot" && slot.dataset.reserveLabel !== label) slot.dataset.reserveLabel = label;
       const name = newBelow.size ? `${newBelow.size} new ${newBelow.size === 1 ? "item" : "items"} below. Go to latest` : "Go to latest";
       if (latest.getAttribute("aria-label") !== name) latest.setAttribute("aria-label", name);
       latest.title = name;
@@ -42916,6 +43501,13 @@ THE SOFTWARE.
     }
     function updateText(row, e) {
       setText(row.who, (e.own ? "You" : e.name || "Participant") + ": ");
+      const line = row.who.parentElement, shown = e.own ? "You" : e.name || "Participant";
+      if (line) {
+        line.dataset.initial = supporterInitial(shown);
+        line.dataset.hue = String(supporterHue(shown));
+        if (e.own) line.dataset.own = "true";
+        else delete line.dataset.own;
+      }
       setText(row.body, e.text);
       setText(row.receipt, e.own ? `Accepted by ${e.accepted.length} of ${e.recipients.length} devices${e.notSent?.length ? `; not sent to ${e.notSent.length} connection${e.notSent.length === 1 ? "" : "s"}` : ""}; not read receipts.` : "");
       setText(row.receiptDetail, e.own ? `Queued for ${e.queued.length} of ${e.recipients.length} ready connections at send; accepted by ${e.accepted.length}; ${e.notSent?.length ?? 0} not sent to their connection; ${e.queued.length - e.accepted.length - (e.notSent?.length ?? 0)} not yet confirmed or unknown.` : "");
@@ -43194,6 +43786,15 @@ THE SOFTWARE.
       programmeLabels.clear();
       setText(announce, "");
     } };
+  }
+  function supporterInitial(name) {
+    const first = [...name.trim()].find((c) => new RegExp("\\p{L}|\\p{N}", "u").test(c));
+    return first ? first.toLocaleUpperCase() : "?";
+  }
+  function supporterHue(name) {
+    let h = 0;
+    for (const c of name.trim().toLocaleLowerCase()) h = (h * 31 + c.codePointAt(0)) % 9973;
+    return h % 6;
   }
 
   // src/clip-storage.ts
@@ -44070,10 +44671,98 @@ THE SOFTWARE.
     } };
   }
 
+  // src/clip-resume.ts
+  function createClipResume(limit2, ttlMs, now = () => Date.now(), monotonic = () => typeof performance === "undefined" ? now() : performance.now()) {
+    if (!Number.isSafeInteger(limit2) || limit2 < 1 || !Number.isSafeInteger(ttlMs) || ttlMs < 1) throw Error("Invalid clip resume limits");
+    let current, generation = 0;
+    const clear = () => {
+      current = void 0;
+      generation++;
+    };
+    function purge() {
+      if (current && (now() >= current.deadline || now() >= current.expires || monotonic() - current.startedMono >= ttlMs)) clear();
+    }
+    return {
+      clear,
+      purge,
+      begin(identity, expires, reserved) {
+        purge();
+        if (!identity || !Number.isSafeInteger(expires) || !Number.isSafeInteger(reserved) || reserved < 1 || reserved > limit2 || expires <= now()) throw Error("Invalid clip resume reservation");
+        if (current && (current.identity !== identity || current.expires !== expires || current.reserved !== reserved)) clear();
+        if (!current) current = { identity, expires, deadline: Math.min(expires, now() + ttlMs), startedMono: monotonic(), generation: ++generation, reserved, objects: /* @__PURE__ */ new Map() };
+      },
+      get reserved() {
+        purge();
+        return current?.reserved ?? 0;
+      },
+      matches(identity) {
+        purge();
+        return current?.identity === identity;
+      },
+      guard() {
+        purge();
+        const session2 = current;
+        return () => {
+          purge();
+          return !!session2 && current === session2;
+        };
+      },
+      object(descriptor, pieceSize) {
+        purge();
+        const session2 = current;
+        if (!session2) throw Error("Clip resume unavailable");
+        const signature2 = JSON.stringify(descriptor);
+        let state = session2.objects.get(descriptor.infoHash);
+        if (state && (state.signature !== signature2 || state.pieceSize !== pieceSize)) {
+          clear();
+          throw Error("Clip resume descriptor changed");
+        }
+        if (!state) {
+          const allocated = [...session2.objects.values()].reduce((sum, item) => sum + item.bytes.length, 0);
+          if (!Number.isSafeInteger(pieceSize) || pieceSize < 1 || !Number.isSafeInteger(descriptor.lengthBytes) || descriptor.lengthBytes < 1 || allocated + descriptor.lengthBytes > session2.reserved) {
+            clear();
+            throw Error("Clip resume reservation exceeded");
+          }
+          state = { signature: signature2, pieceSize, bytes: new Uint8Array(descriptor.lengthBytes), present: /* @__PURE__ */ new Set() };
+          session2.objects.set(descriptor.infoHash, state);
+        }
+        const entry = state, token2 = session2.generation;
+        const alive = () => {
+          purge();
+          return current === session2 && generation === token2;
+        };
+        const range = (index) => {
+          if (!Number.isSafeInteger(index) || index < 0 || index >= Math.ceil(entry.bytes.length / pieceSize)) throw Error("Invalid resume piece");
+          const start = index * pieceSize;
+          return { start, length: Math.min(pieceSize, entry.bytes.length - start) };
+        };
+        return {
+          get(index) {
+            if (!alive() || !entry.present.has(index)) return void 0;
+            const { start, length: length2 } = range(index);
+            return entry.bytes.slice(start, start + length2);
+          },
+          put(index, bytes9) {
+            if (!alive()) return false;
+            const { start, length: length2 } = range(index);
+            if (bytes9.length !== length2) throw Error("Invalid resume piece length");
+            entry.bytes.set(bytes9, start);
+            entry.present.add(index);
+            return true;
+          },
+          alive
+        };
+      }
+    };
+  }
+
   // src/clip-room.ts
   var encoder4 = new TextEncoder();
   var decoder3 = new TextDecoder("utf-8", { fatal: true });
   function createClipRoom(added) {
+    const resume = createClipResume(CLIP_ROOM_RETAINED_BYTES, 5 * 60 * 1e3);
+    let resumeRoom = "";
+    const resumeIdentity = (card) => JSON.stringify(card);
     const emitAdded = (card) => {
       try {
         added?.(card);
@@ -44092,10 +44781,13 @@ THE SOFTWARE.
     let idleWaiter;
     function finishBusy(c, v) {
       if (ctx !== c || version !== v) return;
+      if (downloadOwner?.version === v && c.engine.whenDigestsSettled) downloadOwner.draining = true;
       busy = false;
-      const waiter = idleWaiter;
-      idleWaiter = void 0;
-      waiter?.wake();
+      if (!roomBusy()) {
+        const waiter = idleWaiter;
+        idleWaiter = void 0;
+        waiter?.wake();
+      }
       notify();
     }
     function cancelIdleWaiter() {
@@ -44166,10 +44858,12 @@ THE SOFTWARE.
       if (!hasLocal(id)) withdraw([id]);
     }
     function purge() {
+      resume.purge();
       disk.expire();
       const now = Date.now(), clock = stamp3();
       for (const [id, expires] of evictedDiskCards) if (expires <= now) evictedDiskCards.delete(id);
       for (const [id, card] of cards) if (card.expiresAtMs <= now) {
+        if (resume.matches(resumeIdentity(card))) resume.clear();
         cards.delete(id);
         removeMemory(id);
         diskOnly.delete(id);
@@ -44183,7 +44877,7 @@ THE SOFTWARE.
     function planMemory(bytes9) {
       if (!Number.isSafeInteger(bytes9) || bytes9 < 0 || bytes9 > CLIP_ROOM_RETAINED_BYTES) throw Error("Not enough room in the temporary clip memory");
       const protectedSet = protectedIds();
-      let remaining = used;
+      let remaining = used + resume.reserved;
       const victims = [];
       const candidates = [...stored.values()].filter((x) => !protectedSet.has(x.card.clipId)).sort((a, b) => a.card.issuedAtMs - b.card.issuedAtMs || a.card.clipId.localeCompare(b.card.clipId));
       for (const item of candidates) {
@@ -44203,6 +44897,7 @@ THE SOFTWARE.
       return oldest;
     }
     function evictCard(card, retain = /* @__PURE__ */ new Set()) {
+      if (resume.matches(resumeIdentity(card))) resume.clear();
       cards.delete(card.clipId);
       removeMemory(card.clipId, retain);
       diskOnly.delete(card.clipId);
@@ -44305,6 +45000,19 @@ THE SOFTWARE.
     }
     function attach(c) {
       cancelIdleWaiter();
+      const identity = JSON.stringify([c.roomId, c.sourceKey]);
+      if (resumeRoom && resumeRoom !== identity) {
+        resume.clear();
+        cards.clear();
+        stored.clear();
+        availability.clear();
+        pins.clear();
+        diskOnly.clear();
+        evictedDiskCards.clear();
+        used = 0;
+        busy = false;
+      }
+      resumeRoom = identity;
       ctx = c;
       version++;
       lastSync.clear();
@@ -44479,7 +45187,79 @@ THE SOFTWARE.
         release2();
       }
     }
+    let downloadOwner;
+    const roomBusy = () => busy || !!downloadOwner?.draining;
     async function downloadInner(id, signal, onProgress, reserved = false, localOnly = false) {
+      const c = ctx, v = version;
+      if (!c || busy && !reserved) throw Error("Another clip operation is in progress");
+      const prior = downloadOwner;
+      let claimedBusy = false;
+      if (prior && !reserved) {
+        busy = true;
+        claimedBusy = true;
+        notify();
+      }
+      try {
+        if (prior) {
+          if (prior.timedOut) throw Error("Previous clip operation has not settled");
+          let timer;
+          let onAbort = () => {
+          };
+          try {
+            const settled = await Promise.race([prior.settled.then(() => true), new Promise((resolve2, reject) => {
+              timer = setTimeout(() => resolve2(false), 12e3);
+              onAbort = () => reject(new DOMException("Clip cancelled", "AbortError"));
+              signal.addEventListener("abort", onAbort, { once: true });
+              if (signal.aborted) onAbort();
+            })]);
+            if (!settled) {
+              prior.timedOut = true;
+              resume.clear();
+              throw Error("Previous clip operation has not settled");
+            }
+          } finally {
+            clearTimeout(timer);
+            signal.removeEventListener("abort", onAbort);
+          }
+          check(c, v);
+          if (signal.aborted) throw new DOMException("Clip cancelled", "AbortError");
+        }
+        let release2;
+        const owner = { version: v, timedOut: false, draining: false, settled: new Promise((resolve2) => {
+          release2 = resolve2;
+        }) };
+        downloadOwner = owner;
+        try {
+          return await downloadOperation(id, signal, onProgress, reserved || claimedBusy, localOnly);
+        } finally {
+          const done = () => {
+            if (downloadOwner === owner) {
+              downloadOwner = void 0;
+              if (!busy) {
+                const waiter = idleWaiter;
+                idleWaiter = void 0;
+                waiter?.wake();
+              }
+              notify();
+            }
+            release2();
+          };
+          try {
+            const draining = c.engine.whenDigestsSettled?.();
+            if (draining) {
+              owner.draining = true;
+              notify();
+              void draining.then(done, done);
+            } else done();
+          } catch {
+            done();
+          }
+        }
+      } finally {
+        if (claimedBusy) finishBusy(c, v);
+      }
+    }
+    async function downloadOperation(id, signal, onProgress, reserved = false, localOnly = false) {
       const c = ctx;
       if (!c || busy && !reserved) throw Error("Another clip operation is in progress");
       const v = version;
@@ -44490,10 +45270,10 @@ THE SOFTWARE.
         check(c, v);
         if (signal.aborted || card.expiresAtMs <= Date.now() || cards.get(id) !== card) throw new DOMException("Clip expired or cancelled", "AbortError");
       };
-      const report = (verifiedBytes, source, remoteVerifiedBytes = 0) => {
+      const report = (verifiedBytes, source2, remoteVerifiedBytes = 0) => {
         assertCurrent();
         try {
-          onProgress?.({ clipId: id, verifiedBytes, totalBytes: card.totalBytes, source, remoteVerifiedBytes });
+          onProgress?.({ clipId: id, verifiedBytes, totalBytes: card.totalBytes, source: source2, remoteVerifiedBytes });
         } catch {
         }
       };
@@ -44520,18 +45300,36 @@ THE SOFTWARE.
         }
       }
       if (localOnly) throw Error("Local clip copy unavailable");
-      planMemory(card.totalBytes + card.manifest.lengthBytes);
+      const suppliers2 = () => c.peers().filter((p) => availability.get(p)?.has(id));
+      const source = suppliers2();
+      if (!source.length) throw new PeerFetchUnavailable("Clip is not currently available from connected peers");
+      const identity = resumeIdentity(card), reservation = card.totalBytes + card.manifest.lengthBytes;
+      if (!resume.matches(identity)) {
+        resume.clear();
+        for (const victim of planMemory(reservation)) removeMemory(victim);
+        resume.begin(identity, card.expiresAtMs, reservation);
+      }
       if (!reserved) {
         busy = true;
         notify();
       }
       const added2 = [];
       let committed = false;
+      const ownsResume = resume.guard();
+      const onAbort = () => {
+        if (ownsResume() && !isAudioSafetyHold(signal) && !isClipReconnect(signal)) resume.clear();
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
+      if (signal.aborted) onAbort();
+      const lease = (descriptor) => {
+        const owned = resume.object(descriptor, 16384);
+        const alive = () => ctx === c && version === v && c.current() && !signal.aborted && cards.get(id) === card && card.expiresAtMs > Date.now() && owned.alive();
+        return { alive, invalidate: () => {
+          if (ownsResume()) resume.clear();
+        }, get: (index) => alive() ? owned.get(index) : void 0, put: (index, bytes9) => alive() && owned.put(index, bytes9) };
+      };
       try {
-        const suppliers2 = () => c.peers().filter((p) => availability.get(p)?.has(id));
-        const source = suppliers2();
-        if (!source.length) throw Error("Clip is not currently available from connected peers");
-        const manifestBytes = await c.engine.fetch(card.manifest, source, signal);
+        const manifestBytes = await c.engine.fetch(card.manifest, source, signal, void 0, lease(card.manifest));
         added2.push(card.manifest.infoHash);
         check(c, v);
         if (signal.aborted) throw new DOMException("Clip cancelled", "AbortError");
@@ -44541,13 +45339,15 @@ THE SOFTWARE.
         for (const descriptor of manifest.objects) {
           assertCurrent();
           const completedBytes = verifiedBytes;
-          let open = true, objectReported = 0;
+          let open = true, objectReported = 0, objectRemote = 0;
           const progress = (p) => {
             if (!open) return;
             try {
               assertCurrent();
-              if (p.totalBytes !== descriptor.lengthBytes || !Number.isSafeInteger(p.verifiedBytes) || p.verifiedBytes <= objectReported || p.verifiedBytes > descriptor.lengthBytes) return;
-              remoteVerifiedBytes += p.verifiedBytes - objectReported;
+              const remote = p.remoteVerifiedBytes ?? p.verifiedBytes;
+              if (p.totalBytes !== descriptor.lengthBytes || !Number.isSafeInteger(p.verifiedBytes) || p.verifiedBytes <= objectReported || p.verifiedBytes > descriptor.lengthBytes || !Number.isSafeInteger(remote) || remote < objectRemote || remote > p.verifiedBytes) return;
+              remoteVerifiedBytes += remote - objectRemote;
+              objectRemote = remote;
               objectReported = p.verifiedBytes;
               const count = completedBytes + objectReported;
               if (count > reportedBytes && count <= card.totalBytes) {
@@ -44559,7 +45359,7 @@ THE SOFTWARE.
           };
           let data;
           try {
-            data = await c.engine.fetch(descriptor, suppliers2(), signal, progress);
+            data = await c.engine.fetch(descriptor, suppliers2(), signal, progress, lease(descriptor));
           } finally {
             open = false;
           }
@@ -44586,6 +45386,7 @@ THE SOFTWARE.
             saved = false;
             assertCurrent();
           }
+          resume.clear();
           const memoryVictims = saved ? [] : planMemory(card.totalBytes + card.manifest.lengthBytes);
           assertCurrent();
           const staged = new Set(added2);
@@ -44606,7 +45407,11 @@ THE SOFTWARE.
         if (c.canForward() && (authorized || stored.has(id))) broadcast({ type: "clip-have", clipIds: [id] });
         notify();
         return parts.slice(1).map((x) => x.bytes);
+      } catch (error) {
+        if (ownsResume() && !(isClipResumableError(error) || !signal.aborted && error instanceof PeerFetchUnavailable)) resume.clear();
+        throw error;
       } finally {
+        signal.removeEventListener("abort", onAbort);
         if (!committed && ctx === c && v === version) dropHashes(added2);
         if (!reserved) finishBusy(c, v);
       }
@@ -44617,7 +45422,7 @@ THE SOFTWARE.
       const release2 = pin(id), started = stamp3();
       let ownsBusy = false, waited = false;
       try {
-        while (busy) {
+        while (roomBusy()) {
           waited = true;
           await waitForIdle(c, v, id, signal, started);
           check(c, v);
@@ -44698,10 +45503,12 @@ THE SOFTWARE.
       removed(ids);
     }
     async function deleteStorage(roomId2, sourceKey2) {
+      resume.clear();
       closeStorage();
       await deleteClipStorage(roomId2, sourceKey2);
     }
     async function clearStorage() {
+      resume.clear();
       await disk.clear();
       notify();
     }
@@ -44716,7 +45523,16 @@ THE SOFTWARE.
         return { clipId: card.clipId, issuedAtMs: card.issuedAtMs, expiresAtMs: card.expiresAtMs, validNow: card.expiresAtMs > t.wall, totalBytes: card.totalBytes, objectCount: card.objectCount, manifest: { infoHash: card.manifest.infoHash, sha256: card.manifest.sha256 }, freshAvailabilityClaims: freshClaims, memory: cached ? { complete: cached.items.length === card.objectCount + 1, descriptors: cached.items.slice(0, 97).map((x) => ({ kind: x.descriptor.kind, infoHash: x.descriptor.infoHash, sha256: x.descriptor.sha256 })), truncated: cached.items.length > 97 } : null, disk: diskEntry ?? null };
       }) };
     }
-    return { debugSnapshot, attach, restore, publish, receive, canSend, tick, download, audioInput, enableStorage, deleteStorage, clearStorage, closeStorage, storageEnabled: () => disk.enabled, authorizeObject: async (hash) => await disk.authorize(hash) || [...stored.values()].some((item) => item.items.some((part) => part.descriptor.infoHash === hash)), loadObject: (hash) => disk.load(hash), get diskBytes() {
+    return { canResume(id) {
+      const card = cards.get(id);
+      return !!card && resume.matches(resumeIdentity(card));
+    }, discardResume(id) {
+      const card = id ? cards.get(id) : void 0;
+      if (!id || card && resume.matches(resumeIdentity(card))) resume.clear();
+    }, retainResumeFor(id) {
+      const card = cards.get(id);
+      if (!card || !resume.matches(resumeIdentity(card))) resume.clear();
+    }, debugSnapshot, attach, restore, publish, receive, canSend, tick, download, audioInput, enableStorage, deleteStorage, clearStorage, closeStorage, storageEnabled: () => disk.enabled, authorizeObject: async (hash) => await disk.authorize(hash) || [...stored.values()].some((item) => item.items.some((part) => part.descriptor.infoHash === hash)), loadObject: (hash) => disk.load(hash), get diskBytes() {
       return disk.bytes;
     }, ready(id) {
       send2(id, { type: "clip-hello" });
@@ -44737,7 +45553,7 @@ THE SOFTWARE.
       purge();
       return used;
     }, get busy() {
-      return busy;
+      return roomBusy();
     }, ownsObject(hash) {
       return [...stored.values()].some((item) => item.items.some((part) => part.descriptor.infoHash === hash)) || disk.hasHash(hash);
     }, canServeHash(hash) {
@@ -44745,6 +45561,8 @@ THE SOFTWARE.
       return [...stored.values()].some((item) => item.items.some((part) => part.descriptor.infoHash === hash)) || disk.hasHash(hash);
     }, clear() {
       cancelIdleWaiter();
+      resume.clear();
+      resumeRoom = "";
       version++;
       ctx = void 0;
       disk.close();
@@ -47960,6 +48778,132 @@ THE SOFTWARE.
     }
   }
 
+  // src/invite-entry.ts
+  var TOKEN = /^[A-Za-z0-9_-]{43}$/;
+  function isCompleteInvitation(hash) {
+    const p = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash);
+    const room = p.get("room"), join2 = p.get("join"), source = p.get("source");
+    return !!room && !p.has("host") && !!join2 && !!source && TOKEN.test(join2) && TOKEN.test(source);
+  }
+  function createInviteEntry() {
+    const opened = /* @__PURE__ */ new Set();
+    return {
+      take(href, hash) {
+        if (!isCompleteInvitation(hash) || opened.has(href)) return false;
+        opened.add(href);
+        return true;
+      },
+      seen(href) {
+        return opened.has(href);
+      }
+    };
+  }
+  function swarmLabel({ connected, participants }) {
+    const others = Math.max(0, participants - 1);
+    if (!others) return "Waiting for others to join";
+    const people = `${others} other${others === 1 ? "" : "s"} in the room`;
+    return connected ? `${people} \xB7 connected to ${connected} peer${connected === 1 ? "" : "s"}` : `${people} \xB7 finding a peer connection`;
+  }
+
+  // src/invite-entry-view.ts
+  function createInviteEntryView(panel, cancel) {
+    const doc = panel.ownerDocument, body = doc.body;
+    const savedInert = /* @__PURE__ */ new Map();
+    let state = "off", previousFocus = null, pendingFocus = null;
+    const focus = (element) => {
+      if (!element?.isConnected || !element.matches("button,a[href],input,select,textarea,[tabindex]") || element.matches(":disabled") || element.closest("[inert],.hidden,[hidden]") || !element.getClientRects().length) return false;
+      element.focus({ preventScroll: true });
+      return doc.activeElement === element;
+    };
+    const restoreFocus = () => {
+      if (state !== "off" || !pendingFocus) return;
+      if (focus(pendingFocus) || focus(previousFocus) || focus(doc.getElementById("join"))) pendingFocus = null;
+    };
+    panel.querySelector("#tune-in-cancel")?.addEventListener("click", cancel);
+    panel.addEventListener("keydown", (event) => {
+      if (state === "joining" && event.key === "Escape") {
+        event.preventDefault();
+        cancel();
+      }
+    });
+    return {
+      get state() {
+        return state;
+      },
+      restoreFocus,
+      set(next, joinedFocus) {
+        const changed = next !== state;
+        if (next === "joining" && state !== "joining") {
+          previousFocus = doc.activeElement;
+          pendingFocus = null;
+        }
+        state = next;
+        panel.classList.toggle("hidden", next === "off");
+        panel.dataset.state = next === "failed" ? "failed" : "joining";
+        body.classList.toggle("tuning-in", next === "joining");
+        body.classList.toggle("invite-failed", next === "failed");
+        if (next === "joining") {
+          panel.setAttribute("role", "dialog");
+          panel.setAttribute("aria-modal", "true");
+          for (const node of body.children) if (node instanceof HTMLElement && node !== panel) {
+            if (!savedInert.has(node)) savedInert.set(node, node.inert);
+            node.inert = true;
+          }
+        } else {
+          panel.removeAttribute("role");
+          panel.removeAttribute("aria-modal");
+          for (const [node, inert] of savedInert) node.inert = inert;
+          savedInert.clear();
+        }
+        if (changed && next !== "off") focus(panel.querySelector("#tune-in-title"));
+        else if (changed) {
+          pendingFocus = joinedFocus ?? previousFocus ?? doc.getElementById("join");
+          restoreFocus();
+        }
+      }
+    };
+  }
+
+  // src/media-playing-evidence.ts
+  function observeMediaPlaying(media, changed) {
+    let source = "", previousTime = NaN, progressed = false;
+    const eligible = () => !media.paused && !media.muted && !media.ended && !media.seeking && media.volume > 0 && media.playbackRate > 0 && media.readyState >= 3;
+    const resetEvents = /* @__PURE__ */ new Set([
+      "playing",
+      "pause",
+      "ended",
+      "waiting",
+      "stalled",
+      "error",
+      "emptied",
+      "abort",
+      "loadstart",
+      "seeking",
+      "seeked",
+      "volumechange"
+    ]);
+    const events = [...resetEvents, "timeupdate", "ratechange"];
+    const update = (event) => {
+      const next = media.currentSrc || media.src, time = media.currentTime;
+      const sameSource = !!next && next === source;
+      if (!sameSource || !eligible() || resetEvents.has(event.type)) progressed = false;
+      else if (event.type === "timeupdate" && Number.isFinite(time) && time > previousTime) progressed = true;
+      source = next;
+      previousTime = time;
+      changed();
+    };
+    for (const event of events) media.addEventListener(event, update);
+    return {
+      get playing() {
+        return progressed && !!source && source === (media.currentSrc || media.src) && eligible();
+      },
+      close() {
+        for (const event of events) media.removeEventListener(event, update);
+        progressed = false;
+      }
+    };
+  }
+
   // src/app.ts
   if (window.top !== window.self) {
     document.body.textContent = "Same End must be opened directly in its own browser tab.";
@@ -48200,7 +49144,10 @@ THE SOFTWARE.
   var programmeAudioToken;
   var videoPlayingEvidence;
   var liveAudio = $("programme-live-audio");
+  var clipAudio = $("clip-audio-player");
   liveAudio.muted = true;
+  var liveSoundEvidence = observeMediaPlaying(liveAudio, () => renderBroadcastSound());
+  var earlierSoundEvidence = observeMediaPlaying(clipAudio, () => renderBroadcastSound());
   var programme = createProgrammePlayback({ ports: {
     live: { mute: (value) => programmeMute(liveAudio, value, true), pause: () => liveAudioViewer?.pause({ keepLatest: programme.state.intent !== "paused" }), play: () => {
       if (!liveAudioViewer) throw Error("Waiting for live sound");
@@ -48238,6 +49185,7 @@ THE SOFTWARE.
     directorScroll.layout(writeProgramme);
   }
   function writeProgramme() {
+    renderBroadcastSound();
     const state = programme.state, status = liveAudioViewer?.status(), node = $("programme-state");
     if (!node)
       return;
@@ -48251,7 +49199,8 @@ THE SOFTWARE.
     const hasHighlight = !!state.selection || !!viewer.selection || audioPlayer.ownsPlayback;
     const terminalPlaying = status?.sourceState === "ended" && state.owner === "live" && !liveAudio.paused && liveAudio.readyState >= 3 && (status?.bufferSeconds ?? 0) > 0 && !terminalConsumed;
     const videoPlaying = state.selection?.kind === "video" && videoPlayingEvidence?.token === state.selection.token && videoPlayingEvidence.src === clipVideo.src && clipVideo.readyState >= 3 && !clipVideo.paused && !clipVideo.ended;
-    const owner = state.owner === "live" ? "Live sound" : state.owner === "video" ? "Earlier video" : state.owner === "audio" ? "Earlier audio" : null;
+    const pictureFinished = (reason) => finishedPictureStatus(reason, { ownsLive: state.owner === "live", muted: liveAudio.muted, volume: liveAudio.volume, paused: liveAudio.paused, ended: liveAudio.ended, readyState: liveAudio.readyState, nativeState: status?.native?.state, sourceState: status?.sourceState, stalled: status?.stalled });
+    const owner = state.owner === "live" ? "Live sound" : state.owner === "audio" ? "Earlier audio" : null;
     if (role === "host")
       node.textContent = audioInterrupted ? "Shared sound was interrupted." : activeRecordingId ? "Sharing sound with the group" : "No live sound is being shared yet";
     else if (state.soundError)
@@ -48261,13 +49210,15 @@ THE SOFTWARE.
     else if (state.intent === "paused")
       node.textContent = "Paused on this device";
     else if (state.selection?.finished)
-      node.textContent = finishedClipStatus(state.selection.finishReason, terminalConsumed);
+      node.textContent = state.selection.kind === "video" ? pictureFinished(state.selection.finishReason) : finishedClipStatus(state.selection.finishReason, terminalConsumed);
     else if (state.intent === "live" && !state.selection && !state.owner && !state.pending && state.live.available && state.live.decodable && state.live.startReady === false && !state.live.positionExpired && status?.sourceState === "running")
       node.textContent = "Building sound reserve\u2026";
     else if (terminalConsumed && !state.selection && !state.owner && !state.pending)
       node.textContent = "Shared sound has ended.";
-    else if (state.owner === "video")
-      node.textContent = videoPlaying ? "Earlier video playing" : "Earlier video ready \xB7 waiting for playback";
+    else if (videoPlaying)
+      node.textContent = pictureFinished(void 0).replace("Earlier clip finished", "Earlier clip playing");
+    else if (state.selection?.kind === "video" && !state.selection.finished && (state.visual.playing || state.visual.pending))
+      node.textContent = "Earlier video ready \xB7 waiting for playback";
     else if (terminalPlaying)
       node.textContent = "Final shared sound playing \xB7 sharing ended";
     else if (status?.sourceState === "ended" && !state.selection && state.intent === "live")
@@ -48279,10 +49230,10 @@ THE SOFTWARE.
     if (state.intent === "paused" || state.selection?.kind !== "video" || state.selection.finished) videoPlayingEvidence = void 0;
     if (state.selection?.kind === "video" && !state.selection.finished) {
       if (state.soundError) streamStatus("Sound could not be safely switched. Pause playback and try again.");
-      else if (state.blocked === "video") streamStatus("Playback needs your permission. Press Play this clip to continue.");
+      else if (state.visual.blocked) streamStatus("Playback needs your permission. Press Play this clip to continue.");
       else if (state.intent === "paused") streamStatus("Playback paused on this device.");
-      else if (state.pending === "video") streamStatus("Preparing video\u2026");
-      else if (state.owner === "video") {
+      else if (state.visual.pending) streamStatus("Preparing video\u2026");
+      else if (state.visual.playing) {
         streamStatus(videoPlaying ? "Playing clip." : "Video ready. Waiting for playback\u2026");
       }
     }
@@ -48293,7 +49244,7 @@ THE SOFTWARE.
     const pos = $("programme-position");
     if (pos) {
       const age = selection ? formatProgrammeAge(position, status?.recordingId && typeof status.receivedEdgeMs === "number" ? { recordingId: status.recordingId, edgeMs: Math.floor(status.receivedEdgeMs) } : void 0) : void 0;
-      pos.textContent = selection ? selection.finished ? finishedClipStatus(selection.finishReason, terminalConsumed) : age === "Position unknown" ? "Earlier highlight \xB7 programme position unknown" : `Earlier highlight ends ${age}` : state.owner === "live" ? "Following the latest received sound. Match minute is supplied separately." : "Programme position unknown.";
+      pos.textContent = selection ? selection.finished ? selection.kind === "video" ? pictureFinished(selection.finishReason) : finishedClipStatus(selection.finishReason, terminalConsumed) : age === "Position unknown" ? "Earlier highlight \xB7 programme position unknown" : `Earlier highlight ends ${age}` : state.owner === "live" ? "Following the latest received sound. Match minute is supplied separately." : "Programme position unknown.";
     }
     for (const id of ["video-programme-position", "audio-programme-position"]) {
       const label = $(id);
@@ -48335,7 +49286,7 @@ THE SOFTWARE.
     } else deliveryPolicy.setLiveAudio({ required: false });
     viewer.setAutomaticHeld(deliveryPolicy.liveAudioHealth(performance.now()).critical);
     programme.setLive({ sourceId: epoch, available: buffered.length > 0, decodable: buffered.length > 0 && !status?.joiningLatest && !!status?.native && !["error", "closed", "ended"].includes(status.native.state), connected: !!liveAudioRoom?.currentHead(), startReady: status?.startReady ?? false, positionExpired: !!status?.positionExpired });
-    if (audioPlayer.origin === "auto" && programme.state.intent === "live" && programme.state.live.available && programme.state.live.decodable && programme.state.live.connected && programme.state.live.startReady !== false && !programme.state.live.positionExpired) {
+    if (audioPlayer.origin === "auto" && programme.state.intent === "live" && programme.state.live.available && programme.state.live.decodable && !programme.state.live.positionExpired) {
       if (programmeAudioToken) programme.clipEnded(programmeAudioToken);
       audioPlayer.stop("Live sound is available again.");
     }
@@ -48352,6 +49303,7 @@ THE SOFTWARE.
     const selection = programme.state.selection;
     if (!token2 || selection?.token !== token2 || selection.id !== id) token2 = programmeSelected(kind, id, origin);
     if (token2) programme.clipReady(token2);
+    return token2;
   }
   function programmeEnd(kind, id, reason) {
     const token2 = kind === "video" ? programmeVideoToken : programmeAudioToken;
@@ -48361,6 +49313,11 @@ THE SOFTWARE.
     }
   }
   function programmePause(kind) {
+    if (kind === "video") {
+      if (programme.state.intent === "paused") return true;
+      programme.pauseVisual();
+      return false;
+    }
     if (programme.state.owner === kind) {
       explicitProgrammePause = true;
       programme.pause();
@@ -48399,7 +49356,6 @@ THE SOFTWARE.
       timelineView.refreshLatest();
     }
   });
-  var clipAudio = $("clip-audio-player");
   clipAudio.muted = true;
   clipAudio.controls = false;
   var audioStage = createClipCardStage({ playback: $("audio-playback"), media: clipAudio, parking: $("audio-player-parking"), timeline: $("room-timeline"), jump: $("stream-audio-jump"), target: (selection) => timelineView.audioMediaTarget(selection.clipId), ready: () => !!clipAudio.getAttribute("src"), ownsDirectorScroll: () => directorScroll.ownsWindow(), moveOwned: (target) => directorScroll.move(target, "nearest"), onFollowingMediaChange: (active) => {
@@ -48424,19 +49380,14 @@ THE SOFTWARE.
     timelineView.setDeliveryHold($("delivery-hold-note"), !!hold);
     const start = $("watch-start"), pause = $("watch-stop"), p = programme.state;
     const needsPlay = p.intent === "paused" || !!p.blocked;
-    start.hidden = !needsPlay && (audioPlayer.ownsPlayback ? !audioPlayer.canResume : viewer.enabled && !viewer.userPaused);
-    start.textContent = audioPlayer.ownsPlayback ? "Resume audio" : p.blocked ? "Play sound" : "Resume clips";
-    pause.textContent = audioPlayer.ownsPlayback ? "Pause audio" : "Pause clips";
-    pause.hidden = !needsPlay && (audioPlayer.ownsPlayback ? audioPlayer.canResume : !viewer.enabled);
-    if (needsPlay) pause.hidden = true;
-    if (p.blocked && p.selection?.ready && !p.selection.finished) {
-      start.hidden = true;
-      if (p.intent !== "paused") pause.hidden = false;
-    }
+    start.hidden = p.intent !== "paused" && !p.blocked && (viewer.enabled || !!p.owner || !!p.pending);
+    start.textContent = p.intent === "paused" && explicitProgrammePause ? "Resume stream" : p.blocked ? "Play sound" : "Start stream";
+    pause.textContent = "Pause stream";
+    pause.hidden = p.intent === "paused" || !viewer.enabled && !p.owner && !p.pending;
     const resume = $("audio-resume"), canResumeAudio = audioPlayer.canResume || p.selection?.kind === "audio" && !p.selection.finished && needsPlay;
     resume.hidden = !canResumeAudio;
     resume.disabled = !canResumeAudio;
-    const videoResume = $("watch-resume"), canResumeVideo = viewer.canResume || p.selection?.kind === "video" && !p.selection.finished && needsPlay;
+    const videoResume = $("watch-resume"), canResumeVideo = p.intent !== "paused" && (viewer.canResume || p.selection?.kind === "video" && !p.selection.finished && p.visual.blocked);
     if (videoResume) {
       videoResume.hidden = !canResumeVideo;
       videoResume.disabled = !canResumeVideo;
@@ -48444,12 +49395,13 @@ THE SOFTWARE.
     for (const [id, kind] of [["watch-pause-current", "video"], ["audio-pause-current", "audio"]]) {
       const nearby = $(id);
       if (nearby) {
-        nearby.hidden = needsPlay || p.owner !== kind && p.pending !== kind;
+        nearby.hidden = needsPlay || (kind === "video" ? !p.visual.playing && !p.visual.pending : p.owner !== kind && p.pending !== kind);
         nearby.disabled = nearby.hidden;
       }
     }
     const button = $("stream-sound");
-    button.textContent = streamSoundEnabled ? "Mute sound" : "Enable sound";
+    const soundCopy = soundControlCopy(p, streamSoundEnabled);
+    button.textContent = soundCopy.label;
     button.setAttribute("aria-pressed", String(streamSoundEnabled));
     for (const id of ["video-sound", "audio-sound"]) {
       const alias = $(id);
@@ -48458,8 +49410,10 @@ THE SOFTWARE.
       alias.disabled = button.disabled;
     }
     button.disabled = false;
-    const note = $("stream-sound-note");
-    if (note) note.textContent = streamSoundEnabled ? "Sound is enabled. A silent clip or browser permission can still prevent audio." : "Clips start muted. Enable sound when you want to listen.";
+    for (const id of ["stream-sound-note", "video-sound-note"]) {
+      const note = $(id);
+      if (note) note.textContent = soundCopy.note;
+    }
   }
   var transcripts = createTranscriptRoom((entry) => {
     if (timeline.addTranscript(entry)) timelineView.announce("transcript");
@@ -48710,12 +49664,12 @@ THE SOFTWARE.
   var storageRequest = 0;
   var storageDeleting = false;
   var storageMessage = "Temporary browser copies are off. Clips use memory only.";
-  var viewer = createClipViewer({ delivery: () => deliveryPolicy, cards: () => clips.list(), has: (id) => clips.has(id), available: (id) => clips.available(id), download: (id, signal, onProgress, localOnly) => clips.download(id, signal, onProgress, localOnly), current: () => !!role && roomProfile === CHAT_ROOM_PROFILE && ws?.readyState === WebSocket.OPEN, busy: () => clips.busy || !!clipCapture, beforeAutomaticPlay: () => mayStartAutomaticVideo(), onAutomaticEnd: () => {
+  var viewer = createClipViewer({ canResume: (id) => clips.canResume(id), discardResume: (id) => clips.discardResume(id), retainResumeFor: (id) => clips.retainResumeFor(id), delivery: () => deliveryPolicy, cards: () => clips.list(), has: (id) => clips.has(id), available: (id) => clips.available(id), download: (id, signal, onProgress, localOnly) => clips.download(id, signal, onProgress, localOnly), current: () => !!role && roomProfile === CHAT_ROOM_PROFILE && ws?.readyState === WebSocket.OPEN, busy: () => clips.busy || !!clipCapture, beforeAutomaticPlay: () => mayStartAutomaticVideo(), onAutomaticEnd: () => {
     if (!readingVideoFocus) director.start();
   }, onReplayAccepted: () => director.cancel(), onPlaybackStart: () => director.cancel(), programmeSelect: (id, action) => {
     if (action === "play") programmeSelected("video", id, "manual");
     else if (programmeVideoToken) programme.skipClip(programmeVideoToken);
-  }, programmeReady: (id, origin) => programmeReady("video", id, origin), programmeEnd: (id, why) => programmeEnd("video", id, why), programmePause: () => programmePause("video"), programmeResume, beforeClear: () => {
+  }, programmeReady: (id, origin) => programmeReady("video", id, origin), programmeClear: (token2) => programme.clearVisual(token2), programmeEnd: (id, why) => programmeEnd("video", id, why), programmePause: () => programmePause("video"), programmeResume: () => programme.resumeVisual(), beforeClear: () => {
     if ($("clip-player")?.contains(document.activeElement) || $("clip-playback")?.contains(document.activeElement)) {
       try {
         $("timeline-latest").focus({ preventScroll: true });
@@ -48731,7 +49685,7 @@ THE SOFTWARE.
     queueMicrotask(() => {
       const resume = $("watch-resume");
       if (resume) {
-        const p = programme.state, can = viewer.canResume || p.selection?.kind === "video" && !p.selection.finished && (p.intent === "paused" || !!p.blocked);
+        const p = programme.state, can = p.intent !== "paused" && (viewer.canResume || p.selection?.kind === "video" && !p.selection.finished && p.visual.blocked);
         resume.disabled = !can;
         resume.hidden = !can;
       }
@@ -48750,13 +49704,11 @@ THE SOFTWARE.
       if (origin === "auto") director.cancel();
       else director.veto();
       if (origin !== "auto") viewer.request(id, "skip");
-      viewer.setHeld(true);
+      viewer.setHeld(true, origin === "auto");
     },
     release: () => viewer.setHeld(false),
     onAutomaticEnd: () => director.start(),
-    programmeSelect: (id, origin) => {
-      programmeSelected("audio", id, origin);
-    },
+    programmeSelect: (id, origin) => programmeSelected("audio", id, origin) !== void 0,
     programmeReady: (id, origin) => programmeReady("audio", id, origin),
     programmeEnd: (id, why) => programmeEnd("audio", id, why),
     programmePause: () => programmePause("audio"),
@@ -48869,11 +49821,11 @@ THE SOFTWARE.
       }
     });
   }
-  var videoFocus = createStreamVideoFocus({ apply: applyVideoFocus });
+  var videoFocus = createStreamVideoFocus({ apply: applyVideoFocus, isHeld: () => document.hidden || videoFocusHeld() });
   var videoControlHold = createStreamControlHold();
   function videoFocusHeld() {
     const active = document.activeElement;
-    return !!document.fullscreenElement || explicitProgrammePause || viewer.hasManualIntent || audioPlayer.ownsPlayback || !!active && (!!active.matches?.("input,textarea,select") || !!active.isContentEditable || videoControlHold.holdsControl(!!active.matches?.("button,a,summary") && !!active.closest?.("#room-timeline")));
+    return !!document.fullscreenElement || explicitProgrammePause || programme.visualPaused || viewer.hasManualIntent || audioPlayer.ownsPlayback || !!active && (!!active.matches?.("input,textarea,select") || !!active.isContentEditable || videoControlHold.holdsControl(!!active.matches?.("button,a,summary") && !!active.closest?.("#room-timeline")));
   }
   function mayStartAutomaticVideo() {
     if (document.hidden) return false;
@@ -48888,7 +49840,7 @@ THE SOFTWARE.
     if (!readingVideoFocus || !viewer.enabled) return;
     const bounds = readableViewport($("room-timeline"));
     if (document.hidden) {
-      videoFocus.update([], bounds);
+      videoFocus.update([], bounds, true);
       return;
     }
     const hold = videoFocusHeld();
@@ -48903,9 +49855,11 @@ THE SOFTWARE.
     if (!role || roomProfile !== CHAT_ROOM_PROFILE || !viewer.enabled) return;
     const changed = !readingVideoFocus;
     if (changed) {
-      const owned = viewer.ownership, selection = viewer.selection, key9 = owned?.origin === "auto" ? selection?.replayId ? "replay:" + selection.replayId : "clip:" + owned.clipId : viewer.lastEndedFocusKey;
-      videoFocus.adopt(key9);
-      applyVideoFocus(key9);
+      const owned = viewer.ownership, selection = viewer.selection;
+      const key9 = owned?.origin === "auto" ? selection?.replayId ? "replay:" + selection.replayId : "clip:" + owned.clipId : viewer.lastEndedFocusKey;
+      const target = key9 && timelineView.videoTargets().some((x) => x.key === key9) ? key9 : void 0;
+      videoFocus.adopt(target);
+      if (!document.hidden && !videoFocusHeld()) applyVideoFocus(target);
     }
     readingVideoFocus = true;
     director.veto();
@@ -49044,6 +49998,7 @@ THE SOFTWARE.
   }, status: (text2) => {
     $("moments-connection").textContent = text2;
   } });
+  var homepageCapture;
   var moments = createClipContextMoments({ recordingStarted: (recording) => {
     activeRecordingId = recording.recordingId;
     audioInterrupted = false;
@@ -49101,7 +50056,14 @@ THE SOFTWARE.
       });
       renderProgramme();
     }
-  }, choose: () => navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }), publisher: startPublisher, publish: (caption, objects, duration, signal, context) => {
+  }, choose: () => {
+    if (homepageCapture) {
+      const selected = homepageCapture;
+      homepageCapture = void 0;
+      return Promise.resolve(selected);
+    }
+    return navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+  }, publisher: startPublisher, publish: (caption, objects, duration, signal, context) => {
     const owner = storyOwner;
     return publishClip(caption, objects, duration, signal, () => storyOwnerCurrent(owner) && (!context?.eventCurrent || context.eventCurrent()), context);
   }, capacity: () => ({ used: clips.used, count: clips.list().length, busy: clips.busy || viewer.busy }), current: storyOwnerCurrent, ready: matchCurrent, sourceChanged: (source) => {
@@ -49309,6 +50271,7 @@ THE SOFTWARE.
     if (audioPlayer.origin === "auto") audioPlayer.stop();
     $("stream-video-auto").checked = false;
     viewer.stop();
+    if (programmeVideoToken) programme.clearVisual(programmeVideoToken);
     traceFollowing("watch-stop");
     clipStage.park();
   }
@@ -49330,7 +50293,7 @@ THE SOFTWARE.
       viewer.replay(latest);
       pictures.showReplay(latest.clipId);
     }
-    if (!clips.list().length) streamStatus("Waiting for the sharer\u2019s first short video. Clips will play in their cards; use Enable sound when you want to listen.");
+    if (!clips.list().length) streamStatus("Waiting for the sharer\u2019s first short video. Clips will play in their cards. Live sound has its own control above.");
     renderStreamControls();
   }
   function clearClipPlayer() {
@@ -49376,7 +50339,7 @@ THE SOFTWARE.
     $("clip-context-source").textContent = text2.provenance;
   }
   function adaptStreamMedia() {
-    if (programme.state.live.available && programme.state.live.connected && programme.state.live.decodable && !programme.state.live.positionExpired) return;
+    if (programme.state.live.available && programme.state.live.decodable && !programme.state.live.positionExpired) return;
     if (!streamSoundEnabled || director.waiting || !role || roomProfile !== CHAT_ROOM_PROFILE || !viewer.enabled || viewer.suspended || viewer.userPaused || viewer.hasManualIntent || viewer.ownership || audioPlayer.ownsPlayback) return;
     const waiting = viewer.automaticWait;
     if (!waiting) return;
@@ -49620,7 +50583,7 @@ THE SOFTWARE.
     rounds.start(caption);
   };
   $("rounds-stop").onclick = () => rounds.stop();
-  $("moments-start").onclick = () => {
+  function startRoomMoments() {
     if (!matchCurrent() || moments.active || rounds.active || clipCapture || clips.busy) return;
     if (typeof navigator.mediaDevices?.getDisplayMedia !== "function") {
       clipNotice("Use a laptop browser to share a match story.");
@@ -49638,14 +50601,23 @@ THE SOFTWARE.
       storyOwner = void 0;
       aiRequests.setInterval(3e4);
     }
-  };
+  }
+  $("moments-start").onclick = startRoomMoments;
   $("moments-stop-global").onclick = () => moments.stop("Match story recording stopped.");
   $("moments-stop").onclick = () => moments.stop("Match story recording stopped. Earlier shared clips remain available until they expire.");
   $("clip-still-opt-in").onchange = () => clipStillController.enable($("clip-still-opt-in").checked);
   $("clip-pictures-auto").onchange = () => pictures.enableAuto($("clip-pictures-auto").checked);
   $("watch-start").onclick = () => {
+    const state = programme.state, wasExplicitPause = explicitProgrammePause;
     explicitProgrammePause = false;
-    const state = programme.state;
+    if (state.intent === "paused" && wasExplicitPause) {
+      if (state.selection?.finished && !audioPlayer.ownsPlayback && !viewer.selection) {
+        viewer.releaseManualHold();
+        programme.backToLive();
+        startStreamWatching();
+      } else programme.resume();
+      return;
+    }
     if (!audioPlayer.ownsPlayback && !viewer.selection && state.selection?.finished) {
       viewer.releaseManualHold();
       programme.backToLive();
@@ -49684,7 +50656,7 @@ THE SOFTWARE.
     try {
       const owner = programme.state.owner;
       for (const [kind, media] of [["live", liveAudio], ["video", clipVideo], ["audio", clipAudio]]) {
-        media.muted = !enable || owner !== kind || kind === "live" && role === "host";
+        media.muted = kind === "video" || !enable || owner !== kind || kind === "live" && role === "host";
         if (!media.muted && media.volume === 0) media.volume = 1;
       }
     } finally {
@@ -49707,7 +50679,7 @@ THE SOFTWARE.
   for (const id of ["video-sound", "audio-sound"]) $(id).onclick = toggleStreamSound;
   clipVideo.addEventListener("playing", () => {
     const state = programme.state, selection = state.selection;
-    if (selection?.kind !== "video" || selection.finished || state.owner !== "video" && state.pending !== "video" || clipVideo.paused || clipVideo.ended || clipVideo.readyState < 3 || !clipVideo.src || clipVideo.currentSrc !== clipVideo.src) return;
+    if (selection?.kind !== "video" || selection.finished || !state.visual.playing && !state.visual.pending || clipVideo.paused || clipVideo.ended || clipVideo.readyState < 3 || !clipVideo.src || clipVideo.currentSrc !== clipVideo.src) return;
     videoPlayingEvidence = { token: selection.token, src: clipVideo.src };
     renderProgramme();
   });
@@ -49735,7 +50707,7 @@ THE SOFTWARE.
       }
     });
     media.addEventListener("play", () => {
-      if (programme.state.pending === kind || programme.state.owner === kind) return;
+      if (kind === "video" ? programme.state.visual.pending || programme.state.visual.playing : programme.state.pending === kind || programme.state.owner === kind) return;
       programmeMute(media, true, kind === "live");
       try {
         media.pause();
@@ -49782,15 +50754,16 @@ THE SOFTWARE.
   $("timeline-latest").addEventListener("click", followLatestStream);
   $("watch-stop").onclick = () => {
     explicitProgrammePause = true;
+    director.veto();
     programme.pause();
-    if (audioPlayer.ownsPlayback) audioPlayer.pause();
-    else stopWatching();
+    updateVideoFocus();
   };
   var videoPauseCurrent = $("watch-pause-current");
   if (videoPauseCurrent) videoPauseCurrent.onclick = () => {
-    explicitProgrammePause = true;
     director.veto();
-    programme.pause();
+    videoPlayingEvidence = void 0;
+    programme.pauseVisual();
+    streamStatus("Picture paused. Press Play this clip to continue.");
   };
   var audioPauseCurrent = $("audio-pause-current");
   if (audioPauseCurrent) audioPauseCurrent.onclick = () => {
@@ -49919,10 +50892,14 @@ THE SOFTWARE.
     const stats = activeStats();
     $("buffer-state").textContent = stats ? `${Number(stats.bufferedSeconds || 0).toFixed(1)} seconds` : "Waiting for video";
     $("members-state").textContent = `${peers.size + 1} participant${peers.size ? "s" : ""}`;
+    renderBroadcast(connected);
     $("room-status").textContent = role ? roomProfile === CHAT_ROOM_PROFILE ? role === "host" ? "Hosting a private chat room" : "Joined a private match room" : role === "host" ? "Hosting a private room" : "Joined a private room" : "No room joined";
     $("diagnostics").textContent = JSON.stringify(snapshot2(), null, 2);
   }
   function showSession() {
+    directorScroll.write(writeSession);
+  }
+  function writeSession() {
     document.body?.classList?.toggle("legacy-room", roomProfile !== CHAT_ROOM_PROFILE);
     $("welcome").classList.add("hidden");
     $("session-panel").classList.remove("hidden");
@@ -50830,7 +51807,7 @@ THE SOFTWARE.
     syntheticCleanup?.();
     syntheticCleanup = void 0;
     oldSocket?.close();
-    oldEngine?.close();
+    oldEngine?.close(preserveFeed ? "reconnect" : void 0);
     oldIndependentEngine?.close();
     try {
       oldPlayer.pause();
@@ -50967,7 +51944,9 @@ THE SOFTWARE.
       $("clip-pictures-auto").checked = freshChoices.pictures;
     }
     await connectRoom({ roomId: id, token: join2, sourceKey: key9, profile: mode === INDEPENDENT_AUDIO_PROFILE ? INDEPENDENT_AUDIO_PROFILE : mode === CHAT_ROOM_PROFILE ? CHAT_ROOM_PROFILE : void 0 }, "viewer", forwarding);
+    setTuneIn("off");
     if (mode === CHAT_ROOM_PROFILE && !preserve && !options.recovery) {
+      programme.backToLive();
       pictures.enableAuto(freshChoices.pictures);
       if (freshChoices.video) startStreamWatching();
     }
@@ -51216,7 +52195,8 @@ THE SOFTWARE.
   var welcomeLocationPending = false;
   function updateWelcomeControls() {
     const canHost = !!config && (config.testMode || config.publicCreation === true || !!new URLSearchParams(location.hash.slice(1)).get("host"));
-    $("host-start-controls").classList.toggle("hidden", !canHost);
+    $("host-start-controls").classList.remove("hidden");
+    $("share-create").disabled = uiBusy || !canHost || typeof navigator.mediaDevices?.getDisplayMedia !== "function";
     $("private-host-guidance").classList.toggle("hidden", canHost);
     for (const id of ["start", "start-chat"]) $(id).disabled = uiBusy || !canHost;
     $("join").disabled = uiBusy || !config;
@@ -51232,8 +52212,83 @@ THE SOFTWARE.
     document.body?.classList?.toggle("legacy-room", params.get("legacy") === "1");
     if (params.has("join")) {
       $("invite-input").value = location.href;
+      if (inviteEntry.take(location.href, location.hash)) {
+        openInvitation(location.href);
+        return;
+      }
       message("Your private invitation is ready. Press Join and watch.");
     }
+  }
+  var inviteEntry = createInviteEntry();
+  var inviteEntryAttempt = 0;
+  var invitationBeingOpened = "";
+  var inviteEntryView = createInviteEntryView($("tune-in"), () => {
+    inviteEntryAttempt++;
+    invitationBeingOpened = "";
+    cancelRecovery();
+    viewerSessionKey = "";
+    setTuneIn("off");
+    void leave().catch(failure);
+    message("Joining cancelled. You can open another invitation.");
+  });
+  function setTuneIn(state) {
+    directorScroll.write(() => writeTuneIn(state));
+  }
+  function writeTuneIn(state) {
+    if (state === "off") invitationBeingOpened = "";
+    $("tune-in-tab").textContent = state === "failed" ? "Invitation" : "Private room";
+    $("tune-in-retry-actions").hidden = state !== "failed";
+    $("tune-in-cancel").hidden = state !== "joining";
+    $("tune-in-title").textContent = state === "failed" ? "This room didn\u2019t open" : "You\u2019re invited to watch the match together";
+    $("tune-in-status-text").textContent = state === "failed" ? "Try again, or ask the sender for a new invitation." : "Tuning in to the group\u2026";
+    inviteEntryView.set(state, role === "viewer" ? roomProfile === CHAT_ROOM_PROFILE ? $("programme-orientation") : $("play") : $("join"));
+  }
+  function openInvitation(href) {
+    if (uiBusy) return;
+    invitationBeingOpened = href;
+    const attempt = ++inviteEntryAttempt;
+    setTuneIn("joining");
+    cancelRecovery();
+    void ui(async () => {
+      try {
+        await joinInvitation(href, selectedForwarding());
+      } catch (error) {
+        if (attempt === inviteEntryAttempt) setTuneIn(error instanceof DOMException && error.name === "AbortError" ? "off" : "failed");
+        throw error;
+      }
+      if (attempt === inviteEntryAttempt) setTuneIn(role ? "off" : "failed");
+    }).then(() => {
+      const reason = $("message").textContent?.trim();
+      if (attempt === inviteEntryAttempt && inviteEntryView.state === "failed" && !role && reason) {
+        const explanation = reason === "Control request rejected" ? "The room may have ended, or this invitation may no longer be valid." : reason + (/[.!?]$/.test(reason) ? "" : ".");
+        $("tune-in-status-text").textContent = explanation + " Try again, or ask the sender for a new invitation.";
+      }
+    });
+  }
+  $("tune-in-retry").onclick = () => {
+    const href = invitationBeingOpened;
+    if (!href || !isCompleteInvitation(new URL(href).hash)) return;
+    beginJoinSound();
+    openInvitation(href);
+  };
+  function renderBroadcast(connected) {
+    const swarm = $("swarm");
+    swarm.classList.toggle("hidden", !role || roomProfile !== CHAT_ROOM_PROFILE);
+    const dots = $("swarm-dots"), others = Math.min(12, peers.size), linked = Math.min(others, connected);
+    while (dots.childElementCount > others) dots.lastElementChild?.remove();
+    while (dots.childElementCount < others) dots.append(document.createElement("i"));
+    [...dots.children].forEach((dot, i) => {
+      dot.dataset.linked = String(i < linked);
+    });
+    const label = swarmLabel({ connected, participants: peers.size + 1 });
+    if ($("swarm-label").textContent !== label) $("swarm-label").textContent = label;
+    renderBroadcastSound();
+  }
+  function renderBroadcastSound() {
+    const state = programme.state, status = liveAudioViewer?.status();
+    const sound = state.intent !== "paused" && !state.soundError && state.owner === "live" && status?.sourceState === "running" && !status.stalled && liveSoundEvidence.playing ? "live" : state.intent !== "paused" && state.owner === "audio" && earlierSoundEvidence.playing ? "earlier" : "none";
+    const panel = $("programme-orientation");
+    if (panel && panel.dataset.sound !== sound) panel.dataset.sound = sound;
   }
   window.addEventListener("hashchange", syncWelcomeLocation);
   async function ui(action) {
@@ -51243,17 +52298,20 @@ THE SOFTWARE.
     if (setting) setting.disabled = true;
     message("");
     $("cancel-action").classList.remove("hidden");
-    for (const id of ["start", "start-chat", "join"]) $(id).disabled = true;
+    for (const id of ["start", "start-chat", "share-create", "join"]) $(id).disabled = true;
     try {
       await action();
     } catch (error) {
       if (error instanceof CaptureEndedError) message(error.message);
       else if (!(error instanceof DOMException && error.name === "AbortError")) failure(error);
     } finally {
-      uiBusy = false;
-      if (setting) setting.disabled = role === "host";
-      $("cancel-action").classList.add("hidden");
-      updateWelcomeControls();
+      directorScroll.write(() => {
+        uiBusy = false;
+        if (setting) setting.disabled = role === "host";
+        $("cancel-action").classList.add("hidden");
+        updateWelcomeControls();
+        inviteEntryView.restoreFocus();
+      });
       if (welcomeLocationPending) syncWelcomeLocation();
     }
   }
@@ -51280,6 +52338,22 @@ THE SOFTWARE.
       }
     });
   };
+  $("share-create").onclick = () => {
+    cancelRecovery();
+    void ui(async () => {
+      if (typeof navigator.mediaDevices?.getDisplayMedia !== "function") throw Error("To share a tab, use Chrome or Edge on a computer. You can still join a room on this device.");
+      const request2 = ++captureRequest, generation = session;
+      await shareTabAndCreateRoom({ choose: () => navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }), current: () => request2 === captureRequest && generation === session, create: startChatRoom, attach: (stream) => {
+        homepageCapture = stream;
+        try {
+          startRoomMoments();
+          if (homepageCapture) throw Error("The room is ready. Choose Share screen and sound in your room to start sharing.");
+        } finally {
+          homepageCapture = void 0;
+        }
+      } });
+    });
+  };
   $("start-chat").onclick = () => {
     cancelRecovery();
     void ui(startChatRoom);
@@ -51287,7 +52361,16 @@ THE SOFTWARE.
   $("join").onclick = () => {
     beginJoinSound();
     cancelRecovery();
-    void ui(() => joinInvitation($("invite-input").value, selectedForwarding()));
+    const href = $("invite-input").value;
+    try {
+      if (isCompleteInvitation(new URL(href).hash)) {
+        openInvitation(href);
+        return;
+      }
+    } catch {
+    }
+    setTuneIn("off");
+    void ui(() => joinInvitation(href, selectedForwarding()));
   };
   $("copy").onclick = () => void ui(async () => {
     await navigator.clipboard.writeText(lastInvitation);
@@ -51303,6 +52386,8 @@ THE SOFTWARE.
     else $("chat-status").textContent = "Message not sent. Check the connection and message length, then try again.";
   };
   $("leave").onclick = () => {
+    inviteEntryAttempt++;
+    invitationBeingOpened = "";
     cancelRecovery();
     viewerSessionKey = "";
     lastInvitation = "";
@@ -51312,6 +52397,8 @@ THE SOFTWARE.
     });
   };
   $("cancel-action").onclick = () => {
+    inviteEntryAttempt++;
+    invitationBeingOpened = "";
     cancelRecovery();
     viewerSessionKey = "";
     void leave().catch(failure);
@@ -51454,6 +52541,14 @@ THE SOFTWARE.
       }
     }
   }, 1e3);
+  mountRoomDirectory({ request: async (body) => {
+    const { response, data } = await roomRequest("/api/directory", body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {}, new AbortController().signal);
+    if (!response.ok) throw Error(data.error || "Rooms unavailable");
+    return data;
+  }, host: () => role === "host" ? { roomId, hostToken: token } : null, join: async (invite) => {
+    beginJoinSound();
+    await ui(() => joinInvitation(invite, selectedForwarding()));
+  } });
   void (async () => {
     const { response, data } = await roomRequest("/api/config", {}, controller.signal);
     if (!response.ok) throw Error("The room service is unavailable. Please reload.");
