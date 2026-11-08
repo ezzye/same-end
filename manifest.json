@@ -3,17 +3,17 @@
   "domain": "www.sameend.com",
   "controlOrigin": "https://n2dyzit6e56ajocyqghad2qsbq0jfooh.lambda-url.eu-west-1.on.aws",
   "aiOrigin": "https://dldvwd3ue2of4k7qczwzuegqwe0ekock.lambda-url.eu-west-1.on.aws",
-  "appPath": "/app-ce3e55a898ccae88.js",
+  "appPath": "/app-da683119f19ab831.js",
   "assets": [
     {
       "path": "/index.html",
-      "bytes": 73526,
-      "sha256": "3490e1183adf37eb56bda9623134fa23c9fbebe18a73ab5c7afe2985d9897f91"
+      "bytes": 73649,
+      "sha256": "d1f262d9e7717a20ad32b96e2fe8bef1bd6138dc8064d8ec33cdb22265276a1a"
     },
     {
-      "path": "/app-ce3e55a898ccae88.js",
-      "bytes": 2204784,
-      "sha256": "ce3e55a898ccae884f50d6c5f280f771c0de3932445dccbad54957d653a82877"
+      "path": "/app-da683119f19ab831.js",
+      "bytes": 2205717,
+      "sha256": "da683119f19ab831efad4f0039e21bc9fd8247d4524dd6fc3f2e6ec12bc410e7"
     },
     {
       "path": "/fonts/atkinson-hyperlegible-latin-400-normal.woff2",
