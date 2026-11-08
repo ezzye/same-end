@@ -7,8 +7,8 @@
   "assets": [
     {
       "path": "/index.html",
-      "bytes": 64640,
-      "sha256": "1edff9edc3f1d947d9699a445fda388da9f125102145a7a66cde9da34825066e"
+      "bytes": 73526,
+      "sha256": "3490e1183adf37eb56bda9623134fa23c9fbebe18a73ab5c7afe2985d9897f91"
     },
     {
       "path": "/app-ce3e55a898ccae88.js",
