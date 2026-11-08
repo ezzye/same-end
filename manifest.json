@@ -3,17 +3,17 @@
   "domain": "www.sameend.com",
   "controlOrigin": "https://n2dyzit6e56ajocyqghad2qsbq0jfooh.lambda-url.eu-west-1.on.aws",
   "aiOrigin": "https://dldvwd3ue2of4k7qczwzuegqwe0ekock.lambda-url.eu-west-1.on.aws",
-  "appPath": "/app-7014d0d5b609049a.js",
+  "appPath": "/app-84d4326652ebe741.js",
   "assets": [
     {
       "path": "/index.html",
-      "bytes": 52690,
-      "sha256": "ceaf7a85db09ee2fc30b324ed0593cf80c49f72031692b5d4de2a3148a21af2d"
+      "bytes": 64640,
+      "sha256": "7bea84c238bd2f9107dd83f76ee24f679b2936558438424cc025c82180c8a0cd"
     },
     {
-      "path": "/app-7014d0d5b609049a.js",
-      "bytes": 2168988,
-      "sha256": "7014d0d5b609049acfa0d7c0ba69c423fdf3c1eceebbc5a9c799960d219109e9"
+      "path": "/app-84d4326652ebe741.js",
+      "bytes": 2182041,
+      "sha256": "84d4326652ebe741d8d25e49aefee0c3fbefbf6369501afbd35359178637a79f"
     },
     {
       "path": "/fonts/atkinson-hyperlegible-latin-400-normal.woff2",
@@ -39,6 +39,36 @@
       "path": "/fonts/barlow-condensed-latin-800-normal.woff2",
       "bytes": 22464,
       "sha256": "2515494e8cc2ca07c86ea78766cfa104b796aa6ed5d66821c01d51dbb0b52bce"
+    },
+    {
+      "path": "/photos/behind-the-crowd-1600.webp",
+      "bytes": 140018,
+      "sha256": "690cfeb10742be74e71cb31133054c6a50a5d4f049fc9b19870a89feae7597b3"
+    },
+    {
+      "path": "/photos/behind-the-crowd-960.webp",
+      "bytes": 70046,
+      "sha256": "2592eb9fd6486405c083761e7b31ce01f79fc3412ccd597cc5bb7bf984767b7c"
+    },
+    {
+      "path": "/photos/floodlit-stadium-1600.webp",
+      "bytes": 202756,
+      "sha256": "af303032dcef5e723bd7b4111577b9101ece5c5236e01b3b70567f5e80650520"
+    },
+    {
+      "path": "/photos/floodlit-stadium-960.webp",
+      "bytes": 89286,
+      "sha256": "5f79a83802a817297731fee2052846b7b0d3c12042ccf94883db97022ad63bc3"
+    },
+    {
+      "path": "/photos/supporters-flags-1600.webp",
+      "bytes": 64410,
+      "sha256": "9f8fbd36467998e7bac7f899452d8d8cebb8b52e1f63a160a778246f600968a0"
+    },
+    {
+      "path": "/photos/supporters-flags-960.webp",
+      "bytes": 32858,
+      "sha256": "45d96389299be8ae42ccfa61a141bcb9603cc6a2676420c655f398e390dbcea5"
     },
     {
       "path": "/asr/same-end-asr-7aa36f392106.js",
