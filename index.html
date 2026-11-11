@@ -434,14 +434,19 @@ body.room-story.room-host .programme-orientation{color-scheme:dark;--pitch:#080e
   <p id="stream-sound-note" class="small">Earlier video stays muted. Enable sound to hear live sound or a selected audio clip.</p>
   <div id="programme-orientation" class="programme-orientation" tabindex="-1" aria-label="Your place in the match">
     <p id="programme-state" class="programme-state" role="status">Waiting for live sound</p>
+    <div id="programme-source-choice" class="hidden notice">
+      <p id="programme-source-choice-note" role="status"></p>
+      <p class="small">Switching discards commentary saved on this device that you have not heard. It starts a new listening position. Earlier cards stay in the room.</p>
+      <button id="programme-source-switch" type="button" class="secondary">Follow current shared sound</button>
+    </div>
     <p id="programme-position" class="small">Programme position unknown. Match minutes are supplied by the sharer when known.</p>
     <p id="programme-score-age" class="small" hidden></p>
     <button id="programme-back-live" class="secondary" type="button" aria-describedby="programme-live-note">Back to live</button>
     <p id="programme-live-note" class="small">Resumes sound near the latest playable audio received. This can jump ahead of an earlier highlight.</p>
     <p class="broadcast-photo-credit small">Atmosphere photo: Fleur / Unsplash</p>
-    <audio id="programme-live-audio" preload="none" hidden></audio>
+    <audio id="programme-live-audio" preload="none" hidden></audio><audio id="programme-live-audio-alternate" preload="none" playsinline></audio>
   </div>
-  <details class="stream-help"><summary>How the stream works</summary><p class="small">The stream adapts automatically to verified peer delivery: video when it can arrive, sound and pictures on slower paths, with text and chat alongside them. Earlier videos play muted while available live sound continues. Earlier clips stay available to choose; choosing an audio clip switches what you hear. A browser may still ask you to press Play. Times beside cards show when each card was shared (or, for chat and AI text, when it reached this device); they are not the match clock.</p></details>
+  <details class="stream-help"><summary>How the stream works</summary><p class="small">The stream adapts automatically to the connection between people in the room. When a video highlight plays recorded sound, commentary pauses and can keep arriving while the connection allows. Afterwards, commentary can resume from your saved listening position. This can put you further behind live. Earlier clips can be chosen while they remain available. Choosing an audio clip changes what you hear. If sound is blocked, use Play sound. Card times show when items were shared or received; they are not the match clock. Match minutes, when supplied, appear separately.</p></details>
   <details id="watch-usage"><summary>Data preferences</summary>
     <label><input id="stream-video-auto" type="checkbox" checked> Automatically play available clips</label>
   </details>
@@ -466,7 +471,7 @@ body.room-story.room-host .programme-orientation{color-scheme:dark;--pitch:#080e
 <p id="private-sharing-disclaimer">Same End is intended to let a pre-existing, limited circle of family, friends and fellow supporters share a live screen as part of a private social conversation. Their connection exists beyond the particular programme or match, through personal relationships, shared club history, friendship or fraternity. The justification is that technology can extend an ordinary shared experience across distance while preserving the social character of the group. The session has no public audience; genuine, proportionate extracts used for discussion may also qualify for fair dealing, depending on their purpose, context and the rights attached to the source.</p>
 <p id="service-ownership">This service live screen sharing is owned and provided by Unsigned Media Ltd</p>
 </footer>
-<script src="/app-44cd2122f389f245.js"></script>
+<script src="/app-0cb9fad2e121da42.js"></script>
 </body>
 </html>
 
