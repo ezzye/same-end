@@ -131,6 +131,11 @@ body.room-story:not(.room-host) #clips-panel{background:transparent;padding:0}
 /* Stream toolbar */
 #watch-stage,body.room-story #watch-stage{background:transparent;border:0;padding:4px 0;margin:0 0 6px}
 .stream-toolbar{display:flex;flex-wrap:wrap;gap:8px}
+#stream-primary-controls{position:fixed;right:max(8px,env(safe-area-inset-right));bottom:max(var(--stream-controls-bottom,8px),env(safe-area-inset-bottom));z-index:6;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;width:max-content;max-width:calc(100vw - 16px);padding:6px;background:var(--dugout);border:1px solid var(--touchline);border-radius:10px;box-shadow:0 4px 18px #0008}
+#stream-primary-controls[data-flow="true"]{position:static;box-shadow:none}
+#stream-primary-controls button{margin:0}
+body:has(#room-composer :is(input:focus,textarea:focus,[contenteditable="true"]:focus)) #stream-primary-controls{visibility:hidden}
+@media(max-height:320px){#stream-primary-controls{position:static;box-shadow:none}}
 .stream-toolbar button{margin:0}
 #stream-sound[aria-pressed="false"]{background:var(--floodlight);color:var(--pitch);border-color:var(--floodlight);font-weight:700}
 #stream-status{color:var(--soft)}
@@ -427,10 +432,12 @@ body.room-story.room-host .programme-orientation{color-scheme:dark;--pitch:#080e
 <section id="viewer-panel" class="hidden"><h2 id="viewer-title">Match room</h2><div id="viewer-media"><p id="viewer-profile" class="notice" role="status">Waiting for the source profile.</p><video id="player" controls playsinline></video><div class="actions"><button id="play">Enable sound and play</button><button id="pause" class="secondary">Pause</button></div><p id="playback-state" role="status">Waiting for the source</p><details><summary>Viewer delivery health</summary><p class="small">Local measurements only. The received data rate is not your connection capacity. Chunk bursts, cached data and earlier transfers can affect comparisons. The buffer shows media buffered at the picture’s current position; zero can also indicate a gap. A healthy buffer with dropped frames can suggest a playback issue.</p><pre id="delivery-report">Measuring</pre><p id="delivery-suggestion" class="small hidden">If this continues, the host can choose Use Less Data before starting a new cast. Sound settings stay the same.</p><button id="copy-delivery" class="secondary">Copy report</button><span id="copy-delivery-status" role="status"></span></details><p class="small">A small delay gives the group time to share verified video. Pausing is your choice; extended pauses may require Rejoin live.</p></div><button id="rejoin" class="secondary">Rejoin live</button></section>
 <button id="cancel-action" class="secondary hidden">Cancel pending action</button><p id="message" class="notice hidden" aria-live="polite"></p><section id="session-panel" class="hidden"><div id="room-main" class="room-main"><div id="watch-stage" class="watch-stage hidden">
   <label class="compat-control" for="watch-mode">Viewing mode <select id="watch-mode"><option value="highlights" selected>Auto highlights</option></select></label>
-  <div class="actions stream-toolbar">
+  <div id="stream-primary-controls" class="actions" role="group" aria-label="Stream controls">
     <button id="watch-start" type="button">Start stream</button>
     <button id="watch-stop" class="secondary" type="button">Pause stream</button>
     <button id="stream-sound" class="secondary" type="button" aria-pressed="false">Enable sound</button>
+  </div>
+  <div class="actions stream-toolbar">
     <button id="stream-playing-jump" class="secondary" type="button" hidden>Jump to playing clip</button><button id="stream-audio-jump" class="secondary" type="button" hidden>Jump to sound clip</button>
   </div>
   <p id="stream-status" role="status">The sharer’s clips and room updates appear here.</p>
@@ -474,7 +481,7 @@ body.room-story.room-host .programme-orientation{color-scheme:dark;--pitch:#080e
 <p id="private-sharing-disclaimer">Same End is intended to let a pre-existing, limited circle of family, friends and fellow supporters share a live screen as part of a private social conversation. Their connection exists beyond the particular programme or match, through personal relationships, shared club history, friendship or fraternity. The justification is that technology can extend an ordinary shared experience across distance while preserving the social character of the group. The session has no public audience; genuine, proportionate extracts used for discussion may also qualify for fair dealing, depending on their purpose, context and the rights attached to the source.</p>
 <p id="service-ownership">This service live screen sharing is owned and provided by Unsigned Media Ltd</p>
 </footer>
-<script src="/app-47d01f897d1a7f2e.js"></script>
+<script src="/app-068f8c0ac12f161d.js"></script>
 </body>
 </html>
 
