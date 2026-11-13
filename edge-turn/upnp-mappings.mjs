@@ -1,9 +1,10 @@
 /* Only the explicitly configured local router; never knowingly overwrites another app's map. */
 import {isIP} from 'node:net';
+import {readInitialMappingCount} from './upnp-event-count.mjs';
 const xml=s=>String(s).replace(/[<>&"']/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]));
 const field=(body,name)=>new RegExp('<(?:[A-Za-z0-9_]+:)?'+name+'>([^<]*)</').exec(body)?.[1]??null;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-export function routerClient({controlUrl,gatewayAddress,localAddress,description='Same End Edge'}={}){
+export function routerClient({controlUrl,eventSubUrl,gatewayAddress,localAddress,description='Same End Edge'}={}){
  const url=new URL(controlUrl);if(url.protocol!=='http:'||url.hostname!==gatewayAddress||!isIP(gatewayAddress)||!isIP(localAddress)||url.username||url.password||url.hash||description!=='Same End Edge')throw Error('Invalid explicit local router configuration');
  const service='urn:schemas-upnp-org:service:WANIPConnection:1';let lastStart=0,callChain=Promise.resolve(),operationChain=Promise.resolve();
  async function responseText(r){
@@ -30,7 +31,7 @@ export function routerClient({controlUrl,gatewayAddress,localAddress,description
  async function inventory(){
   const rows=[];
   for(let index=0;index<128;index++){
-   let t;try{t=await call('GetGenericPortMappingEntry',{NewPortMappingIndex:index});}catch(e){if(e.upnpCode===713)return rows;throw e;}
+   let t;try{t=await call('GetGenericPortMappingEntry',{NewPortMappingIndex:index});}catch(e){if(e.upnpCode===713)return rows;if(e.upnpCode===601&&eventSubUrl){const keys=new Set();for(const row of rows){const key=JSON.stringify([row.remote,row.external,row.protocol]);if(keys.has(key))throw Error('Router returned a duplicate mapping key in the indexed prefix',{cause:e});keys.add(key);}const count=await readInitialMappingCount({eventSubUrl,gatewayAddress,localAddress});if(count===rows.length)return rows;throw Error('Router GENA mapping count did not match the indexed inventory',{cause:e});}throw e;}
    const external=Number(field(t,'NewExternalPort')),protocol=field(t,'NewProtocol'),v=item(t),remote=field(t,'NewRemoteHost')||'';
    if(!Number.isInteger(external)||external<1||external>65535||!['UDP','TCP'].includes(protocol)||!v.client||!Number.isInteger(v.internal)||v.internal<1||v.internal>65535)throw Error('Router returned an invalid mapping inventory');
    rows.push({...v,external,protocol,remote});
