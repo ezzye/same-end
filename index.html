@@ -339,8 +339,11 @@ body.room-story:not(.room-host) #programme-orientation button.secondary:hover{ba
 /* Recovery is a solid panel: photo-overlay text styles must not wash it out. */
 #programme-orientation #programme-source-choice{background:#133d2c;color:#f2f4ea;border:1px solid #8fe0b0;text-shadow:none}
 #programme-orientation #programme-source-choice p{color:#f2f4ea;text-shadow:none}
-#programme-orientation #programme-source-choice button.secondary{display:block;width:100%;min-height:48px;margin:12px 0;font-weight:750;background:#f2f4ea;color:#0c2a1e;border-color:#f2f4ea;backdrop-filter:none}
-#programme-orientation #programme-source-choice button.secondary:hover{background:#cfdcd3;color:#0c2a1e}
+#programme-source-choice-title{margin:0 0 8px;font-size:20px;line-height:1.25;color:#f2f4ea}
+#programme-source-choice-action{margin-top:12px;padding:12px 0 8px;border-top:1px solid #8fe0b0}
+#programme-orientation #programme-source-switch-warning{font-size:14px;line-height:1.5}
+#programme-orientation #programme-source-choice .programme-source-confirm{display:block;width:100%;min-height:52px;margin:12px 0 0;padding:12px 16px;font-weight:750;line-height:1.35;white-space:normal;background:#9befbe;color:#081910;border:2px solid #9befbe;border-radius:10px;backdrop-filter:none}
+#programme-orientation #programme-source-choice .programme-source-confirm:hover{background:#c5f7d8;color:#081910;border-color:#c5f7d8}
 
 body.room-story:not(.room-host) #watch-stage{display:flex;flex-direction:column}
 body.room-story:not(.room-host) #programme-live-note{font-size:13px;color:#cfdcd3cc}
@@ -454,10 +457,13 @@ body.room-story.room-host .programme-orientation{color-scheme:dark;--pitch:#080e
   <p id="stream-sound-note" class="small">Sound applies to the whole stream, including available clip sound.</p>
   <div id="programme-orientation" class="programme-orientation" tabindex="-1" aria-label="Your place in the match">
     <p id="programme-state" class="programme-state" role="status">Waiting for live sound</p>
-    <div id="programme-source-choice" class="hidden notice">
+    <div id="programme-source-choice" class="hidden notice" role="region" aria-labelledby="programme-source-choice-title">
+      <h3 id="programme-source-choice-title">Shared sound options</h3>
       <p id="programme-source-choice-note" role="status"></p>
-      <p id="programme-source-switch-warning" class="small">Skips saved commentary you have not heard and starts a new listening position.</p>
-      <button id="programme-source-switch" type="button" class="secondary" aria-describedby="programme-source-choice-note programme-source-switch-warning">Follow current shared sound</button>
+      <div id="programme-source-choice-action">
+        <p id="programme-source-switch-warning" class="small">Skips saved commentary you have not heard and starts a new listening position.</p>
+        <button id="programme-source-switch" type="button" class="programme-source-confirm" aria-describedby="programme-source-choice-note programme-source-switch-warning">Follow current shared sound</button>
+      </div>
     </div>
     <p id="programme-position" class="small">Programme position unknown. Match minutes are supplied by the sharer when known.</p>
     <p id="programme-score-age" class="small" hidden></p>
@@ -491,7 +497,7 @@ body.room-story.room-host .programme-orientation{color-scheme:dark;--pitch:#080e
 <p id="private-sharing-disclaimer">Same End is intended to let a pre-existing, limited circle of family, friends and fellow supporters share a live screen as part of a private social conversation. Their connection exists beyond the particular programme or match, through personal relationships, shared club history, friendship or fraternity. The justification is that technology can extend an ordinary shared experience across distance while preserving the social character of the group. The session has no public audience; genuine, proportionate extracts used for discussion may also qualify for fair dealing, depending on their purpose, context and the rights attached to the source.</p>
 <p id="service-ownership">This service live screen sharing is owned and provided by Unsigned Media Ltd</p>
 </footer>
-<script src="/app-0e767eb3d65aa51f.js"></script>
+<script src="/app-bce8b042ff68149e.js"></script>
 </body>
 </html>
 
