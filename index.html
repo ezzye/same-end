@@ -134,6 +134,7 @@ body.room-story:not(.room-host) #clips-panel{background:transparent;padding:0}
 #stream-primary-controls{position:fixed;right:max(8px,env(safe-area-inset-right));bottom:max(var(--stream-controls-bottom,8px),env(safe-area-inset-bottom));z-index:6;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;width:max-content;max-width:calc(100vw - 16px);padding:6px;background:var(--dugout);border:1px solid var(--touchline);border-radius:10px;box-shadow:0 4px 18px #0008}
 #stream-primary-controls[data-flow="true"]{position:static;box-shadow:none}
 #stream-primary-controls button{margin:0}
+#stream-primary-controls #stream-sound-choice-jump{flex-basis:100%;min-height:48px;background:var(--signal);color:var(--pitch);border-color:var(--signal);font-weight:700;white-space:normal}
 body:has(#room-composer :is(input:focus,textarea:focus,[contenteditable="true"]:focus)) #stream-primary-controls{visibility:hidden}
 @media(max-height:320px){#stream-primary-controls{position:static;box-shadow:none}}
 .stream-toolbar button{margin:0}
@@ -441,6 +442,7 @@ body.room-story.room-host .programme-orientation{color-scheme:dark;--pitch:#080e
 <button id="cancel-action" class="secondary hidden">Cancel pending action</button><p id="message" class="notice hidden" aria-live="polite"></p><section id="session-panel" class="hidden"><div id="room-main" class="room-main"><div id="watch-stage" class="watch-stage hidden">
   <label class="compat-control" for="watch-mode">Viewing mode <select id="watch-mode"><option value="highlights" selected>Auto highlights</option></select></label>
   <div id="stream-primary-controls" class="actions" role="group" aria-label="Stream controls">
+    <button id="stream-sound-choice-jump" class="hidden" type="button" aria-controls="programme-source-choice">Sound needs attention — Show choices</button>
     <button id="watch-start" type="button">Start stream</button>
     <button id="watch-stop" class="secondary" type="button">Pause stream</button>
     <button id="stream-sound" class="secondary" type="button" aria-pressed="false">Enable sound</button>
@@ -489,7 +491,7 @@ body.room-story.room-host .programme-orientation{color-scheme:dark;--pitch:#080e
 <p id="private-sharing-disclaimer">Same End is intended to let a pre-existing, limited circle of family, friends and fellow supporters share a live screen as part of a private social conversation. Their connection exists beyond the particular programme or match, through personal relationships, shared club history, friendship or fraternity. The justification is that technology can extend an ordinary shared experience across distance while preserving the social character of the group. The session has no public audience; genuine, proportionate extracts used for discussion may also qualify for fair dealing, depending on their purpose, context and the rights attached to the source.</p>
 <p id="service-ownership">This service live screen sharing is owned and provided by Unsigned Media Ltd</p>
 </footer>
-<script src="/app-490194041be36927.js"></script>
+<script src="/app-3ab12164eb112f39.js"></script>
 </body>
 </html>
 
