@@ -338,7 +338,7 @@ body.room-story:not(.room-host) #programme-orientation button.secondary:hover{ba
 /* Recovery is a solid panel: photo-overlay text styles must not wash it out. */
 #programme-orientation #programme-source-choice{background:#133d2c;color:#f2f4ea;border:1px solid #8fe0b0;text-shadow:none}
 #programme-orientation #programme-source-choice p{color:#f2f4ea;text-shadow:none}
-#programme-orientation #programme-source-choice button.secondary{background:#f2f4ea;color:#0c2a1e;border-color:#f2f4ea;backdrop-filter:none}
+#programme-orientation #programme-source-choice button.secondary{display:block;width:100%;min-height:48px;margin:12px 0;font-weight:750;background:#f2f4ea;color:#0c2a1e;border-color:#f2f4ea;backdrop-filter:none}
 #programme-orientation #programme-source-choice button.secondary:hover{background:#cfdcd3;color:#0c2a1e}
 
 body.room-story:not(.room-host) #watch-stage{display:flex;flex-direction:column}
@@ -454,8 +454,8 @@ body.room-story.room-host .programme-orientation{color-scheme:dark;--pitch:#080e
     <p id="programme-state" class="programme-state" role="status">Waiting for live sound</p>
     <div id="programme-source-choice" class="hidden notice">
       <p id="programme-source-choice-note" role="status"></p>
-      <p class="small">Switching discards commentary saved on this device that you have not heard. It starts a new listening position. Earlier cards stay in the room.</p>
-      <button id="programme-source-switch" type="button" class="secondary">Follow current shared sound</button>
+      <p id="programme-source-switch-warning" class="small">Skips saved commentary you have not heard and starts a new listening position.</p>
+      <button id="programme-source-switch" type="button" class="secondary" aria-describedby="programme-source-choice-note programme-source-switch-warning">Follow current shared sound</button>
     </div>
     <p id="programme-position" class="small">Programme position unknown. Match minutes are supplied by the sharer when known.</p>
     <p id="programme-score-age" class="small" hidden></p>
