@@ -476,6 +476,8 @@ body.room-story #room-privacy,body.room-story #swarm{margin:2px 0}
 #room-timeline[data-social-feed="true"] .story-card button[data-action="reply"],#room-timeline[data-social-feed="true"] .story-card button[data-action^="share-"]{min-height:44px;margin:0 8px 0 0;padding:0 8px;border-color:transparent;background:transparent;color:var(--soft)}
 #room-timeline[data-social-feed="true"] [data-entry-type="clip"] .card-body{display:block}
 #room-timeline[data-social-feed="true"] .card-body>button[data-action="play"],#room-timeline[data-social-feed="true"] .card-body>button[data-action="listen"],#room-timeline[data-social-feed="true"] .card-body>button[data-action="picture"]{margin:0 8px 0 0}
+/* Keep the adjacent audio action in place when Get video becomes Play video. */
+#room-timeline[data-social-feed="true"] .card-body>button:is([data-action="get"],[data-action="play"]){inline-size:min(100%,9.5rem);min-height:44px;margin:0 8px 0 0;vertical-align:middle}
 @media(min-width:1100px){
  body.room-story #session-panel,body.room-host #session-panel{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,340px);gap:24px}
  body.room-story .room-main,body.room-host .room-main{grid-column:1;grid-row:1}
@@ -633,7 +635,7 @@ body.room-story #room-rail,body.room-story #host-panel,body.room-story #viewer-p
 <p id="private-sharing-disclaimer">Only share content you are entitled to share. Media travels between room participants; if enabled, transcript text may be sent to DeepSeek for AI features. Audio, video, images and member chat are not sent to DeepSeek.</p>
 </details><p id="service-ownership">Same End is owned and provided by Unsigned Media Ltd.</p>
 </footer>
-<script src="/app-120d041387514dae.js"></script>
+<script src="/app-c8589ca47850de69.js"></script>
 </body>
 </html>
 
