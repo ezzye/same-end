@@ -3,22 +3,22 @@
   "domain": "www.sameend.com",
   "controlOrigin": "https://n2dyzit6e56ajocyqghad2qsbq0jfooh.lambda-url.eu-west-1.on.aws",
   "aiOrigin": "https://dldvwd3ue2of4k7qczwzuegqwe0ekock.lambda-url.eu-west-1.on.aws",
-  "appPath": "/app-30e9650e12c7eea2.js",
+  "appPath": "/app-15bbb1d9fe6af353.js",
   "assets": [
     {
       "path": "/index.html",
-      "bytes": 95361,
-      "sha256": "ac1cf2ad48cb6115e022fa29a666824d41fd17d5cf4f2597f53b41cd22691edf"
+      "bytes": 106449,
+      "sha256": "1e07c49d418943379d3e4e70aef65df8a7ff8ddd21a49eebab6ee46ac2c26d5a"
     },
     {
-      "path": "/app-30e9650e12c7eea2.js",
-      "bytes": 3441744,
-      "sha256": "30e9650e12c7eea2700f83d50a2774885c9b600ea57e217477b56954106e7176"
+      "path": "/app-15bbb1d9fe6af353.js",
+      "bytes": 3424768,
+      "sha256": "15bbb1d9fe6af353fc753a283c9356e73f8d52c63a51d241c7d28353b8d1f06f"
     },
     {
-      "path": "/rendition/small-video-ffec675f0597b258.js",
-      "bytes": 1069643,
-      "sha256": "ffec675f0597b2586977aad48859777290a00cf54ac81c1ae44ee968a9cce7c3"
+      "path": "/rendition/small-video-0b9baa463d91e21d.js",
+      "bytes": 1066279,
+      "sha256": "0b9baa463d91e21d6a3df975da3399466b8439561fce4d326c5f0b932f4570aa"
     },
     {
       "path": "/fonts/atkinson-hyperlegible-latin-400-normal.woff2",
@@ -44,6 +44,16 @@
       "path": "/fonts/barlow-condensed-latin-800-normal.woff2",
       "bytes": 22464,
       "sha256": "2515494e8cc2ca07c86ea78766cfa104b796aa6ed5d66821c01d51dbb0b52bce"
+    },
+    {
+      "path": "/photos/listening-room-1600.webp",
+      "bytes": 45894,
+      "sha256": "b11b4ce166e1fa73ab5a33a9739a7e4dc67666f98073754ba30181fd350f5f0e"
+    },
+    {
+      "path": "/photos/listening-room-960.webp",
+      "bytes": 12016,
+      "sha256": "a095e376f5c3282e7169a7213a181cc0f89dedbe64b0b84616b245ad689fc805"
     },
     {
       "path": "/photos/behind-the-crowd-1600.webp",
