@@ -449,7 +449,7 @@ body.room-story #programme-orientation,body.room-story #stream-primary-controls,
 body.room-story #room-timeline[data-social-feed="true"] .card-media-active #clip-playback:not(:fullscreen){color-scheme:dark;--pitch:#0b151b;--dugout:#15242c;--touchline:#526671;--floodlight:#f2f4ea;--soft:#d3e0e5;--muted:#b7c9d0;--paper:#15242c;background:#15242c;color:#f2f4ea;border-color:#526671;border-radius:10px;padding:8px}
 body.room-story #room-timeline[data-social-feed="true"] .card-media-active #clip-playback:not(:fullscreen) .small{color:#d3e0e5}
 body.room-story #room-timeline[data-social-feed="true"] .card-media-active #clip-playback:not(:fullscreen) button.secondary{color:#f2f4ea;border-color:#788d98}
-body.room-story #room-timeline[data-social-feed="true"] .story-card:has(.card-media-active #clip-playback) .card-body>button[data-action="play"]{display:none}
+body.room-story #room-timeline[data-social-feed="true"] .story-card:has(.card-media-active:not([data-paused-preview]) #clip-playback) .card-body>button[data-action="play"]{display:none}
 body.room-story #room-timeline[data-social-feed="true"] #clip-playback:not(:fullscreen) #video-position-controls{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
 body.room-story #room-timeline[data-social-feed="true"] #clip-playback:not(:fullscreen) #video-position-controls label{flex-basis:100%;margin:2px 0;font-size:12px}
 body.room-story #room-timeline[data-social-feed="true"] #clip-playback:not(:fullscreen) #video-seek{flex:1;min-width:100px}
@@ -652,7 +652,7 @@ body.room-story #room-rail,body.room-story #host-panel,body.room-story #viewer-p
 <p id="catch-up-status" role="status"></p>
 <button id="catch-up-refresh" type="button" hidden>Show latest updates</button>
 </dialog>
-<script src="/app-c98d353431a01d17.js"></script>
+<script src="/app-702b99b190602e6d.js"></script>
 </body>
 </html>
 
