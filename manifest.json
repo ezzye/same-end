@@ -3,17 +3,17 @@
   "domain": "www.sameend.com",
   "controlOrigin": "https://n2dyzit6e56ajocyqghad2qsbq0jfooh.lambda-url.eu-west-1.on.aws",
   "aiOrigin": "https://dldvwd3ue2of4k7qczwzuegqwe0ekock.lambda-url.eu-west-1.on.aws",
-  "appPath": "/app-d1eaa48ff292057d.js",
+  "appPath": "/app-f43905cfb3f9c193.js",
   "assets": [
     {
       "path": "/index.html",
       "bytes": 108294,
-      "sha256": "0b6741f25d72a39067bcdecafd1ad7eb4e383c2b4a84f237aa18f3491bfd5819"
+      "sha256": "ed86d584ed9f7890c664fe517848cd9e2d73edc0fc20d1175f3fae2c2f1a056a"
     },
     {
-      "path": "/app-d1eaa48ff292057d.js",
-      "bytes": 3664246,
-      "sha256": "d1eaa48ff292057db091639a71e4e0cbc6081ccd0a3bc727fc1e9ed748274d54"
+      "path": "/app-f43905cfb3f9c193.js",
+      "bytes": 3667508,
+      "sha256": "f43905cfb3f9c193a1b25e000da396561a0d3d060ea60f6e40435f7860748d63"
     },
     {
       "path": "/rendition/small-video-b0f7b95c4f489869.js",
