@@ -204,6 +204,10 @@ body:has(#room-composer :is(input:focus,textarea:focus,[contenteditable="true"]:
 /* Transcript: a speech bubble, heard on the shared stream. */
 .story-card[data-entry-type="transcript"] .card-body{background:var(--dugout);border-radius:4px 14px 14px 14px;padding:10px 14px}
 .story-card[data-entry-type="transcript"] .transcript-excerpt p{font-style:italic;color:#e3eadf;margin:2px 0 6px}
+/* Source words an Editor post cites: an edge marker only. No opacity, size or spacing change, so the words stay as readable as any others and nothing moves. */
+.story-card[data-entry-type="transcript"][data-cited="true"] .card-body{box-shadow:inset 3px 0 0 var(--border)}
+.story-card[data-entry-type="transcript"] .transcript-excerpt strong::after{content:" · cited by an Editor post";visibility:hidden}
+.story-card[data-entry-type="transcript"] .transcript-excerpt[data-cited="true"] strong::after{visibility:visible}
 .story-card[data-entry-type="transcript"] .transcript-excerpt strong{font-family:var(--body);font-size:12px;font-weight:400;color:var(--muted)}
 .story-card[data-entry-type="transcript"] .card-header strong{font-size:12px;font-weight:400;color:var(--muted)}
 .story-card[data-entry-type="transcript"] .transcript-gap{color:var(--muted)}
@@ -664,7 +668,7 @@ body.room-story #room-rail,body.room-story #host-panel,body.room-story #viewer-p
 <p id="catch-up-status" role="status"></p>
 <button id="catch-up-refresh" type="button" hidden>Show latest updates</button>
 </dialog>
-<script src="/app-4d01d67f2e731268.js"></script>
+<script src="/app-5946842d72030ed2.js"></script>
 </body>
 </html>
 
