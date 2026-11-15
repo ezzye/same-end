@@ -3,17 +3,17 @@
   "domain": "www.sameend.com",
   "controlOrigin": "https://n2dyzit6e56ajocyqghad2qsbq0jfooh.lambda-url.eu-west-1.on.aws",
   "aiOrigin": "https://dldvwd3ue2of4k7qczwzuegqwe0ekock.lambda-url.eu-west-1.on.aws",
-  "appPath": "/app-1e94ea69796dd9a3.js",
+  "appPath": "/app-18e315674a913e4b.js",
   "assets": [
     {
       "path": "/index.html",
-      "bytes": 112381,
-      "sha256": "b098c70e17a3cc53c8bcdc76c6dca99df7f5b22c97eab20f7bf2689a7455455a"
+      "bytes": 113042,
+      "sha256": "24f2614eb19456573bc32ff66e44f5ee3c2ce3e3b2e20e72fe0239c271539697"
     },
     {
-      "path": "/app-1e94ea69796dd9a3.js",
-      "bytes": 3737659,
-      "sha256": "1e94ea69796dd9a365e6d50b4ede32b6a2906c0fbeba2f50182f93a88220eb49"
+      "path": "/app-18e315674a913e4b.js",
+      "bytes": 3749650,
+      "sha256": "18e315674a913e4b5904ea6502e50d77f974d889e7d8fc649a0ff7fab8dfbe4e"
     },
     {
       "path": "/rendition/small-video-701e3393dd17353d.js",
@@ -159,6 +159,36 @@
       "path": "/asr/NOTICE.txt",
       "bytes": 64016,
       "sha256": "1be3b275529b04f6a4c875073b40a87e7a10751b7ce2b5b26704d5e2798969e0"
+    },
+    {
+      "path": "/ocr/screen-reading-engine-v1.js",
+      "bytes": 2125,
+      "sha256": "013b4f21f4f0f395af2d6cebbc8fd0db3b0fc6e37c25c33792d1baefa9edb294"
+    },
+    {
+      "path": "/ocr/tesseract-worker-38645599.js",
+      "bytes": 111162,
+      "sha256": "38645599043239c0eb6db08a6504a92dcdc292200535f3e9339cd77c4443b842"
+    },
+    {
+      "path": "/ocr/core/tesseract-core-simd-lstm.wasm.js",
+      "bytes": 3954569,
+      "sha256": "9d7c43fb206dc9f48475228b46bf35f888fa9e6259da2e67d5a75c77049f2dc7"
+    },
+    {
+      "path": "/ocr/core/tesseract-core-lstm.wasm.js",
+      "bytes": 3954181,
+      "sha256": "775a35df6f2ae100e02609443e6bd5cafcd07983dd6175454ca4a432a7730687"
+    },
+    {
+      "path": "/ocr/lang/eng.traineddata.gz",
+      "bytes": 2952873,
+      "sha256": "45b4cb346724ac1774f1c36f42f182b887bcdb28ebe63e6fff90ac41f3fcff91"
+    },
+    {
+      "path": "/ocr/NOTICE.txt",
+      "bytes": 23221,
+      "sha256": "734c976deef10c5251c17244f2cb400534ce3d09b41e1f3fbf3892a2104b5843"
     }
   ]
 }
