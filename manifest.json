@@ -7,8 +7,8 @@
   "assets": [
     {
       "path": "/index.html",
-      "bytes": 111591,
-      "sha256": "d6129ad2c80f602676a427a8a47307aba17557230d2b7357365fe1b47905d798"
+      "bytes": 111674,
+      "sha256": "c89a6e901a1c593f51d12fa1727c4c38ab7c8e7870e507dcbb1208ad4140ca18"
     },
     {
       "path": "/app-fc14fbf997e3ea67.js",
@@ -84,6 +84,11 @@
       "path": "/photos/supporters-flags-960.webp",
       "bytes": 32858,
       "sha256": "45d96389299be8ae42ccfa61a141bcb9603cc6a2676420c655f398e390dbcea5"
+    },
+    {
+      "path": "/favicon.ico",
+      "bytes": 5250,
+      "sha256": "8fd003b469e0e3831132761ba4e4d221eae9a0cf235dfb01d43ecd7509f71fbe"
     },
     {
       "path": "/asr/same-end-asr-7aa36f392106.js",
