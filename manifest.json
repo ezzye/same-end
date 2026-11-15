@@ -7,8 +7,8 @@
   "assets": [
     {
       "path": "/index.html",
-      "bytes": 111674,
-      "sha256": "8b48ff91106be3a3e301313fc95ff8fcbf26dce7f075d93388a39a6f3748414d"
+      "bytes": 111691,
+      "sha256": "966acf8c294e1d2e82b1828f010a570bdac42038c68aa3e0699c330576a212c2"
     },
     {
       "path": "/app-994f3cb02df48a50.js",
@@ -87,6 +87,11 @@
     },
     {
       "path": "/favicon.ico",
+      "bytes": 5250,
+      "sha256": "8fd003b469e0e3831132761ba4e4d221eae9a0cf235dfb01d43ecd7509f71fbe"
+    },
+    {
+      "path": "/favicon-8fd003b469e0e383.ico",
       "bytes": 5250,
       "sha256": "8fd003b469e0e3831132761ba4e4d221eae9a0cf235dfb01d43ecd7509f71fbe"
     },
