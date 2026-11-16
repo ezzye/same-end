@@ -16,6 +16,11 @@
       "sha256": "55cb4f4f89b11bf8a2af69793eab875839594d44924376f3040d29314c234042"
     },
     {
+      "path": "/sw.js",
+      "bytes": 624,
+      "sha256": "981a37284c9ae241452f804f574d6f3fc0ac479f1d48a5dfb35a5eba44d19680"
+    },
+    {
       "path": "/rendition/small-video-701e3393dd17353d.js",
       "bytes": 1067568,
       "sha256": "701e3393dd17353d7dbd6339d52c67647a9441c54267c523b93f1daf4aa7b99f"
