@@ -3,17 +3,17 @@
   "domain": "www.sameend.com",
   "controlOrigin": "https://n2dyzit6e56ajocyqghad2qsbq0jfooh.lambda-url.eu-west-1.on.aws",
   "aiOrigin": "https://dldvwd3ue2of4k7qczwzuegqwe0ekock.lambda-url.eu-west-1.on.aws",
-  "appPath": "/app-974fb3d220f23f82.js",
+  "appPath": "/app-879ec64dcccd3128.js",
   "assets": [
     {
       "path": "/index.html",
       "bytes": 117084,
-      "sha256": "6afed5bca46188ad722431503fd09883d69b231abaf566d759d4bc4bb1233b07"
+      "sha256": "653cf140a8a01626b4020e5d2f0a360fbceaba1f2dd919486d74ddf430943918"
     },
     {
-      "path": "/app-974fb3d220f23f82.js",
-      "bytes": 3982359,
-      "sha256": "974fb3d220f23f82ed013c546fd44f856a5249530843996e4e7889b5e91e61cb"
+      "path": "/app-879ec64dcccd3128.js",
+      "bytes": 3998960,
+      "sha256": "879ec64dcccd3128d157e82f577baf4393530d258215ff8bbd9ff13d34fbee3c"
     },
     {
       "path": "/sw.js",
@@ -21,9 +21,9 @@
       "sha256": "981a37284c9ae241452f804f574d6f3fc0ac479f1d48a5dfb35a5eba44d19680"
     },
     {
-      "path": "/rendition/small-video-701e3393dd17353d.js",
-      "bytes": 1067568,
-      "sha256": "701e3393dd17353d7dbd6339d52c67647a9441c54267c523b93f1daf4aa7b99f"
+      "path": "/rendition/small-video-58f177a3c929524a.js",
+      "bytes": 1074544,
+      "sha256": "58f177a3c929524a01227c07ad149f65e8948e053f9512ebd60c3ea136971d43"
     },
     {
       "path": "/fonts/atkinson-hyperlegible-latin-400-normal.woff2",
