@@ -3,17 +3,17 @@
   "domain": "www.sameend.com",
   "controlOrigin": "https://n2dyzit6e56ajocyqghad2qsbq0jfooh.lambda-url.eu-west-1.on.aws",
   "aiOrigin": "https://dldvwd3ue2of4k7qczwzuegqwe0ekock.lambda-url.eu-west-1.on.aws",
-  "appPath": "/app-879ec64dcccd3128.js",
+  "appPath": "/app-1e6a310a95ed2196.js",
   "assets": [
     {
       "path": "/index.html",
       "bytes": 117084,
-      "sha256": "653cf140a8a01626b4020e5d2f0a360fbceaba1f2dd919486d74ddf430943918"
+      "sha256": "b95e77c7c39e0745461552bfca930aa231a0dd42857fcc2f1c4f77eff4fb96a8"
     },
     {
-      "path": "/app-879ec64dcccd3128.js",
-      "bytes": 3998960,
-      "sha256": "879ec64dcccd3128d157e82f577baf4393530d258215ff8bbd9ff13d34fbee3c"
+      "path": "/app-1e6a310a95ed2196.js",
+      "bytes": 4022716,
+      "sha256": "1e6a310a95ed21960f58901f26e64de087af9a90d0f5df3d4899a9be72adb1bd"
     },
     {
       "path": "/sw.js",
@@ -167,8 +167,13 @@
     },
     {
       "path": "/ocr/screen-reading-engine-v1.js",
-      "bytes": 2125,
-      "sha256": "013b4f21f4f0f395af2d6cebbc8fd0db3b0fc6e37c25c33792d1baefa9edb294"
+      "bytes": 2577,
+      "sha256": "8b409a0f722a9ad4dc8578e3f970184eece04c0e19a2a4e3b115d8afae468416"
+    },
+    {
+      "path": "/ocr/screen-reading-engine-v2.js",
+      "bytes": 2577,
+      "sha256": "8b409a0f722a9ad4dc8578e3f970184eece04c0e19a2a4e3b115d8afae468416"
     },
     {
       "path": "/ocr/tesseract-worker-38645599.js",
