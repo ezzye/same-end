@@ -552,8 +552,8 @@ body.room-story #room-rail,body.room-story #host-panel,body.room-story #viewer-p
 
 .se-room-actions{display:flex;align-items:start;gap:4px;flex-wrap:wrap}.se-room-actions #unified-leave{margin:2px}.hero-actions .se-chat-start{width:auto;min-height:44px;color:white;background:transparent;border:0;text-decoration:underline;text-underline-offset:4px;padding:0 4px;margin:0}.se-setup{margin:0}.se-setup label{font-size:14px}.se-setup input[type=checkbox]{width:18px}.se-entry-note{color:#fff;background:#21191d;padding:6px 9px;border-radius:5px;flex-basis:100%;margin:3px 0;font-size:14px}.se-room-actions #unified-invite-status:not(:empty){max-width:32ch}
 @media(min-width:920px){body.room-story #room-feed .composer{position:sticky;top:calc(var(--composer-sticky-top,0px) + 12px);z-index:2}}
-/* On a phone the message box stays in reach while the feed scrolls (ADR-071): one compact row; the name field opens beneath it while writing. */
-@media(max-width:919px){body.room-story #room-feed .composer{position:sticky;top:calc(var(--composer-sticky-top,0px) + env(safe-area-inset-top,0px));z-index:7;background:var(--pitch);padding:8px 0}body.room-story #room-feed .composer .se-compose-title{display:none}body.room-story #room-feed .composer .composer-name{order:3;grid-column:1/-1}body.room-story #room-feed .composer:not(:focus-within) .composer-name{display:none}}
+/* Keep the optional name below the sticky message box on phones (ADR-071). Both rows stay in flow so a tap on the feed keeps its target when editing ends. */
+@media(max-width:919px){body.room-story #room-feed .composer{position:sticky;top:calc(var(--composer-sticky-top,0px) + env(safe-area-inset-top,0px));z-index:7;background:var(--pitch);padding:8px 0}body.room-story #room-feed .composer .se-compose-title{display:none}body.room-story #room-feed .composer .composer-name{order:3;grid-column:1/-1}}
 @media(max-width:720px){.se-room-actions button{font-size:14px;min-height:42px;padding:0 12px}.se-setup{margin-top:4px}.se-start-row:has(.se-setup[open]){flex-direction:column}}
 
 #catch-up-dialog{color:var(--floodlight);background:var(--dugout);border:1px solid var(--touchline);border-radius:14px;width:min(33rem,calc(100% - 2rem));max-height:80vh;max-height:80dvh;padding:1rem 1.25rem;overflow:auto;overscroll-behavior:contain}
@@ -692,7 +692,7 @@ body.room-story #room-rail,body.room-story #host-panel,body.room-story #viewer-p
 <div class="catch-up-notice"><p id="catch-up-status" role="status"></p>
 <button id="catch-up-refresh" type="button" hidden>Show latest updates</button></div>
 </dialog>
-<script src="/app-243305e9bb5f12ca.js"></script>
+<script src="/app-6191d4ca5c8f9a70.js"></script>
 </body>
 </html>
 
