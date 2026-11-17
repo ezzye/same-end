@@ -565,6 +565,9 @@ body.room-story #room-rail,body.room-story #host-panel,body.room-story #viewer-p
 #catch-up-posts p{margin:.3rem 0}
 #catch-up-posts button{border:0;padding:0 .25rem;color:var(--signal);background:transparent;text-decoration:underline}
 #catch-up-status:empty{display:none}
+.catch-up-notice{position:sticky;bottom:0;z-index:1;background:var(--dugout);padding:.25rem 0;box-shadow:0 -6px 10px var(--dugout)}
+.catch-up-notice:has(#catch-up-status:empty):has(#catch-up-refresh[hidden]){display:none}
+#catch-up-dialog{scroll-padding-bottom:8rem}
 </style>
 </head>
 <body>
@@ -686,10 +689,10 @@ body.room-story #room-rail,body.room-story #host-panel,body.room-story #viewer-p
 <div class="catch-up-heading"><h2 id="catch-up-title">Catch up</h2><button id="catch-up-close" class="secondary" type="button" autofocus>Close</button></div>
 <p class="small" id="catch-up-coverage"></p>
 <ol id="catch-up-posts"></ol>
-<p id="catch-up-status" role="status"></p>
-<button id="catch-up-refresh" type="button" hidden>Show latest updates</button>
+<div class="catch-up-notice"><p id="catch-up-status" role="status"></p>
+<button id="catch-up-refresh" type="button" hidden>Show latest updates</button></div>
 </dialog>
-<script src="/app-cba87341a5616674.js"></script>
+<script src="/app-3404008d9b125464.js"></script>
 </body>
 </html>
 
