@@ -3,18 +3,18 @@
   "domain": "www.sameend.com",
   "controlOrigin": "https://n2dyzit6e56ajocyqghad2qsbq0jfooh.lambda-url.eu-west-1.on.aws",
   "aiOrigin": "https://dldvwd3ue2of4k7qczwzuegqwe0ekock.lambda-url.eu-west-1.on.aws",
-  "appPath": "/app-128f38ead4baa6de.js",
+  "appPath": "/app-7a0d3c67f0fda82c.js",
   "mediaLadderOrigin": "https://same-end-mk2-media-ladder-20261117-privatemedia-nptbg8s9qef6.s3.eu-west-1.amazonaws.com",
   "assets": [
     {
       "path": "/index.html",
-      "bytes": 119251,
-      "sha256": "ed6254efecd85a473595e58551c2af26eb90d99b1d47049cf650f66696556cd5"
+      "bytes": 119432,
+      "sha256": "21005d50ef856946be3c92c7423d8c37e28f75b887ab5e45fa1325fa136d8b04"
     },
     {
-      "path": "/app-128f38ead4baa6de.js",
-      "bytes": 4201545,
-      "sha256": "128f38ead4baa6debfcabf4eaa5806f111caaccd161050dd7bc2d36b8e8013ae"
+      "path": "/app-7a0d3c67f0fda82c.js",
+      "bytes": 4271153,
+      "sha256": "7a0d3c67f0fda82ca798017264f40f9927b7f51e475255d25eb95cd6a5c4999e"
     },
     {
       "path": "/sw.js",
@@ -102,6 +102,16 @@
       "sha256": "8fd003b469e0e3831132761ba4e4d221eae9a0cf235dfb01d43ecd7509f71fbe"
     },
     {
+      "path": "/asr/same-end-asr-9331b0cd503a.js",
+      "bytes": 11668,
+      "sha256": "9331b0cd503a8f36c6bb962ad2b373793dc42f7e7e91cd3f2c1c68bcb0a00432"
+    },
+    {
+      "path": "/asr/same-end-asr-7380023d6c17.wasm",
+      "bytes": 1228122,
+      "sha256": "7380023d6c177b663be26c7e497610499b87814926c9977de581597f58d91bf9"
+    },
+    {
       "path": "/asr/same-end-asr-7aa36f392106.js",
       "bytes": 11614,
       "sha256": "7aa36f392106d2902734321aa09636379c8d50840385e3bf1c6684abe5c8f5f2"
@@ -110,6 +120,11 @@
       "path": "/asr/same-end-asr-f6b7434fe7ba.wasm",
       "bytes": 1228142,
       "sha256": "f6b7434fe7bade5ed76d5604bda3b8f1b804d92bf6857c70eebe8a2b51252f0f"
+    },
+    {
+      "path": "/asr/transcription-worker-v2.js",
+      "bytes": 11931,
+      "sha256": "1b73be775f24a2577b77f9ef91ee1d77840e75951363d18c1bb346fe27c1f0f6"
     },
     {
       "path": "/asr/transcription-worker-v1.js",
