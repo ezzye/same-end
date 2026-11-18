@@ -359,6 +359,8 @@ body.room-story:not(.room-host) #programme-orientation button.secondary:hover{ba
 #programme-orientation #programme-source-choice .programme-source-confirm:hover{background:#c5f7d8;color:#081910;border-color:#c5f7d8}
 
 body.room-story:not(.room-host) #watch-stage{display:flex;flex-direction:column}
+/* A wrapped download status can become a one-line ready message above the feed. */
+@media(max-width:919px){body.room-story:not(.room-host) #stream-status{min-block-size:2lh}}
 body.room-story:not(.room-host) #programme-live-note{font-size:13px;color:#cfdcd3cc}
 /* Swarm strip: people in the room and direct links, popping in as they connect. */
 .swarm{display:flex;align-items:center;gap:10px;margin:-4px 0 10px;font-size:14px;color:var(--soft)}
@@ -465,7 +467,7 @@ body.room-story #programme-orientation,body.room-story #stream-primary-controls,
 body.room-story #room-timeline[data-social-feed="true"] .card-media-active #clip-playback:not(:fullscreen){color-scheme:dark;--pitch:#0b151b;--dugout:#15242c;--touchline:#526671;--floodlight:#f2f4ea;--soft:#d3e0e5;--muted:#b7c9d0;--paper:#15242c;background:#15242c;color:#f2f4ea;border-color:#526671;border-radius:10px;padding:8px}
 body.room-story #room-timeline[data-social-feed="true"] .card-media-active #clip-playback:not(:fullscreen) .small{color:#d3e0e5}
 body.room-story #room-timeline[data-social-feed="true"] .card-media-active #clip-playback:not(:fullscreen) button.secondary{color:#f2f4ea;border-color:#788d98}
-body.room-story #room-timeline[data-social-feed="true"] .story-card:has(.card-media-active:not([data-paused-preview]) #clip-playback) .card-body>button[data-action="play"]{display:none}
+body.room-story #room-timeline[data-social-feed="true"] .story-card:has(.card-media-active:not([data-paused-preview]) #clip-playback) .video-actions>button[data-action="play"]{display:none}
 body.room-story #room-timeline[data-social-feed="true"] #clip-playback:not(:fullscreen) #video-position-controls{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
 body.room-story #room-timeline[data-social-feed="true"] #clip-playback:not(:fullscreen) #video-position-controls label{flex-basis:100%;margin:2px 0;font-size:12px}
 body.room-story #room-timeline[data-social-feed="true"] #clip-playback:not(:fullscreen) #video-seek{flex:1;min-width:100px}
@@ -491,9 +493,14 @@ body.room-story #room-privacy,body.room-story #swarm{margin:2px 0}
 #room-timeline[data-social-feed="true"] .inline-replies textarea{min-height:60px;color:var(--floodlight);background:var(--dugout);border:1px solid var(--touchline);border-radius:6px;padding:8px;font:inherit}
 #room-timeline[data-social-feed="true"] .story-card button[data-action="reply"],#room-timeline[data-social-feed="true"] .story-card button[data-action^="share-"]{min-height:44px;margin:0 8px 0 0;padding:0 8px;border-color:transparent;background:transparent;color:var(--soft)}
 #room-timeline[data-social-feed="true"] [data-entry-type="clip"] .card-body{display:block}
-#room-timeline[data-social-feed="true"] .card-body>button[data-action="play"],#room-timeline[data-social-feed="true"] .card-body>button[data-action="listen"],#room-timeline[data-social-feed="true"] .card-body>button[data-action="picture"]{margin:0 8px 0 0}
-/* Keep the adjacent audio action in place when Get video becomes Play video. */
-#room-timeline[data-social-feed="true"] .card-body>button:is([data-action="get"],[data-action="play"]){inline-size:min(100%,9.5rem);min-height:44px;margin:0 8px 0 0;vertical-align:middle}
+#room-timeline[data-social-feed="true"] .card-body>button[data-action="listen"],#room-timeline[data-social-feed="true"] .card-body>button[data-action="picture"]{margin:0 8px 0 0}
+/* Preparing a video and starting it have separate tap targets, including on narrow screens. */
+#room-timeline .video-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;inline-size:min(100%,19.5rem)}
+#room-timeline .video-actions>button{inline-size:100%;min-inline-size:0;min-height:44px;margin:0;overflow-wrap:anywhere}
+#room-timeline .video-actions>[data-action="get"]{grid-column:1;grid-row:1}
+#room-timeline .video-actions>[data-action="play"]{grid-column:2;grid-row:1}
+/* An invisible Get still sizes its slot for the last label, including a wrapped retry. */
+#room-timeline .video-actions:not([hidden])>[data-action="get"][hidden]{display:block!important;visibility:hidden;pointer-events:none}
 @media(min-width:1100px){
  body.room-story #session-panel,body.room-host #session-panel{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,340px);gap:24px}
  body.room-story .room-main,body.room-host .room-main{grid-column:1;grid-row:1}
@@ -694,7 +701,7 @@ body.room-story #room-rail,body.room-story #host-panel,body.room-story #viewer-p
 <div class="catch-up-notice"><p id="catch-up-status" role="status"></p>
 <button id="catch-up-refresh" type="button" hidden>Show latest updates</button></div>
 </dialog>
-<script src="/app-b0f258fbe7c5885d.js"></script>
+<script src="/app-0bc751f2c341d307.js"></script>
 </body>
 </html>
 
