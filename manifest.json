@@ -3,18 +3,18 @@
   "domain": "www.sameend.com",
   "controlOrigin": "https://n2dyzit6e56ajocyqghad2qsbq0jfooh.lambda-url.eu-west-1.on.aws",
   "aiOrigin": "https://dldvwd3ue2of4k7qczwzuegqwe0ekock.lambda-url.eu-west-1.on.aws",
-  "appPath": "/app-373f22f9dce5354e.js",
+  "appPath": "/app-5d621b0970f3a615.js",
   "mediaLadderOrigin": "https://same-end-mk2-media-ladder-20261117-privatemedia-nptbg8s9qef6.s3.eu-west-1.amazonaws.com",
   "assets": [
     {
       "path": "/index.html",
       "bytes": 119488,
-      "sha256": "6be0af0566850248bbc88d4c3cb6f8ee74bbfc2fde74a25ab0208fe568365db8"
+      "sha256": "f2344683956d0c9718a126f469c6ea7a391cfb3c0aab5143daf8f410d9208176"
     },
     {
-      "path": "/app-373f22f9dce5354e.js",
-      "bytes": 4270031,
-      "sha256": "373f22f9dce5354e936538e1bfbd5c63ffc7491174af01e9f5c49fd71d98433b"
+      "path": "/app-5d621b0970f3a615.js",
+      "bytes": 4276637,
+      "sha256": "5d621b0970f3a615f8c326d5f1ec1a5aa7ed4d7db60c60ddf9b6fc19479cef2d"
     },
     {
       "path": "/sw.js",
