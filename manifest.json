@@ -3,19 +3,19 @@
   "domain": "www.sameend.com",
   "controlOrigin": "https://n2dyzit6e56ajocyqghad2qsbq0jfooh.lambda-url.eu-west-1.on.aws",
   "aiOrigin": "https://dldvwd3ue2of4k7qczwzuegqwe0ekock.lambda-url.eu-west-1.on.aws",
-  "appPath": "/app-580a94b399e581e4.js",
-  "sourceCommit": "3bb9cd80c6b0a690fde34dabec9ca6af63d6f486",
+  "appPath": "/app-07c7fe5e877f8ea9.js",
+  "sourceCommit": "705f787d10b6945439b78f44c09092379bfdbc03",
   "mediaLadderOrigin": "https://same-end-mk2-media-ladder-20261117-privatemedia-nptbg8s9qef6.s3.eu-west-1.amazonaws.com",
   "assets": [
     {
       "path": "/index.html",
       "bytes": 117611,
-      "sha256": "c9f843a94e278e790c3099506b73a4af8df10b2a610b795f6258a0470642e9a0"
+      "sha256": "723e07b2698e109cfd2ad5955c34c28453849f297506d36977b053fde82e2c52"
     },
     {
-      "path": "/app-580a94b399e581e4.js",
-      "bytes": 4254234,
-      "sha256": "580a94b399e581e472d36d8fe68172f4eca17beac3c6bc44741592dd167e4316"
+      "path": "/app-07c7fe5e877f8ea9.js",
+      "bytes": 4246829,
+      "sha256": "07c7fe5e877f8ea9a678a2e3a8f5ed323f71aa50364704e8835675f41563855e"
     },
     {
       "path": "/sw.js",
