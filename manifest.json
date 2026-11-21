@@ -4,13 +4,13 @@
   "controlOrigin": "https://n2dyzit6e56ajocyqghad2qsbq0jfooh.lambda-url.eu-west-1.on.aws",
   "aiOrigin": "https://dldvwd3ue2of4k7qczwzuegqwe0ekock.lambda-url.eu-west-1.on.aws",
   "appPath": "/app-e1713d0a79ad3594.js",
-  "sourceCommit": "7066258d4743bc81b58c39e1fb1405b51e631853",
+  "sourceCommit": "708ce041d8a8ce66ce393a95eb575f3e1b03ba37",
   "mediaLadderOrigin": "https://same-end-mk2-media-ladder-20261117-privatemedia-nptbg8s9qef6.s3.eu-west-1.amazonaws.com",
   "assets": [
     {
       "path": "/index.html",
-      "bytes": 121229,
-      "sha256": "97ca6166bc848dfb838ed838d5eb101c9f9e9401cd411c820ac2ad1cbd220f56"
+      "bytes": 121267,
+      "sha256": "93f33cd7e84595624f35cfb089e0e70499ae0c8590050fb45ebf5bdeff2e2d96"
     },
     {
       "path": "/app-e1713d0a79ad3594.js",
