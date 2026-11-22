@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-11-21",
-  "fetchedAt": "2026-11-21T12:35:41.142Z",
-  "dataHash": "8112f186eec6afddeea6893b9b9ba9895eb8cae3ddd6a94a9734f32f2ca98b6e",
+  "checkedAt": "2026-11-22",
+  "fetchedAt": "2026-11-22T12:32:52.354Z",
+  "dataHash": "2259f2bcce16fe3ae23a0bd4bbfa21bfd06d8e4bce229bcba2aae7dc2cb7059b",
   "timezone": "UTC",
   "provider": "TheSportsDB",
   "providerApi": "v1",
@@ -87,186 +87,6 @@
       "status": "scheduled"
     },
     {
-      "id": "thesportsdb-2494109",
-      "provider": "TheSportsDB",
-      "providerEventId": "2494109",
-      "providerTeamIds": [
-        "133625",
-        "133632"
-      ],
-      "home": "Coventry City",
-      "away": "Crystal Palace",
-      "title": "Coventry City v Crystal Palace",
-      "competition": "English Premier League",
-      "startsAt": 1795273200000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2494109",
-      "checkedAt": "2026-11-21",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "India",
-          "channel": "Disney+ Hotstar",
-          "providerChannelId": "582"
-        },
-        {
-          "country": "Romania",
-          "channel": "VOYO",
-          "providerChannelId": "5405"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
-      "id": "thesportsdb-2494103",
-      "provider": "TheSportsDB",
-      "providerEventId": "2494103",
-      "providerTeamIds": [
-        "133616",
-        "133622"
-      ],
-      "home": "Tottenham Hotspur",
-      "away": "Ipswich Town",
-      "title": "Tottenham Hotspur v Ipswich Town",
-      "competition": "English Premier League",
-      "startsAt": 1795273200000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2494103",
-      "checkedAt": "2026-11-21",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "India",
-          "channel": "Disney+ Hotstar",
-          "providerChannelId": "582"
-        },
-        {
-          "country": "Iceland",
-          "channel": "Stöð 2 Sport 3 IS",
-          "providerChannelId": "7943"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
-      "id": "thesportsdb-2494108",
-      "provider": "TheSportsDB",
-      "providerEventId": "2494108",
-      "providerTeamIds": [
-        "133601",
-        "133603"
-      ],
-      "home": "Aston Villa",
-      "away": "Sunderland",
-      "title": "Aston Villa v Sunderland",
-      "competition": "English Premier League",
-      "startsAt": 1795273200000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2494108",
-      "checkedAt": "2026-11-21",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "India",
-          "channel": "Disney+ Hotstar",
-          "providerChannelId": "582"
-        },
-        {
-          "country": "Iceland",
-          "channel": "Stöð 2 Sport 4 IS",
-          "providerChannelId": "7944"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
-      "id": "thesportsdb-2494101",
-      "provider": "TheSportsDB",
-      "providerEventId": "2494101",
-      "providerTeamIds": [
-        "134301",
-        "133720"
-      ],
-      "home": "Bournemouth",
-      "away": "Nottingham Forest",
-      "title": "Bournemouth v Nottingham Forest",
-      "competition": "English Premier League",
-      "startsAt": 1795273200000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2494101",
-      "checkedAt": "2026-11-21",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "India",
-          "channel": "Disney+ Hotstar",
-          "providerChannelId": "582"
-        },
-        {
-          "country": "Romania",
-          "channel": "VOYO",
-          "providerChannelId": "5405"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
-      "id": "thesportsdb-2494104",
-      "provider": "TheSportsDB",
-      "providerEventId": "2494104",
-      "providerTeamIds": [
-        "133610",
-        "133635"
-      ],
-      "home": "Chelsea",
-      "away": "Leeds United",
-      "title": "Chelsea v Leeds United",
-      "competition": "English Premier League",
-      "startsAt": 1795273200000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2494104",
-      "checkedAt": "2026-11-21",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "India",
-          "channel": "Disney+ Hotstar",
-          "providerChannelId": "582"
-        },
-        {
-          "country": "Iceland",
-          "channel": "Stöð 2 Sport 2 IS",
-          "providerChannelId": "7942"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
-      "id": "thesportsdb-2494100",
-      "provider": "TheSportsDB",
-      "providerEventId": "2494100",
-      "providerTeamIds": [
-        "134777",
-        "133604"
-      ],
-      "home": "Newcastle United",
-      "away": "Arsenal",
-      "title": "Newcastle United v Arsenal",
-      "competition": "English Premier League",
-      "startsAt": 1795282200000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2494100",
-      "checkedAt": "2026-11-21",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "India",
-          "channel": "Disney+ Hotstar",
-          "providerChannelId": "582"
-        },
-        {
-          "country": "Iceland",
-          "channel": "Stöð 2 Sport IS",
-          "providerChannelId": "7941"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
       "id": "thesportsdb-2494107",
       "provider": "TheSportsDB",
       "providerEventId": "2494107",
@@ -280,7 +100,7 @@
       "competition": "English Premier League",
       "startsAt": 1795356000000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494107",
-      "checkedAt": "2026-11-21",
+      "checkedAt": "2026-11-22",
       "status": "scheduled",
       "tv": [
         {
@@ -310,7 +130,7 @@
       "competition": "English Premier League",
       "startsAt": 1795365000000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494102",
-      "checkedAt": "2026-11-21",
+      "checkedAt": "2026-11-22",
       "status": "scheduled",
       "tv": [
         {
@@ -340,7 +160,7 @@
       "competition": "English Premier League",
       "startsAt": 1795464000000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494106",
-      "checkedAt": "2026-11-21",
+      "checkedAt": "2026-11-22",
       "status": "scheduled",
       "tv": [
         {
@@ -352,6 +172,361 @@
           "country": "Iceland",
           "channel": "Stöð 2 Sport IS",
           "providerChannelId": "7941"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2594655",
+      "provider": "TheSportsDB",
+      "providerEventId": "2594655",
+      "providerTeamIds": [
+        "133804",
+        "133601"
+      ],
+      "home": "Galatasaray",
+      "away": "Aston Villa",
+      "title": "Galatasaray v Aston Villa",
+      "competition": "UEFA Champions League",
+      "startsAt": 1795542300000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2594655",
+      "checkedAt": "2026-11-22",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "Brazil",
+          "channel": "HBO Max BR",
+          "providerChannelId": "3600"
+        },
+        {
+          "country": "United States",
+          "channel": "Paramount+ US",
+          "providerChannelId": "6001"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2594544",
+      "provider": "TheSportsDB",
+      "providerEventId": "2594544",
+      "providerTeamIds": [
+        "133604",
+        "133650"
+      ],
+      "home": "Arsenal",
+      "away": "Borussia Dortmund",
+      "title": "Arsenal v Borussia Dortmund",
+      "competition": "UEFA Champions League",
+      "startsAt": 1795550400000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2594544",
+      "checkedAt": "2026-11-22",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "Brazil",
+          "channel": "HBO Max BR",
+          "providerChannelId": "3600"
+        },
+        {
+          "country": "China",
+          "channel": "IQiyi CN",
+          "providerChannelId": "3799"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2594549",
+      "provider": "TheSportsDB",
+      "providerEventId": "2594549",
+      "providerTeamIds": [
+        "133613",
+        "133670"
+      ],
+      "home": "Manchester City",
+      "away": "Napoli",
+      "title": "Manchester City v Napoli",
+      "competition": "UEFA Champions League",
+      "startsAt": 1795550400000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2594549",
+      "checkedAt": "2026-11-22",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "United States",
+          "channel": "Paramount+ US",
+          "providerChannelId": "6001"
+        },
+        {
+          "country": "Brazil",
+          "channel": "HBO Max BR",
+          "providerChannelId": "3600"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2594876",
+      "provider": "TheSportsDB",
+      "providerEventId": "2594876",
+      "providerTeamIds": [
+        "133937",
+        "134301"
+      ],
+      "home": "Celta Vigo",
+      "away": "Bournemouth",
+      "title": "Celta Vigo v Bournemouth",
+      "competition": "UEFA Europa League",
+      "startsAt": 1795715100000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2594876",
+      "checkedAt": "2026-11-22",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "United States",
+          "channel": "Paramount+ US",
+          "providerChannelId": "6001"
+        },
+        {
+          "country": "France",
+          "channel": "MultiSports 5 FR",
+          "providerChannelId": "3193"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2594818",
+      "provider": "TheSportsDB",
+      "providerEventId": "2594818",
+      "providerTeamIds": [
+        "133632",
+        "133724"
+      ],
+      "home": "Crystal Palace",
+      "away": "Real Sociedad",
+      "title": "Crystal Palace v Real Sociedad",
+      "competition": "UEFA Europa League",
+      "startsAt": 1795723200000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2594818",
+      "checkedAt": "2026-11-22",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "United States",
+          "channel": "Paramount+ US",
+          "providerChannelId": "6001"
+        },
+        {
+          "country": "Spain",
+          "channel": "Movistar Liga de Campeones 1",
+          "providerChannelId": "8672"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2594929",
+      "provider": "TheSportsDB",
+      "providerEventId": "2594929",
+      "providerTeamIds": [
+        "133603",
+        "135297"
+      ],
+      "home": "Sunderland",
+      "away": "Jagiellonia Białystok",
+      "title": "Sunderland v Jagiellonia Białystok",
+      "competition": "UEFA Europa League",
+      "startsAt": 1795723200000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2594929",
+      "checkedAt": "2026-11-22",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "United States",
+          "channel": "Paramount+ US",
+          "providerChannelId": "6001"
+        },
+        {
+          "country": "Switzerland",
+          "channel": "Blue Sport 6 CH",
+          "providerChannelId": "412"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2494118",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494118",
+      "providerTeamIds": [
+        "133720",
+        "133610"
+      ],
+      "home": "Nottingham Forest",
+      "away": "Chelsea",
+      "title": "Nottingham Forest v Chelsea",
+      "competition": "English Premier League",
+      "startsAt": 1795809600000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494118",
+      "checkedAt": "2026-11-22",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        },
+        {
+          "country": "United Kingdom",
+          "channel": "Sky Sports Premier League",
+          "providerChannelId": "8647"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2494117",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494117",
+      "providerTeamIds": [
+        "133635",
+        "133625"
+      ],
+      "home": "Leeds United",
+      "away": "Coventry City",
+      "title": "Leeds United v Coventry City",
+      "competition": "English Premier League",
+      "startsAt": 1795878000000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494117",
+      "checkedAt": "2026-11-22",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        },
+        {
+          "country": "Iceland",
+          "channel": "Stöð 2 Sport 3 IS",
+          "providerChannelId": "7943"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2494116",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494116",
+      "providerTeamIds": [
+        "133622",
+        "133601"
+      ],
+      "home": "Ipswich Town",
+      "away": "Aston Villa",
+      "title": "Ipswich Town v Aston Villa",
+      "competition": "English Premier League",
+      "startsAt": 1795887000000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494116",
+      "checkedAt": "2026-11-22",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        },
+        {
+          "country": "Iceland",
+          "channel": "Stöð 2 Sport IS",
+          "providerChannelId": "7941"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2494119",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494119",
+      "providerTeamIds": [
+        "133603",
+        "133616"
+      ],
+      "home": "Sunderland",
+      "away": "Tottenham Hotspur",
+      "title": "Sunderland v Tottenham Hotspur",
+      "competition": "English Premier League",
+      "startsAt": 1795961100000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494119",
+      "checkedAt": "2026-11-22",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        },
+        {
+          "country": "Iceland",
+          "channel": "Stöð 2 Sport 4 IS",
+          "providerChannelId": "7944"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2494114",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494114",
+      "providerTeamIds": [
+        "133619",
+        "134777"
+      ],
+      "home": "Brighton and Hove Albion",
+      "away": "Newcastle United",
+      "title": "Brighton and Hove Albion v Newcastle United",
+      "competition": "English Premier League",
+      "startsAt": 1795961100000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494114",
+      "checkedAt": "2026-11-22",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        },
+        {
+          "country": "Iceland",
+          "channel": "Stöð 2 Sport 2 IS",
+          "providerChannelId": "7942"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2494111",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494111",
+      "providerTeamIds": [
+        "133600",
+        "134301"
+      ],
+      "home": "Fulham",
+      "away": "Bournemouth",
+      "title": "Fulham v Bournemouth",
+      "competition": "English Premier League",
+      "startsAt": 1795961100000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494111",
+      "checkedAt": "2026-11-22",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
         }
       ],
       "tvCoverage": "partial"
