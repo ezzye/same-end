@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-11-23",
-  "fetchedAt": "2026-11-23T14:32:15.177Z",
-  "dataHash": "a3baae14fa787e68ec129608e260938c7a1442282616013cbbdf3eedc904e993",
+  "checkedAt": "2026-11-24",
+  "fetchedAt": "2026-11-24T14:49:19.543Z",
+  "dataHash": "f8cd3e446ecab6513612a27223fd771282a4a09eeb1e76e99383ac93d663d561",
   "timezone": "UTC",
   "provider": "TheSportsDB",
   "providerApi": "v1",
@@ -87,36 +87,6 @@
       "status": "scheduled"
     },
     {
-      "id": "thesportsdb-2494106",
-      "provider": "TheSportsDB",
-      "providerEventId": "2494106",
-      "providerTeamIds": [
-        "134355",
-        "133615"
-      ],
-      "home": "Brentford",
-      "away": "Everton",
-      "title": "Brentford v Everton",
-      "competition": "English Premier League",
-      "startsAt": 1795464000000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2494106",
-      "checkedAt": "2026-11-23",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "India",
-          "channel": "Disney+ Hotstar",
-          "providerChannelId": "582"
-        },
-        {
-          "country": "Iceland",
-          "channel": "Stöð 2 Sport IS",
-          "providerChannelId": "7941"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
       "id": "thesportsdb-2594655",
       "provider": "TheSportsDB",
       "providerEventId": "2594655",
@@ -130,7 +100,7 @@
       "competition": "UEFA Champions League",
       "startsAt": 1795542300000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594655",
-      "checkedAt": "2026-11-23",
+      "checkedAt": "2026-11-24",
       "status": "scheduled",
       "tv": [
         {
@@ -160,7 +130,7 @@
       "competition": "UEFA Champions League",
       "startsAt": 1795550400000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594544",
-      "checkedAt": "2026-11-23",
+      "checkedAt": "2026-11-24",
       "status": "scheduled",
       "tv": [
         {
@@ -190,7 +160,7 @@
       "competition": "UEFA Champions League",
       "startsAt": 1795550400000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594549",
-      "checkedAt": "2026-11-23",
+      "checkedAt": "2026-11-24",
       "status": "scheduled",
       "tv": [
         {
@@ -220,7 +190,7 @@
       "competition": "UEFA Champions League",
       "startsAt": 1795636800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594595",
-      "checkedAt": "2026-11-23",
+      "checkedAt": "2026-11-24",
       "status": "scheduled",
       "tv": [
         {
@@ -250,7 +220,7 @@
       "competition": "UEFA Champions League",
       "startsAt": 1795636800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594643",
-      "checkedAt": "2026-11-23",
+      "checkedAt": "2026-11-24",
       "status": "scheduled",
       "tv": [
         {
@@ -280,7 +250,7 @@
       "competition": "UEFA Europa League",
       "startsAt": 1795715100000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594876",
-      "checkedAt": "2026-11-23",
+      "checkedAt": "2026-11-24",
       "status": "scheduled",
       "tv": [
         {
@@ -310,7 +280,7 @@
       "competition": "UEFA Conference League",
       "startsAt": 1795715100000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594705",
-      "checkedAt": "2026-11-23",
+      "checkedAt": "2026-11-24",
       "status": "scheduled",
       "tv": [
         {
@@ -340,7 +310,7 @@
       "competition": "UEFA Europa League",
       "startsAt": 1795723200000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594818",
-      "checkedAt": "2026-11-23",
+      "checkedAt": "2026-11-24",
       "status": "scheduled",
       "tv": [
         {
@@ -370,7 +340,7 @@
       "competition": "UEFA Europa League",
       "startsAt": 1795723200000,
       "sourceUrl": "https://www.thesportsdb.com/event/2594929",
-      "checkedAt": "2026-11-23",
+      "checkedAt": "2026-11-24",
       "status": "scheduled",
       "tv": [
         {
@@ -400,7 +370,7 @@
       "competition": "English Premier League",
       "startsAt": 1795809600000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494118",
-      "checkedAt": "2026-11-23",
+      "checkedAt": "2026-11-24",
       "status": "scheduled",
       "tv": [
         {
@@ -430,7 +400,7 @@
       "competition": "English Premier League",
       "startsAt": 1795878000000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494117",
-      "checkedAt": "2026-11-23",
+      "checkedAt": "2026-11-24",
       "status": "scheduled",
       "tv": [
         {
@@ -442,6 +412,36 @@
           "country": "Iceland",
           "channel": "Stöð 2 Sport 3 IS",
           "providerChannelId": "7943"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2494110",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494110",
+      "providerTeamIds": [
+        "133612",
+        "134355"
+      ],
+      "home": "Manchester United",
+      "away": "Brentford",
+      "title": "Manchester United v Brentford",
+      "competition": "English Premier League",
+      "startsAt": 1795878000000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494110",
+      "checkedAt": "2026-11-24",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        },
+        {
+          "country": "Germany",
+          "channel": "RTL+ Germany",
+          "providerChannelId": "79"
         }
       ],
       "tvCoverage": "partial"
@@ -460,7 +460,37 @@
       "competition": "English Premier League",
       "startsAt": 1795887000000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494116",
-      "checkedAt": "2026-11-23",
+      "checkedAt": "2026-11-24",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        },
+        {
+          "country": "Iceland",
+          "channel": "Stöð 2 Sport IS",
+          "providerChannelId": "7941"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2494113",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494113",
+      "providerTeamIds": [
+        "133615",
+        "133602"
+      ],
+      "home": "Everton",
+      "away": "Liverpool",
+      "title": "Everton v Liverpool",
+      "competition": "English Premier League",
+      "startsAt": 1795953600000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494113",
+      "checkedAt": "2026-11-24",
       "status": "scheduled",
       "tv": [
         {
@@ -490,7 +520,7 @@
       "competition": "English Premier League",
       "startsAt": 1795961100000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494115",
-      "checkedAt": "2026-11-23",
+      "checkedAt": "2026-11-24",
       "status": "scheduled",
       "tv": [
         {
@@ -520,7 +550,7 @@
       "competition": "English Premier League",
       "startsAt": 1795961100000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494119",
-      "checkedAt": "2026-11-23",
+      "checkedAt": "2026-11-24",
       "status": "scheduled",
       "tv": [
         {
@@ -550,7 +580,7 @@
       "competition": "English Premier League",
       "startsAt": 1795961100000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494114",
-      "checkedAt": "2026-11-23",
+      "checkedAt": "2026-11-24",
       "status": "scheduled",
       "tv": [
         {
@@ -580,7 +610,7 @@
       "competition": "English Premier League",
       "startsAt": 1795961100000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494111",
-      "checkedAt": "2026-11-23",
+      "checkedAt": "2026-11-24",
       "status": "scheduled",
       "tv": [
         {
