@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-11-25",
-  "fetchedAt": "2026-11-25T14:16:11.173Z",
-  "dataHash": "7762f5ec00e34787ef6d6da1fd517229269704d6542d6a06bf764d67eef95cb5",
+  "checkedAt": "2026-11-27",
+  "fetchedAt": "2026-11-27T13:48:30.858Z",
+  "dataHash": "e38f71b9a799d917f3f3c6124c1b5549ed1f5468261e3192bb1de10d349234ac",
   "timezone": "UTC",
   "provider": "TheSportsDB",
   "providerApi": "v1",
@@ -87,186 +87,6 @@
       "status": "scheduled"
     },
     {
-      "id": "thesportsdb-2594595",
-      "provider": "TheSportsDB",
-      "providerEventId": "2594595",
-      "providerTeamIds": [
-        "135708",
-        "133612"
-      ],
-      "home": "Sporting CP",
-      "away": "Manchester United",
-      "title": "Sporting CP v Manchester United",
-      "competition": "UEFA Champions League",
-      "startsAt": 1795636800000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2594595",
-      "checkedAt": "2026-11-25",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "United States",
-          "channel": "Paramount+ US",
-          "providerChannelId": "6001"
-        },
-        {
-          "country": "Brazil",
-          "channel": "HBO Max BR",
-          "providerChannelId": "3600"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
-      "id": "thesportsdb-2594643",
-      "provider": "TheSportsDB",
-      "providerEventId": "2594643",
-      "providerTeamIds": [
-        "133789",
-        "133602"
-      ],
-      "home": "Club Brugge",
-      "away": "Liverpool",
-      "title": "Club Brugge v Liverpool",
-      "competition": "UEFA Champions League",
-      "startsAt": 1795636800000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2594643",
-      "checkedAt": "2026-11-25",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "United States",
-          "channel": "Paramount+ US",
-          "providerChannelId": "6001"
-        },
-        {
-          "country": "Brazil",
-          "channel": "HBO Max BR",
-          "providerChannelId": "3600"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
-      "id": "thesportsdb-2594876",
-      "provider": "TheSportsDB",
-      "providerEventId": "2594876",
-      "providerTeamIds": [
-        "133937",
-        "134301"
-      ],
-      "home": "Celta Vigo",
-      "away": "Bournemouth",
-      "title": "Celta Vigo v Bournemouth",
-      "competition": "UEFA Europa League",
-      "startsAt": 1795715100000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2594876",
-      "checkedAt": "2026-11-25",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "United States",
-          "channel": "Paramount+ US",
-          "providerChannelId": "6001"
-        },
-        {
-          "country": "France",
-          "channel": "MultiSports 5 FR",
-          "providerChannelId": "3193"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
-      "id": "thesportsdb-2594705",
-      "provider": "TheSportsDB",
-      "providerEventId": "2594705",
-      "providerTeamIds": [
-        "133619",
-        "138188"
-      ],
-      "home": "Brighton and Hove Albion",
-      "away": "Universitatea Craiova",
-      "title": "Brighton and Hove Albion v Universitatea Craiova",
-      "competition": "UEFA Conference League",
-      "startsAt": 1795715100000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2594705",
-      "checkedAt": "2026-11-25",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "United States",
-          "channel": "Paramount+ US",
-          "providerChannelId": "6001"
-        },
-        {
-          "country": "Iceland",
-          "channel": "Stöð 2 Sport 3 IS",
-          "providerChannelId": "7943"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
-      "id": "thesportsdb-2594818",
-      "provider": "TheSportsDB",
-      "providerEventId": "2594818",
-      "providerTeamIds": [
-        "133632",
-        "133724"
-      ],
-      "home": "Crystal Palace",
-      "away": "Real Sociedad",
-      "title": "Crystal Palace v Real Sociedad",
-      "competition": "UEFA Europa League",
-      "startsAt": 1795723200000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2594818",
-      "checkedAt": "2026-11-25",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "United States",
-          "channel": "Paramount+ US",
-          "providerChannelId": "6001"
-        },
-        {
-          "country": "Spain",
-          "channel": "Movistar Liga de Campeones 1",
-          "providerChannelId": "8672"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
-      "id": "thesportsdb-2594929",
-      "provider": "TheSportsDB",
-      "providerEventId": "2594929",
-      "providerTeamIds": [
-        "133603",
-        "135297"
-      ],
-      "home": "Sunderland",
-      "away": "Jagiellonia Białystok",
-      "title": "Sunderland v Jagiellonia Białystok",
-      "competition": "UEFA Europa League",
-      "startsAt": 1795723200000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2594929",
-      "checkedAt": "2026-11-25",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "United States",
-          "channel": "Paramount+ US",
-          "providerChannelId": "6001"
-        },
-        {
-          "country": "Switzerland",
-          "channel": "Blue Sport 6 CH",
-          "providerChannelId": "412"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
       "id": "thesportsdb-2494118",
       "provider": "TheSportsDB",
       "providerEventId": "2494118",
@@ -280,7 +100,7 @@
       "competition": "English Premier League",
       "startsAt": 1795809600000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494118",
-      "checkedAt": "2026-11-25",
+      "checkedAt": "2026-11-27",
       "status": "scheduled",
       "tv": [
         {
@@ -310,7 +130,7 @@
       "competition": "English Premier League",
       "startsAt": 1795878000000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494117",
-      "checkedAt": "2026-11-25",
+      "checkedAt": "2026-11-27",
       "status": "scheduled",
       "tv": [
         {
@@ -340,7 +160,7 @@
       "competition": "English Premier League",
       "startsAt": 1795878000000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494110",
-      "checkedAt": "2026-11-25",
+      "checkedAt": "2026-11-27",
       "status": "scheduled",
       "tv": [
         {
@@ -370,7 +190,7 @@
       "competition": "English Premier League",
       "startsAt": 1795887000000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494116",
-      "checkedAt": "2026-11-25",
+      "checkedAt": "2026-11-27",
       "status": "scheduled",
       "tv": [
         {
@@ -400,7 +220,7 @@
       "competition": "English Premier League",
       "startsAt": 1795953600000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494113",
-      "checkedAt": "2026-11-25",
+      "checkedAt": "2026-11-27",
       "status": "scheduled",
       "tv": [
         {
@@ -430,7 +250,7 @@
       "competition": "English Premier League",
       "startsAt": 1795961100000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494115",
-      "checkedAt": "2026-11-25",
+      "checkedAt": "2026-11-27",
       "status": "scheduled",
       "tv": [
         {
@@ -460,7 +280,7 @@
       "competition": "English Premier League",
       "startsAt": 1795961100000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494119",
-      "checkedAt": "2026-11-25",
+      "checkedAt": "2026-11-27",
       "status": "scheduled",
       "tv": [
         {
@@ -472,36 +292,6 @@
           "country": "Iceland",
           "channel": "Stöð 2 Sport 4 IS",
           "providerChannelId": "7944"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
-      "id": "thesportsdb-2494114",
-      "provider": "TheSportsDB",
-      "providerEventId": "2494114",
-      "providerTeamIds": [
-        "133619",
-        "134777"
-      ],
-      "home": "Brighton and Hove Albion",
-      "away": "Newcastle United",
-      "title": "Brighton and Hove Albion v Newcastle United",
-      "competition": "English Premier League",
-      "startsAt": 1795961100000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2494114",
-      "checkedAt": "2026-11-25",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "India",
-          "channel": "Disney+ Hotstar",
-          "providerChannelId": "582"
-        },
-        {
-          "country": "Iceland",
-          "channel": "Stöð 2 Sport 2 IS",
-          "providerChannelId": "7942"
         }
       ],
       "tvCoverage": "partial"
@@ -520,7 +310,7 @@
       "competition": "English Premier League",
       "startsAt": 1795961100000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494111",
-      "checkedAt": "2026-11-25",
+      "checkedAt": "2026-11-27",
       "status": "scheduled",
       "tv": [
         {
@@ -532,6 +322,36 @@
           "country": "Croatia",
           "channel": "Arena Sport 7 HR",
           "providerChannelId": "2401"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2494114",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494114",
+      "providerTeamIds": [
+        "133619",
+        "134777"
+      ],
+      "home": "Brighton and Hove Albion",
+      "away": "Newcastle United",
+      "title": "Brighton and Hove Albion v Newcastle United",
+      "competition": "English Premier League",
+      "startsAt": 1795961100000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494114",
+      "checkedAt": "2026-11-27",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        },
+        {
+          "country": "Iceland",
+          "channel": "Stöð 2 Sport 2 IS",
+          "providerChannelId": "7942"
         }
       ],
       "tvCoverage": "partial"
@@ -550,7 +370,7 @@
       "competition": "English Premier League",
       "startsAt": 1795969800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494112",
-      "checkedAt": "2026-11-25",
+      "checkedAt": "2026-11-27",
       "status": "scheduled",
       "tv": [
         {
