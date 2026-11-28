@@ -3,19 +3,19 @@
   "domain": "www.sameend.com",
   "controlOrigin": "https://n2dyzit6e56ajocyqghad2qsbq0jfooh.lambda-url.eu-west-1.on.aws",
   "aiOrigin": "https://dldvwd3ue2of4k7qczwzuegqwe0ekock.lambda-url.eu-west-1.on.aws",
-  "appPath": "/app-4412cc8945b5f17f.js",
-  "sourceCommit": "7aecdcf9755b4e4a203c46ddd13905f434a20d0b",
+  "appPath": "/app-4b7e6585996ccdab.js",
+  "sourceCommit": "ad19e82b7c9b74183b54300f84ea3df34ddca86a",
   "mediaLadderOrigin": "https://same-end-mk2-media-ladder-20261117-privatemedia-nptbg8s9qef6.s3.eu-west-1.amazonaws.com",
   "assets": [
     {
       "path": "/index.html",
-      "bytes": 149775,
-      "sha256": "ff5bff54188554bf4b761e6db7880140121ba7c2510abb96ec230d583a37348e"
+      "bytes": 150286,
+      "sha256": "6af8262f1c016909d4e88467af7a83dca8a7b117f9a5e04f244d2a66352f8929"
     },
     {
-      "path": "/app-4412cc8945b5f17f.js",
-      "bytes": 4881589,
-      "sha256": "4412cc8945b5f17f1d28ff9bdc84d2fed3ad97234529aa346f4b6774c94dbadc"
+      "path": "/app-4b7e6585996ccdab.js",
+      "bytes": 4905458,
+      "sha256": "4b7e6585996ccdab6b6f8ccb06d42b33eb09d948c4b82fa7a4b7e3652e9ac60e"
     },
     {
       "path": "/sw.js",
@@ -91,6 +91,31 @@
       "path": "/photos/supporters-flags-960.webp",
       "bytes": 32858,
       "sha256": "45d96389299be8ae42ccfa61a141bcb9603cc6a2676420c655f398e390dbcea5"
+    },
+    {
+      "path": "/app.webmanifest",
+      "bytes": 481,
+      "sha256": "76f968edefcdc2c6d9018b64b4b6988f0c0346f584215a721d3b238e36bbb3a7"
+    },
+    {
+      "path": "/icons/app-180.png",
+      "bytes": 5448,
+      "sha256": "1805a8925696090f6c861479d04469655e9e0d0f5f9a2e82708603e918238a89"
+    },
+    {
+      "path": "/icons/app-192.png",
+      "bytes": 5688,
+      "sha256": "059c5ac8c4de07afd356892fbaa9da23a717c97ca1f5eac09da559a512d50bbf"
+    },
+    {
+      "path": "/icons/app-512.png",
+      "bytes": 16059,
+      "sha256": "ea8f1bfecb7fa2eecdc042289fee8aeb194f030f0bb0051effc306e07bc0e5b6"
+    },
+    {
+      "path": "/notify/sw.js",
+      "bytes": 3128,
+      "sha256": "bf0787fe9159bfbd1bc275dc753afef2dc3ee4118cc8bb1cd3625811ee1ce697"
     },
     {
       "path": "/favicon.ico",
