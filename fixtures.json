@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-11-27",
-  "fetchedAt": "2026-11-27T13:48:30.858Z",
-  "dataHash": "e38f71b9a799d917f3f3c6124c1b5549ed1f5468261e3192bb1de10d349234ac",
+  "checkedAt": "2026-11-28",
+  "fetchedAt": "2026-11-28T12:56:21.949Z",
+  "dataHash": "ec939928fe2cd33607cb509b2c6dfb62cac63703a2fbfad8080361853a4e4d63",
   "timezone": "UTC",
   "provider": "TheSportsDB",
   "providerApi": "v1",
@@ -87,36 +87,6 @@
       "status": "scheduled"
     },
     {
-      "id": "thesportsdb-2494118",
-      "provider": "TheSportsDB",
-      "providerEventId": "2494118",
-      "providerTeamIds": [
-        "133720",
-        "133610"
-      ],
-      "home": "Nottingham Forest",
-      "away": "Chelsea",
-      "title": "Nottingham Forest v Chelsea",
-      "competition": "English Premier League",
-      "startsAt": 1795809600000,
-      "sourceUrl": "https://www.thesportsdb.com/event/2494118",
-      "checkedAt": "2026-11-27",
-      "status": "scheduled",
-      "tv": [
-        {
-          "country": "India",
-          "channel": "Disney+ Hotstar",
-          "providerChannelId": "582"
-        },
-        {
-          "country": "United Kingdom",
-          "channel": "Sky Sports Premier League",
-          "providerChannelId": "8647"
-        }
-      ],
-      "tvCoverage": "partial"
-    },
-    {
       "id": "thesportsdb-2494117",
       "provider": "TheSportsDB",
       "providerEventId": "2494117",
@@ -130,7 +100,7 @@
       "competition": "English Premier League",
       "startsAt": 1795878000000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494117",
-      "checkedAt": "2026-11-27",
+      "checkedAt": "2026-11-28",
       "status": "scheduled",
       "tv": [
         {
@@ -160,7 +130,7 @@
       "competition": "English Premier League",
       "startsAt": 1795878000000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494110",
-      "checkedAt": "2026-11-27",
+      "checkedAt": "2026-11-28",
       "status": "scheduled",
       "tv": [
         {
@@ -190,7 +160,7 @@
       "competition": "English Premier League",
       "startsAt": 1795887000000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494116",
-      "checkedAt": "2026-11-27",
+      "checkedAt": "2026-11-28",
       "status": "scheduled",
       "tv": [
         {
@@ -220,7 +190,7 @@
       "competition": "English Premier League",
       "startsAt": 1795953600000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494113",
-      "checkedAt": "2026-11-27",
+      "checkedAt": "2026-11-28",
       "status": "scheduled",
       "tv": [
         {
@@ -250,7 +220,7 @@
       "competition": "English Premier League",
       "startsAt": 1795961100000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494115",
-      "checkedAt": "2026-11-27",
+      "checkedAt": "2026-11-28",
       "status": "scheduled",
       "tv": [
         {
@@ -280,7 +250,7 @@
       "competition": "English Premier League",
       "startsAt": 1795961100000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494119",
-      "checkedAt": "2026-11-27",
+      "checkedAt": "2026-11-28",
       "status": "scheduled",
       "tv": [
         {
@@ -310,7 +280,7 @@
       "competition": "English Premier League",
       "startsAt": 1795961100000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494111",
-      "checkedAt": "2026-11-27",
+      "checkedAt": "2026-11-28",
       "status": "scheduled",
       "tv": [
         {
@@ -340,7 +310,7 @@
       "competition": "English Premier League",
       "startsAt": 1795961100000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494114",
-      "checkedAt": "2026-11-27",
+      "checkedAt": "2026-11-28",
       "status": "scheduled",
       "tv": [
         {
@@ -370,7 +340,7 @@
       "competition": "English Premier League",
       "startsAt": 1795969800000,
       "sourceUrl": "https://www.thesportsdb.com/event/2494112",
-      "checkedAt": "2026-11-27",
+      "checkedAt": "2026-11-28",
       "status": "scheduled",
       "tv": [
         {
@@ -382,6 +352,66 @@
           "country": "Iceland",
           "channel": "Stöð 2 Sport IS",
           "providerChannelId": "7941"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2494127",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494127",
+      "providerTeamIds": [
+        "133617",
+        "133720"
+      ],
+      "home": "Hull City",
+      "away": "Nottingham Forest",
+      "title": "Hull City v Nottingham Forest",
+      "competition": "English Premier League",
+      "startsAt": 1796239800000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494127",
+      "checkedAt": "2026-11-28",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
+        },
+        {
+          "country": "United Kingdom",
+          "channel": "Sky Sports NFL",
+          "providerChannelId": "8169"
+        }
+      ],
+      "tvCoverage": "partial"
+    },
+    {
+      "id": "thesportsdb-2494124",
+      "provider": "TheSportsDB",
+      "providerEventId": "2494124",
+      "providerTeamIds": [
+        "133610",
+        "133632"
+      ],
+      "home": "Chelsea",
+      "away": "Crystal Palace",
+      "title": "Chelsea v Crystal Palace",
+      "competition": "English Premier League",
+      "startsAt": 1796239800000,
+      "sourceUrl": "https://www.thesportsdb.com/event/2494124",
+      "checkedAt": "2026-11-28",
+      "status": "scheduled",
+      "tv": [
+        {
+          "country": "Iceland",
+          "channel": "Stöð 2 Sport 4 IS",
+          "providerChannelId": "7944"
+        },
+        {
+          "country": "India",
+          "channel": "Disney+ Hotstar",
+          "providerChannelId": "582"
         }
       ],
       "tvCoverage": "partial"
